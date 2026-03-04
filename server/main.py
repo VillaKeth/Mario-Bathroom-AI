@@ -455,6 +455,63 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["is_speaking"] = False
         await ws.send_json({"type": "state", "listening": False})
 
+    elif event_type == "text_input":
+        # Handle keyboard-typed text (same pipeline as audio, but skip STT)
+        text = event.get("text", "").strip()
+        if not text:
+            return
+
+        logger.info(f"Text input: '{text}'")
+
+        # Send thinking state
+        try:
+            await ws.send_json({"type": "state", "thinking": True, "subtitle": text})
+        except Exception:
+            pass
+
+        # Safety check
+        safety = check_input(text)
+        if not safety["safe"]:
+            redirect_audio = tts.synthesize(safety["redirect"])
+            await send_response(ws, safety["redirect"], redirect_audio)
+            return
+
+        emotion_system.update(event="speech_detected", transcript=text)
+        idle_behavior.reset_timer()
+
+        # Check special commands
+        response_text = await _handle_special_commands(text)
+        if response_text is None:
+            memories = []
+            if state_current["speaker_id"]:
+                memories = memory.get_memories_for_context(state_current["speaker_id"])
+
+            ctx = mario_prompt.build_context(
+                speaker_name=state_current["speaker_name"],
+                memories=memories,
+            )
+            ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
+
+            for msg in state_current["conversation_history"][-6:]:
+                ctx.append(msg)
+
+            response_text = await llm.generate_response(ctx, text)
+
+        response_text = filter_response(response_text)
+        logger.info(f"Mario says: '{response_text}'")
+
+        state_current["conversation_history"].append({"role": "user", "content": text})
+        state_current["conversation_history"].append({"role": "assistant", "content": response_text})
+
+        if state_current["speaker_id"]:
+            memory.save_conversation(state_current["speaker_id"], "user", text)
+            memory.save_conversation(state_current["speaker_id"], "mario", response_text)
+
+        voice_params = emotion_system.get_voice_params()
+        response_audio = tts.synthesize(response_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
+        await send_response(ws, response_text, response_audio, emotion=emotion_system.current)
+
 
 async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         sound: str = None, emotion: str = None):

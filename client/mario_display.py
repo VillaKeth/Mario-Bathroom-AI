@@ -1,9 +1,11 @@
-"""Mario sprite display using Pygame with pixel art sprites, particles, and emotions."""
+"""Mario sprite display with background scene, transitions, typewriter bubbles,
+keyboard input, party effects, and emotion-mapped reaction sprites."""
 
 import os
 import logging
 import math
 import random
+import string
 import pygame
 
 DEBUG_DISPLAY = True
@@ -20,8 +22,31 @@ STATE_TALKING = "talking"
 STATE_LISTENING = "listening"
 STATE_GREETING = "greeting"
 STATE_THINKING = "thinking"
+STATE_ENTERING = "entering"
+STATE_EXITING = "exiting"
+STATE_SLEEPING = "sleeping"
+STATE_DANCING = "dancing"
 
 SPRITE_DIR = os.path.join(os.path.dirname(__file__), "assets", "mario")
+
+# Map emotions to sprite names
+EMOTION_SPRITE_MAP = {
+    "happy": "idle",
+    "excited": "dance",
+    "surprised": "surprise",
+    "confused": "think",
+    "annoyed": "idle",
+    "sleepy": "sleep",
+    "mischievous": "laugh",
+    "laughing": "laugh",
+    "sad": "think",
+}
+
+# Speech bubble style based on text content
+BUBBLE_STYLE_NORMAL = "normal"
+BUBBLE_STYLE_SHOUT = "shout"
+BUBBLE_STYLE_QUESTION = "question"
+BUBBLE_STYLE_WHISPER = "whisper"
 
 
 class Particle:
@@ -36,10 +61,12 @@ class Particle:
         self.max_life = life
         self.size = size
         self.shape = shape
+        self.gravity = 0.0
 
     def update(self):
         self.x += self.vx
         self.y += self.vy
+        self.vy += self.gravity
         self.life -= 1
         return self.life > 0
 
@@ -51,17 +78,21 @@ class Particle:
         if self.shape == "circle":
             pygame.draw.circle(screen, color, (int(self.x), int(self.y)), s)
         elif self.shape == "star":
-            points = [
-                (self.x, self.y - s * 2),
-                (self.x + s, self.y),
-                (self.x, self.y + s * 2),
-                (self.x - s, self.y),
-            ]
-            pygame.draw.polygon(screen, color, [(int(px), int(py)) for px, py in points])
+            cx, cy = int(self.x), int(self.y)
+            points = []
+            for i in range(8):
+                angle = i * math.pi / 4
+                r2 = s * 2 if i % 2 == 0 else s
+                points.append((cx + int(r2 * math.cos(angle)), cy + int(r2 * math.sin(angle))))
+            if len(points) >= 3:
+                pygame.draw.polygon(screen, color, points)
+        elif self.shape == "rect":
+            pygame.draw.rect(screen, color, (int(self.x), int(self.y), s * 2, s))
 
 
 class MarioDisplay:
-    """Pygame-based Mario sprite display with pixel art sprites and speech bubbles."""
+    """Pygame-based Mario display with background, transitions, typewriter,
+    keyboard input, and party effects."""
 
     def __init__(self):
         self._screen = None
@@ -70,6 +101,7 @@ class MarioDisplay:
         self._font = None
         self._font_small = None
         self._font_title = None
+        self._font_input = None
 
         # Sprite system
         self._sprites = {}
@@ -84,14 +116,44 @@ class MarioDisplay:
         self._frame = 0
         self._text_display_time = 0
 
+        # Typewriter effect
+        self._typewriter_text = ""
+        self._typewriter_pos = 0
+        self._typewriter_speed = 2  # chars per frame
+
         # Emotion system
         self._emotion = "happy"
         self._particles = []
         self._emotion_timer = 0
 
+        # Transition system
+        self._transition_active = False
+        self._transition_type = None  # "enter" or "exit"
+        self._transition_progress = 0.0
+        self._transition_speed = 0.03
+
+        # Keyboard input mode
+        self.keyboard_mode = False
+        self._keyboard_text = ""
+        self._keyboard_cursor_visible = True
+        self._keyboard_cursor_timer = 0
+        self.on_keyboard_submit = None  # callback(text)
+
+        # Party mode
+        self.party_mode = False
+        self._party_timer = 0
+        self._disco_colors = [
+            (255, 0, 0), (0, 255, 0), (0, 100, 255),
+            (255, 255, 0), (255, 0, 255), (0, 255, 255),
+        ]
+        self._disco_index = 0
+
     def _load_sprites(self):
         """Load all Mario pixel art sprite PNGs."""
-        sprite_names = ["idle", "talk", "talk2", "walk1", "walk2", "wave", "jump", "think"]
+        sprite_names = [
+            "idle", "talk", "talk2", "walk1", "walk2", "wave",
+            "jump", "think", "laugh", "surprise", "sleep", "dance",
+        ]
         for name in sprite_names:
             path = os.path.join(SPRITE_DIR, f"mario_{name}.png")
             if os.path.exists(path):
@@ -117,6 +179,7 @@ class MarioDisplay:
         self._font = pygame.font.Font(None, 28)
         self._font_small = pygame.font.Font(None, 22)
         self._font_title = pygame.font.Font(None, 48)
+        self._font_input = pygame.font.Font(None, 32)
         self._running = True
 
         self._load_sprites()
@@ -133,18 +196,47 @@ class MarioDisplay:
             if event.type == pygame.QUIT:
                 self._running = False
                 return False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self._running = False
-                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if self.keyboard_mode:
+                        self.keyboard_mode = False
+                        self._keyboard_text = ""
+                    else:
+                        self._running = False
+                        return False
+                elif event.key == pygame.K_TAB:
+                    self.keyboard_mode = not self.keyboard_mode
+                    self._keyboard_text = ""
+                elif event.key == pygame.K_F5:
+                    self.party_mode = not self.party_mode
+                elif self.keyboard_mode:
+                    self._handle_keyboard_input(event)
 
         self._frame += 1
+        self._update_typewriter()
+        self._update_transition()
         self._draw()
         self._clock.tick(30)
         return True
 
+    def _handle_keyboard_input(self, event):
+        """Handle keyboard input when in keyboard mode."""
+        if event.key == pygame.K_RETURN:
+            if self._keyboard_text.strip() and self.on_keyboard_submit:
+                self.on_keyboard_submit(self._keyboard_text.strip())
+                self.subtitle_text = self._keyboard_text.strip()
+                self._keyboard_text = ""
+        elif event.key == pygame.K_BACKSPACE:
+            self._keyboard_text = self._keyboard_text[:-1]
+        else:
+            if event.unicode and len(self._keyboard_text) < 200:
+                self._keyboard_text += event.unicode
+
     def set_mario_text(self, text: str):
-        """Set what Mario is saying (shown in speech bubble)."""
-        self.current_text = text
+        """Set what Mario is saying (shown in speech bubble with typewriter effect)."""
+        self._typewriter_text = text
+        self._typewriter_pos = 0
+        self.current_text = ""
         self.state = STATE_TALKING
         self._text_display_time = self._frame
 
@@ -164,6 +256,32 @@ class MarioDisplay:
         if emotion != prev:
             self._spawn_emotion_particles(emotion)
 
+    def start_transition(self, transition_type: str):
+        """Start a walk-in or walk-out transition. Type: 'enter' or 'exit'."""
+        self._transition_active = True
+        self._transition_type = transition_type
+        self._transition_progress = 0.0
+
+    def _update_typewriter(self):
+        """Advance typewriter text effect."""
+        if self._typewriter_text and self._typewriter_pos < len(self._typewriter_text):
+            self._typewriter_pos = min(
+                self._typewriter_pos + self._typewriter_speed,
+                len(self._typewriter_text)
+            )
+            self.current_text = self._typewriter_text[:int(self._typewriter_pos)]
+
+    def _update_transition(self):
+        """Update walk-in/walk-out animation."""
+        if not self._transition_active:
+            return
+        self._transition_progress += self._transition_speed
+        if self._transition_progress >= 1.0:
+            self._transition_active = False
+            self._transition_progress = 1.0
+            if self._transition_type == "exit":
+                self.state = STATE_IDLE
+
     def _spawn_emotion_particles(self, emotion: str):
         """Spawn particles based on emotion change."""
         cx = WINDOW_WIDTH // 2
@@ -177,6 +295,7 @@ class MarioDisplay:
             "annoyed": {"color": (255, 100, 50), "count": 8, "shape": "circle", "spread": 50},
             "sleepy": {"color": (100, 100, 200), "count": 3, "shape": "circle", "spread": 30},
             "mischievous": {"color": (0, 255, 100), "count": 10, "shape": "star", "spread": 70},
+            "laughing": {"color": (255, 255, 100), "count": 10, "shape": "star", "spread": 70},
         }
 
         cfg = particle_configs.get(emotion, {"color": (200, 200, 200), "count": 5, "shape": "circle", "spread": 50})
@@ -192,6 +311,22 @@ class MarioDisplay:
                 shape=cfg["shape"],
             ))
 
+    def _spawn_confetti(self, count=20):
+        """Spawn confetti particles for party mode."""
+        for _ in range(count):
+            color = random.choice(self._disco_colors)
+            self._particles.append(Particle(
+                x=random.randint(0, WINDOW_WIDTH),
+                y=random.randint(-50, 0),
+                color=color,
+                vx=random.uniform(-1, 1),
+                vy=random.uniform(1, 3),
+                life=random.randint(60, 150),
+                size=random.randint(3, 6),
+                shape="rect",
+            ))
+            self._particles[-1].gravity = 0.05
+
     def _update_particles(self):
         """Update and remove dead particles."""
         self._particles = [p for p in self._particles if p.update()]
@@ -202,29 +337,155 @@ class MarioDisplay:
             p.draw(self._screen)
 
     def _get_current_sprite(self) -> str:
-        """Get the sprite name for the current state."""
+        """Get the sprite name, considering state and emotion."""
+        # Transitions use walk sprites
+        if self._transition_active:
+            return "walk1" if (self._frame // 6) % 2 == 0 else "walk2"
+
         if self.state == STATE_TALKING:
-            # Alternate between talk and talk2 for mouth animation
             self._talk_frame += 1
             return "talk" if (self._talk_frame // 6) % 2 == 0 else "talk2"
         elif self.state == STATE_GREETING:
             return "wave"
         elif self.state == STATE_THINKING:
             return "think"
+        elif self.state == STATE_SLEEPING:
+            return "sleep"
+        elif self.state == STATE_DANCING:
+            return "dance"
         elif self.state == STATE_LISTENING:
+            # Use emotion sprite if available
+            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            if emo_sprite and emo_sprite in self._sprites:
+                return emo_sprite
             return "idle"
         else:
-            # Idle — subtle breathing via walk frames occasionally
+            # Idle — use emotion-based sprite
+            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            if emo_sprite and emo_sprite in self._sprites and self._emotion != "happy":
+                return emo_sprite
             return "idle"
+
+    def _detect_bubble_style(self, text: str) -> str:
+        """Detect speech bubble style from text content."""
+        if text.endswith("?"):
+            return BUBBLE_STYLE_QUESTION
+        elif text.endswith("!") or text.isupper():
+            return BUBBLE_STYLE_SHOUT
+        elif text.startswith("(") or text.startswith("*"):
+            return BUBBLE_STYLE_WHISPER
+        return BUBBLE_STYLE_NORMAL
+
+    # ==========================================
+    # BACKGROUND SCENE
+    # ==========================================
+
+    def _draw_background(self):
+        """Draw the bathroom background scene."""
+        # Tile pattern on walls
+        tile_color1 = (40, 50, 70)
+        tile_color2 = (35, 45, 65)
+        grout_color = (30, 35, 50)
+        tile_size = 40
+
+        # Draw tiled wall
+        for row in range(WINDOW_HEIGHT // tile_size + 1):
+            for col in range(WINDOW_WIDTH // tile_size + 1):
+                x = col * tile_size
+                y = row * tile_size
+                color = tile_color1 if (row + col) % 2 == 0 else tile_color2
+                pygame.draw.rect(self._screen, color, (x, y, tile_size, tile_size))
+                pygame.draw.rect(self._screen, grout_color, (x, y, tile_size, tile_size), 1)
+
+        # Floor (darker tiles at bottom)
+        floor_y = WINDOW_HEIGHT - 80
+        floor_color1 = (60, 50, 40)
+        floor_color2 = (50, 40, 30)
+        for col in range(WINDOW_WIDTH // tile_size + 1):
+            x = col * tile_size
+            color = floor_color1 if col % 2 == 0 else floor_color2
+            pygame.draw.rect(self._screen, color, (x, floor_y, tile_size, 80))
+            pygame.draw.rect(self._screen, (40, 30, 20), (x, floor_y, tile_size, 80), 1)
+
+        # Mirror on left wall
+        mirror_x, mirror_y = 30, 80
+        mirror_w, mirror_h = 120, 160
+        pygame.draw.rect(self._screen, (80, 80, 90), (mirror_x - 4, mirror_y - 4, mirror_w + 8, mirror_h + 8))
+        pygame.draw.rect(self._screen, (140, 160, 180), (mirror_x, mirror_y, mirror_w, mirror_h))
+        # Mirror shine
+        pygame.draw.line(self._screen, (180, 200, 220), (mirror_x + 10, mirror_y + 10), (mirror_x + 10, mirror_y + 50), 2)
+        pygame.draw.line(self._screen, (180, 200, 220), (mirror_x + 15, mirror_y + 10), (mirror_x + 15, mirror_y + 30), 1)
+
+        # Sink below mirror
+        sink_y = mirror_y + mirror_h + 10
+        pygame.draw.ellipse(self._screen, (180, 180, 190), (mirror_x + 10, sink_y, 100, 30))
+        pygame.draw.ellipse(self._screen, (160, 160, 170), (mirror_x + 20, sink_y + 5, 80, 20))
+        # Faucet
+        pygame.draw.rect(self._screen, (150, 150, 160), (mirror_x + 55, sink_y - 15, 10, 18))
+        pygame.draw.rect(self._screen, (170, 170, 180), (mirror_x + 50, sink_y - 15, 20, 5))
+
+        # Toilet on right side
+        toilet_x = WINDOW_WIDTH - 140
+        toilet_y = floor_y - 80
+        # Tank
+        pygame.draw.rect(self._screen, (200, 200, 210), (toilet_x + 15, toilet_y - 50, 60, 55), border_radius=5)
+        pygame.draw.rect(self._screen, (180, 180, 190), (toilet_x + 15, toilet_y - 50, 60, 55), 2, border_radius=5)
+        # Handle
+        pygame.draw.rect(self._screen, (170, 170, 180), (toilet_x + 60, toilet_y - 35, 15, 5))
+        # Bowl
+        pygame.draw.ellipse(self._screen, (210, 210, 220), (toilet_x, toilet_y, 90, 85))
+        pygame.draw.ellipse(self._screen, (190, 190, 200), (toilet_x, toilet_y, 90, 85), 2)
+        # Seat
+        pygame.draw.ellipse(self._screen, (220, 220, 230), (toilet_x + 10, toilet_y + 5, 70, 50))
+
+        # Toilet paper roll
+        tp_x = toilet_x - 30
+        tp_y = toilet_y + 10
+        pygame.draw.rect(self._screen, (80, 80, 90), (tp_x + 5, tp_y - 15, 5, 20))
+        pygame.draw.circle(self._screen, (240, 235, 225), (tp_x + 7, tp_y + 8), 12)
+        pygame.draw.circle(self._screen, (180, 175, 165), (tp_x + 7, tp_y + 8), 5)
+
+        # Party mode: disco lighting overlay
+        if self.party_mode:
+            self._party_timer += 1
+            if self._party_timer % 15 == 0:
+                self._disco_index = (self._disco_index + 1) % len(self._disco_colors)
+            if self._party_timer % 10 == 0:
+                self._spawn_confetti(5)
+
+            disco_surf = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            color = self._disco_colors[self._disco_index]
+            disco_surf.fill((*color, 25))
+            self._screen.blit(disco_surf, (0, 0))
+
+            # Disco ball at top
+            ball_x = WINDOW_WIDTH // 2
+            ball_y = 25
+            pygame.draw.circle(self._screen, (200, 200, 200), (ball_x, ball_y), 15)
+            # Light beams
+            for i in range(6):
+                angle = (self._frame * 3 + i * 60) * math.pi / 180
+                end_x = ball_x + int(math.cos(angle) * 200)
+                end_y = ball_y + int(math.sin(angle) * 200)
+                beam_color = self._disco_colors[(self._disco_index + i) % len(self._disco_colors)]
+                pygame.draw.line(self._screen, (*beam_color,), (ball_x, ball_y), (end_x, max(ball_y, end_y)), 1)
+
+    # ==========================================
+    # MAIN DRAW
+    # ==========================================
 
     def _draw(self):
         """Draw the full frame."""
-        self._screen.fill(BG_COLOR)
+        # Background scene instead of flat fill
+        self._draw_background()
         self._update_particles()
         self._emotion_timer += 1
 
         # Draw title
         title = self._font_title.render("It's-a Me, Mario!", True, (255, 215, 0))
+        title_bg = pygame.Surface((title.get_width() + 20, title.get_height() + 10), pygame.SRCALPHA)
+        title_bg.fill((0, 0, 0, 140))
+        self._screen.blit(title_bg, (WINDOW_WIDTH // 2 - title.get_width() // 2 - 10, 15))
         self._screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 20))
 
         # Draw connection status
@@ -235,6 +496,9 @@ class MarioDisplay:
 
         # Draw emotion indicator
         emo_surf = self._font_small.render(f"Mood: {self._emotion}", True, (200, 200, 100))
+        emo_bg = pygame.Surface((emo_surf.get_width() + 10, emo_surf.get_height() + 6), pygame.SRCALPHA)
+        emo_bg.fill((0, 0, 0, 140))
+        self._screen.blit(emo_bg, (5, 12))
         self._screen.blit(emo_surf, (10, 15))
 
         # Draw Mario sprite
@@ -243,7 +507,7 @@ class MarioDisplay:
         # Draw particles on top of Mario
         self._draw_particles()
 
-        # Draw speech bubble
+        # Draw speech bubble with typewriter
         if self.current_text:
             self._draw_speech_bubble(self.current_text)
 
@@ -251,14 +515,32 @@ class MarioDisplay:
         if self.subtitle_text:
             self._draw_subtitle(self.subtitle_text)
 
-        # Draw state indicator
-        state_surf = self._font_small.render(f"[{self.state.upper()}]", True, (150, 150, 150))
-        self._screen.blit(state_surf, (10, WINDOW_HEIGHT - 30))
+        # Draw keyboard input area
+        if self.keyboard_mode:
+            self._draw_keyboard_input()
+
+        # Draw state / mode indicators
+        indicators = [f"[{self.state.upper()}]"]
+        if self.keyboard_mode:
+            indicators.append("[TAB: Keyboard Mode]")
+        if self.party_mode:
+            indicators.append("[F5: Party Mode]")
+        ind_text = " ".join(indicators)
+        ind_surf = self._font_small.render(ind_text, True, (150, 150, 150))
+        ind_bg = pygame.Surface((ind_surf.get_width() + 10, ind_surf.get_height() + 6), pygame.SRCALPHA)
+        ind_bg.fill((0, 0, 0, 140))
+        self._screen.blit(ind_bg, (5, WINDOW_HEIGHT - 33))
+        self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
+
+        # Hint for keyboard/party toggle
+        hint = "TAB: type | F5: party | ESC: quit"
+        hint_surf = self._font_small.render(hint, True, (100, 100, 120))
+        self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
 
         pygame.display.flip()
 
     def _draw_mario(self):
-        """Draw the Mario sprite with bounce animation."""
+        """Draw the Mario sprite with bounce and transition animations."""
         sprite_name = self._get_current_sprite()
         sprite = self._sprites.get(sprite_name)
 
@@ -275,6 +557,8 @@ class MarioDisplay:
             bounce = int(math.sin(self._frame * 0.05) * 3)
         elif self.state == STATE_THINKING:
             bounce = int(math.sin(self._frame * 0.15) * 5)
+        elif self.state == STATE_DANCING:
+            bounce = int(math.sin(self._frame * 0.4) * 8)
 
         if self._emotion == "excited":
             bounce += int(math.sin(self._frame * 0.5) * 6)
@@ -283,14 +567,36 @@ class MarioDisplay:
         elif self._emotion == "surprised":
             bounce -= 10
 
+        # Transition offset (walk in from left, walk out to right)
+        offset_x = 0
+        if self._transition_active:
+            if self._transition_type == "enter":
+                # Walk in from left edge to center
+                start_x = -sprite.get_width()
+                end_x = 0
+                t = self._ease_in_out(self._transition_progress)
+                offset_x = int(start_x + (end_x - start_x) * t)
+            elif self._transition_type == "exit":
+                # Walk out to right edge
+                start_x = 0
+                end_x = WINDOW_WIDTH
+                t = self._ease_in_out(self._transition_progress)
+                offset_x = int(start_x + (end_x - start_x) * t)
+
         # Center the sprite
-        cx = WINDOW_WIDTH // 2 - sprite.get_width() // 2
+        cx = WINDOW_WIDTH // 2 - sprite.get_width() // 2 + offset_x
         cy = WINDOW_HEIGHT // 2 - sprite.get_height() // 2 + 40 + bounce
 
         self._screen.blit(sprite, (cx, cy))
 
+    @staticmethod
+    def _ease_in_out(t: float) -> float:
+        """Smooth ease-in-out interpolation."""
+        return t * t * (3 - 2 * t)
+
     def _draw_speech_bubble(self, text: str):
-        """Draw Mario's speech bubble."""
+        """Draw Mario's speech bubble with style variations."""
+        style = self._detect_bubble_style(self._typewriter_text)
         max_width = 350
         words = text.split()
         lines = []
@@ -314,36 +620,144 @@ class MarioDisplay:
         bubble_w = max_width + 40
         bubble_h = len(lines) * line_height + 30
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
-        bubble_y = 80
+        bubble_y = 70
 
-        # Bubble background
-        pygame.draw.rect(self._screen, (255, 255, 255), (bubble_x, bubble_y, bubble_w, bubble_h), border_radius=15)
-        pygame.draw.rect(self._screen, (0, 0, 0), (bubble_x, bubble_y, bubble_w, bubble_h), 2, border_radius=15)
+        # Style-dependent colors
+        if style == BUBBLE_STYLE_SHOUT:
+            bg_color = (255, 255, 200)
+            border_color = (200, 0, 0)
+            text_color = (180, 0, 0)
+            border_width = 3
+        elif style == BUBBLE_STYLE_QUESTION:
+            bg_color = (220, 230, 255)
+            border_color = (0, 0, 180)
+            text_color = (0, 0, 120)
+            border_width = 2
+        elif style == BUBBLE_STYLE_WHISPER:
+            bg_color = (230, 230, 230)
+            border_color = (150, 150, 150)
+            text_color = (100, 100, 100)
+            border_width = 1
+        else:
+            bg_color = (255, 255, 255)
+            border_color = (0, 0, 0)
+            text_color = (0, 0, 0)
+            border_width = 2
+
+        # Spiky bubble for shouts
+        if style == BUBBLE_STYLE_SHOUT:
+            # Draw spiky/jagged bubble
+            points = []
+            cx_b = bubble_x + bubble_w // 2
+            cy_b = bubble_y + bubble_h // 2
+            num_spikes = 16
+            for i in range(num_spikes * 2):
+                angle = i * math.pi / num_spikes
+                if i % 2 == 0:
+                    rx = bubble_w // 2 + 15
+                    ry = bubble_h // 2 + 15
+                else:
+                    rx = bubble_w // 2 - 5
+                    ry = bubble_h // 2 - 5
+                points.append((
+                    int(cx_b + rx * math.cos(angle)),
+                    int(cy_b + ry * math.sin(angle))
+                ))
+            pygame.draw.polygon(self._screen, bg_color, points)
+            pygame.draw.polygon(self._screen, border_color, points, border_width)
+        else:
+            # Rounded rectangle bubble
+            pygame.draw.rect(self._screen, bg_color,
+                             (bubble_x, bubble_y, bubble_w, bubble_h), border_radius=15)
+            pygame.draw.rect(self._screen, border_color,
+                             (bubble_x, bubble_y, bubble_w, bubble_h), border_width, border_radius=15)
 
         # Bubble pointer
         pointer_x = WINDOW_WIDTH // 2
         pointer_y = bubble_y + bubble_h
-        pygame.draw.polygon(self._screen, (255, 255, 255), [
-            (pointer_x - 10, pointer_y),
-            (pointer_x + 10, pointer_y),
-            (pointer_x, pointer_y + 20),
-        ])
-        pygame.draw.lines(self._screen, (0, 0, 0), False, [
-            (pointer_x - 10, pointer_y),
-            (pointer_x, pointer_y + 20),
-            (pointer_x + 10, pointer_y),
-        ], 2)
+        if style == BUBBLE_STYLE_WHISPER:
+            # Dots for whisper
+            for i in range(3):
+                pygame.draw.circle(self._screen, border_color,
+                                   (pointer_x, pointer_y + 8 + i * 10), 4 - i)
+        else:
+            pygame.draw.polygon(self._screen, bg_color, [
+                (pointer_x - 10, pointer_y),
+                (pointer_x + 10, pointer_y),
+                (pointer_x, pointer_y + 20),
+            ])
+            pygame.draw.lines(self._screen, border_color, False, [
+                (pointer_x - 10, pointer_y),
+                (pointer_x, pointer_y + 20),
+                (pointer_x + 10, pointer_y),
+            ], border_width)
+
+        # Typewriter cursor
+        showing_cursor = (self._typewriter_pos < len(self._typewriter_text)
+                          and (self._frame // 8) % 2 == 0)
 
         # Text
         for i, line in enumerate(lines):
-            text_surf = self._font.render(line, True, (0, 0, 0))
+            text_surf = self._font.render(line, True, text_color)
             self._screen.blit(text_surf, (bubble_x + 20, bubble_y + 15 + i * line_height))
+
+        # Blinking cursor at end of typewriter text
+        if showing_cursor and lines:
+            last_line = lines[-1]
+            cursor_x = bubble_x + 20 + self._font.size(last_line)[0] + 2
+            cursor_y = bubble_y + 15 + (len(lines) - 1) * line_height
+            pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, 22))
 
     def _draw_subtitle(self, text: str):
         """Draw subtitle text at the bottom (what the user said)."""
         subtitle_surf = self._font_small.render(f'You: "{text}"', True, (200, 200, 200))
+        # Semi-transparent background
+        bg = pygame.Surface((subtitle_surf.get_width() + 20, subtitle_surf.get_height() + 10), pygame.SRCALPHA)
+        bg.fill((0, 0, 0, 140))
         x = WINDOW_WIDTH // 2 - subtitle_surf.get_width() // 2
-        self._screen.blit(subtitle_surf, (x, WINDOW_HEIGHT - 60))
+        y = WINDOW_HEIGHT - 65
+        self._screen.blit(bg, (x - 10, y - 5))
+        self._screen.blit(subtitle_surf, (x, y))
+
+    def _draw_keyboard_input(self):
+        """Draw the keyboard text input area."""
+        input_y = WINDOW_HEIGHT - 110
+        input_w = 500
+        input_h = 40
+        input_x = WINDOW_WIDTH // 2 - input_w // 2
+
+        # Background
+        pygame.draw.rect(self._screen, (30, 30, 50),
+                         (input_x, input_y, input_w, input_h), border_radius=8)
+        pygame.draw.rect(self._screen, (100, 200, 255),
+                         (input_x, input_y, input_w, input_h), 2, border_radius=8)
+
+        # Prompt
+        prompt = "> "
+        display_text = prompt + self._keyboard_text
+        text_surf = self._font_input.render(display_text, True, (220, 220, 255))
+
+        # Clip to input box
+        clip_rect = pygame.Rect(input_x + 10, input_y + 5, input_w - 20, input_h - 10)
+        self._screen.set_clip(clip_rect)
+        # Scroll text if too long
+        text_w = text_surf.get_width()
+        if text_w > input_w - 20:
+            self._screen.blit(text_surf, (input_x + 10 - (text_w - input_w + 20), input_y + 8))
+        else:
+            self._screen.blit(text_surf, (input_x + 10, input_y + 8))
+        self._screen.set_clip(None)
+
+        # Blinking cursor
+        self._keyboard_cursor_timer += 1
+        if (self._keyboard_cursor_timer // 15) % 2 == 0:
+            cursor_x = min(input_x + 10 + text_surf.get_width(), input_x + input_w - 15)
+            pygame.draw.rect(self._screen, (100, 200, 255),
+                             (cursor_x, input_y + 8, 2, input_h - 16))
+
+        # Label
+        label = self._font_small.render("Type a message (Enter to send, ESC to close)", True, (120, 120, 160))
+        self._screen.blit(label, (input_x, input_y - 18))
 
     def quit(self):
         """Clean up Pygame."""

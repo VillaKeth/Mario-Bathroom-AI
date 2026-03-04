@@ -33,13 +33,12 @@ SHADOW_COLOR = (0, 0, 0, 50)        # Subtle drop shadow
 
 # ==========================================
 # SPRITE DEFINITIONS (16 wide, varying height)
-# Original pixel art - NES-inspired Mario
+# Fixed: friendly eyes, clear mustache, correct arm anatomy
 # ==========================================
 
-# ==========================================
-# SPRITE DEFINITIONS (16 wide, varying height)
-# Improved with better details, shading colors
-# ==========================================
+# Eyes: ww top (whites), kk bottom (pupils) = relaxed, friendly look
+# Mustache: thick brown band with nose shadow (n) above for definition
+# Arms: extend from body at chest level, never float from head
 
 SPRITE_IDLE = [
     "....rrrrr.......",
@@ -49,7 +48,7 @@ SPRITE_IDLE = [
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -75,9 +74,9 @@ SPRITE_TALK = [
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
-    "..ssbbbsbbbss...",
+    "..ssbbbbbbbss...",
     "...ssnrrrnsss...",
     "....rrrrrrrr....",
     "..rrrruuuurrrr..",
@@ -101,7 +100,7 @@ SPRITE_WALK1 = [
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -126,7 +125,7 @@ SPRITE_WALK2 = [
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -143,22 +142,23 @@ SPRITE_WALK2 = [
     "........ggggg...",
 ]
 
+# Wave: right arm extends from shirt at chest level
 SPRITE_WAVE = [
-    "....rrrrr..ew...",
-    "...rrrrrrrrrwe..",
-    "...drrrrrrrrrwe.",
-    "..drrrrrrrrrrrw.",
-    "..bbbsssbbs..se.",
+    "....rrrrr.......",
+    "...rrrrrrrrr....",
+    "...drrrrrrrrr...",
+    "..drrrrrrrrrrd..",
+    "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
     "....rrrrrrrr....",
-    "..rrrruuuurrrr..",
+    "..rrrruuuurrrrew",
     ".wrrrrruuurrrrr.",
-    "..rrrruuuuurrrr.",
+    ".errrrruuuurrrrr",
     "..rrrruuyuurrrr.",
     "...uuuuuuuuuu...",
     "..uuuuuuuuuuuu..",
@@ -169,9 +169,8 @@ SPRITE_WAVE = [
     ".ggggg....ggggg.",
 ]
 
+# Jump: arms spread wide from body, legs tucked up
 SPRITE_JUMP = [
-    ".......ws.......",
-    "......wse.......",
     "....rrrrr.......",
     "...rrrrrrrrr....",
     "...drrrrrrrrr...",
@@ -179,22 +178,23 @@ SPRITE_JUMP = [
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
     ".bssswwswwsss...",
-    ".bssswkswksss...",
+    ".bssskkskkssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
     "....rrrrrrrr....",
     "..rrrruuuurrrr..",
     "wrrrrruuuurrrrrw",
-    ".errrrruuuurrw..",
-    "..rrrruuyuurr...",
-    "...uuuuuuuuu....",
+    ".errrrruuuurrre.",
+    "..rrrruuyuurrrr.",
     "...uuuuuuuuuu...",
-    "..bbbb...uuuuu..",
-    ".bbbbb....bbbb..",
+    "..uuuuuuuuuuuu..",
+    "..uuuuu..uuuuu..",
+    ".bbbbb....bbbbb.",
     ".ggggg....ggggg.",
 ]
 
+# Think: half-closed contemplative eyes (squinting, not staring)
 SPRITE_THINK = [
     "....rrrrr.......",
     "...rrrrrrrrr....",
@@ -202,8 +202,8 @@ SPRITE_THINK = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssskwskwsss...",
-    ".bssskkskksss...",
+    ".bsssnnsnnssn...",
+    ".bsssswsswssn...",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -212,8 +212,8 @@ SPRITE_THINK = [
     ".wrrrrruuurrrrrw",
     ".errrrruuuurrrrw",
     "..rrrruuyuurrrr.",
-    "...uuuuuuuuuuw..",
-    "..uuuuuuuuuuwew.",
+    "...uuuuuuuuuu...",
+    "..uuuuuuuuuuuu..",
     "..iiuuu..uuuii..",
     "..uuuu....uuuu..",
     "..bbbb....bbbb..",
@@ -221,14 +221,129 @@ SPRITE_THINK = [
     ".ggggg....ggggg.",
 ]
 
+# Laughing: eyes squeezed shut, big open mouth below mustache
+SPRITE_LAUGH = [
+    "....rrrrr.......",
+    "...rrrrrrrrr....",
+    "...drrrrrrrrr...",
+    "..drrrrrrrrrrd..",
+    "..bbbsssbbs.....",
+    ".bssbsssssbbs...",
+    ".bsssnnsnnssn...",
+    ".bsssssssssss...",
+    "..ssssnssnsss...",
+    "..ssbbbsbbbss...",
+    "...snrrrrrnsn...",
+    "....rrrrrrrr....",
+    "..rrrruuuurrrr..",
+    ".wrrrrruuurrrrrw",
+    ".errrrruuuurrrrw",
+    "..rrrruuyuurrrr.",
+    "...uuuuuuuuuu...",
+    "..uuuuuuuuuuuu..",
+    "..iiuuu..uuuii..",
+    "..uuuu....uuuu..",
+    "..bbbb....bbbb..",
+    ".bbbbb....bbbbb.",
+    ".ggggg....ggggg.",
+]
+
+# Surprised: extra-wide eyes, small O mouth
+SPRITE_SURPRISE = [
+    "....rrrrr.......",
+    "...rrrrrrrrr....",
+    "...drrrrrrrrr...",
+    "..drrrrrrrrrrd..",
+    "..bbbsssbbs.....",
+    ".bssbsssssbbs...",
+    ".bswwwsswwwss...",
+    ".bswkwsswkwss...",
+    "..ssssnssnsss...",
+    "..ssbbbbbbbss...",
+    "...sssnrnsssn...",
+    "....rrrrrrrr....",
+    "..rrrruuuurrrr..",
+    ".wrrrrruuurrrrrw",
+    ".errrrruuuurrrrw",
+    "..rrrruuyuurrrr.",
+    "...uuuuuuuuuu...",
+    "..uuuuuuuuuuuu..",
+    "..iiuuu..uuuii..",
+    "..uuuu....uuuu..",
+    "..bbbb....bbbb..",
+    ".bbbbb....bbbbb.",
+    ".ggggg....ggggg.",
+]
+
+# Sleeping: closed eyes, Z's floating above head
+SPRITE_SLEEP = [
+    "............k.k.",
+    "...........k....",
+    "..........k.k...",
+    "....rrrrr.......",
+    "...rrrrrrrrr....",
+    "...drrrrrrrrr...",
+    "..drrrrrrrrrrd..",
+    "..bbbsssbbs.....",
+    ".bssbsssssbbs...",
+    ".bsssnnsnnssn...",
+    ".bsssssssssss...",
+    "..ssssnssnsss...",
+    "..ssbbbbbbbss...",
+    "...ssssssssss...",
+    "....rrrrrrrr....",
+    "..rrrruuuurrrr..",
+    ".wrrrrruuurrrrrw",
+    ".errrrruuuurrrrw",
+    "..rrrruuyuurrrr.",
+    "...uuuuuuuuuu...",
+    "..uuuuuuuuuuuu..",
+    "..iiuuu..uuuii..",
+    "..uuuu....uuuu..",
+    "..bbbb....bbbb..",
+    ".bbbbb....bbbbb.",
+    ".ggggg....ggggg.",
+]
+
+# Dancing: arms wide, right leg kicked out
+SPRITE_DANCE = [
+    "....rrrrr.......",
+    "...rrrrrrrrr....",
+    "...drrrrrrrrr...",
+    "..drrrrrrrrrrd..",
+    "..bbbsssbbs.....",
+    ".bssbsssssbbs...",
+    ".bssswwswwsss...",
+    ".bssskkskkssn...",
+    "..ssssnssnsss...",
+    "..ssbbbbbbbss...",
+    "...ssssssssss...",
+    "....rrrrrrrr....",
+    "..rrrruuuurrrr..",
+    "wrrrrruuuurrrrrw",
+    ".errrrruuuurrre.",
+    "..rrrruuyuurrrr.",
+    "...uuuuuuuuuu...",
+    "..uuuuuuuuuuuu..",
+    "..iiuuu....uuuu.",
+    "..uuuu......uuu.",
+    "..bbbb.....bbbb.",
+    ".bbbbb.....ggggg",
+    ".ggggg..........",
+]
+
 ALL_SPRITES = {
-    "idle":   SPRITE_IDLE,
-    "talk":   SPRITE_TALK,
-    "walk1":  SPRITE_WALK1,
-    "walk2":  SPRITE_WALK2,
-    "wave":   SPRITE_WAVE,
-    "jump":   SPRITE_JUMP,
-    "think":  SPRITE_THINK,
+    "idle":     SPRITE_IDLE,
+    "talk":     SPRITE_TALK,
+    "walk1":    SPRITE_WALK1,
+    "walk2":    SPRITE_WALK2,
+    "wave":     SPRITE_WAVE,
+    "jump":     SPRITE_JUMP,
+    "think":    SPRITE_THINK,
+    "laugh":    SPRITE_LAUGH,
+    "surprise": SPRITE_SURPRISE,
+    "sleep":    SPRITE_SLEEP,
+    "dance":    SPRITE_DANCE,
 }
 
 
@@ -328,6 +443,12 @@ def generate_all():
     """Generate all Mario sprite PNGs."""
     os.makedirs(ASSET_DIR, exist_ok=True)
 
+    # Validate all sprites before generating
+    for name, data in ALL_SPRITES.items():
+        for i, row in enumerate(data):
+            if len(row) != 16:
+                raise ValueError(f"Sprite '{name}' row {i}: expected 16 chars, got {len(row)}")
+
     for name, data in ALL_SPRITES.items():
         img = generate_sprite(data)
         path = os.path.join(ASSET_DIR, f"mario_{name}.png")
@@ -342,7 +463,7 @@ def generate_all():
     img.save(path)
     print(f"  Created {path} ({img.width}x{img.height})")
 
-    print(f"\nAll sprites saved to {ASSET_DIR}")
+    print(f"\nAll {len(ALL_SPRITES) + 1} sprites saved to {ASSET_DIR}")
 
 
 if __name__ == "__main__":

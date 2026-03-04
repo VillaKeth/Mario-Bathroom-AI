@@ -34,6 +34,16 @@
 - [x] Sprite-based display rendering (replaces basic shape drawing)
 - [x] Sprite generator script (client/generate_sprites.py)
 - [x] HD sprite upgrade (auto-outlines, drop shadows, shading, 10× scale → 200×270px)
+- [x] Fixed sprite anatomy (relaxed eyes, clear mustache/mouth, correct arm positions)
+- [x] Reaction sprites (laugh, surprise, sleep, dance — 4 new sprites, 12 total)
+- [x] Bathroom background scene (tiled walls, mirror, sink, toilet, toilet paper, floor)
+- [x] Animated walk-in/walk-out transitions for enter/exit events
+- [x] Typewriter text effect in speech bubbles with blinking cursor
+- [x] Speech bubble style variations (shout=spiky/red, question=blue, whisper=dots)
+- [x] Keyboard input mode (TAB to toggle, type messages to Mario without mic)
+- [x] Party mode effects (F5 to toggle — disco ball, confetti, color cycling)
+- [x] Emotion-to-sprite mapping (excited→dance, surprised→surprise, sleepy→sleep, etc.)
+- [x] Server text_input event handler (keyboard messages processed same as voice)
 
 ## 🔲 Remaining
 - [ ] Test with multiple speakers switching rapidly

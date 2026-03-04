@@ -17,7 +17,8 @@ import sys
 from audio_capture import AudioCapture
 from audio_playback import AudioPlayback
 from presence import PresenceDetector
-from mario_display import MarioDisplay, STATE_IDLE, STATE_TALKING, STATE_LISTENING, STATE_THINKING, STATE_GREETING
+from mario_display import (MarioDisplay, STATE_IDLE, STATE_TALKING, STATE_LISTENING,
+                           STATE_THINKING, STATE_GREETING, STATE_ENTERING, STATE_EXITING)
 from ws_client import MarioWSClient
 from sound_effects import SoundEffects
 
@@ -59,6 +60,9 @@ class MarioClient:
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
+
+        # Wire up keyboard input from display
+        self.display.on_keyboard_submit = self._on_keyboard_submit
 
     def start(self):
         """Start all client components."""
@@ -181,6 +185,7 @@ class MarioClient:
         """Someone entered the bathroom."""
         logger.info("Presence detected — someone entered!")
         self.ws.send_event({"type": "presence_enter"})
+        self.display.start_transition("enter")
         self.display.set_state(STATE_GREETING)
         self.sfx.play("greeting")
 
@@ -188,9 +193,18 @@ class MarioClient:
         """Someone left the bathroom."""
         logger.info("Presence lost — someone left!")
         self.ws.send_event({"type": "presence_exit"})
-        self.display.set_state(STATE_IDLE)
+        self.display.start_transition("exit")
+        self.display.set_state(STATE_EXITING)
         self.display.set_subtitle("")
         self.sfx.play("goodbye")
+
+    def _on_keyboard_submit(self, text: str):
+        """Called when user submits text via keyboard input."""
+        if DEBUG_CLIENT:
+            logger.info(f"[DEBUG_CLIENT] Keyboard input: {text}")
+        self.display.set_subtitle(text)
+        if self.ws.connected:
+            self.ws.send_event({"type": "text_input", "text": text})
 
 
 def main():
