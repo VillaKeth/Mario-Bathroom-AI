@@ -1,0 +1,67 @@
+{
+  "python-envs.pythonProjects": [
+    {
+      "path": "",
+      "envManager": "ms-python.python:pyenv",
+      "packageManager": "ms-python.python:pip"
+    }
+  ],
+  "chat.mcp.serverSampling": {
+    "WellnessScape/.vscode/mcp.json: chrome-devtools": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.2",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    },
+    "WellnessScape/.vscode/mcp.json: desktop-commander": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.2",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    },
+    "WellnessScape/.vscode/mcp.json: memory": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.2",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    },
+    "WellnessScape/.vscode/mcp.json: time": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.2",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    }
+  }
+}

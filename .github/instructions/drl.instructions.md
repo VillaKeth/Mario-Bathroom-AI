@@ -1,0 +1,43 @@
+---
+name: DRL Instructions
+description: Doosan Robot Language programming conventions and API reference
+applyTo: "**/*.drl"
+---
+- DRL is Python-based — follow Python 3.2.3 conventions (indentation, no semicolons)
+- Reference the Doosan API documentation in `Doosan_API/` for command syntax and parameters
+- Always verify command signatures against the API docs before writing DRL code
+- Use `set_velj()` / `set_accj()` before joint motions, `set_velx()` / `set_accx()` before task motions
+- Key API references:
+  - DRL syntax (variables, functions, control flow): `Doosan_API/01-drl-basic-syntax/`
+  - Position creation (posj, posx, trans): `Doosan_API/02-motion-commands/01-pos-creation.md`
+  - Motion settings (set_velj, set_accj, set_velx, set_accx): `Doosan_API/02-motion-commands/02-motion-settings.md`
+  - Synchronous motion (movej, movel, movec, moveb, move_spiral, move_periodic): `Doosan_API/02-motion-commands/03-synchronous-motion.md`
+  - Asynchronous motion (amovej, amovel, amovec, mwait): `Doosan_API/02-motion-commands/04-asynchronous-motion.md`
+  - Additional motion (check_motion, change_operation_speed): `Doosan_API/02-motion-commands/05-additional-functions.md`
+  - Servo motion (servoj, servol, speedj, speedl): `Doosan_API/02-motion-commands/06-servo-motion.md`
+  - Robot state (get_current_posj, get_current_posx, get_tool_force): `Doosan_API/03-auxiliary-control/01-robot-current-value.md`
+  - Robot target values: `Doosan_API/03-auxiliary-control/02-robot-target-value.md`
+  - Control state (get_control_mode, get_robot_state): `Doosan_API/03-auxiliary-control/03-control-state-value.md`
+  - Tool/workpiece settings (set_tcp, set_tool, set_workpiece_weight): `Doosan_API/04-other-settings/01-tool-workpiece-settings.md`
+  - Control mode (set_singularity_handling, set_palletizing_mode): `Doosan_API/04-other-settings/02-control-mode-settings.md`
+  - Force control (task_compliance_ctrl, set_desired_force, set_stiffnessx): `Doosan_API/05-force-stiffness-control/01-force-compliance-control.md`
+  - User-friendly (parallel_axis, align_axis, calc_coord, set_user_cart_coord): `Doosan_API/05-force-stiffness-control/02-user-friendly-functions.md`
+  - IO operations (set_digital_output, get_digital_input, get_analog_input): `Doosan_API/06-system-commands/01-io-related.md`
+  - TP interface (tp_popup, tp_log, tp_get_user_input): `Doosan_API/06-system-commands/02-tp-interface.md`
+  - Threads (thread_run, thread_stop): `Doosan_API/06-system-commands/03-thread.md`
+  - System utilities (wait, exit, sub_program_run): `Doosan_API/06-system-commands/04-others.md`
+  - Basic math (ceil, floor, pow, sqrt, log, d2r, r2d): `Doosan_API/07-mathematical-functions/01-basic-functions.md`
+  - Trigonometry (sin, cos, tan, asin, acos, atan, atan2): `Doosan_API/07-mathematical-functions/02-trigonometric-functions.md`
+  - Linear algebra (norm, rotx, roty, rotz, rotm2eul, htrans, inverse_pose): `Doosan_API/07-mathematical-functions/03-linear-algebra.md`
+  - Serial communication: `Doosan_API/08-external-communication/01-serial.md`
+  - Flange IO: `Doosan_API/08-external-communication/02-flange-io.md`
+  - TCP client sockets (client_socket_open, client_socket_read, client_socket_write): `Doosan_API/08-external-communication/03-tcp-client.md`
+  - TCP server sockets (server_socket_open, server_socket_read, server_socket_write): `Doosan_API/08-external-communication/04-tcp-server.md`
+  - Modbus (add_modbus_signal, get_modbus_input, set_modbus_output): `Doosan_API/08-external-communication/05-modbus.md`
+  - Modbus coil/register addresses: `Doosan_API/Modbus_Table.md`
+  - Industrial Ethernet (EtherNet/IP, PROFINET): `Doosan_API/08-external-communication/06-industrial-ethernet.md`
+  - FOCAS (CNC communication): `Doosan_API/08-external-communication/07-focas.md`
+  - External encoder: `Doosan_API/09-application-commands/01-external-encoder.md`
+  - Conveyor tracking: `Doosan_API/09-application-commands/02-conveyor-tracking.md`
+  - Welding commands: `Doosan_API/09-application-commands/03-welding.md`
+  - A-Series commands: `Doosan_API/10-a-series-command/README.md`
