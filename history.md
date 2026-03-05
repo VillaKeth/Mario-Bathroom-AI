@@ -70,3 +70,8 @@
 - Added `client/audit_reference_links.py` to parse a link list and block sources without explicit permissive license markers.
 - Audited `C:\Users\Vketh\Desktop\Here are all the links from the 2D.txt` and produced `assets_boutique_fresh/link_license_report.txt`.
 - Current audit result: `approved=0`, `blocked=32`, `skipped=1`; no provided links were safe for direct ingestion under compliance rules.
+
+## 2026-03-05 — Wacky Remix Lab from Local mario_assets
+- Added `client/generate_wacky_remixes.py` to apply 10 visual effects per source sheet (`neon_pop`, `rgb_ghost`, `sine_wave`, `pixel_crunch`, `hot_duotone`, `inverted_scanline`, `kaleido_mirror`, `solar_flare`, `edge_glow`, `gameboy_mutation`).
+- Generated `assets_wacky_lab/` with remixes for 3 local source sheets from `mario_assets/`, plus `index.html`, `manifest.txt`, and preview image.
+- This flow edits user-provided local assets directly (no external scraping), enabling fast experimentation with aggressive style remixes.

@@ -47,6 +47,7 @@
 - [x] Boutique sprite overhaul set (10 hand-crafted full iterations in assets_boutique with previews and per-iteration notes)
 - [x] Fresh from-scratch sprite set (10 fully new iterations in assets_boutique_fresh with unique silhouettes and preview index)
 - [x] Link compliance audit pipeline for reference files (client/audit_reference_links.py + generated link_license_report.txt)
+- [x] Wacky remix lab from mario_assets (client/generate_wacky_remixes.py + assets_wacky_lab outputs)
 
 ## 🔲 Remaining
 - [ ] Test with multiple speakers switching rapidly

@@ -1,0 +1,18 @@
+Wacky Mario Remix Lab
+Generated: 2026-03-05T17:43:29.934910+00:00
+
+mario.png -> source_mario
+dcpb2k5-fccc921c-3d4e-47dc-845b-1361bb1c5fab.png -> source_dcpb2k5_fccc921c_3d4e_47dc_845b_1361bb1c5fab
+t4p5ims9enlc1.png -> source_t4p5ims9enlc1
+
+Effects:
+- neon_pop
+- rgb_ghost
+- sine_wave
+- pixel_crunch
+- hot_duotone
+- inverted_scanline
+- kaleido_mirror
+- solar_flare
+- edge_glow
+- gameboy_mutation
