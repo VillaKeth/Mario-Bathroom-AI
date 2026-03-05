@@ -48,6 +48,8 @@
 - [x] Fresh from-scratch sprite set (10 fully new iterations in assets_boutique_fresh with unique silhouettes and preview index)
 - [x] Link compliance audit pipeline for reference files (client/audit_reference_links.py + generated link_license_report.txt)
 - [x] Wacky remix lab from mario_assets (client/generate_wacky_remixes.py + assets_wacky_lab outputs)
+- [x] 3D Mario assets — 100 iterations × 24 sources = 2,400 images (client/generate_3d_mario_assets.py + mario_3d_assets/)
+- [x] Expressive Mario poses — 47 photoshopped emotion/action poses from NSMBU Deluxe render (client/generate_expressive_mario.py + mario_3d_assets/expressive/)
 
 ## 🔲 Remaining
 - [ ] Test with multiple speakers switching rapidly

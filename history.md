@@ -75,3 +75,18 @@
 - Added `client/generate_wacky_remixes.py` to apply 10 visual effects per source sheet (`neon_pop`, `rgb_ghost`, `sine_wave`, `pixel_crunch`, `hot_duotone`, `inverted_scanline`, `kaleido_mirror`, `solar_flare`, `edge_glow`, `gameboy_mutation`).
 - Generated `assets_wacky_lab/` with remixes for 3 local source sheets from `mario_assets/`, plus `index.html`, `manifest.txt`, and preview image.
 - This flow edits user-provided local assets directly (no external scraping), enabling fast experimentation with aggressive style remixes.
+
+## 2026-03-05 — 3D Mario Assets: 100 Iterations × 24 Sources
+- Created `client/generate_3d_mario_assets.py` — comprehensive image processing pipeline that:
+  - Loads all 24 images from `mario_assets/` (including user's preferred `Mario_New_Super_Mario_Bros_U_Deluxe.webp` and `zap9gpu6vj9e1.png`)
+  - Applies smart background removal (corner-sampling + tolerance), crops to content, fits to 400×500 target
+  - Runs 100 unique visual effects per source: color shifts (sepia, ice, fire, golden, purple), hue rotations, art styles (oil paint, watercolor, comic, sketch, pop art), distortions (glitch, wave, swirl), pixelation levels (NES 8-bit, SNES 16-bit, N64), character swaps (Wario/Luigi/Waluigi colors), power-ups (star power, fire mario, ice mario, metal, shadow, ghost), backgrounds, outlines, and composited combos
+  - Total output: 2,400 PNG images in `mario_3d_assets/` with interactive HTML gallery and manifest
+- Bug fixes during development: PIL HSV conversion requires RGB intermediary + `putalpha()` needs PIL Image not numpy array; numpy glitch effect needed deterministic slice bounds
+
+## 2026-03-05 — Expressive Mario Poses (Photoshopped)
+- **What**: 47 unique photoshopped poses from NSMBU Deluxe Mario render — actual face/body manipulation, not just color filters
+- **Script**: `client/generate_expressive_mario.py`
+- **Output**: `mario_3d_assets/expressive/` with index.html gallery
+- **Categories**: Speech & Communication (talking, waving, greeting, farewell, listening, singing), Positive Emotions (idle, happy, excited, laughing, love, proud, victorious), Negative Emotions (sad, crying, angry, furious, embarrassed, nervous, scared, tired), Thinking & Processing (thinking, confused, mischievous, determined, processing), Sleep & Rest (sleepy, sleeping), Movement & Action (jumping, dancing, eating), Power-Ups (star, fire flower, mega/mini mushroom)
+- **Techniques**: Face region manipulation (eye closing/widening, mouth opening), body tilting/squashing/stretching, color tints per emotion, overlay elements (speech bubbles, thought clouds, Zzz, hearts, tears, anger veins, stars, sparkles, music notes, motion lines, sweat drops, question marks, exclamation marks, fire/ice effects)

@@ -1,0 +1,54 @@
+Mario Expressive Poses
+========================================
+
+Base image: Mario_New_Super_Mario_Bros_U_Deluxe.webp
+Thinking ref: zap9gpu6vj9e1.png
+Total poses: 47
+
+  idle: Standing neutral — default state
+  idle_blink: Idle with eyes closed — blink frame
+  talking_1: Talking with 'Let's-a go!' speech bubble
+  talking_2: Shouting 'Wahoo!' — excited speech
+  talking_3: Mouth open — for TTS audio overlay
+  thinking: Thinking with thought bubble and question mark
+  thinking_deep: Deep thinking — tilted, multiple ?'s
+  thinking_chin: Thinking with hand on chin (uses reference image)
+  happy: Happy — bright, sparkles, blushing
+  very_happy: Very happy — squished, squinting, stars
+  sad: Sad — muted colors, tears, frown
+  crying: Crying — streaming tears, desaturated
+  surprised: Surprised — wide eyes, exclamation, slight jump
+  shocked: Shocked — extreme surprise, shaking
+  angry: Angry — red face tint, anger veins
+  furious: Furious — deep red, lots of anger veins, shaking
+  sleepy: Sleepy — droopy eyes, dim, small Zzz
+  sleeping: Fully asleep — tilted, Zzz, very dim
+  excited: Excited — jumping up, sparkles, bright
+  laughing: Laughing — eyes squinted, mouth open
+  laughing_hard: Laughing hard — tears of joy, squished
+  waving: Waving — greeting with wave arcs
+  waving_hello: Waving hello with 'It's-a me!' bubble
+  jumping: Jumping — raised up with shadow below
+  jumping_high: High jump — way up, motion lines
+  dancing: Dancing — tilted right, music notes
+  dancing_2: Dancing — tilted left, mirrored
+  confused: Confused — question marks, head tilt
+  embarrassed: Embarrassed — blushing, looking away
+  nervous: Nervous — shaking, sweat drops
+  scared: Scared — blue tint, wide eyes, sweat
+  love: In love — hearts, blush, dreamy eyes
+  mischievous: Mischievous — sly wink, 'Heh heh'
+  determined: Determined — bold, sharp, 'Let's-a go!'
+  proud: Proud — puffed up, sparkles above head
+  tired: Tired — dim, dark circles, droopy
+  eating: Eating a mushroom — nom nom!
+  star_power: Star power — rainbow glow, invincible!
+  fire_flower: Fire flower — white/red, fireballs
+  mega_mushroom: Mega mushroom — giant Mario!
+  mini_mushroom: Mini mushroom — tiny Mario!
+  greeting: Greeting — welcoming with 'Welcome!'
+  farewell: Farewell — waving goodbye
+  listening: Listening — attentive, sound waves
+  singing: Singing — open mouth, music everywhere
+  victorious: Victory — fist pump, 'WAHOO!'
+  processing: Processing — thinking with gear icon

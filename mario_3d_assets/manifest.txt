@@ -1,0 +1,134 @@
+Mario 3D Assets — 100 Iterations
+========================================
+
+Sources: 24
+Effects per source: 100
+Total outputs: 2400
+
+Source images:
+  - 18b2879b899f4d0ca1fde176b4d8ee0d.jpeg
+  - 28c4515cd96345ff9edb5fab5e52e81b.jpeg
+  - 2d8c2eaf-d0b0-4ec1-ae73-beebc556d138_3dmar10dayassets.jpg
+  - 440-4407379_super-mario-maker-smw-sprite-sheet-png-download.png
+  - d06e34040a484e598fc3f6eea75eee90.jpeg
+  - dcpb2k5-fccc921c-3d4e-47dc-845b-1361bb1c5fab.png
+  - df18gww-a1b80c36-3d78-4cf3-8b41-eaade6b50a7a.png
+  - f979280de82842f0877b23c3465e7629.jpeg
+  - february-set-little-mario-moves-art-super-mario-world-classic-video-game-pixel-design-vector-illustration-super-mario-world-213002304.jpg
+  - GIF-360head_1.gif
+  - kart_fighter_mario__nes__remastered__by_dstar99_sprites_dfb0tvj-pre.jpg
+  - mario-foto.jpg
+  - mario.png
+  - Mario_New_Super_Mario_Bros_U_Deluxe.webp
+  - maxresdefault.jpg
+  - movie_mario_bros____pixel_art_by_luigiissuperior_dfulqcv-fullview.jpg
+  - new_mecha_mario___mini_sprite_sheet_update_by_as02x_dejvnpz-fullview.jpg
+  - png-transparent-super-mario-64-ds-super-mario-odyssey-super-mario-sunshine-super-mario-bros-mario-mushroom-super-mario-bros-hand-nintendo.png
+  - s3otjic8lvw91.png
+  - set-flying-mario-moves-art-super-mario-world-classic-video-game-pixel-design-vector-illustration-february-set-flying-213002293.jpg
+  - SMRPG_Luigi_Sprites_by_ted.png
+  - Super-Mario-Bros-Brothers-Mario-Action-Figures-Collection-5_0c5b61d1-a19f-4682-adec-23ed585ce598.b2a2b7b678bc046b03c8af9000db4c0b.jpeg
+  - t4p5ims9enlc1.png
+  - zap9gpu6vj9e1.png
+
+Effects:
+  001_original: No changes — clean Mario.
+  002_vibrant: Boost saturation and contrast.
+  003_pastel: Soft pastel look.
+  004_neon_glow: Bright neon glow effect.
+  005_retro_crt: CRT scanline effect.
+  006_sepia: Warm sepia tone.
+  007_ice_blue: Cold ice-blue tint.
+  008_fire_red: Hot fire-red tint.
+  009_golden: Golden/warm sunshine look.
+  010_purple_haze: Purple psychedelic tint.
+  011_matrix_green: Matrix-style green tint.
+  012_high_contrast: Extreme contrast.
+  013_low_contrast: Dreamy low contrast.
+  014_sharpen: Extra sharp.
+  015_soft_blur: Soft dreamy blur.
+  016_emboss: Embossed/relief effect.
+  017_edge_detect: Edge-only silhouette.
+  018_posterize_4: 4-level posterization.
+  019_posterize_8: 8-level posterization.
+  020_invert: Inverted colors.
+  021_mirror_h: Horizontal mirror (facing other way).
+  022_flip_v: Vertical flip (upside down Mario).
+  023_rotate_15: Slight 15° tilt.
+  024_rotate_neg15: Slight -15° tilt.
+  025_rotate_45: 45° dynamic tilt.
+  026_pixel_8: 8-pixel pixelation.
+  027_pixel_4: 4-pixel pixelation.
+  028_pixel_16: Heavy 16-pixel pixelation.
+  029_vignette: Dark vignette around edges.
+  030_spotlight: Center spotlight effect.
+  031_rainbow_shift: Hue rotation across the image horizontally.
+  032_hue_shift_60: Shift hue by 60 degrees.
+  033_hue_shift_120: Shift hue by 120 degrees.
+  034_hue_shift_180: Shift hue by 180 degrees — complementary colors.
+  035_grayscale: Full grayscale.
+  036_duotone_red_blue: Red-blue duotone.
+  037_duotone_orange_teal: Orange-teal duotone.
+  038_thermal: Thermal/heat map look.
+  039_xray: X-ray negative with blue tint.
+  040_oil_paint: Simulate oil painting via heavy median filter.
+  041_watercolor: Watercolor — blur + posterize + boost color.
+  042_comic_book: Bold comic book style — high contrast + edges.
+  043_pop_art: Pop art — posterize + vibrant + dots pattern hint.
+  044_sketch: Pencil sketch effect.
+  045_halftone: Simulated halftone dot pattern.
+  046_noise_grain: Film grain noise overlay.
+  047_glitch_h: Horizontal glitch — shift random rows.
+  048_glitch_rgb: RGB channel split glitch.
+  049_wave_sine: Sine wave distortion.
+  050_wave_vertical: Vertical wave distortion.
+  051_swirl: Simple swirl distortion from center.
+  052_zoom_burst: Radial zoom blur from center.
+  053_double_exposure: Double exposure with offset self.
+  054_shadow_long: Long dramatic shadow behind Mario.
+  055_outline_black: Thick black outline around Mario.
+  056_outline_white: White outline around Mario.
+  057_outline_gold: Gold outline around Mario.
+  058_scale_up_120: 120% scale.
+  059_scale_down_80: 80% scale — smaller Mario.
+  060_squish_wide: Wide squished Mario.
+  061_stretch_tall: Tall stretched Mario.
+  062_bg_red: Red background.
+  063_bg_blue: Blue sky background.
+  064_bg_green: Green pipe background.
+  065_bg_yellow: Star power yellow background.
+  066_bg_gradient_sunset: Gradient sunset background.
+  067_bg_gradient_night: Gradient night sky background.
+  068_bg_checkerboard: Checkerboard pattern background.
+  069_channel_red_only: Red channel only.
+  070_channel_green_only: Green channel only.
+  071_channel_blue_only: Blue channel only.
+  072_brightness_up: Bright — +40%.
+  073_brightness_down: Dark — -30%.
+  074_solarize: Solarize effect.
+  075_quantize_16: Reduce to 16 colors.
+  076_quantize_8: Reduce to 8 colors — NES style.
+  077_gameboy: GameBoy 4-shade green palette.
+  078_super_saiyan: Golden glow — Super Saiyan Mario!
+  079_star_power: Star power — flashing rainbow tint with glow.
+  080_fire_mario: Fire Mario — white hat, red overalls tint.
+  081_ice_mario: Ice Mario — cyan/white palette.
+  082_shadow_mario: Shadow/dark Mario — very dark with glowing eyes hint.
+  083_ghost_mario: Ghost Mario — semi-transparent, blue-white tint.
+  084_metal_mario: Metal Mario — silver/steel look.
+  085_8bit_nes: NES-style with limited palette and heavy pixelation.
+  086_snes_16bit: SNES 16-bit style — moderate pixelation, more colors.
+  087_n64_low_poly: N64 style — blocky with slight blur and limited colors.
+  088_chromatic_aberration: Strong chromatic aberration — RGB offset.
+  089_tilt_shift: Tilt-shift miniature effect — sharp center, blurry top/bottom.
+  090_cross_process: Cross-processed film look.
+  091_vintage_film: Vintage film — yellow tint, low contrast, grain.
+  092_contour: Contour lines effect.
+  093_detail_enhance: Enhanced detail.
+  094_smooth: Heavy smooth.
+  095_wario_colors: Wario palette swap — yellow hat, purple overalls.
+  096_luigi_colors: Luigi palette swap — green hat, dark blue overalls.
+  097_waluigi_colors: Waluigi palette — purple hat, black overalls.
+  098_tiny_planet: Tiny/chibi scale with big head feel.
+  099_comic_neon: No description
+  100_star_sketch: No description
