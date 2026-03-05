@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Mario Expressive Poses V2</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0e27; color:#e0e0e0; font-family:'Segoe UI',sans-serif; padding:20px; }
+h1 { text-align:center; color:#ff4757; font-size:2.2em; margin:20px 0 5px; }
+h1 span { font-size:1.2em; }
+.subtitle { text-align:center; color:#a0a0a0; margin-bottom:10px; }
+.count { text-align:center; color:#ff6b81; font-size:1.1em; margin-bottom:30px; }
+.category { margin:30px 0; }
+.cat-title { font-size:1.4em; color:#ff4757; padding:10px 20px; border-left:4px solid #ff4757;
+  background:linear-gradient(90deg,rgba(255,71,87,0.1),transparent); margin-bottom:15px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; padding:0 10px; }
+.card { background:linear-gradient(135deg,#1a1e3a,#15192e); border-radius:12px; overflow:hidden;
+  border:1px solid #2a2e4a; transition:all 0.3s; cursor:pointer; }
+.card:hover { transform:translateY(-5px); border-color:#ff4757; box-shadow:0 8px 25px rgba(255,71,87,0.2); }
+.card img { width:100%; height:250px; object-fit:contain; background:#1a3a5c; padding:5px; }
+.card .info { padding:10px; }
+.card .name { color:#ff6b81; font-weight:bold; font-size:0.95em; }
+.card .desc { color:#808080; font-size:0.8em; margin-top:3px; }
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9);
+  z-index:100; justify-content:center; align-items:center; }
+.modal.active { display:flex; }
+.modal img { max-width:90%; max-height:90%; object-fit:contain; border-radius:8px; }
+.modal-close { position:fixed; top:20px; right:30px; color:white; font-size:30px; cursor:pointer; z-index:101; }
+</style></head><body>
+<h1><span>🎭</span> Mario Expressive Poses V2</h1>
+<p class="subtitle">ACTUAL body manipulation — arms move, faces change, poses are real!</p>
+<p class="count">🍄 74 unique manipulated poses from NSMBU Deluxe Mario</p>
+<div class="category"><h2 class="cat-title">😐 Neutral</h2><div class="grid">
+<div class="card" onclick="showModal('idle.png')">
+<img src="idle.png" alt="idle" loading="lazy">
+<div class="info"><div class="name">idle</div><div class="desc">Default standing pose</div></div></div>
+<div class="card" onclick="showModal('idle_blink.png')">
+<img src="idle_blink.png" alt="idle_blink" loading="lazy">
+<div class="info"><div class="name">idle_blink</div><div class="desc">Eyes closed — blink frame</div></div></div>
+<div class="card" onclick="showModal('idle_wink.png')">
+<img src="idle_wink.png" alt="idle_wink" loading="lazy">
+<div class="info"><div class="name">idle_wink</div><div class="desc">Playful wink — right eye closed</div></div></div>
+<div class="card" onclick="showModal('looking_left.png')">
+<img src="looking_left.png" alt="looking_left" loading="lazy">
+<div class="info"><div class="name">looking_left</div><div class="desc">Eyes shifted left</div></div></div>
+<div class="card" onclick="showModal('looking_right.png')">
+<img src="looking_right.png" alt="looking_right" loading="lazy">
+<div class="info"><div class="name">looking_right</div><div class="desc">Eyes shifted right</div></div></div>
+<div class="card" onclick="showModal('looking_up.png')">
+<img src="looking_up.png" alt="looking_up" loading="lazy">
+<div class="info"><div class="name">looking_up</div><div class="desc">Eyes looking upward</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">👋 Greeting</h2><div class="grid">
+<div class="card" onclick="showModal('wave_right_high.png')">
+<img src="wave_right_high.png" alt="wave_right_high" loading="lazy">
+<div class="info"><div class="name">wave_right_high</div><div class="desc">Right arm raised high — actual wave!</div></div></div>
+<div class="card" onclick="showModal('wave_right_mid.png')">
+<img src="wave_right_mid.png" alt="wave_right_mid" loading="lazy">
+<div class="info"><div class="name">wave_right_mid</div><div class="desc">Right arm at shoulder height wave</div></div></div>
+<div class="card" onclick="showModal('wave_left_high.png')">
+<img src="wave_left_high.png" alt="wave_left_high" loading="lazy">
+<div class="info"><div class="name">wave_left_high</div><div class="desc">Left arm raised high wave</div></div></div>
+<div class="card" onclick="showModal('wave_both.png')">
+<img src="wave_both.png" alt="wave_both" loading="lazy">
+<div class="info"><div class="name">wave_both</div><div class="desc">Both arms raised — big hello!</div></div></div>
+<div class="card" onclick="showModal('greeting_hello.png')">
+<img src="greeting_hello.png" alt="greeting_hello" loading="lazy">
+<div class="info"><div class="name">greeting_hello</div><div class="desc">Friendly hello with right arm wave + sparkles</div></div></div>
+<div class="card" onclick="showModal('greeting_welcome.png')">
+<img src="greeting_welcome.png" alt="greeting_welcome" loading="lazy">
+<div class="info"><div class="name">greeting_welcome</div><div class="desc">Welcoming with both arms out</div></div></div>
+<div class="card" onclick="showModal('farewell.png')">
+<img src="farewell.png" alt="farewell" loading="lazy">
+<div class="info"><div class="name">farewell</div><div class="desc">Goodbye wave — arm up + speech</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">💬 Speech</h2><div class="grid">
+<div class="card" onclick="showModal('talking_mouth_open.png')">
+<img src="talking_mouth_open.png" alt="talking_mouth_open" loading="lazy">
+<div class="info"><div class="name">talking_mouth_open</div><div class="desc">Mouth open — talking frame 1</div></div></div>
+<div class="card" onclick="showModal('talking_mouth_wide.png')">
+<img src="talking_mouth_wide.png" alt="talking_mouth_wide" loading="lazy">
+<div class="info"><div class="name">talking_mouth_wide</div><div class="desc">Mouth wide open — loud/shouting</div></div></div>
+<div class="card" onclick="showModal('talking_excited.png')">
+<img src="talking_excited.png" alt="talking_excited" loading="lazy">
+<div class="info"><div class="name">talking_excited</div><div class="desc">Excited talking — arm gesture + big mouth</div></div></div>
+<div class="card" onclick="showModal('talking_quiet.png')">
+<img src="talking_quiet.png" alt="talking_quiet" loading="lazy">
+<div class="info"><div class="name">talking_quiet</div><div class="desc">Quiet talking — small mouth, leaning in</div></div></div>
+<div class="card" onclick="showModal('shouting.png')">
+<img src="shouting.png" alt="shouting" loading="lazy">
+<div class="info"><div class="name">shouting</div><div class="desc">Shouting — very wide mouth + arm up</div></div></div>
+<div class="card" onclick="showModal('singing.png')">
+<img src="singing.png" alt="singing" loading="lazy">
+<div class="info"><div class="name">singing</div><div class="desc">Singing — open mouth + music notes</div></div></div>
+<div class="card" onclick="showModal('whistling.png')">
+<img src="whistling.png" alt="whistling" loading="lazy">
+<div class="info"><div class="name">whistling</div><div class="desc">Whistling — puckered mouth + notes</div></div></div>
+<div class="card" onclick="showModal('listening.png')">
+<img src="listening.png" alt="listening" loading="lazy">
+<div class="info"><div class="name">listening</div><div class="desc">Listening attentively — head tilted</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">😄 Positive</h2><div class="grid">
+<div class="card" onclick="showModal('happy_smile.png')">
+<img src="happy_smile.png" alt="happy_smile" loading="lazy">
+<div class="info"><div class="name">happy_smile</div><div class="desc">Happy with big smile + blush</div></div></div>
+<div class="card" onclick="showModal('very_happy.png')">
+<img src="very_happy.png" alt="very_happy" loading="lazy">
+<div class="info"><div class="name">very_happy</div><div class="desc">Very happy — eyes squinted, huge smile</div></div></div>
+<div class="card" onclick="showModal('excited_jump.png')">
+<img src="excited_jump.png" alt="excited_jump" loading="lazy">
+<div class="info"><div class="name">excited_jump</div><div class="desc">Excited — jumping with fist pump!</div></div></div>
+<div class="card" onclick="showModal('laughing.png')">
+<img src="laughing.png" alt="laughing" loading="lazy">
+<div class="info"><div class="name">laughing</div><div class="desc">Laughing — eyes squinted, mouth wide</div></div></div>
+<div class="card" onclick="showModal('laughing_hard.png')">
+<img src="laughing_hard.png" alt="laughing_hard" loading="lazy">
+<div class="info"><div class="name">laughing_hard</div><div class="desc">Laughing so hard — body shaking</div></div></div>
+<div class="card" onclick="showModal('love.png')">
+<img src="love.png" alt="love" loading="lazy">
+<div class="info"><div class="name">love</div><div class="desc">In love — heart eyes + floating hearts</div></div></div>
+<div class="card" onclick="showModal('proud_fist.png')">
+<img src="proud_fist.png" alt="proud_fist" loading="lazy">
+<div class="info"><div class="name">proud_fist</div><div class="desc">Proud — fist pump + determined face</div></div></div>
+<div class="card" onclick="showModal('victorious.png')">
+<img src="victorious.png" alt="victorious" loading="lazy">
+<div class="info"><div class="name">victorious</div><div class="desc">Victory pose — both arms up + sparkles</div></div></div>
+<div class="card" onclick="showModal('thumbs_up.png')">
+<img src="thumbs_up.png" alt="thumbs_up" loading="lazy">
+<div class="info"><div class="name">thumbs_up</div><div class="desc">Thumbs up — arm extended with fist</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">😢 Negative</h2><div class="grid">
+<div class="card" onclick="showModal('sad.png')">
+<img src="sad.png" alt="sad" loading="lazy">
+<div class="info"><div class="name">sad</div><div class="desc">Sad — droopy eyes, frown, muted colors</div></div></div>
+<div class="card" onclick="showModal('very_sad.png')">
+<img src="very_sad.png" alt="very_sad" loading="lazy">
+<div class="info"><div class="name">very_sad</div><div class="desc">Very sad — tears streaming, blue tint</div></div></div>
+<div class="card" onclick="showModal('crying.png')">
+<img src="crying.png" alt="crying" loading="lazy">
+<div class="info"><div class="name">crying</div><div class="desc">Crying — closed eyes, many tears, slumped</div></div></div>
+<div class="card" onclick="showModal('angry.png')">
+<img src="angry.png" alt="angry" loading="lazy">
+<div class="info"><div class="name">angry</div><div class="desc">Angry — angry brows, gritted teeth, red tint</div></div></div>
+<div class="card" onclick="showModal('furious.png')">
+<img src="furious.png" alt="furious" loading="lazy">
+<div class="info"><div class="name">furious</div><div class="desc">Furious — shaking, very red, veins everywhere</div></div></div>
+<div class="card" onclick="showModal('annoyed.png')">
+<img src="annoyed.png" alt="annoyed" loading="lazy">
+<div class="info"><div class="name">annoyed</div><div class="desc">Annoyed — half-closed eyes, slight frown</div></div></div>
+<div class="card" onclick="showModal('disappointed.png')">
+<img src="disappointed.png" alt="disappointed" loading="lazy">
+<div class="info"><div class="name">disappointed</div><div class="desc">Disappointed — head down, sad eyes</div></div></div>
+<div class="card" onclick="showModal('scared.png')">
+<img src="scared.png" alt="scared" loading="lazy">
+<div class="info"><div class="name">scared</div><div class="desc">Scared — wide eyes, shaking, blue tint</div></div></div>
+<div class="card" onclick="showModal('nervous.png')">
+<img src="nervous.png" alt="nervous" loading="lazy">
+<div class="info"><div class="name">nervous</div><div class="desc">Nervous — sweat drops, shifty eyes</div></div></div>
+<div class="card" onclick="showModal('embarrassed.png')">
+<img src="embarrassed.png" alt="embarrassed" loading="lazy">
+<div class="info"><div class="name">embarrassed</div><div class="desc">Embarrassed — blushing hard, eyes averted</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">🤔 Thinking</h2><div class="grid">
+<div class="card" onclick="showModal('thinking.png')">
+<img src="thinking.png" alt="thinking" loading="lazy">
+<div class="info"><div class="name">thinking</div><div class="desc">Thinking — eyes up, thought bubble</div></div></div>
+<div class="card" onclick="showModal('thinking_deep.png')">
+<img src="thinking_deep.png" alt="thinking_deep" loading="lazy">
+<div class="info"><div class="name">thinking_deep</div><div class="desc">Deep thinking — head tilted, multiple ?</div></div></div>
+<div class="card" onclick="showModal('confused.png')">
+<img src="confused.png" alt="confused" loading="lazy">
+<div class="info"><div class="name">confused</div><div class="desc">Confused — tilted head, question mark</div></div></div>
+<div class="card" onclick="showModal('curious.png')">
+<img src="curious.png" alt="curious" loading="lazy">
+<div class="info"><div class="name">curious</div><div class="desc">Curious — wide eyes, leaning forward</div></div></div>
+<div class="card" onclick="showModal('surprised.png')">
+<img src="surprised.png" alt="surprised" loading="lazy">
+<div class="info"><div class="name">surprised</div><div class="desc">Surprised — very wide eyes, open mouth</div></div></div>
+<div class="card" onclick="showModal('shocked.png')">
+<img src="shocked.png" alt="shocked" loading="lazy">
+<div class="info"><div class="name">shocked</div><div class="desc">Shocked — extreme surprise, stepped back</div></div></div>
+<div class="card" onclick="showModal('mischievous.png')">
+<img src="mischievous.png" alt="mischievous" loading="lazy">
+<div class="info"><div class="name">mischievous</div><div class="desc">Mischievous — wink + sly grin</div></div></div>
+<div class="card" onclick="showModal('determined.png')">
+<img src="determined.png" alt="determined" loading="lazy">
+<div class="info"><div class="name">determined</div><div class="desc">Determined — fist up, focused eyes</div></div></div>
+<div class="card" onclick="showModal('processing.png')">
+<img src="processing.png" alt="processing" loading="lazy">
+<div class="info"><div class="name">processing</div><div class="desc">Processing/loading — gear thought bubble</div></div></div>
+<div class="card" onclick="showModal('dizzy.png')">
+<img src="dizzy.png" alt="dizzy" loading="lazy">
+<div class="info"><div class="name">dizzy</div><div class="desc">Dizzy — spiral eyes, wobbling</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">💤 Sleep</h2><div class="grid">
+<div class="card" onclick="showModal('sleepy.png')">
+<img src="sleepy.png" alt="sleepy" loading="lazy">
+<div class="info"><div class="name">sleepy</div><div class="desc">Sleepy — half-closed eyes, dim, small Zzz</div></div></div>
+<div class="card" onclick="showModal('sleeping.png')">
+<img src="sleeping.png" alt="sleeping" loading="lazy">
+<div class="info"><div class="name">sleeping</div><div class="desc">Fully asleep — eyes closed, tilted, big Zzz</div></div></div>
+<div class="card" onclick="showModal('yawning.png')">
+<img src="yawning.png" alt="yawning" loading="lazy">
+<div class="info"><div class="name">yawning</div><div class="desc">Yawning — wide mouth, eyes closed</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">🏃 Movement</h2><div class="grid">
+<div class="card" onclick="showModal('jumping.png')">
+<img src="jumping.png" alt="jumping" loading="lazy">
+<div class="info"><div class="name">jumping</div><div class="desc">Jumping — raised up with shadow below</div></div></div>
+<div class="card" onclick="showModal('jumping_high.png')">
+<img src="jumping_high.png" alt="jumping_high" loading="lazy">
+<div class="info"><div class="name">jumping_high</div><div class="desc">High jump — way up + motion lines</div></div></div>
+<div class="card" onclick="showModal('running.png')">
+<img src="running.png" alt="running" loading="lazy">
+<div class="info"><div class="name">running</div><div class="desc">Running — leaning forward, motion lines</div></div></div>
+<div class="card" onclick="showModal('dancing_1.png')">
+<img src="dancing_1.png" alt="dancing_1" loading="lazy">
+<div class="info"><div class="name">dancing_1</div><div class="desc">Dancing pose 1 — tilted right + music</div></div></div>
+<div class="card" onclick="showModal('dancing_2.png')">
+<img src="dancing_2.png" alt="dancing_2" loading="lazy">
+<div class="info"><div class="name">dancing_2</div><div class="desc">Dancing pose 2 — tilted left + music</div></div></div>
+<div class="card" onclick="showModal('pointing_forward.png')">
+<img src="pointing_forward.png" alt="pointing_forward" loading="lazy">
+<div class="info"><div class="name">pointing_forward</div><div class="desc">Pointing forward — arm extended</div></div></div>
+<div class="card" onclick="showModal('pointing_up.png')">
+<img src="pointing_up.png" alt="pointing_up" loading="lazy">
+<div class="info"><div class="name">pointing_up</div><div class="desc">Pointing up — arm aimed skyward</div></div></div>
+<div class="card" onclick="showModal('flexing.png')">
+<img src="flexing.png" alt="flexing" loading="lazy">
+<div class="info"><div class="name">flexing</div><div class="desc">Flexing — arm bent showing muscle</div></div></div>
+<div class="card" onclick="showModal('crouching.png')">
+<img src="crouching.png" alt="crouching" loading="lazy">
+<div class="info"><div class="name">crouching</div><div class="desc">Crouching — body squished down</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">⚡ Action</h2><div class="grid">
+<div class="card" onclick="showModal('eating.png')">
+<img src="eating.png" alt="eating" loading="lazy">
+<div class="info"><div class="name">eating</div><div class="desc">Eating a mushroom — nom nom!</div></div></div>
+<div class="card" onclick="showModal('salute.png')">
+<img src="salute.png" alt="salute" loading="lazy">
+<div class="info"><div class="name">salute</div><div class="desc">Saluting — hand at hat brim</div></div></div>
+<div class="card" onclick="showModal('shrug.png')">
+<img src="shrug.png" alt="shrug" loading="lazy">
+<div class="info"><div class="name">shrug</div><div class="desc">Shrugging — arms out to sides</div></div></div>
+<div class="card" onclick="showModal('facepalm.png')">
+<img src="facepalm.png" alt="facepalm" loading="lazy">
+<div class="info"><div class="name">facepalm</div><div class="desc">Facepalm — hand on face, disappointed</div></div></div>
+<div class="card" onclick="showModal('dabbing.png')">
+<img src="dabbing.png" alt="dabbing" loading="lazy">
+<div class="info"><div class="name">dabbing</div><div class="desc">Dabbing — the classic dab pose</div></div></div>
+</div></div>
+<div class="category"><h2 class="cat-title">⭐ Power-Up</h2><div class="grid">
+<div class="card" onclick="showModal('star_power.png')">
+<img src="star_power.png" alt="star_power" loading="lazy">
+<div class="info"><div class="name">star_power</div><div class="desc">Star power — rainbow shimmer, invincible!</div></div></div>
+<div class="card" onclick="showModal('fire_flower.png')">
+<img src="fire_flower.png" alt="fire_flower" loading="lazy">
+<div class="info"><div class="name">fire_flower</div><div class="desc">Fire Mario — white/red color swap + fireballs</div></div></div>
+<div class="card" onclick="showModal('ice_mario.png')">
+<img src="ice_mario.png" alt="ice_mario" loading="lazy">
+<div class="info"><div class="name">ice_mario</div><div class="desc">Ice Mario — blue/white color scheme + ice crystals</div></div></div>
+<div class="card" onclick="showModal('mega_mushroom.png')">
+<img src="mega_mushroom.png" alt="mega_mushroom" loading="lazy">
+<div class="info"><div class="name">mega_mushroom</div><div class="desc">Mega Mario — enlarged body, MEGA!</div></div></div>
+<div class="card" onclick="showModal('mini_mushroom.png')">
+<img src="mini_mushroom.png" alt="mini_mushroom" loading="lazy">
+<div class="info"><div class="name">mini_mushroom</div><div class="desc">Mini Mario — tiny body, squeaky!</div></div></div>
+<div class="card" onclick="showModal('metal_mario.png')">
+<img src="metal_mario.png" alt="metal_mario" loading="lazy">
+<div class="info"><div class="name">metal_mario</div><div class="desc">Metal Mario — metallic silver sheen</div></div></div>
+<div class="card" onclick="showModal('gold_mario.png')">
+<img src="gold_mario.png" alt="gold_mario" loading="lazy">
+<div class="info"><div class="name">gold_mario</div><div class="desc">Gold Mario — golden shimmer</div></div></div>
+</div></div>
+
+<div class="modal" id="modal" onclick="this.classList.remove('active')">
+<span class="modal-close" onclick="document.getElementById('modal').classList.remove('active')">&times;</span>
+<img id="modal-img" src="">
+</div>
+<script>
+function showModal(src) {
+  document.getElementById('modal-img').src = src;
+  document.getElementById('modal').classList.add('active');
+}
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') document.getElementById('modal').classList.remove('active');
+});
+</script></body></html>

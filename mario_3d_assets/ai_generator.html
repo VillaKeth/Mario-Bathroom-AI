@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mario AI Pose Generator — Puter.js</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+        }
+        h1 { color: #e63946; text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; }
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 10px;
+        }
+        button {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #c1121f; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        button.secondary { background: #457b9d; }
+        button.secondary:hover { background: #1d3557; }
+        #status {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #a8dadc;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e63946, #f4a261);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .card img {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            background: #0a0a1a;
+        }
+        .card .info {
+            padding: 10px;
+        }
+        .card .info h3 { color: #f4a261; font-size: 14px; }
+        .card .info p { color: #888; font-size: 11px; margin-top: 4px; }
+        .card .info .actions { margin-top: 8px; }
+        .card .info .actions button {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+        .category-header {
+            grid-column: 1 / -1;
+            padding: 15px 0 5px;
+            border-bottom: 2px solid #e63946;
+            margin-top: 10px;
+        }
+        .category-header h2 { color: #f4a261; }
+        .error { color: #e63946; }
+        .success { color: #2a9d8f; }
+        .model-select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #457b9d;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍄 Mario AI Pose Generator</h1>
+    <p class="subtitle">Using Puter.js free AI image generation — no API key needed!</p>
+
+    <div class="controls">
+        <div>
+            <label>Model: </label>
+            <select id="modelSelect" class="model-select">
+                <option value="dall-e-3">DALL-E 3 (Best quality)</option>
+                <option value="dall-e-2">DALL-E 2</option>
+                <option value="flux-schnell" selected>Flux Schnell (Fast)</option>
+                <option value="flux-dev">Flux Dev (High quality)</option>
+                <option value="sdxl">Stable Diffusion XL</option>
+                <option value="sd3">Stable Diffusion 3</option>
+            </select>
+        </div>
+        <br>
+        <button id="btnGenerateAll" onclick="generateAll()">🚀 Generate All Poses (74)</button>
+        <button id="btnGenerateTest" onclick="generateTest()" class="secondary">🧪 Test Single Pose</button>
+        <button id="btnStop" onclick="stopGeneration()" class="secondary" disabled>⏹ Stop</button>
+        <button id="btnDownloadAll" onclick="downloadAllAsZip()" class="secondary" disabled>💾 Download All</button>
+    </div>
+
+    <div id="status">Ready — click Generate to start</div>
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+
+    <div id="grid" class="grid"></div>
+
+    <script>
+        let generating = false;
+        let stopRequested = false;
+        let generatedImages = {};
+
+        // Mario pose definitions with carefully crafted prompts
+        const POSE_CATEGORIES = {
+            "😐 Neutral": [
+                { id: "idle", prompt: "Super Mario from Nintendo standing in a neutral relaxed pose, arms at sides, friendly expression, 3D rendered character, clean white background, full body shot, high detail", desc: "Default standing pose" },
+                { id: "idle_blink", prompt: "Super Mario from Nintendo standing with eyes closed mid-blink, relaxed pose, 3D rendered character, clean white background, full body", desc: "Eyes closed blink" },
+                { id: "idle_wink", prompt: "Super Mario from Nintendo standing and winking one eye playfully, slight smile, 3D rendered character, clean white background, full body", desc: "Playful wink" },
+                { id: "looking_left", prompt: "Super Mario from Nintendo standing and looking to his left with eyes shifted sideways, curious expression, 3D rendered, clean white background, full body", desc: "Looking left" },
+                { id: "looking_right", prompt: "Super Mario from Nintendo standing and looking to his right with eyes shifted sideways, curious expression, 3D rendered, clean white background, full body", desc: "Looking right" },
+                { id: "looking_up", prompt: "Super Mario from Nintendo standing and looking upward at the sky, wondering expression, 3D rendered, clean white background, full body", desc: "Looking up" },
+            ],
+            "👋 Greeting": [
+                { id: "wave_right_high", prompt: "Super Mario from Nintendo waving his right hand high above his head enthusiastically, big smile, welcoming pose, 3D rendered character, clean white background, full body", desc: "Right arm high wave" },
+                { id: "wave_right_mid", prompt: "Super Mario from Nintendo waving his right hand at shoulder height, friendly casual wave, 3D rendered character, clean white background, full body", desc: "Casual wave" },
+                { id: "wave_both", prompt: "Super Mario from Nintendo waving both hands above his head excitedly, huge smile, very welcoming, 3D rendered character, clean white background, full body", desc: "Both arms waving" },
+                { id: "greeting_hello", prompt: "Super Mario from Nintendo in a cheerful greeting pose, one hand waving, warm smile, sparkles around him, 3D rendered, clean white background, full body", desc: "Hello greeting" },
+                { id: "greeting_welcome", prompt: "Super Mario from Nintendo with both arms open wide in a welcoming gesture, inviting pose, warm expression, 3D rendered, clean white background, full body", desc: "Welcome arms open" },
+                { id: "farewell", prompt: "Super Mario from Nintendo waving goodbye with one hand raised, slightly sad but warm smile, 3D rendered character, clean white background, full body", desc: "Goodbye wave" },
+                { id: "tip_hat", prompt: "Super Mario from Nintendo tipping his red cap politely with one hand, gentleman gesture, slight bow, 3D rendered, clean white background, full body", desc: "Tipping hat" },
+            ],
+            "💬 Speech": [
+                { id: "talking_mouth_open", prompt: "Super Mario from Nintendo talking with mouth open mid-speech, one hand gesturing, animated expression, 3D rendered character, clean white background, full body", desc: "Talking frame" },
+                { id: "talking_excited", prompt: "Super Mario from Nintendo talking very excitedly with both hands gesturing, wide open mouth, enthusiastic expression, 3D rendered, clean white background, full body", desc: "Excited talking" },
+                { id: "shouting", prompt: "Super Mario from Nintendo shouting loudly with hands cupped around mouth, very wide open mouth, yelling pose, 3D rendered, clean white background, full body", desc: "Shouting/yelling" },
+                { id: "singing", prompt: "Super Mario from Nintendo singing with eyes closed, mouth open in song, one hand up like holding a microphone, musical pose, 3D rendered, clean white background, full body", desc: "Singing" },
+                { id: "whistling", prompt: "Super Mario from Nintendo whistling a tune with puckered lips, hands behind back, casual relaxed pose, music notes around, 3D rendered, clean white background, full body", desc: "Whistling" },
+                { id: "listening", prompt: "Super Mario from Nintendo leaning forward with one hand cupped behind his ear, listening attentively, curious face, 3D rendered, clean white background, full body", desc: "Listening" },
+                { id: "shushing", prompt: "Super Mario from Nintendo with finger to his lips making a shush gesture, quiet expression, sneaky look, 3D rendered, clean white background, full body", desc: "Shushing" },
+                { id: "whispering", prompt: "Super Mario from Nintendo leaning sideways with hand cupped near mouth whispering a secret, conspiratorial expression, 3D rendered, clean white background, full body", desc: "Whispering" },
+            ],
+            "😄 Positive": [
+                { id: "happy_smile", prompt: "Super Mario from Nintendo with a huge bright smile, rosy cheeks, very happy expression, hands on hips proudly, 3D rendered character, clean white background, full body", desc: "Big happy smile" },
+                { id: "very_happy", prompt: "Super Mario from Nintendo extremely happy jumping slightly with joy, eyes squinted from smiling so hard, fists pumped, 3D rendered, clean white background, full body", desc: "Overjoyed" },
+                { id: "excited_jump", prompt: "Super Mario from Nintendo jumping high with one fist raised in the air triumphantly, very excited expression, classic Mario jump pose, 3D rendered, clean white background, full body", desc: "Excited jump fist pump" },
+                { id: "laughing", prompt: "Super Mario from Nintendo laughing heartily with mouth wide open, eyes squinted shut from laughing, holding his belly, 3D rendered, clean white background, full body", desc: "Belly laugh" },
+                { id: "love", prompt: "Super Mario from Nintendo with heart-shaped eyes, dreamy loving expression, floating hearts around him, love-struck pose, 3D rendered, clean white background, full body", desc: "Love struck" },
+                { id: "proud", prompt: "Super Mario from Nintendo standing proudly with chest puffed out, one fist on hip, confident determined look, heroic pose, 3D rendered, clean white background, full body", desc: "Proud hero pose" },
+                { id: "victorious", prompt: "Super Mario from Nintendo in victory pose with both arms raised high making V signs, huge triumphant smile, sparkles and stars around, 3D rendered, clean white background, full body", desc: "Victory celebration" },
+                { id: "thumbs_up", prompt: "Super Mario from Nintendo giving a big thumbs up with right hand extended forward, encouraging smile, supportive pose, 3D rendered, clean white background, full body", desc: "Thumbs up" },
+                { id: "peace_sign", prompt: "Super Mario from Nintendo making a peace sign with two fingers, playful wink, fun casual pose, 3D rendered, clean white background, full body", desc: "Peace sign" },
+            ],
+            "😢 Negative": [
+                { id: "sad", prompt: "Super Mario from Nintendo looking sad and dejected, drooping posture, downcast eyes, frown, slightly slumped shoulders, 3D rendered character, clean white background, full body", desc: "Sad expression" },
+                { id: "crying", prompt: "Super Mario from Nintendo crying with tears streaming down face, eyes squeezed shut, very sad, hands wiping tears, 3D rendered, clean white background, full body", desc: "Crying" },
+                { id: "angry", prompt: "Super Mario from Nintendo looking very angry with furrowed brows, gritted teeth, fists clenched at sides, red-faced rage, 3D rendered, clean white background, full body", desc: "Angry" },
+                { id: "furious", prompt: "Super Mario from Nintendo absolutely furious, face bright red, steam coming from ears, veins popping, fists raised, shaking with rage, 3D rendered, clean white background, full body", desc: "Furious rage" },
+                { id: "annoyed", prompt: "Super Mario from Nintendo looking annoyed and unimpressed, arms crossed, half-lidded eyes, slight frown, unamused pose, 3D rendered, clean white background, full body", desc: "Annoyed" },
+                { id: "disappointed", prompt: "Super Mario from Nintendo looking disappointed, shoulders slumped, looking down sadly, hand on forehead, let-down expression, 3D rendered, clean white background, full body", desc: "Disappointed" },
+                { id: "scared", prompt: "Super Mario from Nintendo looking terrified and scared, wide eyes, mouth agape, trembling, backing away in fear, sweat drops, 3D rendered, clean white background, full body", desc: "Scared" },
+                { id: "nervous", prompt: "Super Mario from Nintendo looking nervous and anxious, sweating, biting lip, fidgeting hands, worried expression, 3D rendered, clean white background, full body", desc: "Nervous" },
+                { id: "embarrassed", prompt: "Super Mario from Nintendo looking embarrassed, blushing bright red cheeks, hand behind head sheepishly, awkward smile, 3D rendered, clean white background, full body", desc: "Embarrassed" },
+                { id: "disgusted", prompt: "Super Mario from Nintendo looking disgusted, nose wrinkled, tongue slightly out, leaning back in revulsion, hand up in refusal, 3D rendered, clean white background, full body", desc: "Disgusted" },
+            ],
+            "🤔 Thinking": [
+                { id: "thinking", prompt: "Super Mario from Nintendo in a thinking pose, hand on chin, looking upward thoughtfully, pondering expression, 3D rendered character, clean white background, full body", desc: "Thinking" },
+                { id: "confused", prompt: "Super Mario from Nintendo looking confused with head tilted, question marks around head, scratching head with one hand, puzzled expression, 3D rendered, clean white background, full body", desc: "Confused" },
+                { id: "curious", prompt: "Super Mario from Nintendo looking very curious, leaning forward, wide interested eyes, one eyebrow raised, fascinated expression, 3D rendered, clean white background, full body", desc: "Curious" },
+                { id: "surprised", prompt: "Super Mario from Nintendo with a shocked surprised expression, eyes very wide, mouth in O shape, hands up in surprise, 3D rendered, clean white background, full body", desc: "Surprised" },
+                { id: "shocked", prompt: "Super Mario from Nintendo absolutely shocked and jaw-dropped, stepping backward, hands on cheeks like Home Alone pose, extreme surprise, 3D rendered, clean white background, full body", desc: "Shocked" },
+                { id: "mischievous", prompt: "Super Mario from Nintendo with a mischievous sly grin, one eye winking, rubbing hands together deviously, playful scheming expression, 3D rendered, clean white background, full body", desc: "Mischievous" },
+                { id: "determined", prompt: "Super Mario from Nintendo with intense determined expression, fist raised, focused eyes, ready for action heroic stance, 3D rendered, clean white background, full body", desc: "Determined" },
+                { id: "idea", prompt: "Super Mario from Nintendo having a eureka moment, finger pointing up, light bulb above head, excited realization expression, 3D rendered, clean white background, full body", desc: "Got an idea!" },
+                { id: "dizzy", prompt: "Super Mario from Nintendo looking dizzy and disoriented, spiral eyes, wobbling stance, stars circling head, dazed expression, 3D rendered, clean white background, full body", desc: "Dizzy" },
+                { id: "suspicious", prompt: "Super Mario from Nintendo looking suspicious, squinting eyes, leaning to peek around something, detective-like pose, hand shading eyes, 3D rendered, clean white background, full body", desc: "Suspicious" },
+            ],
+            "💤 Sleep": [
+                { id: "sleepy", prompt: "Super Mario from Nintendo looking very sleepy and drowsy, half-closed drooping eyes, yawning, slouching posture, Zzz floating, 3D rendered, clean white background, full body", desc: "Sleepy/drowsy" },
+                { id: "sleeping", prompt: "Super Mario from Nintendo fast asleep standing up, eyes fully closed, head tilted to side, peaceful sleeping face, big Zzz letters, snoring, 3D rendered, clean white background, full body", desc: "Fully asleep" },
+                { id: "yawning", prompt: "Super Mario from Nintendo mid-yawn with mouth wide open, one hand covering mouth, eyes squeezed, stretching, tired pose, 3D rendered, clean white background, full body", desc: "Big yawn" },
+            ],
+            "🏃 Movement": [
+                { id: "jumping", prompt: "Super Mario from Nintendo in his iconic jump pose mid-air, one fist raised high, knees bent, classic Nintendo jump, motion blur below, 3D rendered, clean white background, full body", desc: "Classic jump" },
+                { id: "running", prompt: "Super Mario from Nintendo running fast forward, dynamic running pose, arms pumping, determined face, motion lines, 3D rendered, clean white background, full body", desc: "Running" },
+                { id: "dancing_1", prompt: "Super Mario from Nintendo dancing happily, one arm up one arm down, disco dance pose, joyful expression, music notes around, 3D rendered, clean white background, full body", desc: "Dancing" },
+                { id: "dancing_2", prompt: "Super Mario from Nintendo doing a fun dance move, spinning with arms out, happy party dance, energetic pose, 3D rendered, clean white background, full body", desc: "Party dance" },
+                { id: "pointing_forward", prompt: "Super Mario from Nintendo pointing forward directly at viewer, confident expression, arm fully extended pointing, dynamic pose, 3D rendered, clean white background, full body", desc: "Pointing at you" },
+                { id: "flexing", prompt: "Super Mario from Nintendo flexing both arms showing muscles, strong man pose, proud powerful expression, bodybuilder stance, 3D rendered, clean white background, full body", desc: "Flexing muscles" },
+                { id: "crouching", prompt: "Super Mario from Nintendo crouching down low, body compressed, ready to spring up, coiled pose, 3D rendered, clean white background, full body", desc: "Crouching" },
+                { id: "sliding", prompt: "Super Mario from Nintendo doing a cool slide on the ground, one leg extended, dynamic action pose, dust trail, 3D rendered, clean white background, full body", desc: "Ground slide" },
+                { id: "tiptoeing", prompt: "Super Mario from Nintendo tiptoeing carefully and quietly, exaggerated sneaky walk, hands up for balance, hushed expression, 3D rendered, clean white background, full body", desc: "Sneaky tiptoe" },
+            ],
+            "⚡ Action": [
+                { id: "eating_mushroom", prompt: "Super Mario from Nintendo eating a Super Mushroom power-up, holding mushroom near mouth, delighted expression, sparkle effects, 3D rendered, clean white background, full body", desc: "Eating mushroom" },
+                { id: "salute", prompt: "Super Mario from Nintendo doing a military salute with hand at his cap brim, standing straight, respectful pose, 3D rendered, clean white background, full body", desc: "Saluting" },
+                { id: "shrug", prompt: "Super Mario from Nintendo doing an exaggerated shrug with palms up, shoulders raised, confused innocent expression, 3D rendered, clean white background, full body", desc: "Shrugging" },
+                { id: "facepalm", prompt: "Super Mario from Nintendo doing a facepalm, hand covering face in disbelief, disappointed pose, comedic frustration, 3D rendered, clean white background, full body", desc: "Facepalm" },
+                { id: "dabbing", prompt: "Super Mario from Nintendo doing the dab dance move, one arm extended other arm bent at face, trendy pose, 3D rendered, clean white background, full body", desc: "Dabbing" },
+            ],
+            "⭐ Power-Up": [
+                { id: "star_power", prompt: "Super Mario from Nintendo glowing with Star Power invincibility, rainbow shimmering aura, flashing colors, powerful pose, star sparkles everywhere, 3D rendered, clean white background, full body", desc: "Star power invincible" },
+                { id: "fire_mario", prompt: "Super Mario from Nintendo as Fire Mario with white hat and red overalls fire power-up colors, throwing a fireball from his hand, flames, 3D rendered, clean white background, full body", desc: "Fire Mario" },
+                { id: "ice_mario", prompt: "Super Mario from Nintendo as Ice Mario with light blue and white frozen color scheme, holding an ice ball, frost crystals around, 3D rendered, clean white background, full body", desc: "Ice Mario" },
+                { id: "mega_mario", prompt: "Super Mario from Nintendo as giant Mega Mario after eating Mega Mushroom, oversized and powerful, towering pose, 3D rendered, clean white background, full body", desc: "Mega mushroom giant" },
+                { id: "mini_mario", prompt: "Super Mario from Nintendo as tiny Mini Mario after eating Mini Mushroom, very small and cute, squeaky tiny pose, 3D rendered, clean white background, full body", desc: "Mini mushroom tiny" },
+                { id: "metal_mario", prompt: "Super Mario from Nintendo as Metal Mario, entire body is shiny metallic silver chrome, reflective metal surface, powerful heavy pose, 3D rendered, clean white background, full body", desc: "Metal Mario" },
+                { id: "gold_mario", prompt: "Super Mario from Nintendo as Gold Mario, entire body golden and shining, luxurious golden glow, coins around, prestigious pose, 3D rendered, clean white background, full body", desc: "Gold Mario" },
+            ],
+        };
+
+        function getModel() {
+            return document.getElementById('modelSelect').value;
+        }
+
+        function setStatus(msg, className = '') {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = className;
+        }
+
+        function setProgress(current, total) {
+            const pct = total > 0 ? (current / total * 100) : 0;
+            document.getElementById('progressFill').style.width = pct + '%';
+        }
+
+        async function generateImage(prompt, model) {
+            try {
+                const img = await puter.ai.txt2img(prompt, {
+                    model: model,
+                    testMode: false
+                });
+                return img;
+            } catch (err) {
+                console.error('Generation error:', err);
+                throw err;
+            }
+        }
+
+        function addCard(category, pose, imgElement, index) {
+            const grid = document.getElementById('grid');
+
+            // Add category header if not present
+            const catId = 'cat-' + category.replace(/[^a-z]/gi, '');
+            if (!document.getElementById(catId)) {
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.id = catId;
+                header.innerHTML = `<h2>${category}</h2>`;
+                grid.appendChild(header);
+            }
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = 'card-' + pose.id;
+
+            if (imgElement) {
+                imgElement.style.width = '100%';
+                imgElement.style.height = '300px';
+                imgElement.style.objectFit = 'contain';
+                imgElement.style.background = '#0a0a1a';
+                card.appendChild(imgElement);
+            }
+
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.innerHTML = `
+                <h3>${pose.id}</h3>
+                <p>${pose.desc}</p>
+                <div class="actions">
+                    <button onclick="regeneratePose('${pose.id}')" class="secondary" style="font-size:11px;padding:3px 8px;">🔄 Redo</button>
+                    <button onclick="downloadPose('${pose.id}')" class="secondary" style="font-size:11px;padding:3px 8px;">💾 Save</button>
+                </div>
+            `;
+            card.appendChild(info);
+            grid.appendChild(card);
+        }
+
+        async function generateTest() {
+            const model = getModel();
+            setStatus(`Generating test image with ${model}...`);
+            document.getElementById('btnGenerateTest').disabled = true;
+
+            try {
+                const testPose = { id: 'test', prompt: 'Super Mario from Nintendo standing in his classic pose, one fist raised, big smile, red hat with M logo, blue overalls, brown shoes, white gloves, full body, 3D rendered, clean white background, high quality detailed', desc: 'Test pose' };
+                const img = await generateImage(testPose.prompt, model);
+                addCard('🧪 Test', testPose, img);
+                generatedImages['test'] = img;
+                setStatus('Test image generated! Check quality below.', 'success');
+            } catch (err) {
+                setStatus(`Error: ${err.message}`, 'error');
+            }
+
+            document.getElementById('btnGenerateTest').disabled = false;
+        }
+
+        async function generateAll() {
+            if (generating) return;
+            generating = true;
+            stopRequested = false;
+
+            document.getElementById('btnGenerateAll').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('grid').innerHTML = '';
+
+            const model = getModel();
+            let allPoses = [];
+            for (const [cat, poses] of Object.entries(POSE_CATEGORIES)) {
+                for (const pose of poses) {
+                    allPoses.push({ category: cat, ...pose });
+                }
+            }
+
+            const total = allPoses.length;
+            let completed = 0;
+            let failed = 0;
+
+            setStatus(`Generating ${total} poses with ${model}...`);
+
+            for (const pose of allPoses) {
+                if (stopRequested) {
+                    setStatus(`Stopped. Generated ${completed}/${total} (${failed} failed).`, 'error');
+                    break;
+                }
+
+                setStatus(`[${completed + 1}/${total}] Generating: ${pose.id} (${pose.category})...`);
+                setProgress(completed, total);
+
+                try {
+                    const img = await generateImage(pose.prompt, model);
+                    generatedImages[pose.id] = img;
+                    addCard(pose.category, pose, img);
+                    completed++;
+                } catch (err) {
+                    console.error(`Failed: ${pose.id}`, err);
+                    addCard(pose.category, pose, null);
+                    failed++;
+                    completed++;
+
+                    // If we get rate limited, wait a bit
+                    if (err.message && err.message.includes('rate')) {
+                        setStatus(`Rate limited — waiting 30s before retry...`, 'error');
+                        await new Promise(r => setTimeout(r, 30000));
+                    }
+                }
+
+                // Small delay between requests to avoid rate limiting
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+            setProgress(completed, total);
+            if (!stopRequested) {
+                setStatus(`Done! Generated ${completed - failed}/${total} poses (${failed} failed).`, 'success');
+            }
+
+            document.getElementById('btnGenerateAll').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnDownloadAll').disabled = Object.keys(generatedImages).length === 0;
+            generating = false;
+        }
+
+        function stopGeneration() {
+            stopRequested = true;
+            setStatus('Stopping after current image...', 'error');
+        }
+
+        async function regeneratePose(poseId) {
+            const model = getModel();
+            let pose = null;
+            for (const poses of Object.values(POSE_CATEGORIES)) {
+                for (const p of poses) {
+                    if (p.id === poseId) { pose = p; break; }
+                }
+                if (pose) break;
+            }
+            if (!pose) return;
+
+            setStatus(`Regenerating ${poseId}...`);
+            try {
+                const img = await generateImage(pose.prompt, model);
+                generatedImages[poseId] = img;
+                const card = document.getElementById('card-' + poseId);
+                if (card) {
+                    const oldImg = card.querySelector('img');
+                    if (oldImg) {
+                        img.style.width = '100%';
+                        img.style.height = '300px';
+                        img.style.objectFit = 'contain';
+                        img.style.background = '#0a0a1a';
+                        oldImg.replaceWith(img);
+                    }
+                }
+                setStatus(`Regenerated ${poseId}!`, 'success');
+            } catch (err) {
+                setStatus(`Failed to regenerate ${poseId}: ${err.message}`, 'error');
+            }
+        }
+
+        function downloadPose(poseId) {
+            const img = generatedImages[poseId];
+            if (!img) return;
+
+            // Create canvas to get image data
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mario_${poseId}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        async function downloadAllAsZip() {
+            // Download each image individually since we can't zip in browser easily
+            setStatus('Downloading all images...');
+            for (const [id, img] of Object.entries(generatedImages)) {
+                downloadPose(id);
+                await new Promise(r => setTimeout(r, 500)); // Stagger downloads
+            }
+            setStatus(`Downloaded ${Object.keys(generatedImages).length} images!`, 'success');
+        }
+    </script>
+</body>
+</html>

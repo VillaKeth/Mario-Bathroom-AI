@@ -90,3 +90,33 @@
 - **Output**: `mario_3d_assets/expressive/` with index.html gallery
 - **Categories**: Speech & Communication (talking, waving, greeting, farewell, listening, singing), Positive Emotions (idle, happy, excited, laughing, love, proud, victorious), Negative Emotions (sad, crying, angry, furious, embarrassed, nervous, scared, tired), Thinking & Processing (thinking, confused, mischievous, determined, processing), Sleep & Rest (sleepy, sleeping), Movement & Action (jumping, dancing, eating), Power-Ups (star, fire flower, mega/mini mushroom)
 - **Techniques**: Face region manipulation (eye closing/widening, mouth opening), body tilting/squashing/stretching, color tints per emotion, overlay elements (speech bubbles, thought clouds, Zzz, hearts, tears, anger veins, stars, sparkles, music notes, motion lines, sweat drops, question marks, exclamation marks, fire/ice effects)
+
+## 2026-03-05 — Expressive Mario V2: Actual Body Manipulation
+- **Why**: User criticized V1 poses — "you just tilted the PNG" — wanted ACTUAL arm/body part movement
+- **What**: 74 unique poses with real body part segmentation and manipulation
+- **Script**: `client/generate_expressive_mario_v2.py`
+- **Output**: `mario_3d_assets/expressive_v2/` with index.html gallery
+- **Key innovation**: `MarioBody` class segments Mario into manipulable parts using color masks:
+  - Red mask (r>150, g<80, b<80): hat, shirt/sleeves
+  - Blue mask (b>120, r<100, g<100): overalls
+  - White mask (r>200, g>200, b>200): gloves, eye whites
+  - Skin mask (r>180, g∈[130,200], b∈[80,160]): face, ears
+  - Dark mask (r<60, g<60, b<60): mustache, outlines
+  - Brown mask (r∈[100,180], g∈[40,110], b<80): shoes, hair
+- **Arm extraction**: For each row, finds rightmost blue overalls pixel as body edge, classifies red/white pixels beyond as arm. Arm rotated around shoulder pivot and composited back.
+- **Face painting**: `FacePainter` class draws different eye styles (closed, half, wide, angry, sad, wink, looking directions, heart, sparkle, spiral) and mouth styles (open, wide_open, smile, big_smile, frown, tongue_out, gritted, whistle) directly on face region
+- **Categories (74 poses)**: Neutral (6), Greeting (7), Speech (8), Positive (9), Negative (10), Thinking (10), Sleep (3), Movement (9), Action (5), Power-Up (7)
+- **Bug fix**: `np.random.choice()` fails with lists of tuples ("a must be 1-dimensional") — replaced with `random.choice()`
+- **Analysis tool**: `client/analyze_mario.py` mapped precise body part coordinates on the 400×500 prepared image to inform segmentation regions
+
+## 2026-03-05 — AI-Generated 3D Mario Poses (SubNP Magic Model)
+- **Why**: V2 body manipulation still looked janky — user wanted proper AI-generated renders
+- **What**: 74 AI-generated 3D figurine-style Mario poses using SubNP's free API
+- **Script**: `client/generate_ai_poses.py`
+- **Output**: `mario_3d_assets/ai_poses/` (10 subdirectories, 74 PNGs, interactive gallery)
+- **API discovery**: Tested 5+ free APIs — Pollinations (HTTP 530/401), HuggingFace (deprecated/401), Together AI (401), Puter.js (login wall). Only **SubNP "magic" model** worked (no auth needed).
+- **SubNP API**: `POST https://subnp.com/api/free/generate`, SSE streaming response, `magic` model (MagicStudio provider). Models tested: turbo/flux/flux-schnell all failed.
+- **Prompt engineering**: All prompts include "3D rendered figurine style, clean gray studio background, full body shot, highly detailed, Nintendo official art quality, soft studio lighting" suffix for consistent results.
+- **Reliability**: Connection drops after ~35-40 consecutive requests. Solved with 5s delay between requests, 5 retries with exponential backoff, and resume logic (skip files >1000 bytes).
+- **Quality**: Excellent — correct Mario outfit (red cap with M, blue overalls, white gloves, brown shoes, mustache) with distinct expressive poses per emotion.
+- **Limitation**: Gray studio backgrounds (not transparent) — will need background removal for Pygame overlay use.

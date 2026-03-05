@@ -50,8 +50,12 @@
 - [x] Wacky remix lab from mario_assets (client/generate_wacky_remixes.py + assets_wacky_lab outputs)
 - [x] 3D Mario assets — 100 iterations × 24 sources = 2,400 images (client/generate_3d_mario_assets.py + mario_3d_assets/)
 - [x] Expressive Mario poses — 47 photoshopped emotion/action poses from NSMBU Deluxe render (client/generate_expressive_mario.py + mario_3d_assets/expressive/)
+- [x] Expressive Mario V2 — 74 poses with ACTUAL body manipulation: arm segmentation/rotation, face painting (eyes+mouth), color-based body part extraction (client/generate_expressive_mario_v2.py + mario_3d_assets/expressive_v2/)
+- [x] AI-generated 3D Mario poses — 74 stunning figurine-style renders via SubNP free API "magic" model, 10 emotion categories (client/generate_ai_poses.py + mario_3d_assets/ai_poses/)
 
 ## 🔲 Remaining
+- [ ] Remove gray backgrounds from AI poses (make transparent for Pygame overlay)
+- [ ] Wire AI poses into Pygame display (update EMOTION_SPRITE_MAP in mario_display.py)
 - [ ] Test with multiple speakers switching rapidly
 - [ ] Tune speaker ID threshold for party noise levels
 - [ ] Add volume control / gain adjustment for noisy environments
