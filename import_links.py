@@ -38,7 +38,7 @@ folder = 'mario_assets'
 os.makedirs(folder, exist_ok=True)
 
 # Read links from the attached file
-file_name = "Here are all the links from the 2D.txt"
+file_name = "mario_asset_links.txt"
 try:
     with open(file_name, 'r') as f:
         links = [line.strip() for line in f if line.strip()]

@@ -453,7 +453,7 @@
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag("js", new Date());
-            gtag("config", "UA-829541-1", {"dimension1":"unregistered","dimension7":"legacy","dimension3":"archive","dimension4":"59","dimension5":"zip","dimension8":"\/50\/100\/"});
+            gtag("config", "UA-829541-1", {"dimension1":"unregistered","dimension7":"legacy","dimension3":"archive","dimension4":"59","dimension5":"zip","dimension8":"\/1\/5\/10\/20\/50\/100\/"});
         } catch(e) {}
     </script>
     
@@ -651,7 +651,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         >
             <input type="hidden"
                    name="security"
-                   value="1772732427.700b22894b7dc523ea05151ccaba12f801a02ad06e158745bf22c63ec24bb1c0"
+                   value="1772733480.d1cb2fc003c142a3e10de846e6ae9c5fb3737b25807feb568ce747072ae5e25a"
             >
             
             <div class="download_link" id="download_link">
@@ -660,13 +660,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
             <a class="input popsok"
            aria-label="Download file"
-           href="https://download2274.mediafire.com/zp7uosgb2vkgvEBf6sbTc5vfbvDibNHDBMmZUcLwQOsAwSpH_RDj0UEJFFdOinn2Me_6oDF2nCTtzFM8gpjdemNTBA-QtLDdQU0fvJZ5FcrdA1yKsf9yNwlFx1fD4EnJMQoQtPJSC9VLj3wwayi21K3eBnu8j-3YDc0RocoKtDS6/r64ehu4einpjdgk/Mario+pack+result.zip"           id="downloadButton"
+           href="https://download2274.mediafire.com/2rlpjs2uwtpgbPFEI_I_MwKaVMDpO7UvxfKA-aDiAvfQYdijNwb5Yzr3PYAflMdd6HY1GkTJn9v8-1LJr622qVNfNNIDMibp0QEh8GqW8LHI8s1QJ8hFpA1ppSDdYvA7obayoQJKu4uXbltABvpvMETBtngt4aiHhFhx4U40BkY/r64ehu4einpjdgk/Mario+pack+result.zip"           id="downloadButton"
            rel="nofollow">
                 Download (88.77MB)
         </a>
 
                 <a class="starting" href="#"><span>Your download is starting...</span></a>
-    <a class="retry" href="https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&amp;dkey=zp7uosgb2vk&amp;template=59&amp;origin=click_button">
+    <a class="retry" href="https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&amp;dkey=2rlpjs2uwtp&amp;template=59&amp;origin=click_button">
         <span class="notranslate">Download Started. <em>Repair your download</em></span>
     </a>
     <script type="text/javascript">
@@ -720,7 +720,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                  e.preventDefault();
                  // Set deferred progress state
                  dl.className = 'download_link deferred-progress';
-                 handleDeferredDownload("https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&dkey=zp7uosgb2vk&template=59&origin=click_button", "https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&dkey=zp7uosgb2vk&template=59&origin=server_error");
+                 handleDeferredDownload("https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&dkey=2rlpjs2uwtp&template=59&origin=click_button", "https://www.mediafire.com/download_repair.php?qkey=r64ehu4einpjdgk&dkey=2rlpjs2uwtp&template=59&origin=server_error");
              };
          }
 
@@ -1348,7 +1348,7 @@ var isInRect = function(selector, clickEvent) { if (selector != null && clickEve
                             var iAdCount = parseInt(getCookie('ad_count')) || 0;
                             if (iAdCount < 3) {
                                 iAdCount++;
-                                document.cookie = "ad_count=" + iAdCount + ";expires=" + (new Date(1772733327000)).toGMTString() + ";path=/";
+                                document.cookie = "ad_count=" + iAdCount + ";expires=" + (new Date(1772734380000)).toGMTString() + ";path=/";
                             }
                         });
                     });
@@ -1645,7 +1645,7 @@ var isInRect = function(selector, clickEvent) { if (selector != null && clickEve
   var optFileURL = "https://www.mediafire.com/file/r64ehu4einpjdgk/Mario_pack_result.zip/file";
   var optLoggedIn = "false" === "true";
   var optReportTurboDL = "false" === "true";
-  var optSecurityToken = "1772732427.700b22894b7dc523ea05151ccaba12f801a02ad06e158745bf22c63ec24bb1c0";
+  var optSecurityToken = "1772733480.d1cb2fc003c142a3e10de846e6ae9c5fb3737b25807feb568ce747072ae5e25a";
   var optJsDirectLink = "false" === "true";
   var optTurboDownload = "false" === "true";
   var templateId = "59";
@@ -1997,5 +1997,5 @@ var isInRect = function(selector, clickEvent) { if (selector != null && clickEve
         <script type="text/javascript">
         window.startLazyLoad && window.startLazyLoad();  // No lazy ad positioning, fine to start lazy loader.
     </script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d7ae7e75826ade9',t:'MTc3MjczMjQyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d7b019b8f10571f',t:'MTc3MjczMzQ4MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
