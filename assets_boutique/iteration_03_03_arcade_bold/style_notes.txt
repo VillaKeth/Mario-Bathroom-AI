@@ -1,0 +1,8 @@
+Iteration 03 - 03_arcade_bold
+Arcade-forward contrast with punchy blues and deeper facial lines.
+
+Hand-crafted details included in every sprite:
+- Plumber hat rows rebuilt
+- Overalls and button rows rebuilt
+- Mustache row rebuilt
+- Large blue eye rows rebuilt

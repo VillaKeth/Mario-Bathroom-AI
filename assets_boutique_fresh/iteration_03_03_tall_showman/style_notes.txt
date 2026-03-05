@@ -1,0 +1,7 @@
+Iteration 03 - 03_tall_showman
+Taller frame with slimmer body and high bright eyes.
+
+Fresh build characteristics:
+- Drawn from shape primitives, not prior sprite grids
+- Includes hat, overalls, mustache, and large blue eyes
+- Canvas: 28x40, scale: 8x

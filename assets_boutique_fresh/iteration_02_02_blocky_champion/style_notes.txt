@@ -1,0 +1,7 @@
+Iteration 02 - 02_blocky_champion
+Chunkier proportions and wider hat with heavier mustache.
+
+Fresh build characteristics:
+- Drawn from shape primitives, not prior sprite grids
+- Includes hat, overalls, mustache, and large blue eyes
+- Canvas: 28x38, scale: 8x

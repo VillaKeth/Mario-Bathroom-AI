@@ -53,3 +53,20 @@
 - **Party mode**: F5 toggles disco ball with rotating light beams, falling confetti particles with gravity, color-cycling background overlay
 - **Emotion→sprite mapping**: excited→dance, surprised→surprise, sleepy→sleep, laughing→laugh
 - **Server text_input handler**: Keyboard-typed text goes through same pipeline as voice (safety→LLM→TTS→response)
+
+## 2026-03-05 — Boutique Sprite Iterations (10-pass manual rebuild)
+- Added `client/generate_boutique_sprites.py` to generate 10 deliberate full sprite-set iterations.
+- Output folder is `assets_boutique/` with `iteration_01...iteration_10`, each containing all 12 Mario sprites plus `style_notes.txt`.
+- Every iteration rebuilds core facial/costume rows: hat silhouette, overalls, mustache, and large blue eyes.
+- Added `assets_boutique/index.html` and `assets_boutique/manifest.txt` for quick review and selection.
+
+## 2026-03-05 — Fresh From-Scratch Sprite Batch
+- Added `client/generate_boutique_fresh.py` to generate a completely new 10-iteration set without reusing prior sprite grids.
+- Output folder is `assets_boutique_fresh/` with `iteration_01...iteration_10`, each containing 12 state sprites plus `style_notes.txt`.
+- Sprite construction is procedural (shape-based): hat, face, large blue eyes, mustache, overalls, limbs, and per-state poses (walk/wave/jump/think/laugh/surprise/sleep/dance).
+- Added `assets_boutique_fresh/index.html` and `assets_boutique_fresh/manifest.txt` for quick side-by-side review.
+
+## 2026-03-05 — Reference Link Compliance Gate
+- Added `client/audit_reference_links.py` to parse a link list and block sources without explicit permissive license markers.
+- Audited `C:\Users\Vketh\Desktop\Here are all the links from the 2D.txt` and produced `assets_boutique_fresh/link_license_report.txt`.
+- Current audit result: `approved=0`, `blocked=32`, `skipped=1`; no provided links were safe for direct ingestion under compliance rules.

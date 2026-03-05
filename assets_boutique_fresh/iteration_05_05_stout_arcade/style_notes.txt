@@ -1,0 +1,7 @@
+Iteration 05 - 05_stout_arcade
+Wider lower body with thick boots and arcade blues.
+
+Fresh build characteristics:
+- Drawn from shape primitives, not prior sprite grids
+- Includes hat, overalls, mustache, and large blue eyes
+- Canvas: 30x38, scale: 8x

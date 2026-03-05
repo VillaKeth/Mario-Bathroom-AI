@@ -1,0 +1,8 @@
+Iteration 06 - 06_friendly_smile
+Warm, approachable expression with bright hat and soft shading.
+
+Hand-crafted details included in every sprite:
+- Plumber hat rows rebuilt
+- Overalls and button rows rebuilt
+- Mustache row rebuilt
+- Large blue eye rows rebuilt

@@ -1,0 +1,8 @@
+Iteration 08 - 08_neon_party
+Party-ready high-saturation palette with luminous eyes.
+
+Hand-crafted details included in every sprite:
+- Plumber hat rows rebuilt
+- Overalls and button rows rebuilt
+- Mustache row rebuilt
+- Large blue eye rows rebuilt

@@ -1,0 +1,8 @@
+Iteration 09 - 09_retro_clean
+NES-clean proportions with restrained linework and crisp eyes.
+
+Hand-crafted details included in every sprite:
+- Plumber hat rows rebuilt
+- Overalls and button rows rebuilt
+- Mustache row rebuilt
+- Large blue eye rows rebuilt

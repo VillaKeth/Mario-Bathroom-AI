@@ -1,0 +1,79 @@
+Reference Link Compliance Report
+Input: C:\Users\Vketh\Desktop\Here are all the links from the 2D.txt
+
+Approved: 0
+Blocked: 32
+Skipped (non-URL lines): 1
+
+=== APPROVED (safe to use) ===
+- none
+
+=== BLOCKED (do not use) ===
+- https://sticknodes.com/download/packs/Mario-Pixel-Pack.zip
+  reason: domain_requires_explicit_rights:sticknodes.com
+- https://www.mediafire.com/file/r64ehu4einpjdgk/Mario_pack_result.zip/file
+  reason: domain_requires_explicit_rights:mediafire.com
+- https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/619df808-830c-4bb9-877f-3c0e9c463326/df18gww-a1b80c36-3d78-4cf3-8b41-eaade6b50a7a.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi82MTlkZjgwOC04MzBjLTRiYjktODc3Zi0zYzBlOWM0NjMzMjYvZGYxOGd3dy1hMWI4MGMzNi0zZDc4LTRjZjMtOGI0MS1lYWFkZTZiNTBhN2EucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.bEgNSN9juomsJqSAevqKtLYqJyGS3K_9SevLHBtjS0g
+  reason: missing_explicit_permissive_license
+- https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/21ebde64-c746-45a2-b7a7-0c4bab6c7fc7/dcpb2k5-fccc921c-3d4e-47dc-845b-1361bb1c5fab.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8yMWViZGU2NC1jNzQ2LTQ1YTItYjdhNy0wYzRiYWI2YzdmYzcvZGNwYjJrNS1mY2NjOTIxYy0zZDRlLTQ3ZGMtODQ1Yi0xMzYxYmIxYzVmYWIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.1wXplh2WSLibjqF-c_jAOr03-39Hl32pba5Fv-eu0bs
+  reason: missing_explicit_permissive_license
+- https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/7f3230be-5a24-4ea1-99ab-1081eac1f159/dejvnpz-8ed8a53a-b8f2-4d85-8446-1d1cc162941e.png/v1/fill/w_1024,h_699,q_80,strp/new_mecha_mario___mini_sprite_sheet_update_by_as02x_dejvnpz-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83ZjMyMzBiZS01YTI0LTRlYTEtOTlhYi0xMDgxZWFjMWYxNTkvZGVqdm5wei04ZWQ4YTUzYS1iOGYyLTRkODUtODQ0Ni0xZDFjYzE2Mjk0MWUucG5nIiwiaGVpZ2h0IjoiPD02OTkiLCJ3aWR0aCI6Ijw9MTAyNCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS53YXRlcm1hcmsiXSwid21rIjp7InBhdGgiOiIvd20vN2YzMjMwYmUtNWEyNC00ZWExLTk5YWItMTA4MWVhYzFmMTU5L2FzMDJ4LTQucG5nIiwib3BhY2l0eSI6OTUsInByb3BvcnRpb25zIjowLjQ1LCJncmF2aXR5IjoiY2VudGVyIn19.BgR8awUzMNI9LEM3eYREr6ee-qLziXMkr3fjg1sZYZE
+  reason: missing_explicit_permissive_license
+- https://i.redd.it/t4p5ims9enlc1.png
+  reason: missing_explicit_permissive_license
+- https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/1f30166c-a5e1-4d62-aad1-c6eefc4e07c6/dfb0tvj-311444e8-a4f4-43a1-a4e5-399e63f7ae45.png/v1/fill/w_1073,h_745,q_70,strp/kart_fighter_mario__nes__remastered__by_dstar99_sprites_dfb0tvj-pre.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTUyMCIsInBhdGgiOiIvZi8xZjMwMTY2Yy1hNWUxLTRkNjItYWFkMS1jNmVlZmM0ZTA3YzYvZGZiMHR2ai0zMTE0NDRlOC1hNGY0LTQzYTEtYTRlNS0zOTllNjNmN2FlNDUucG5nIiwid2lkdGgiOiI8PTIxOTAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.namwFTFord00iiPJJ2odzV5kN7IaWYqcDzSlAoZsLj4
+  reason: missing_explicit_permissive_license
+- https://thumbs.dreamstime.com/b/february-set-little-mario-moves-art-super-mario-world-classic-video-game-pixel-design-vector-illustration-super-mario-world-213002304.jpg
+  reason: missing_explicit_permissive_license
+- https://mfgg.net/index.php?act=resdb&param=03&c=1&id=26019
+  reason: domain_requires_explicit_rights:mfgg.net
+- https://www.vhv.rs/dpng/d/440-4407379_super-mario-maker-smw-sprite-sheet-png-download.png
+  reason: domain_requires_explicit_rights:vhv.rs
+- https://mfgg.net/index.php?act=resdb&param=03&c=1&id=27637
+  reason: domain_requires_explicit_rights:mfgg.net
+- https://thumbs.dreamstime.com/b/set-flying-mario-moves-art-super-mario-world-classic-video-game-pixel-design-vector-illustration-february-set-flying-213002293.jpg
+  reason: missing_explicit_permissive_license
+- https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/55aeccd1-cea8-46b1-b5cc-752d4f286261/dfulqcv-5ca1c0a9-2a9b-405f-ad1a-b9eb052ee6e5.png/v1/fill/w_1280,h_854,q_80,strp/movie_mario_bros____pixel_art_by_luigiissuperior_dfulqcv-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9ODU0IiwicGF0aCI6Ii9mLzU1YWVjY2QxLWNlYTgtNDZiMS1iNWNjLTc1MmQ0ZjI4NjI2MS9kZnVscWN2LTVjYTFjMGE5LTJhOWItNDA1Zi1hZDFhLWI5ZWIwNTJlZTZlNS5wbmciLCJ3aWR0aCI6Ijw9MTI4MCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.EiAIUoMVqaaXckVv7cvbKcnKiZgk4G8Bi3q0RLJ2zw8
+  reason: missing_explicit_permissive_license
+- https://i.redd.it/s3otjic8lvw91.png
+  reason: missing_explicit_permissive_license
+- https://ko-fi.com/s/2cd13e1392
+  reason: domain_requires_explicit_rights:ko-fi.com
+- https://www.deviantart.com/sab64/art/MMD-Model-Mario-High-Quality-Download-798582951
+  reason: domain_requires_explicit_rights:deviantart.com
+- https://sketchfab.com/3d-models/mario-novo-fanmade-2022-para-smg4-fd16c639a4e541f38b981609aba348e2
+  reason: domain_requires_explicit_rights:sketchfab.com
+- https://sketchfab.com/3d-models/mario-model-mid-poly-dd5e7f5fc1ba4d95a087263fb00dcfed
+  reason: domain_requires_explicit_rights:sketchfab.com
+- https://sketchfab.com/3d-models/mario-obj-c549d24b60f74d8f85c7a5cbd2f55d0f
+  reason: domain_requires_explicit_rights:sketchfab.com
+- https://sketchfab.com/3d-models/mario-3d-model-all-animations-e9340e756a0644fda74d5a8a4bd71084
+  reason: domain_requires_explicit_rights:sketchfab.com
+- https://sketchfab.com/3d-models/mmd-olympics-mario-v2-ebe58295807445599972915c458ece53
+  reason: domain_requires_explicit_rights:sketchfab.com
+- https://www.turbosquid.com/3d-model/free/super-mario-characters
+  reason: domain_requires_explicit_rights:turbosquid.com
+- https://vrcmods.com/search?sort=hot&cid=1
+  reason: domain_requires_explicit_rights:vrcmods.com
+- https://www.meshy.ai/tags/mario
+  reason: domain_requires_explicit_rights:meshy.ai
+- https://storage.ko-fi.com/cdn/useruploads/display/2d8c2eaf-d0b0-4ec1-ae73-beebc556d138_3dmar10dayassets.jpg
+  reason: missing_explicit_permissive_license
+- https://i.redd.it/i-made-a-giant-set-of-free-mario-vtuber-assets-for-you-all-v0-2rqcuyyo6zla1.png
+  reason: missing_explicit_permissive_license
+- https://media.sketchfab.com/models/dd5e7f5fc1ba4d95a087263fb00dcfed/thumbnails/cebe31f543e042a283e1fb038c6c9722/18b2879b899f4d0ca1fde176b4d8ee0d.jpeg
+  reason: missing_explicit_permissive_license
+- https://media.sketchfab.com/models/ebe58295807445599972915c458ece53/thumbnails/1dce7016a91b46e88284bace82d27d20/28c4515cd96345ff9edb5fab5e52e81b.jpeg
+  reason: missing_explicit_permissive_license
+- https://media.sketchfab.com/models/fd16c639a4e541f38b981609aba348e2/thumbnails/f9edd050a4aa4bc7a6976476f300635e/f979280de82842f0877b23c3465e7629.jpeg
+  reason: missing_explicit_permissive_license
+- https://magazine.reallusion.com/wp-content/uploads/2024/10/GIF-360head_1.gif
+  reason: missing_explicit_permissive_license
+- https://i.ytimg.com/vi/JPY4lVh3Jks/maxresdefault.jpg
+  reason: missing_explicit_permissive_license
+- https://media.sketchfab.com/models/f224c97eab144bd7b847c7e9e6e1fa01/thumbnails/ae177da377c54500ade811476f6fbbb8/d06e34040a484e598fc3f6eea75eee90.jpeg
+  reason: missing_explicit_permissive_license
+
+Next steps:
+- Add explicit license marker per link, e.g. '| license: CC0'.
+- Only links with permissive license markers are allowed for ingestion.

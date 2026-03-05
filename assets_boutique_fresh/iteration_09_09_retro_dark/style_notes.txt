@@ -1,0 +1,7 @@
+Iteration 09 - 09_retro_dark
+Retro darker tone with compact eyes and deep costume shading.
+
+Fresh build characteristics:
+- Drawn from shape primitives, not prior sprite grids
+- Includes hat, overalls, mustache, and large blue eyes
+- Canvas: 28x38, scale: 8x

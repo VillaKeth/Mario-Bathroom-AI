@@ -44,6 +44,9 @@
 - [x] Party mode effects (F5 to toggle — disco ball, confetti, color cycling)
 - [x] Emotion-to-sprite mapping (excited→dance, surprised→surprise, sleepy→sleep, etc.)
 - [x] Server text_input event handler (keyboard messages processed same as voice)
+- [x] Boutique sprite overhaul set (10 hand-crafted full iterations in assets_boutique with previews and per-iteration notes)
+- [x] Fresh from-scratch sprite set (10 fully new iterations in assets_boutique_fresh with unique silhouettes and preview index)
+- [x] Link compliance audit pipeline for reference files (client/audit_reference_links.py + generated link_license_report.txt)
 
 ## 🔲 Remaining
 - [ ] Test with multiple speakers switching rapidly

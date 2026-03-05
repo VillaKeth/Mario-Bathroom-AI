@@ -1,0 +1,23 @@
+Mario Boutique Iterations
+Generated: 2026-03-05T16:49:32.406917+00:00
+
+#01 01_classic_cobalt -> iteration_01_01_classic_cobalt
+  Balanced classic Mario proportions with rounded cobalt eyes.
+#02 02_heroic_round -> iteration_02_02_heroic_round
+  Wider hat brim, fuller mustache, rounded blue irises.
+#03 03_arcade_bold -> iteration_03_03_arcade_bold
+  Arcade-forward contrast with punchy blues and deeper facial lines.
+#04 04_soft_chibi -> iteration_04_04_soft_chibi
+  Softer roundness, warm skin, and sparkly blue pupils.
+#05 05_poster_hero -> iteration_05_05_poster_hero
+  Stronger silhouette with a dramatic cap and bold facial contrast.
+#06 06_friendly_smile -> iteration_06_06_friendly_smile
+  Warm, approachable expression with bright hat and soft shading.
+#07 07_cinematic_shade -> iteration_07_07_cinematic_shade
+  Darker movie-like shading with intense sapphire eyes.
+#08 08_neon_party -> iteration_08_08_neon_party
+  Party-ready high-saturation palette with luminous eyes.
+#09 09_retro_clean -> iteration_09_09_retro_clean
+  NES-clean proportions with restrained linework and crisp eyes.
+#10 10_boutique_prime -> iteration_10_10_boutique_prime
+  Final polished pass with clean hat structure and premium eye detail.

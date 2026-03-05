@@ -1,0 +1,23 @@
+Fresh Mario Boutique Iterations
+Generated: 2026-03-05T16:56:11.155267+00:00
+
+#01 01_classic_fresh -> iteration_01_01_classic_fresh
+  Classic balanced pass with large cobalt eyes and medium mustache.
+#02 02_blocky_champion -> iteration_02_02_blocky_champion
+  Chunkier proportions and wider hat with heavier mustache.
+#03 03_tall_showman -> iteration_03_03_tall_showman
+  Taller frame with slimmer body and high bright eyes.
+#04 04_chibi_fireball -> iteration_04_04_chibi_fireball
+  Short chibi silhouette with giant eyes and compact overalls.
+#05 05_stout_arcade -> iteration_05_05_stout_arcade
+  Wider lower body with thick boots and arcade blues.
+#06 06_heroic_neo -> iteration_06_06_heroic_neo
+  Heroic silhouette with pronounced hat brim and vivid irises.
+#07 07_comic_bold -> iteration_07_07_comic_bold
+  Comic-book contrast with darker shading and strong mustache lines.
+#08 08_party_neon -> iteration_08_08_party_neon
+  Party palette with neon red/blue accents and bright eyes.
+#09 09_retro_dark -> iteration_09_09_retro_dark
+  Retro darker tone with compact eyes and deep costume shading.
+#10 10_royal_prime -> iteration_10_10_royal_prime
+  Final polished pass with broad hat, large irises, and clean costume lines.

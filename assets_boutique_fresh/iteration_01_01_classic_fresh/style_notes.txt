@@ -1,0 +1,7 @@
+Iteration 01 - 01_classic_fresh
+Classic balanced pass with large cobalt eyes and medium mustache.
+
+Fresh build characteristics:
+- Drawn from shape primitives, not prior sprite grids
+- Includes hat, overalls, mustache, and large blue eyes
+- Canvas: 28x38, scale: 8x
