@@ -36,7 +36,7 @@ SHADOW_COLOR = (0, 0, 0, 50)        # Subtle drop shadow
 # Fixed: friendly eyes, clear mustache, correct arm anatomy
 # ==========================================
 
-# Eyes: ww top (whites), kk bottom (pupils) = relaxed, friendly look
+# Eyes: wwwww top (5-wide whites), wkkkw bottom (3-wide centered pupils = anime, facing user)
 # Mustache: thick brown band with nose shadow (n) above for definition
 # Arms: extend from body at chest level, never float from head
 
@@ -47,8 +47,8 @@ SPRITE_IDLE = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -73,8 +73,8 @@ SPRITE_TALK = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssnrrrnsss...",
@@ -99,8 +99,8 @@ SPRITE_WALK1 = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -124,8 +124,8 @@ SPRITE_WALK2 = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -150,8 +150,8 @@ SPRITE_WAVE = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -177,8 +177,8 @@ SPRITE_JUMP = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -194,7 +194,7 @@ SPRITE_JUMP = [
     ".ggggg....ggggg.",
 ]
 
-# Think: half-closed contemplative eyes (squinting, not staring)
+# Think: half-closed contemplative eyes (squinting, looking up)
 SPRITE_THINK = [
     "....rrrrr.......",
     "...rrrrrrrrr....",
@@ -202,8 +202,8 @@ SPRITE_THINK = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bsssnnsnnssn...",
-    ".bsssswsswssn...",
+    ".bnnnnnsnnnnnn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -221,7 +221,7 @@ SPRITE_THINK = [
     ".ggggg....ggggg.",
 ]
 
-# Laughing: eyes squeezed shut, big open mouth below mustache
+# Laughing: eyes squeezed into happy curves, big open mouth
 SPRITE_LAUGH = [
     "....rrrrr.......",
     "...rrrrrrrrr....",
@@ -229,8 +229,8 @@ SPRITE_LAUGH = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bsssnnsnnssn...",
-    ".bsssssssssss...",
+    ".bnnnnnsnnnnnn..",
+    ".bsssssssssssn..",
     "..ssssnssnsss...",
     "..ssbbbsbbbss...",
     "...snrrrrrnsn...",
@@ -256,8 +256,8 @@ SPRITE_SURPRISE = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bswwwsswwwss...",
-    ".bswkwsswkwss...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...sssnrnsssn...",
@@ -275,7 +275,7 @@ SPRITE_SURPRISE = [
     ".ggggg....ggggg.",
 ]
 
-# Sleeping: closed eyes, Z's floating above head
+# Sleeping: closed eyes (5-wide skin-colored lids), Z's above
 SPRITE_SLEEP = [
     "............k.k.",
     "...........k....",
@@ -286,8 +286,8 @@ SPRITE_SLEEP = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bsssnnsnnssn...",
-    ".bsssssssssss...",
+    ".bnnnnnsnnnnnn..",
+    ".bsssssssssssn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
@@ -313,8 +313,8 @@ SPRITE_DANCE = [
     "..drrrrrrrrrrd..",
     "..bbbsssbbs.....",
     ".bssbsssssbbs...",
-    ".bssswwswwsss...",
-    ".bssskkskkssn...",
+    ".bwwwwwswwwwwn..",
+    ".bwkkkwswkkkwn..",
     "..ssssnssnsss...",
     "..ssbbbbbbbss...",
     "...ssssssssss...",
