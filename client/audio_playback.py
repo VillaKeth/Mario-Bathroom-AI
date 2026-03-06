@@ -19,6 +19,8 @@ class AudioPlayback:
         self._play_queue = queue.Queue()
         self._playing = False
         self._thread = None
+        self._actively_playing = False
+        self._lock = threading.Lock()
 
     def start(self):
         """Start the playback worker thread."""
@@ -29,10 +31,16 @@ class AudioPlayback:
         self._thread.start()
 
     def stop(self):
-        """Stop playback."""
+        """Stop playback and drain queue."""
         if DEBUG_PLAYBACK:
             logger.info("[DEBUG_PLAYBACK] AudioPlayback.stop: stopping worker")
         self._playing = False
+        # Drain any queued audio to prevent stale playback on restart
+        while not self._play_queue.empty():
+            try:
+                self._play_queue.get_nowait()
+            except queue.Empty:
+                break
         if self._thread:
             self._thread.join(timeout=2.0)
 
@@ -43,7 +51,8 @@ class AudioPlayback:
 
     @property
     def is_playing(self) -> bool:
-        return not self._play_queue.empty()
+        with self._lock:
+            return self._actively_playing or not self._play_queue.empty()
 
     def _worker(self):
         """Background thread that plays queued audio."""
@@ -62,6 +71,9 @@ class AudioPlayback:
         """Play a WAV byte buffer."""
         if DEBUG_PLAYBACK:
             logger.info(f"[DEBUG_PLAYBACK] _play_wav: playing {len(wav_bytes)} bytes")
+
+        with self._lock:
+            self._actively_playing = True
 
         wav_buffer = io.BytesIO(wav_bytes)
         try:
@@ -92,3 +104,6 @@ class AudioPlayback:
 
         except Exception as e:
             logger.error(f"[DEBUG_PLAYBACK] _play_wav: error: {e}")
+        finally:
+            with self._lock:
+                self._actively_playing = False

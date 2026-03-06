@@ -135,6 +135,9 @@ class MarioClient:
                     self.display.set_state(STATE_LISTENING)
                     self.display.set_thinking(True)
                 audio_buffer = bytearray()
+            elif len(audio_buffer) > 32000:
+                # Cap buffer to prevent memory bloat under heavy audio load
+                audio_buffer = audio_buffer[-8000:]
 
             time.sleep(0.01)
 

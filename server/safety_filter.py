@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Words/phrases that should be filtered from Mario's responses
 BLOCKED_PATTERNS = [
     r'\b(fuck|shit|damn|ass|bitch|bastard|dick|cock|pussy)\b',
-    r'\b(kill|murder|suicide|die|death|dying)\b(?!.*mushroom)(?!.*bowser)(?!.*goomba)(?!.*game)',
+    r'\b(kill|murder|suicide|die|death|dying)\b(?!.*(?:mushroom|bowser|goomba|game|laughing|funny|comedy))',
     r'\b(racist|sexist|homophob|transphob|bigot)\b',
     r'\b(nazi|hitler|holocaust)\b',
     r'\b(drugs?|cocaine|heroin|meth|weed)\b(?!.*mushroom)',
@@ -42,6 +42,10 @@ REDIRECT_RESPONSES = [
     "Mama mia! I'd rather talk about-a my adventures! Ever been to Rainbow Road?",
     "Okie dokie, let's-a steer this ship in a better direction! What music do you like?",
 ]
+
+# Track recent redirects to avoid repeating
+_recent_redirects = []
+_MAX_REDIRECT_HISTORY = 4
 
 
 def filter_response(text: str) -> str:
@@ -95,9 +99,17 @@ def check_input(text: str) -> dict:
             if DEBUG_SAFETY:
                 logger.warning(f"[DEBUG_SAFETY] check_input: unsafe input detected")
             import random
+            available = [r for r in REDIRECT_RESPONSES if r not in _recent_redirects]
+            if not available:
+                _recent_redirects.clear()
+                available = REDIRECT_RESPONSES
+            redirect = random.choice(available)
+            _recent_redirects.append(redirect)
+            if len(_recent_redirects) > _MAX_REDIRECT_HISTORY:
+                _recent_redirects.pop(0)
             return {
                 "safe": False,
-                "redirect": random.choice(REDIRECT_RESPONSES),
+                "redirect": redirect,
             }
 
     return {"safe": True, "redirect": None}

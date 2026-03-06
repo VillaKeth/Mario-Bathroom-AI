@@ -16,6 +16,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import time
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
@@ -50,6 +51,9 @@ emotion_system = EmotionSystem()
 party_stats = PartyStats()
 idle_behavior = IdleBehavior()
 
+# Lock for state_current to prevent race conditions across async handlers
+_state_lock = asyncio.Lock()
+
 # Track current conversation state
 state_current = {
     "speaker_name": None,
@@ -63,6 +67,10 @@ state_current = {
     "_last_audio_chunk": None,
     "_user_request_active": False,  # Prevents idle TTS during user requests
 }
+
+# Dedicated single-thread executor for TTS (prevents GPU contention)
+from concurrent.futures import ThreadPoolExecutor
+_tts_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
 
 
 @asynccontextmanager
@@ -141,13 +149,13 @@ async def websocket_endpoint(ws: WebSocket):
         greeting_text = await llm.generate_response(greeting_ctx)
         greeting_text = filter_response(greeting_text)
         analyzed = analyze_text(greeting_text)
-        greeting_audio = await loop.run_in_executor(None, lambda: tts.synthesize(analyzed["tts_text"]))
+        greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
         await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
                             pose_hint=analyzed["pose_hint"])
     except Exception as e:
         logger.error(f"Startup greeting failed: {e}")
         try:
-            fallback_audio = await loop.run_in_executor(None, lambda: tts.synthesize("Wahoo!"))
+            fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
             await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
                                 pose_hint="positive/excited_jump")
         except Exception:
@@ -162,12 +170,14 @@ async def websocket_endpoint(ws: WebSocket):
 
             if "bytes" in data and data["bytes"]:
                 try:
-                    await handle_audio(ws, data["bytes"])
+                    async with _state_lock:
+                        await handle_audio(ws, data["bytes"])
                 except Exception as e:
                     logger.error(f"handle_audio error: {e}")
             elif "text" in data and data["text"]:
                 try:
-                    await handle_event(ws, json.loads(data["text"]))
+                    async with _state_lock:
+                        await handle_event(ws, json.loads(data["text"]))
                 except json.JSONDecodeError as e:
                     logger.warning(f"Invalid JSON from client: {e}")
                 except Exception as e:
@@ -200,7 +210,7 @@ async def _idle_loop(ws: WebSocket):
                 comment = idle_behavior.get_long_stay_comment(minutes)
                 if comment:
                     analyzed = analyze_text(comment)
-                    audio = await loop.run_in_executor(None, lambda: tts.synthesize(analyzed["tts_text"]))
+                    audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     try:
                         await send_response(ws, analyzed["display_text"], audio,
                                             sound="coin", pose_hint=analyzed["pose_hint"])
@@ -221,7 +231,7 @@ async def _idle_loop(ws: WebSocket):
 
                 if has_spoken and len(analyzed["tts_text"]) > 5:
                     audio = await loop.run_in_executor(
-                        None, lambda: tts.synthesize(analyzed["tts_text"])
+                        _tts_executor, lambda: tts.synthesize(analyzed["tts_text"])
                     )
                     await send_response(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"])
@@ -298,8 +308,8 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     # Safety check on input
     safety = check_input(transcript)
     if not safety["safe"]:
-        logger.warning(f"[SAFETY] Unsafe input detected, redirecting")
-        redirect_audio = await loop.run_in_executor(None, lambda: tts.synthesize(safety["redirect"]))
+        logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
+        redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(safety["redirect"]))
         await send_response(ws, safety["redirect"], redirect_audio)
         return
 
@@ -361,7 +371,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     voice_params = emotion_system.get_voice_params()
     try:
         response_audio = await loop.run_in_executor(
-            None, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
+            _tts_executor, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
         )
     except Exception as e:
         logger.error(f"TTS failed: {e} — sending text only")
@@ -460,6 +470,26 @@ async def _handle_special_commands(transcript: str) -> str:
         else:
             return f"You know, I've been here a while but my memory is-a fuzzy! Too many guests!"
 
+    # Who am I / what do you know about me
+    if any(w in lower for w in ["who am i", "do you know me", "remember me", "know anything about me", "what do you remember"]):
+        if state_current["speaker_id"]:
+            memories = memory.get_memories_for_context(state_current["speaker_id"])
+            if memories:
+                facts_text = ", ".join(memories[:4])
+                return f"Of course I remember-a you, {state_current['speaker_name'] or 'friend'}! I know that {facts_text}!"
+        if state_current["speaker_name"]:
+            return f"You're-a {state_current['speaker_name']}! But that's all I know so far. Tell me more!"
+        return "Hmm, I don't think we've-a met properly! What's your name, friend?"
+
+    # How do I look
+    if any(w in lower for w in ["how do i look", "do i look good", "am i pretty", "am i handsome"]):
+        emotion_system.current = "loving"
+        return random.choice([
+            "Mama mia! You look-a absolutely magnificent! Like a Super Star!",
+            "Bellissimo! You're looking-a fantastic tonight! Ten out of ten!",
+            "You look like-a million coins! Gold star for style!",
+        ])
+
     return None
 
 
@@ -526,7 +556,9 @@ async def handle_event(ws: WebSocket, event: dict):
 
         analyzed = analyze_text(response_text)
         loop = asyncio.get_event_loop()
-        response_audio = await loop.run_in_executor(None, lambda: tts.synthesize(analyzed["tts_text"]))
+        voice_params = emotion_system.get_voice_params()
+        response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+            analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
         await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
                             emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high")
 
@@ -557,7 +589,9 @@ async def handle_event(ws: WebSocket, event: dict):
 
         analyzed = analyze_text(response_text)
         loop = asyncio.get_event_loop()
-        response_audio = await loop.run_in_executor(None, lambda: tts.synthesize(analyzed["tts_text"]))
+        voice_params = emotion_system.get_voice_params()
+        response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+            analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
         await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",
                             emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
 
@@ -583,7 +617,7 @@ async def handle_event(ws: WebSocket, event: dict):
             # Mario celebrates registering a new friend
             celebrate = f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice! Let's-a go!"
             loop = asyncio.get_event_loop()
-            celebrate_audio = await loop.run_in_executor(None, lambda: tts.synthesize(celebrate))
+            celebrate_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(celebrate))
             await send_response(ws, celebrate, celebrate_audio, sound="oneup", emotion="excited")
 
     elif event_type == "vad_start":
@@ -622,7 +656,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
     safety = check_input(text)
     if not safety["safe"]:
         loop = asyncio.get_event_loop()
-        redirect_audio = await loop.run_in_executor(None, lambda: tts.synthesize(safety["redirect"]))
+        redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(safety["redirect"]))
         await send_response(ws, safety["redirect"], redirect_audio)
         return
 
@@ -669,7 +703,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
     loop = asyncio.get_event_loop()
     try:
         response_audio = await loop.run_in_executor(
-            None, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
+            _tts_executor, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
         )
     except Exception as e:
         logger.error(f"TTS failed for text_input: {e} — sending text only")

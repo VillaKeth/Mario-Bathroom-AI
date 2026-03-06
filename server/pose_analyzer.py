@@ -304,6 +304,34 @@ CONTENT_POSE_MAP = {
     "i got this": "thinking/determined",
     "no problem": "positive/thumbs_up",
     "easy": "positive/thumbs_up",
+    # Party context
+    "cheers": "positive/excited_jump",
+    "drink": "action/eating_mushroom",
+    "drunk": "thinking/dizzy",
+    "shots": "positive/excited_jump",
+    "karaoke": "speech/singing",
+    "selfie": "positive/peace_sign",
+    "photo": "positive/peace_sign",
+    "friend": "positive/waving",
+    "crew": "positive/waving",
+    "vibe": "positive/chill_relaxed",
+    "chill": "positive/chill_relaxed",
+    "relax": "positive/chill_relaxed",
+    "bro": "positive/fist_bump",
+    "dude": "positive/fist_bump",
+    # Greetings
+    "hello": "greeting/wave_high",
+    "hey": "greeting/wave_casual",
+    "hi mario": "greeting/hello_sparkle",
+    "goodbye": "greeting/farewell",
+    "bye": "greeting/farewell",
+    "see you": "greeting/farewell",
+    "later": "greeting/farewell",
+    # Questions
+    "how": "thinking/curious",
+    "why": "thinking/curious",
+    "what": "thinking/curious",
+    "where": "thinking/curious",
 }
 
 
@@ -336,6 +364,10 @@ def analyze_text(text: str) -> dict:
     if not pose_hint and tts_text:
         pose_hint = _match_content_pose(tts_text)
 
+    # Default fallback pose
+    if not pose_hint:
+        pose_hint = "neutral/idle"
+
     if DEBUG_POSE and (actions or pose_hint):
         logger.info(f"[DEBUG_POSE] analyze: actions={actions}, pose={pose_hint}")
 
@@ -349,8 +381,9 @@ def analyze_text(text: str) -> dict:
 
 def _match_action_pose(action_text: str) -> str | None:
     """Match action text to a sprite pose."""
+    normalized = action_text.replace("-", " ").replace("_", " ")
     for keyword, pose in ACTION_POSE_MAP.items():
-        if keyword in action_text:
+        if keyword in normalized:
             return pose
     return None
 

@@ -4,6 +4,7 @@ import sqlite3
 import os
 import json
 import logging
+import re
 from datetime import datetime
 
 DEBUG_MEMORY = True
@@ -202,41 +203,73 @@ def get_memories_for_context(person_id: int) -> list[str]:
     return memories
 
 
+# Pre-compiled fact extraction patterns (avoid re-compiling per call)
+_FACT_RE_NAME = re.compile(r"(?:my name is|call me|i'm|i am)\s+(\w+)(?:\s|$|!)")
+_FACT_RE_LIKE = re.compile(r"i (?:really )?(?:like|love|enjoy|adore)\s+(.+?)(?:\.|!|$)")
+_FACT_RE_HATE = re.compile(r"i (?:hate|dislike|can't stand|despise)\s+(.+?)(?:\.|!|$)")
+_FACT_RE_WORK = re.compile(r"i(?:'m| am) (?:a |an )?(\w+(?:\s+\w+)?)\s*(?:by|for|at)")
+_FACT_RE_FAV = re.compile(r"my favorite (\w+) is\s+(.+?)(?:\.|!|$)")
+_FACT_RE_FROM = re.compile(r"i(?:'m| am) from\s+(.+?)(?:\.|!|$)")
+_FACT_RE_AGE = re.compile(r"i(?:'m| am) (\d+)\s*(?:years old)?")
+_FACT_RE_STUDY = re.compile(r"i(?:'m| am) studying\s+(.+?)(?:\.|!|$)")
+_FACT_RE_STUDENT = re.compile(r"i(?:'m| am) a (\w+(?:\s+\w+)?)\s*(?:student|major)")
+_FACT_RE_WORK_AT = re.compile(r"i (?:work|works?) (?:at|for|in)\s+(.+?)(?:\.|!|$)")
+_FACT_RE_GO_TO = re.compile(r"i (?:go|goes?) to\s+(.+?)(?:\.|!|$)")
+_FACT_RE_PET = re.compile(r"i (?:have|got)\s+(?:a |an )?(\w+(?:\s+\w+)?)\s*(?:named|called)\s+(\w+)")
+_FACT_RE_WITH = re.compile(r"i(?:'m| am) (?:here )?with\s+(.+?)(?:\.|!|$)")
+_FACT_RE_TRAVEL = re.compile(r"i (?:just )?(?:came|flew|drove) (?:from|in from)\s+(.+?)(?:\.|!|$)")
+_FACT_RE_FAMILY = re.compile(r"my (\w+)'s name is\s+(\w+)")
+_FACT_RE_PLAY = re.compile(r"i play\s+(.+?)(?:\.|!|$)")
+_FACT_RE_FEEL = re.compile(r"i(?:'m| am) (?:feeling |pretty )?(\w+)\s*(?:today|tonight|right now)")
+_FACT_RE_FRIEND = re.compile(r"my (?:best |closest )?friend(?:'s name)? is\s+(\w+)")
+_FACT_RE_LIVE = re.compile(r"i (?:live|stay) (?:in|at|near)\s+(.+?)(?:\.|!|$)")
+_FACT_RE_FAN = re.compile(r"(?:i'm|i am) (?:a )?(\w+) (?:fan|lover|enthusiast)")
+
+
 def extract_facts(text: str) -> list[str]:
     """Extract learnable facts from user speech (simple pattern matching)."""
-    import re
     facts = []
     text_lower = text.lower()
 
     patterns = [
-        (r"(?:my name is|call me|i'm|i am)\s+(\w+)(?:\s|$|!)", "Their name might be {0}"),
-        (r"i (?:really )?(?:like|love|enjoy|adore)\s+(.+?)(?:\.|!|$)", "They like {0}"),
-        (r"i (?:hate|dislike|can't stand|despise)\s+(.+?)(?:\.|!|$)", "They dislike {0}"),
-        (r"i(?:'m| am) (?:a |an )?(\w+(?:\s+\w+)?)\s*(?:by|for|at)", "They work as {0}"),
-        (r"my favorite (\w+) is\s+(.+?)(?:\.|!|$)", "Their favorite {0} is {1}"),
-        (r"i(?:'m| am) from\s+(.+?)(?:\.|!|$)", "They're from {0}"),
-        (r"i(?:'m| am) (\d+)\s*(?:years old)?", "They're {0} years old"),
-        (r"i(?:'m| am) studying\s+(.+?)(?:\.|!|$)", "They're studying {0}"),
-        (r"i(?:'m| am) a (\w+(?:\s+\w+)?)\s*(?:student|major)", "They're a {0} student"),
-        (r"i (?:work|works?) (?:at|for|in)\s+(.+?)(?:\.|!|$)", "They work at {0}"),
-        (r"i (?:go|goes?) to\s+(.+?)(?:\.|!|$)", "They go to {0}"),
-        (r"i (?:have|got)\s+(?:a |an )?(\w+(?:\s+\w+)?)\s*(?:named|called)\s+(\w+)", "They have a {0} named {1}"),
-        (r"i(?:'m| am) (?:here )?with\s+(.+?)(?:\.|!|$)", "They came with {0}"),
-        (r"i (?:just )?(?:came|flew|drove) (?:from|in from)\s+(.+?)(?:\.|!|$)", "They traveled from {0}"),
-        (r"my (\w+)'s name is\s+(\w+)", "Their {0}'s name is {1}"),
-        (r"i play\s+(.+?)(?:\.|!|$)", "They play {0}"),
-        (r"i(?:'m| am) (?:feeling |pretty )?(\w+)\s*(?:today|tonight|right now)", "They're feeling {0}"),
-        (r"my (?:best |closest )?friend(?:'s name)? is\s+(\w+)", "Their friend is {0}"),
-        (r"i (?:live|stay) (?:in|at|near)\s+(.+?)(?:\.|!|$)", "They live in {0}"),
-        (r"(?:i'm|i am) (?:a )?(\w+) (?:fan|lover|enthusiast)", "They're a {0} fan"),
+        (_FACT_RE_NAME, "Their name might be {0}"),
+        (_FACT_RE_LIKE, "They like {0}"),
+        (_FACT_RE_HATE, "They dislike {0}"),
+        (_FACT_RE_WORK, "They work as {0}"),
+        (_FACT_RE_FAV, "Their favorite {0} is {1}"),
+        (_FACT_RE_FROM, "They're from {0}"),
+        (_FACT_RE_AGE, "They're {0} years old"),
+        (_FACT_RE_STUDY, "They're studying {0}"),
+        (_FACT_RE_STUDENT, "They're a {0} student"),
+        (_FACT_RE_WORK_AT, "They work at {0}"),
+        (_FACT_RE_GO_TO, "They go to {0}"),
+        (_FACT_RE_PET, "They have a {0} named {1}"),
+        (_FACT_RE_WITH, "They came with {0}"),
+        (_FACT_RE_TRAVEL, "They traveled from {0}"),
+        (_FACT_RE_FAMILY, "Their {0}'s name is {1}"),
+        (_FACT_RE_PLAY, "They play {0}"),
+        (_FACT_RE_FEEL, "They're feeling {0}"),
+        (_FACT_RE_FRIEND, "Their friend is {0}"),
+        (_FACT_RE_LIVE, "They live in {0}"),
+        (_FACT_RE_FAN, "They're a {0} fan"),
     ]
 
-    for pattern, template in patterns:
-        match = re.search(pattern, text_lower)
+    for compiled_re, template in patterns:
+        match = compiled_re.search(text_lower)
         if match:
             groups = [g.strip() for g in match.groups() if g]
             if groups:
                 fact = template.format(*groups)
                 facts.append(fact)
 
-    return facts
+    # Deduplicate similar facts (same template prefix)
+    seen = set()
+    unique_facts = []
+    for fact in facts:
+        key = fact.split(" ", 3)[:3]  # First 3 words as dedup key
+        key_str = " ".join(key).lower()
+        if key_str not in seen:
+            seen.add(key_str)
+            unique_facts.append(fact)
+
+    return unique_facts

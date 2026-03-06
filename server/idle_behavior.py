@@ -91,6 +91,14 @@ IDLE_MUMBLES = [
     "*examines toilet paper roll* Over or under? This is-a the great debate of our time!",
     "If I had-a plunger, I could show you some real moves! Professional grade!",
     "*whispers to sink faucet* Don't worry little buddy, I'll fix you if you ever leak!",
+    "I bet the DJ out there wishes they had-a my soundtrack! Do do do do do doo!",
+    "*stretches legs* Standing guard is-a hard work! But Mario never gives up!",
+    "Someone left their jacket! ...Oh wait, that's-a a towel. False alarm!",
+    "♪ Jump up, superstar! Here we go, off the rails! ♪",
+    "This hand soap smells like-a lavender! Fancy! Princess Peach would approve!",
+    "*does a little squat* One, two, three! Gotta stay in shape for jumping!",
+    "I wonder how many people have taken selfies in this mirror tonight...",
+    "The music out there is-a bumping! I can feel the bass through the floor!",
 ]
 
 # Things Mario says when he hears a sudden noise
@@ -189,6 +197,10 @@ MARIO_JOKES = [
     "Why is Lakitu always on a cloud? Because he's-a too lazy to walk! Ha!",
     "What did Princess Peach text Mario? 'HELP! In another castle!' ...Again?!",
     "Why did the Bullet Bill go to therapy? It had-a anger issues! Always charging!",
+    "Knock knock! Who's there? It's-a me! Mario! I was waiting for you to say 'who's there'!",
+    "Why does Mario wear red? So he doesn't-a get lost in the tomato sauce! Ha!",
+    "What's-a the best thing about being a plumber? The pipe dreams! Get it?",
+    "Why did Toad cross the road? Because Princess Peach was in another castle! Again!",
 ]
 
 MARIO_TRIVIA = [
@@ -264,6 +276,9 @@ MARIO_COMPLIMENTS = [
     "You're cooler than-a my ice powers! And that's cold!",
     "Mario gives you-a ten out of ten! Wahoo!",
     "You light up the room like-a an Invincibility Star!",
+    "Your smile could power-a the entire Mushroom Kingdom!",
+    "If there was a 'Best Party Guest' award, you'd-a win it!",
+    "You've got more heart than-a all the heart containers combined!",
 ]
 
 # Hand washing reminders (used when people exit)
@@ -396,3 +411,25 @@ class IdleBehavior:
                 f"Still going strong after {int(minutes)} minutes! You're-a champion!",
                 f"{int(minutes)} minutes! I think you live-a here now! Welcome home!",
             ])
+
+    def get_time_comment(self) -> str:
+        """Get a comment based on the current time of day."""
+        from datetime import datetime
+        hour = datetime.now().hour
+        if hour >= 0 and hour < 4:
+            return random.choice([
+                "Mama mia, it's-a so late! The party animals are still going!",
+                "It's-a past midnight! Mario needs his beauty sleep... but duty calls!",
+                "So late at night! Only the bravest use the bathroom at this hour!",
+            ])
+        elif hour >= 4 and hour < 7:
+            return random.choice([
+                "Is that... the sun coming up?! This party is-a legendary!",
+                "Almost morning! You're-a still here? Impressive dedication!",
+            ])
+        elif hour >= 20 and hour <= 23:
+            return random.choice([
+                "The party is-a in full swing! What a night!",
+                "Evening bathroom visits are-a the best! The lighting is so dramatic!",
+            ])
+        return None

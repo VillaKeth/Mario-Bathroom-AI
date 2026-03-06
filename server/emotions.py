@@ -2,6 +2,7 @@
 
 import logging
 import random
+import threading
 import time
 
 DEBUG_EMOTION = True
@@ -58,17 +59,23 @@ class EmotionSystem:
         self.intensity = 0.7  # 0.0-1.0
         self._last_change = time.time()
         self._last_interaction = time.time()
+        self._lock = threading.Lock()
         self._visitor_count = 0
 
     def update(self, event: str = None, transcript: str = None):
         """Update emotion based on events and conversation."""
+        with self._lock:
+            self._update_internal(event, transcript)
+
+    def _update_internal(self, event: str = None, transcript: str = None):
+        """Internal update — must be called with self._lock held."""
         now = time.time()
         idle_time = now - self._last_interaction
 
         # Decay intensity over time (emotions fade)
         time_since_change = now - self._last_change
         if time_since_change > 30 and self.intensity > 0.3:
-            self.intensity = max(0.3, self.intensity - 0.01 * (time_since_change / 60))
+            self.intensity = max(0.3, self.intensity - 0.03 * (time_since_change / 60))
 
         # Time-based mood shifts
         if idle_time > 600:  # 10 minutes alone
@@ -145,6 +152,18 @@ class EmotionSystem:
             elif any(w in lower for w in ["secret", "whisper", "between us", "don't tell"]):
                 self.current = Emotion.MISCHIEVOUS
                 self.intensity = 0.7
+            elif any(w in lower for w in ["hate", "sucks", "stupid", "ugh", "annoying", "worst"]):
+                self.current = Emotion.WORRIED
+                self.intensity = 0.5
+            elif any(w in lower for w in ["cool", "nice", "sweet", "fire", "lit", "sick", "dope"]):
+                self.current = Emotion.HAPPY
+                self.intensity = 0.8
+            elif any(w in lower for w in ["music", "song", "sing", "dance", "dj", "beat"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.8
+            elif any(w in lower for w in ["bye", "goodbye", "leaving", "going", "gotta go"]):
+                self.current = Emotion.HAPPY
+                self.intensity = 0.6
 
         # Track when emotion last changed for decay
         if transcript or event:
@@ -155,12 +174,14 @@ class EmotionSystem:
 
     def get_voice_params(self) -> dict:
         """Get TTS voice parameters for current emotion."""
-        return EMOTION_VOICE_MAP.get(self.current, EMOTION_VOICE_MAP[Emotion.NEUTRAL])
+        with self._lock:
+            return EMOTION_VOICE_MAP.get(self.current, EMOTION_VOICE_MAP[Emotion.NEUTRAL])
 
     def get_prompt_addition(self) -> str:
         """Get text to add to LLM prompt about current emotion."""
-        desc = EMOTION_DESCRIPTIONS.get(self.current, "")
-        return f"[YOUR CURRENT MOOD: {self.current.upper()} (intensity: {self.intensity:.0%})]: {desc}"
+        with self._lock:
+            desc = EMOTION_DESCRIPTIONS.get(self.current, "")
+            return f"[MOOD: {self.current.upper()}]: {desc}"
 
     @property
     def animation_state(self) -> str:

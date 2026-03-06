@@ -97,6 +97,7 @@ _audio_cache = {}
 _cache_order = []
 MAX_CACHE_SIZE = 50
 _rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
+_cache_lock = threading.Lock()  # Protects _audio_cache and _cache_order from concurrent access
 CACHED_PHRASES = [
     "It's-a me, Mario!",
     "Wahoo!",
@@ -211,8 +212,7 @@ def precache_phrases():
     cache_start = time.time()
     for phrase in CACHED_PHRASES:
         try:
-            audio = synthesize(phrase)
-            _audio_cache[f"{EDGE_VOICE}:{phrase.strip().lower()}"] = audio
+            synthesize(phrase)
         except Exception as e:
             logger.warning(f"[DEBUG_TTS] precache: failed '{phrase[:30]}': {e}")
     logger.info(f"[DEBUG_TTS] precache: done in {time.time() - cache_start:.1f}s ({len(_audio_cache)} cached)")
@@ -227,10 +227,11 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
     cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
-    if cache_key in _audio_cache:
-        if DEBUG_TTS:
-            logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...'")
-        return _audio_cache[cache_key]
+    with _cache_lock:
+        if cache_key in _audio_cache:
+            if DEBUG_TTS:
+                logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...'")
+            return _audio_cache[cache_key]
 
     if DEBUG_TTS:
         logger.info(f"[DEBUG_TTS] synthesize: START text='{text[:50]}...'")
@@ -261,12 +262,13 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
 
     # Cache short phrases for future instant playback (LRU eviction)
     if len(text) < 60:
-        _audio_cache[cache_key] = result
-        if cache_key not in _cache_order:
-            _cache_order.append(cache_key)
-        if len(_cache_order) > MAX_CACHE_SIZE:
-            evict_key = _cache_order.pop(0)
-            _audio_cache.pop(evict_key, None)
+        with _cache_lock:
+            _audio_cache[cache_key] = result
+            if cache_key not in _cache_order:
+                _cache_order.append(cache_key)
+            if len(_cache_order) > MAX_CACHE_SIZE:
+                evict_key = _cache_order.pop(0)
+                _audio_cache.pop(evict_key, None)
 
     return result
 
@@ -306,9 +308,15 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
         with open(tmp_in, "wb") as f:
             f.write(wav_bytes)
 
-        # Serialize RVC GPU access
-        with _rvc_lock:
+        # Serialize RVC GPU access with timeout to prevent deadlocks
+        acquired = _rvc_lock.acquire(timeout=30)
+        if not acquired:
+            logger.warning("[DEBUG_TTS] _apply_rvc: lock timeout — GPU busy, returning original")
+            return wav_bytes
+        try:
             _rvc_model.infer_file(tmp_in, tmp_out)
+        finally:
+            _rvc_lock.release()
 
         # Read output back
         with open(tmp_out, "rb") as f:
@@ -426,7 +434,8 @@ async def _edge_async(text: str, rate: str = None, pitch: str = None) -> bytes:
         pitch=pitch or PITCH_OFFSET,
     )
 
-    tmp_path = os.path.join(tempfile.gettempdir(), "mario_tts_output.mp3")
+    tid = threading.current_thread().ident
+    tmp_path = os.path.join(tempfile.gettempdir(), f"mario_tts_{tid}.mp3")
     await communicate.save(tmp_path)
 
     try:

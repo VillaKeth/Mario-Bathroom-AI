@@ -37,6 +37,8 @@ GREETING_PROMPTS = {
     "late_night": "It's very late at night. You're getting sleepy but still on duty. Say something tired but funny.",
     "milestone_visit": "This is visitor number {count} tonight! Celebrate this milestone in Mario style!",
     "first_visitor": "This is the FIRST visitor of the night! Make them feel extra special!",
+    "party_peak": "The party is at its peak! Lots of visitors coming and going. Comment on how busy it is!",
+    "slow_night": "Not many visitors tonight. Make a funny comment about how quiet the bathroom has been.",
 }
 
 

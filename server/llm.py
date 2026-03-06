@@ -43,23 +43,29 @@ async def check_ollama():
                     logger.warning(f"[DEBUG_LLM] Neither {MODEL_NAME} nor {MODEL_FALLBACK} found!")
                     return False
 
-            # Pre-warm model so first real call is fast
+            # Pre-warm model so first real call is fast (2 attempts)
             logger.info("[DEBUG_LLM] check_ollama: warming up model...")
             warmup_start = time.time()
-            try:
-                await client.post(
-                    f"{OLLAMA_URL}/api/chat",
-                    json={
-                        "model": MODEL_NAME,
-                        "messages": [{"role": "user", "content": "Say hi"}],
-                        "stream": False,
-                        "options": {"num_predict": 1},
-                    },
-                    timeout=30.0,
-                )
-                logger.info(f"[DEBUG_LLM] check_ollama: model warmed in {time.time() - warmup_start:.1f}s")
-            except Exception as e:
-                logger.warning(f"[DEBUG_LLM] check_ollama: warmup failed (non-fatal): {e}")
+            for warmup_attempt in range(2):
+                try:
+                    await client.post(
+                        f"{OLLAMA_URL}/api/chat",
+                        json={
+                            "model": MODEL_NAME,
+                            "messages": [{"role": "user", "content": "Say hi"}],
+                            "stream": False,
+                            "options": {"num_predict": 1},
+                        },
+                        timeout=30.0,
+                    )
+                    logger.info(f"[DEBUG_LLM] check_ollama: model warmed in {time.time() - warmup_start:.1f}s")
+                    break
+                except Exception as e:
+                    if warmup_attempt == 0:
+                        logger.warning(f"[DEBUG_LLM] check_ollama: warmup failed, retrying: {e}")
+                        await asyncio.sleep(2)
+                    else:
+                        logger.warning(f"[DEBUG_LLM] check_ollama: warmup failed after 2 attempts (non-fatal): {e}")
 
             return True
     except Exception as e:
@@ -81,8 +87,9 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         messages.append({"role": "user", "content": transcript})
 
     import random
-    # Slight temperature variation for response diversity
     temp = 0.85 + random.uniform(-0.05, 0.10)
+    if DEBUG_LLM:
+        logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, model={MODEL_NAME}")
 
     payload = {
         "model": MODEL_NAME,
@@ -122,6 +129,9 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
                             continue
 
             response_text = "".join(chunks).strip()
+            if not response_text or len(response_text) < 3:
+                logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
+                return "Wahoo! Let's-a go!"
             response_text = _clean_response(response_text)
 
             elapsed = time.time() - start
