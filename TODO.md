@@ -210,6 +210,21 @@
 - [x] Greeting prompts expanded to 15 (added party_peak, slow_night)
 - [x] CONTENT_POSE_MAP expanded to 161 (party, greeting, farewell, question keywords)
 - [x] Emotion triggers expanded (hate/sucks→worried, cool/nice→happy, music/dance→excited, bye→happy)
+- [x] _state_lock now ACTUALLY used — wraps handle_audio and handle_event with async lock
+- [x] RVC lock timeout (30s) — prevents GPU deadlock, falls back to original audio on timeout
+- [x] Emotion system thread-safe — threading.Lock on update(), get_voice_params(), get_prompt_addition()
+- [x] Emotion prompt shortened — "[MOOD: X]: desc" instead of verbose format (saves ~30 tokens per call)
+- [x] Emotion intensity decay increased 3x (0.01→0.03 per minute) for more responsive emotion changes
+- [x] Safety filter "dying laughing" fix — now allows "dying" when followed by "laughing/funny/comedy"
+- [x] TTS precache/cache key mismatch fixed — precache now calls synthesize() directly (proper key format)
+- [x] Pose analyzer multi-word fix — normalizes hyphens/underscores ("shadow-box" → "shadow box")
+- [x] AudioPlayback queue drain on stop — prevents stale audio on restart
+- [x] AudioPlayback thread-safe is_playing — uses _lock + _actively_playing state
+- [x] Audio format validation in STT — catches invalid/short audio bytes before numpy conversion
+- [x] Visit count uses actual DB data — get_person_info().visit_count instead of len(memories)
+- [x] Time-aware idle comments wired into idle loop — 15% chance to inject time comment
+- [x] Config validation at startup — warns on invalid types for critical config values
+- [x] LLM temperature logged per call — visible in server logs for debugging
 - [ ] Try different Edge TTS base voices for better RVC result
 - [ ] Tune RVC pitch further (try 6, 10, 12 semitones)
 - [ ] Sentence streaming TTS (stream first sentence while generating rest)

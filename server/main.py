@@ -44,7 +44,16 @@ if os.path.exists(CONFIG_PATH):
     with open(CONFIG_PATH) as f:
         config = json.load(f)
     logger.info(f"Loaded config from {CONFIG_PATH}")
+else:
+    logger.warning(f"Config not found at {CONFIG_PATH} — using defaults")
 server_config = config.get("server", {})
+
+# Validate critical config values
+_required_keys = {"llm_model": str, "tts_rate": str, "tts_voice": str}
+for key, expected_type in _required_keys.items():
+    val = server_config.get(key)
+    if val is not None and not isinstance(val, expected_type):
+        logger.warning(f"Config '{key}' should be {expected_type.__name__}, got {type(val).__name__}")
 
 # Systems
 emotion_system = EmotionSystem()
@@ -219,6 +228,10 @@ async def _idle_loop(ws: WebSocket):
             continue
 
         action = idle_behavior.get_idle_action()
+        # Occasionally inject time-aware comments
+        time_comment = idle_behavior.get_time_comment()
+        if time_comment and random.random() < 0.15:
+            action = time_comment
         if action:
             emotion_system.update()
             analyzed = analyze_text(action)
@@ -532,11 +545,13 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["speaker_name"]:
             event_type_greeting = "enter_known"
             memories = memory.get_memories_for_context(state_current["speaker_id"])
+            person_info = memory.get_person_info(state_current["speaker_id"])
+            actual_visits = person_info["visit_count"] if person_info else 1
             ctx = mario_prompt.build_context(
                 speaker_name=state_current["speaker_name"],
                 memories=memories,
                 event="enter_known",
-                visit_count=len(memories),
+                visit_count=actual_visits,
                 last_topic=memories[-1] if memories else "nothing special",
             )
         elif total == 1:

@@ -72,7 +72,15 @@ def transcribe(audio_data: bytes, sample_rate: int = 16000) -> str:
         logger.info(f"[DEBUG_STT] transcribe: START, audio_bytes={len(audio_data)}")
 
     # Convert bytes to numpy float32 array
-    audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
+    if len(audio_data) < 2:
+        if DEBUG_STT:
+            logger.info("[DEBUG_STT] transcribe: audio too small, skipping")
+        return ""
+    try:
+        audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
+    except ValueError as e:
+        logger.warning(f"[DEBUG_STT] transcribe: invalid audio format: {e}")
+        return ""
 
     if len(audio_np) < sample_rate * 0.5:
         if DEBUG_STT:
