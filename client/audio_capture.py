@@ -30,8 +30,8 @@ class AudioCapture:
         """Called by sounddevice for each audio block."""
         if status and DEBUG_AUDIO:
             logger.warning(f"[DEBUG_AUDIO] audio_callback: status={status}")
-        # Convert float32 to int16 bytes
-        audio_int16 = (indata[:, 0] * 32767).astype(np.int16)
+        # Convert float32 to int16 bytes (clip to prevent overflow distortion)
+        audio_int16 = (np.clip(indata[:, 0], -1.0, 1.0) * 32767).astype(np.int16)
         self.audio_queue.put(audio_int16.tobytes())
 
     def start(self):
