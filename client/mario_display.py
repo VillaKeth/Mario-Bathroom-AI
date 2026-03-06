@@ -29,18 +29,46 @@ STATE_DANCING = "dancing"
 
 SPRITE_DIR = os.path.join(os.path.dirname(__file__), "assets", "mario")
 
-# Map emotions to sprite names
+# AI-generated 3D poses directory (transparent PNGs)
+AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                            "mario_3d_assets", "ai_poses_transparent")
+
+# Map emotions to AI pose paths (category/filename without .png)
 EMOTION_SPRITE_MAP = {
-    "happy": "idle",
-    "excited": "dance",
-    "surprised": "surprise",
-    "confused": "think",
-    "annoyed": "idle",
-    "sleepy": "sleep",
-    "mischievous": "laugh",
-    "laughing": "laugh",
-    "sad": "think",
+    "happy": "positive/happy",
+    "excited": "positive/excited_jump",
+    "surprised": "thinking/surprised",
+    "confused": "thinking/confused",
+    "annoyed": "negative/annoyed",
+    "sleepy": "sleep/sleepy",
+    "mischievous": "thinking/mischievous",
+    "laughing": "positive/laughing",
+    "sad": "negative/sad",
+    "angry": "negative/angry",
+    "nervous": "negative/nervous",
+    "scared": "negative/scared",
+    "love": "positive/love",
+    "proud": "positive/proud",
+    "embarrassed": "negative/embarrassed",
+    "disgusted": "negative/disgusted",
+    "determined": "thinking/determined",
 }
+
+# Map states to AI pose paths
+STATE_SPRITE_MAP = {
+    STATE_IDLE: "neutral/idle",
+    STATE_TALKING: ["speech/talking", "speech/talking_excited"],
+    STATE_LISTENING: "speech/listening",
+    STATE_GREETING: "greeting/wave_high",
+    STATE_THINKING: "thinking/thinking",
+    STATE_SLEEPING: "sleep/sleeping",
+    STATE_DANCING: ["movement/dancing_1", "movement/dancing_2"],
+    STATE_ENTERING: "movement/running",
+    STATE_EXITING: "greeting/farewell",
+}
+
+# Target display size for AI poses (scaled from 1024x1024)
+AI_POSE_DISPLAY_SIZE = (250, 250)
 
 # Speech bubble style based on text content
 BUBBLE_STYLE_NORMAL = "normal"
@@ -107,6 +135,7 @@ class MarioDisplay:
         self._sprites = {}
         self._walk_frame = 0
         self._talk_frame = 0
+        self._using_ai_poses = False  # set after loading
 
         # State
         self.state = STATE_IDLE
@@ -149,7 +178,19 @@ class MarioDisplay:
         self._disco_index = 0
 
     def _load_sprites(self):
-        """Load all Mario pixel art sprite PNGs."""
+        """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
+        # Try loading AI-generated poses first
+        if os.path.isdir(AI_POSES_DIR):
+            self._load_ai_poses()
+            if self._sprites:
+                self._using_ai_poses = True
+                if DEBUG_DISPLAY:
+                    logger.info(f"[DEBUG_DISPLAY] Using AI-generated poses ({len(self._sprites)} loaded)")
+                return
+
+        # Fallback to old pixel art sprites
+        if DEBUG_DISPLAY:
+            logger.info("[DEBUG_DISPLAY] AI poses not found, falling back to pixel art sprites")
         sprite_names = [
             "idle", "talk", "talk2", "walk1", "walk2", "wave",
             "jump", "think", "laugh", "surprise", "sleep", "dance",
@@ -159,13 +200,35 @@ class MarioDisplay:
             if os.path.exists(path):
                 img = pygame.image.load(path).convert_alpha()
                 self._sprites[name] = img
-                if DEBUG_DISPLAY:
-                    logger.info(f"[DEBUG_DISPLAY] Loaded sprite: {name} ({img.get_width()}x{img.get_height()})")
-            else:
-                logger.warning(f"[DEBUG_DISPLAY] Sprite not found: {path}")
 
         if not self._sprites:
             logger.error("[DEBUG_DISPLAY] No sprites loaded! Run generate_sprites.py first.")
+
+    def _load_ai_poses(self):
+        """Load all AI-generated transparent poses from category subdirectories."""
+        categories = [
+            "neutral", "greeting", "speech", "positive", "negative",
+            "thinking", "sleep", "movement", "action", "powerup",
+        ]
+        for category in categories:
+            cat_dir = os.path.join(AI_POSES_DIR, category)
+            if not os.path.isdir(cat_dir):
+                continue
+            for filename in os.listdir(cat_dir):
+                if not filename.endswith(".png"):
+                    continue
+                pose_name = filename[:-4]  # strip .png
+                sprite_key = f"{category}/{pose_name}"
+                path = os.path.join(cat_dir, filename)
+                try:
+                    img = pygame.image.load(path).convert_alpha()
+                    # Scale down from 1024x1024 to display size
+                    img = pygame.transform.smoothscale(img, AI_POSE_DISPLAY_SIZE)
+                    self._sprites[sprite_key] = img
+                    if DEBUG_DISPLAY:
+                        logger.info(f"[DEBUG_DISPLAY] Loaded AI pose: {sprite_key}")
+                except Exception as e:
+                    logger.warning(f"[DEBUG_DISPLAY] Failed to load {path}: {e}")
 
     def init(self):
         """Initialize Pygame display."""
@@ -337,7 +400,43 @@ class MarioDisplay:
             p.draw(self._screen)
 
     def _get_current_sprite(self) -> str:
-        """Get the sprite name, considering state and emotion."""
+        """Get the sprite key, considering state and emotion. Works with both AI poses and pixel art."""
+        if self._using_ai_poses:
+            return self._get_ai_sprite_key()
+        else:
+            return self._get_legacy_sprite_key()
+
+    def _get_ai_sprite_key(self) -> str:
+        """Get sprite key for AI-generated poses (category/name format)."""
+        # Transitions use running sprite
+        if self._transition_active:
+            return "movement/running"
+
+        # State-based selection
+        state_mapping = STATE_SPRITE_MAP.get(self.state)
+
+        if self.state == STATE_TALKING:
+            sprites = STATE_SPRITE_MAP[STATE_TALKING]
+            self._talk_frame += 1
+            return sprites[0] if (self._talk_frame // 6) % 2 == 0 else sprites[1]
+        elif self.state == STATE_DANCING:
+            sprites = STATE_SPRITE_MAP[STATE_DANCING]
+            return sprites[0] if (self._frame // 8) % 2 == 0 else sprites[1]
+        elif self.state in (STATE_GREETING, STATE_THINKING, STATE_SLEEPING, STATE_ENTERING, STATE_EXITING):
+            return STATE_SPRITE_MAP.get(self.state, "neutral/idle")
+        elif self.state in (STATE_LISTENING, STATE_IDLE):
+            # Use emotion-based sprite
+            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            if emo_sprite and emo_sprite in self._sprites:
+                if self.state == STATE_IDLE and self._emotion == "happy":
+                    return "neutral/idle"
+                return emo_sprite
+            return STATE_SPRITE_MAP.get(self.state, "neutral/idle")
+        else:
+            return "neutral/idle"
+
+    def _get_legacy_sprite_key(self) -> str:
+        """Get sprite key for old pixel art sprites (flat name format)."""
         # Transitions use walk sprites
         if self._transition_active:
             return "walk1" if (self._frame // 6) % 2 == 0 else "walk2"

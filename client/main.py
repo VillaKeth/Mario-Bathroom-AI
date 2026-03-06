@@ -81,7 +81,7 @@ class MarioClient:
         self.audio_playback.start()
 
         # Start presence detection
-        if not self.presence.start():
+        if self.presence and not self.presence.start():
             logger.warning("Webcam not available — presence detection disabled")
             self.display.set_subtitle("⚠ No webcam detected")
 
@@ -111,7 +111,8 @@ class MarioClient:
         self._running = False
         self.audio_capture.stop()
         self.audio_playback.stop()
-        self.presence.stop()
+        if self.presence:
+            self.presence.stop()
         self.ws.close()
         self.display.quit()
 

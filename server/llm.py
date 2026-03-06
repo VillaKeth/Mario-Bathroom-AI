@@ -8,7 +8,7 @@ DEBUG_LLM = True
 logger = logging.getLogger(__name__)
 
 OLLAMA_URL = "http://localhost:11434"
-MODEL_NAME = "llama3"
+MODEL_NAME = "qwen2:1.5b"  # Fast model (~1-3s) for low-latency party responses
 
 
 async def check_ollama():
@@ -54,7 +54,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         "options": {
             "temperature": 0.8,
             "top_p": 0.9,
-            "num_predict": 150,  # Keep responses short
+            "num_predict": 20,  # Ultra-short for speed (~half sentence)
         },
     }
 
@@ -63,7 +63,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
             resp = await client.post(
                 f"{OLLAMA_URL}/api/chat",
                 json=payload,
-                timeout=30.0,
+                timeout=15.0,
             )
             resp.raise_for_status()
             result = resp.json()

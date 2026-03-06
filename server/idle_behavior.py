@@ -29,6 +29,21 @@ IDLE_MUMBLES = [
     "I should-a bring Princess Peach to this party next time!",
     "*practices jumping* Wahoo! Hup! Ya-hoo!",
     "Did someone say-a spaghetti? No? Just me then...",
+    "*examines the faucet* Ooh, brushed nickel! Fancy-a plumbing!",
+    "I bet there's-a secret room behind this wall... *knocks* Nope!",
+    "*shadow boxes* Ha! Take that, Bowser! And that!",
+    "You know, I've been saving princesses for over 40 years! *flexes*",
+    "*adjusts hat in mirror* Red is definitely my color!",
+    "These soap bubbles remind me of the bubbles in World 4-2!",
+    "*does a little dance* Wahoo! Still got it!",
+    "I wonder if Toad is-a enjoying the party...",
+    "This hand towel is-a softer than a cloud platform!",
+    "*hums the underwater level theme* Bloop bloop bloop...",
+    "Did you know plumbers make-a the world go round? It's true!",
+    "*checks his mustache in the mirror* Magnifico!",
+    "Okie dokie, Mario! Stay sharp! Someone might-a come in!",
+    "*spins around* Woo-hoo! Triple spin!",
+    "I should tell-a Princess Peach about this party tile pattern...",
 ]
 
 # Things Mario says when he hears a sudden noise
@@ -72,6 +87,12 @@ MARIO_SONGS = [
     "♪ Dun dun dun, dun dun, DUN! Another castle, here we come! ♪",
     "♪ Swim swim swim, bloop bloop bloop, underwater Mario! ♪",
     "♪ Star power! Da da da da da da DA DA! ♪",
+    "♪ Doo doo doo doo-doo DOO! Coin! Doo doo doo doo-doo DOO! ♪",
+    "♪ One up! Ba-ding! Another life for Mario! ♪",
+    "♪ Invincible! Da da da, da da da, DA DA DA DA! ♪",
+    "♪ Castle theme... dun dun dun, DUN DUN DUN... scary! ♪",
+    "♪ Peach's Castle... la la la, la la la, beautiful! ♪",
+    "♪ Rainbow Road... woo-hoo-hoo! Watch out for the edge! ♪",
 ]
 
 # Jokes and trivia Mario can tell
@@ -84,6 +105,16 @@ MARIO_JOKES = [
     "What's-a Toad's favorite kind of music? Mushroom and bass! Ha ha ha!",
     "Why doesn't Mario ever get lost? Because he always follows the pipe-line!",
     "What did Princess Peach say to Mario? You're-a super, Mario! Ha!",
+    "Why did the Koopa go to school? To improve his shell-f confidence! Wahoo!",
+    "What's-a Mario's favorite type of pants? Overalls! Because they cover-a everything!",
+    "Why is Yoshi the best friend? Because he'll-a eat anything for you! Ha ha!",
+    "What do you call a sleepy Goomba? A snooze-ba! Ha!",
+    "Why did Luigi get a promotion? Because he was-a outstanding in his field! ...of Luigis!",
+    "What's Bowser's favorite movie? Beauty and the Beast! He thinks he's-a the beast!",
+    "How does Mario communicate with fish? With a-Blooper-tooth! Ha ha ha!",
+    "Why do Piranha Plants never get invited to parties? They always-a bite the guests!",
+    "What's-a Mario's favorite exercise? Jumping jacks! Well, just-a jumping really!",
+    "Why was the Star so popular? Because everyone wanted to-a touch it!",
 ]
 
 MARIO_TRIVIA = [
@@ -95,6 +126,14 @@ MARIO_TRIVIA = [
     "Fun fact! Boo was inspired by the wife of one of the game designers! She was-a shy but scary! Ha!",
     "Did you know? The Chain Chomp was inspired by a childhood experience with a dog!",
     "Fun fact! Princess Peach's original name was 'Princess Toadstool' in America!",
+    "Did you know? The first Mario game sold over 40 million copies! Wahoo!",
+    "Fun fact! Donkey Kong was-a my first adventure back in 1981!",
+    "Did you know? My creator, Shigeru Miyamoto, also created Zelda!",
+    "Fun fact! I can run at about 22 miles per hour! That's-a fast for a plumber!",
+    "Did you know? The question mark blocks contain-a random items based on your luck!",
+    "Fun fact! Bowser has eight kids! The Koopalings! That's-a big family!",
+    "Did you know? The coin sound effect is one of the most recognized sounds in the world!",
+    "Fun fact! Wario was created as an evil version of me! His name means 'bad Mario'!",
 ]
 
 PLUMBING_FACTS = [
@@ -103,6 +142,44 @@ PLUMBING_FACTS = [
     "Bathroom fact! The average person spends about 3 years of their life on the toilet!",
     "Did you know? Albert Einstein said if he could do it over, he'd become a plumber! Smart man!",
     "Fun fact! The bathroom is called the 'loo' in England! Fancy-a name!",
+    "Plumbing fact! Ancient Romans had-a public bathrooms with running water! Classy!",
+    "Did you know? Toilet paper was invented in-a 1857! Before that... mama mia!",
+    "Fun fact! The average person flushes the toilet about 2,500 times a year!",
+    "Bathroom trivia! The most expensive toilet in the world costs-a $19 million! Gold-plated!",
+    "Did you know? Plumbing prevents more diseases than any medicine! Plumbers save-a lives!",
+]
+
+# Mini-games and challenges Mario can offer
+MARIO_CHALLENGES = [
+    "Quick challenge! Can you name three Mario games in 10 seconds? Go!",
+    "Trivia time! What color is Luigi's hat? If you know, you're-a real fan!",
+    "I challenge you! Make-a the best Mario impression! Wahoo!",
+    "Pop quiz! What is Princess Peach's favorite thing to bake? Hint: it's-a delicious!",
+    "Can you do the Mario? It's-a easy! Swing your arms from side to side!",
+    "Quick! What sound does a coin make? Bling! You got it!",
+    "Challenge! How many fingers am I holding up? Trick question — you can't see-a me! Ha!",
+    "Riddle time! I'm red, I have a mustache, and I love pipes. Who am I?",
+]
+
+# Compliments Mario gives when people leave
+MARIO_COMPLIMENTS = [
+    "You look like a superstar today!",
+    "You've got the energy of a Star Power!",
+    "You're-a braver than me fighting Bowser!",
+    "That's-a one cool person right there!",
+    "You could be-a player two any day!",
+    "You've got more style than my hat!",
+    "You're-a shining brighter than a Power Star!",
+    "Even Princess Peach would be impressed!",
+]
+
+# Hand washing reminders (used when people exit)
+HAND_WASH_REMINDERS = [
+    "Don't forget to wash-a your hands! Even heroes wash-a their hands!",
+    "Wash those hands! Mama mia, hygiene is-a important!",
+    "Remember: soap, water, scrub! That's-a the Mario way!",
+    "Clean hands = power-up! Don't skip it!",
+    "Wash-a your hands or I'll send-a Bowser after you! Ha ha, just kidding!",
 ]
 
 
@@ -157,6 +234,15 @@ class IdleBehavior:
 
     def get_noise_reaction(self) -> str:
         return random.choice(NOISE_REACTIONS)
+
+    def get_challenge(self) -> str:
+        return random.choice(MARIO_CHALLENGES)
+
+    def get_compliment(self) -> str:
+        return random.choice(MARIO_COMPLIMENTS)
+
+    def get_hand_wash_reminder(self) -> str:
+        return random.choice(HAND_WASH_REMINDERS)
 
     def reset_timer(self):
         """Reset idle timer (called when someone interacts)."""

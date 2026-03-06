@@ -120,3 +120,25 @@
 - **Reliability**: Connection drops after ~35-40 consecutive requests. Solved with 5s delay between requests, 5 retries with exponential backoff, and resume logic (skip files >1000 bytes).
 - **Quality**: Excellent — correct Mario outfit (red cap with M, blue overalls, white gloves, brown shoes, mustache) with distinct expressive poses per emotion.
 - **Limitation**: Gray studio backgrounds (not transparent) — will need background removal for Pygame overlay use.
+
+## 2026-03-05 — XTTS v2 Mario Voice Cloning
+- **Why**: Edge TTS (`en-US-GuyNeural` + pitch shift) sounded nothing like Mario — just a pitched-up American male voice
+- **Solution**: Coqui XTTS v2 voice cloning with Charles Martinet reference audio
+- **Reference audio**: 40.5s concatenated WAV from `eros71-dev/mario-voice-dataset` (MPL-2.0 license, ~100 clips from Nintendo press events). Key clips: "It's-a me Mario!", long sentences, enthusiastic delivery.
+- **Compatibility fixes**:
+  1. PyTorch 2.6+ changed `torch.load()` default to `weights_only=True` — monkey-patched to `False`
+  2. torchaudio 2.x defaults to torchcodec backend which requires FFmpeg DLLs — replaced `torchaudio.load()` entirely with soundfile-based loader
+  3. transformers 5.x removed `BeamSearchScorer` — downgraded to 4.44.2
+- **Performance**: On Quadro P1000 (4GB VRAM), XTTS v2 achieves ~1.1-1.8x real-time factor (4.6s to generate 3.7s audio, 27.8s for 13.8s audio). Short sentences are near-real-time.
+- **Architecture**: XTTS v2 is primary TTS, Edge TTS is automatic fallback. Model loads at server startup (~19s).
+- **Packages**: TTS 0.22.0, transformers 4.44.2, numpy 1.26.4 (TTS requires <2)
+- **Background removal**: Used `rembg` library (U²-Net AI model) to remove gray studio backgrounds from all 74 AI poses → transparent PNGs in `mario_3d_assets/ai_poses_transparent/`
+- **Script**: `client/remove_backgrounds.py` — processes all 10 category subdirectories, skip-on-resume capability
+- **Display update**: Rewrote `mario_display.py` sprite system to support AI poses:
+  - `_load_ai_poses()` loads from category subdirectories, scales from 1024×1024 to 250×250 display size
+  - `STATE_SPRITE_MAP` maps states (idle, talking, thinking, etc.) to AI pose paths
+  - `EMOTION_SPRITE_MAP` expanded to 17 emotions (happy, excited, surprised, confused, annoyed, sleepy, mischievous, laughing, sad, angry, nervous, scared, love, proud, embarrassed, disgusted, determined)
+  - `_get_ai_sprite_key()` / `_get_legacy_sprite_key()` dual-path approach: AI poses preferred, pixel art fallback
+  - Talking alternates between `speech/talking` and `speech/talking_excited`; dancing alternates between `movement/dancing_1` and `movement/dancing_2`
+- **Bug fix**: `--no-camera` flag set `self.presence = None` but `start()` and `stop()` didn't guard against None → `AttributeError`
+- **End-to-end verified**: Server (STT + TTS + LLM + speaker ID) + Client (74 AI poses + WebSocket + audio playback) all working together

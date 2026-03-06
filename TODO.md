@@ -52,10 +52,18 @@
 - [x] Expressive Mario poses — 47 photoshopped emotion/action poses from NSMBU Deluxe render (client/generate_expressive_mario.py + mario_3d_assets/expressive/)
 - [x] Expressive Mario V2 — 74 poses with ACTUAL body manipulation: arm segmentation/rotation, face painting (eyes+mouth), color-based body part extraction (client/generate_expressive_mario_v2.py + mario_3d_assets/expressive_v2/)
 - [x] AI-generated 3D Mario poses — 74 stunning figurine-style renders via SubNP free API "magic" model, 10 emotion categories (client/generate_ai_poses.py + mario_3d_assets/ai_poses/)
+- [x] AI pose background removal — rembg (U²-Net) removed gray studio backgrounds from all 74 poses, producing transparent PNGs (client/remove_backgrounds.py + mario_3d_assets/ai_poses_transparent/)
+- [x] AI poses wired into Pygame display — mario_display.py loads 74 transparent AI poses with emotion/state mapping, falls back to pixel art if not found
+- [x] Fixed --no-camera client crash (NoneType.start() on presence detector)
+- [x] Full end-to-end test — server starts (STT+TTS+LLM+speaker ID), client connects via WebSocket, Mario greets with voice + 3D sprite
+
+- [x] XTTS v2 Mario voice cloning — replaced Edge TTS with Coqui XTTS v2 using Charles Martinet reference audio (40.5s from open dataset)
+- [x] Mario reference audio downloaded from eros71-dev/mario-voice-dataset (MPL-2.0 license)
+- [x] XTTS v2 runs on CUDA GPU (Quadro P1000), ~1.1-1.8x real-time factor
+- [x] Edge TTS kept as automatic fallback if XTTS fails to load
+- [x] Fixed PyTorch 2.6+ weights_only and torchaudio/torchcodec compatibility issues via monkey-patches
 
 ## 🔲 Remaining
-- [ ] Remove gray backgrounds from AI poses (make transparent for Pygame overlay)
-- [ ] Wire AI poses into Pygame display (update EMOTION_SPRITE_MAP in mario_display.py)
 - [ ] Test with multiple speakers switching rapidly
 - [ ] Tune speaker ID threshold for party noise levels
 - [ ] Add volume control / gain adjustment for noisy environments
@@ -63,4 +71,29 @@
 - [ ] Consider adding a physical "flush" button trigger for fun
 - [ ] Package into installable app for easy deployment
 - [ ] Test full client (with mic/webcam) on MacBook
+- [x] Pre-computed XTTS v2 speaker conditioning latents at startup (saves ~2-5s per call)
+- [x] Curated 18s Mario reference audio (trimmed/normalized best clips)
+- [x] Post-synthesis pitch shift (+2 semitones) and speed boost (1.2x) for authentic Mario voice
+- [x] Reduced LLM response length (50 tokens, 1-2 sentences max) for faster TTS
+- [ ] Sentence streaming TTS (stream first sentence while generating rest)
+- [ ] Test XTTS voice quality at the party (might need to tune reference audio)
+- [x] Ralph loop — 100 iterations of XTTS v2 parameter sweep with 16 reference audio variations
+- [x] Ralph loop HTML comparison page (filter by ref/phrase, sort, star favorites)
+- [x] Enhanced Mario personality prompt (authentic Charles Martinet speech patterns, bathroom comedy)
+- [x] Expanded idle behaviors (35 mumbles, 18 jokes, 16 trivia, 10 plumbing facts, 14 songs, 8 challenges, 8 compliments, 5 hand wash reminders)
+- [x] RVC v2 Mario voice conversion integrated (TITAN 500 epoch model, no fairseq needed)
+- [x] Custom HuBERT wrapper using HuggingFace transformers (bypasses fairseq dependency on Windows)
+- [x] FAST_MODE: Edge TTS + qwen2:1.5b for ~3-5s responses (vs 30-200s with XTTS+RVC+llama3)
+- [x] Server startup reduced from ~30s to ~3s (skip XTTS/RVC loading in fast mode)
+- [x] Edge TTS + RVC pipeline: Mario voice in ~2.9s (Edge 1.5s + RVC 1.4s warm)
+- [x] Switched RVC f0 method from "rmvpe" (neural, 9-149s) to "pm" (Praat, 1.4s)
+- [x] Reduced RVC index_rate from 0.7 to 0.4 for faster FAISS lookup
+- [x] Cleaned Edge TTS params — removed pitch shift (RVC handles voice character)
+- [x] XTTS-only mode (USE_RVC=False) — skip RVC for 11-22s speed improvement per response
+- [x] Full-sentences Mario reference (505s from "Rare Times Mario Spoke in Full Sentences")
+- [x] Applied ralph loop #0015 params to XTTS inference (temp=0.26, top_k=30, top_p=0.69, rep=10.6)
+- [ ] Test XTTS-only voice quality with full-sentences reference (does it sound like Mario?)
+- [ ] Implement XTTS streaming (inference_stream) for faster first-audio playback
+- [ ] Hand wash reminder on exit event
+- [ ] Bathroom challenge mode (mini-games/trivia)
 

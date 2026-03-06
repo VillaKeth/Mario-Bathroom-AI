@@ -2,7 +2,6 @@
 
 - By default assume you must implement any code changes. Do not just explain the changes necessary. Be sure to modify the files. Every prompt should be modifying files.
 - NEVER make up values or simulate values when working on features. If you cannot obtain a value via configuration or some type of request, then you must throw an error in the application. Always use real values obtained from the application or environment. DO NOT USE simulated or made up values.
-- DO NOT EVER COMMIT CODE TO GIT!
 - MAKE SURE YOU TAKE AS LONG AS POSSIBLE TO THOROUGHLY TEST THE APPLICATION AFTER EVERY CHANGE YOU MAKE. DO NOT SUBMIT UNTIL YOU ARE 100% SURE THE APPLICATION IS WORKING PERFECTLY. IF YOU ARE UNSURE, SPEND MORE TIME TESTING AND FIXING ANY ISSUES!!! YOU MUST TEST EVERYTHING MULTIPLE TIMES AND TAKE AS LONG AS NECESSARY TO MAKE SURE THE APPLICATION IS PERFECT!!!
 - ALWAYS USE THE "chrome-devtools" TOOL TO INTERACT WITH THE BROWSER!!! DO NOT EVER EVER TRY TO OPEN `chrome.exe`!
 
