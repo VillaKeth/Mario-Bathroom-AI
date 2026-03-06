@@ -133,6 +133,7 @@ class MarioClient:
                 if not self.audio_playback.is_playing:
                     self.ws.send_audio(bytes(audio_buffer))
                     self.display.set_state(STATE_LISTENING)
+                    self.display.set_thinking(True)
                 audio_buffer = bytearray()
 
             time.sleep(0.01)
@@ -141,25 +142,41 @@ class MarioClient:
         """Called when Mario has something to say."""
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Mario says: {text}")
+        self.display.set_thinking(False)
         self.display.set_mario_text(text)
         self.display.set_state(STATE_TALKING)
+        self.display._speaking = True
 
-        # Play sound effect if specified
         if metadata:
             sfx_name = metadata.get("sound_effect")
             if sfx_name:
                 self.sfx.play(sfx_name)
-            
-            # Update display emotion
+
             emotion = metadata.get("emotion")
             if emotion:
                 self.display.set_emotion(emotion)
+
+            # Use pose hint from server for intelligent sprite selection
+            pose_hint = metadata.get("pose_hint")
+            if pose_hint:
+                self.display.set_pose_hint(pose_hint)
+
+            # Track response time for display
+            resp_time = metadata.get("response_time")
+            if resp_time:
+                self.display._last_response_time = resp_time
 
     def _on_mario_audio(self, wav_bytes: bytes):
         """Called when Mario's voice audio arrives."""
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
         self.audio_playback.play(wav_bytes)
+        # After audio finishes, clear speaking state
+        def _clear_speaking():
+            time.sleep(len(wav_bytes) / 48000)  # Rough estimate
+            self.display._speaking = False
+            self.display.set_state(STATE_IDLE)
+        threading.Thread(target=_clear_speaking, daemon=True).start()
 
     def _on_connected(self):
         logger.info("Connected to Mario AI server!")
@@ -204,6 +221,7 @@ class MarioClient:
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Keyboard input: {text}")
         self.display.set_subtitle(text)
+        self.display.set_thinking(True)
         if self.ws.connected:
             self.ws.send_event({"type": "text_input", "text": text})
 

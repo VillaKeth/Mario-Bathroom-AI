@@ -19,6 +19,7 @@ import asyncio
 import tempfile
 import os
 import time
+import threading
 import numpy as np
 import torch
 import torchaudio
@@ -57,9 +58,9 @@ XTTS_SAMPLE_RATE = 24000
 _rvc_model = None
 _rvc_available = False
 
-# RVC model paths
-RVC_MODEL_PATH = os.path.join(os.path.dirname(__file__), "data", "rvc_model", "SuperMario-TITAN_e500_s13000.pth")
-RVC_INDEX_PATH = os.path.join(os.path.dirname(__file__), "data", "rvc_model", "added_IVF445_Flat_nprobe_1_SuperMario-TITAN_v2.index")
+# RVC model paths — Mario Super Show v2 (trained on Super Mario Bros. Super Show TV series)
+RVC_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "Mario_Super_Show_v2", "Mario_Super_Show_e220_s2420.pth")
+RVC_INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "Mario_Super_Show_v2", "added_IVF255_Flat_nprobe_1_Mario_Super_Show_v2.index")
 
 # Curated 30s reference — best quality segment from full sentences
 MARIO_REF_PATH = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences_30s.wav")
@@ -69,10 +70,10 @@ MARIO_REF_FALLBACK = os.path.join(os.path.dirname(__file__), "data", "mario_refe
 MARIO_PITCH_SEMITONES = 0  # No pitch shift — let RVC model handle voice character
 MARIO_SPEED_FACTOR = 1.0  # Normal speed
 USE_RVC = True  # Use RVC for Mario voice conversion
-RVC_F0_UP_KEY = 0  # NO pitch shift — eliminates pm warbling
-RVC_INDEX_RATE = 0.7  # Higher = more Mario character from training data
-RVC_PROTECT = 0.5  # Higher = protect more consonants from distortion
-RVC_F0_METHOD = "crepe"  # GPU neural pitch tracking — fast on CUDA + high quality
+RVC_F0_UP_KEY = 8  # Pitch UP 8 semitones — Mario has a VERY high-pitched voice
+RVC_INDEX_RATE = 0.85  # High = more Mario character from training data
+RVC_PROTECT = 0.33  # Lower = more voice character conversion
+RVC_F0_METHOD = "pm"  # Fastest f0 method (~0.5s vs crepe ~3-10s)
 
 # --- Speed mode ---
 # False = XTTS v2 voice cloning (quality, ~10-30s), True = Edge TTS (fast, ~1.5s)
@@ -88,8 +89,26 @@ XTTS_COND_LEN = 6
 # --- Edge TTS settings (fallback only) ---
 EDGE_VOICE = "en-US-GuyNeural"
 EDGE_PITCH_SHIFT = 0
-RATE = "+10%"
+RATE = "+20%"  # Faster speech for party energy
 PITCH_OFFSET = "+0Hz"
+
+# --- Audio cache for instant playback (LRU with max 50 entries) ---
+_audio_cache = {}
+_cache_order = []
+MAX_CACHE_SIZE = 50
+_rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
+CACHED_PHRASES = [
+    "It's-a me, Mario!",
+    "Wahoo!",
+    "Mama mia!",
+    "Let's-a go!",
+    "Don't forget to wash-a your hands!",
+    "Nice to meet-a you!",
+    "See you later!",
+    "Okie dokie!",
+    "Here we go!",
+    "That's-a funny!",
+]
 
 
 def init_tts():
@@ -153,6 +172,26 @@ def init_tts():
             _rvc_available = True
             rvc_time = time.time() - rvc_start
             logger.info(f"[DEBUG_TTS] init_tts: RVC loaded in {rvc_time:.1f}s (f0={RVC_F0_METHOD}, pitch={RVC_F0_UP_KEY})")
+
+            # Pre-warm ContentVec + RVC pipeline with a tiny dummy WAV
+            # This saves ~6s on the first real call
+            logger.info("[DEBUG_TTS] init_tts: pre-warming RVC pipeline (ContentVec load)...")
+            warmup_start = time.time()
+            try:
+                dummy_wav = _make_dummy_wav(0.5)
+                tmp_in = os.path.join(tempfile.gettempdir(), "mario_rvc_warmup_in.wav")
+                tmp_out = os.path.join(tempfile.gettempdir(), "mario_rvc_warmup_out.wav")
+                with open(tmp_in, "wb") as f:
+                    f.write(dummy_wav)
+                _rvc_model.infer_file(tmp_in, tmp_out)
+                try:
+                    os.unlink(tmp_in)
+                    os.unlink(tmp_out)
+                except OSError:
+                    pass
+                logger.info(f"[DEBUG_TTS] init_tts: RVC pipeline warmed in {time.time() - warmup_start:.1f}s")
+            except Exception as e:
+                logger.warning(f"[DEBUG_TTS] init_tts: RVC warmup failed (non-fatal): {e}")
         except Exception as e:
             logger.warning(f"[DEBUG_TTS] init_tts: RVC failed to load: {e}")
             _rvc_available = False
@@ -164,11 +203,35 @@ def init_tts():
         logger.info(f"[DEBUG_TTS] init_tts: END (fast={FAST_MODE}, xtts={_xtts_available}, rvc={_rvc_available})")
 
 
+def precache_phrases():
+    """Pre-cache common Mario phrases at startup for instant playback."""
+    if not CACHED_PHRASES:
+        return
+    logger.info(f"[DEBUG_TTS] precache: warming {len(CACHED_PHRASES)} phrases...")
+    cache_start = time.time()
+    for phrase in CACHED_PHRASES:
+        try:
+            audio = synthesize(phrase)
+            _audio_cache[f"{EDGE_VOICE}:{phrase.strip().lower()}"] = audio
+        except Exception as e:
+            logger.warning(f"[DEBUG_TTS] precache: failed '{phrase[:30]}': {e}")
+    logger.info(f"[DEBUG_TTS] precache: done in {time.time() - cache_start:.1f}s ({len(_audio_cache)} cached)")
+
+
 def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     """Convert text to Mario-voiced speech audio.
 
-    Pipeline: Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
+    Pipeline: Cache check → Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
     """
+    # Check cache first for instant playback (key includes voice params)
+    _rate = rate or "+0%"
+    _pitch = pitch or "+0Hz"
+    cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
+    if cache_key in _audio_cache:
+        if DEBUG_TTS:
+            logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...'")
+        return _audio_cache[cache_key]
+
     if DEBUG_TTS:
         logger.info(f"[DEBUG_TTS] synthesize: START text='{text[:50]}...'")
 
@@ -196,24 +259,56 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     if DEBUG_TTS:
         logger.info(f"[DEBUG_TTS] synthesize: END total={total:.1f}s (base={base_time:.1f}s + rvc={total - base_time:.1f}s)")
 
+    # Cache short phrases for future instant playback (LRU eviction)
+    if len(text) < 60:
+        _audio_cache[cache_key] = result
+        if cache_key not in _cache_order:
+            _cache_order.append(cache_key)
+        if len(_cache_order) > MAX_CACHE_SIZE:
+            evict_key = _cache_order.pop(0)
+            _audio_cache.pop(evict_key, None)
+
     return result
 
 
+def _make_dummy_wav(duration: float = 0.5, sample_rate: int = 24000) -> bytes:
+    """Generate a tiny silent WAV file for RVC pipeline warmup."""
+    num_samples = int(duration * sample_rate)
+    silence = np.zeros(num_samples, dtype=np.int16)
+    wav_buffer = io.BytesIO()
+    with wave.open(wav_buffer, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(silence.tobytes())
+    wav_buffer.seek(0)
+    return wav_buffer.read()
+
+
 def _apply_rvc(wav_bytes: bytes) -> bytes:
-    """Convert voice to Mario using RVC model. Returns WAV bytes."""
+    """Convert voice to Mario using RVC model. Returns WAV bytes.
+    
+    Uses a threading lock to serialize GPU calls — prevents contention
+    that would cause 1s calls to balloon to 30s+.
+    """
     if not _rvc_available or _rvc_model is None:
         return wav_bytes
 
+    tmp_in = None
+    tmp_out = None
     try:
         rvc_start = time.time()
 
-        # Write input to temp file (RVC works with files)
-        tmp_in = os.path.join(tempfile.gettempdir(), "mario_rvc_in.wav")
-        tmp_out = os.path.join(tempfile.gettempdir(), "mario_rvc_out.wav")
+        # Unique temp files per call (thread-safe)
+        tid = threading.current_thread().ident
+        tmp_in = os.path.join(tempfile.gettempdir(), f"mario_rvc_in_{tid}.wav")
+        tmp_out = os.path.join(tempfile.gettempdir(), f"mario_rvc_out_{tid}.wav")
         with open(tmp_in, "wb") as f:
             f.write(wav_bytes)
 
-        _rvc_model.infer_file(tmp_in, tmp_out)
+        # Serialize RVC GPU access
+        with _rvc_lock:
+            _rvc_model.infer_file(tmp_in, tmp_out)
 
         # Read output back
         with open(tmp_out, "rb") as f:
@@ -223,18 +318,19 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
         if DEBUG_TTS:
             logger.info(f"[DEBUG_TTS] _apply_rvc: converted in {rvc_time:.1f}s")
 
-        # Cleanup temp files
-        try:
-            os.unlink(tmp_in)
-            os.unlink(tmp_out)
-        except OSError:
-            pass
-
         return result
 
     except Exception as e:
         logger.warning(f"[DEBUG_TTS] _apply_rvc: RVC conversion failed: {e}, returning original")
         return wav_bytes
+    finally:
+        # Always cleanup temp files
+        for f in [tmp_in, tmp_out]:
+            if f:
+                try:
+                    os.unlink(f)
+                except OSError:
+                    pass
 
 
 def _synthesize_xtts_raw(text: str) -> bytes:

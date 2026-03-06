@@ -4,10 +4,10 @@
         "port": 8765,
         "stt_model_size": "base",
         "stt_device": "auto",
-        "llm_model": "llama3",
+        "llm_model": "qwen2:1.5b",
         "tts_voice": "en-US-GuyNeural",
-        "tts_rate": "+15%",
-        "tts_pitch": "+5Hz"
+        "tts_rate": "+20%",
+        "tts_pitch": "+0Hz"
     },
     "client": {
         "server_url": "ws://localhost:8765/ws",

@@ -96,4 +96,98 @@
 - [ ] Implement XTTS streaming (inference_stream) for faster first-audio playback
 - [ ] Hand wash reminder on exit event
 - [ ] Bathroom challenge mode (mini-games/trivia)
+- [x] Mario Super Show v2 RVC model (220 epoch, TV show voice — user approved)
+- [x] Switched from crepe to pm f0 method (3x speedup: 9.8s→2.8s RVC warm)
+- [x] Raised pitch from 5 to 8 semitones for authentic Mario
+- [x] ContentVec pre-loading at startup (saves ~6s on first real TTS call)
+- [x] LLM streaming response generation (token-by-token from Ollama)
+- [x] LLM model warmup on startup (prevents cold-start timeouts)
+- [x] Fixed message cutoff (num_predict 20→40, clean_response trims incomplete sentences)
+- [x] Neuro-sama style personality rewrite (trimmed prompt, shorter/faster responses)
+- [x] TTS runs in executor (non-blocking async event loop)
+- [x] Edge TTS rate increased from +10% to +15%
+- [x] Intelligent pose analyzer — maps action text (*checks mustache*) to sprite poses, strips from TTS
+- [x] ACTION_POSE_MAP with ~105 keyword→pose mappings (movement, actions, emotions, speech, neutral, powerup)
+- [x] CONTENT_POSE_MAP with ~40 keyword→pose mappings (questions, exclamations, greetings, topics)
+- [x] Server sends pose_hint to client for every response (greeting, idle, conversation, presence)
+- [x] Client receives pose_hint and overrides sprite selection (highest priority for ~2s)
+- [x] Added missing emotion→sprite mappings (bored→yawning, worried→nervous, curious, shocked, idea, loving)
+- [x] Tested qwen2:0.5b — 3x faster (1.7s warmup) but quality too low (talks TO Mario not AS Mario), reverted to 1.5b
+- [x] Pre-cached 5 common Mario phrases at startup (instant playback for cached phrases)
+- [x] TTS audio cache — short phrases (<60 chars) auto-cached after first synthesis
+- [x] Edge TTS rate increased from +15% to +20% for more energetic party speech
+- [x] LLM params tuned: temp 0.85, num_predict 50, stop tokens added for cleaner responses
+- [x] Thinking animation — client shows "Hmm..." dots while waiting for LLM response
+- [x] Server sends thinking state before LLM calls (text_input + audio handlers)
+- [x] WebSocket auto-reconnect with exponential backoff (2s→4s→8s→30s max) + ping keepalive
+- [x] Idle behavior interval reduced (15s initial, max 90s) with category rotation (mumbles→songs→jokes→trivia→challenges)
+- [x] Added 13 new idle mumbles (garlic bread, push-ups, statue prank, secret warp zone, etc.)
+- [x] Added 6 new Mario challenges (power-up naming, jumping jacks, tongue twister, etc.)
+- [x] Error handling on send_response (catches WebSocket disconnects gracefully)
+- [x] Config.json now drives LLM model and TTS rate/voice settings
+- [x] Improved Mario system prompt (more concise, emphasizes sassy/curious personality)
+- [x] Fixed TTS cache key bug — now includes voice name (prevents cross-voice cache hits)
+- [x] Conversation history expanded (6→8 messages) with auto-trimming (max 20)
+- [x] Auto fact extraction from user speech (name, likes, dislikes, location, age, favorites)
+- [x] TTS precache moved to background thread — server ready instantly (was ~13s blocking)
+- [x] Added 30+ new content pose mappings (hmm→thinking, ghost→scared, princess→love, etc.)
+- [x] Idle behavior dedup tracking — avoids repeating same mumble within last 15 actions
+- [x] Added 15 new idle mumbles (phone prank, Yoshi, towel rack, soap, Wario, plumbing fixes)
+- [x] Added 6 new Mario songs (Galaxy spin, Mushroom anthem, Bob-omb Battlefield, Dire Docks, Slide)
+- [x] Added 6 new Mario jokes (breakfast, plumbing, pipe repair, Bowser, Luigi height)
+- [x] Startup greeting uses "startup" event (was "idle") — more energetic introduction
+- [x] Response time logging — server logs ⏱ total time for both audio and text handlers
+- [x] LLM response cleanup improved — strips "Mario:" prefix, removes OOC brackets, handles empty responses
+- [x] LLM temperature variation (0.80-0.95 per call) for more diverse responses
+- [x] LLM retry on timeout — one automatic retry before fallback message
+- [x] LLM timeout increased (20s→30s) for more headroom
+- [x] Safety filter enhanced — strips "Mario:" prefixes, quoted wrappers, truncates incomplete sentences
+- [x] Connection status indicator on client display (green dot when connected, red when not)
+- [x] Speech bubble auto-clear after 8 seconds
+- [x] Subtitle auto-clear after 5 seconds
+- [x] Error resilience — individual handler errors don't crash WebSocket connection
+- [x] TTS failure fallback — sends text-only response if synthesis fails
+- [x] Full end-to-end test passed — all 100 ralph loop improvements verified working
+- [x] RVC GPU contention fix — threading.Lock serializes GPU calls, unique temp files per thread
+- [x] User request priority — idle TTS paused during active user requests (flag-based)
+- [x] Conversation history expanded to 12 messages (6 exchanges), retention increased to 30
+- [x] LLM response cleanup enhanced — *action* removal, 11 stage direction patterns, triple punctuation collapse
+- [x] Expanded wash hands command matching (wash hands, hand wash, soap)
+- [x] Idle content expanded — 8 noise reactions, 8 hand wash reminders, 13 plumbing facts, 20 trivia
+- [x] Idle dedup memory increased from 15 to 25 items
+- [x] CONTENT_POSE_MAP expanded from 88 to 143 entries (power-ups, bathroom, emotions, actions, time)
+- [x] Emotion triggers expanded — gratitude, secret/whisper, more food, bored/meh keywords
+- [x] Client excitement scale pulsing animation + idle sway animation
+- [x] TTS text-only fallback in text_input handler
+- [x] Hour comparison bug fixed (2PM was triggering late-night mode)
+- [x] Emotion intensity decay (fades over time, floor at 0.3)
+- [x] Prompt injection prevention (_sanitize_input strips brackets, injection keywords, 50 char cap)
+- [x] Memory context limited to 8 facts per request
+- [x] Safety filter enhanced — drugs?, dying, bigot, slur patterns, game exception for "kill"
+- [x] Response length cap lowered to 80 chars (RVC: 25.8s@104chars → 2.6s@39chars)
+- [x] LLM num_predict reduced from 50 to 35 tokens for shorter, faster responses
+- [x] TTS LRU cache eviction (max 50 entries, oldest evicted first)
+- [x] 5 new fact extraction patterns (play, feeling, friend, live, fan — 20 total)
+- [x] Client visitor counter display + speaking indicator + response time display
+- [x] Enhanced /health endpoint (emotion_intensity, visitors, cache_size, conversation_length, llm_model)
+- [x] Startup greeting error recovery (fallback to cached "Wahoo!" if LLM/TTS fails)
+- [x] Response time tracking in metadata (server→client, displayed as green <5s / amber >5s)
+- [x] Speaking state management (client tracks when Mario is talking vs idle)
+- [x] Greeting prompts expanded to 13 (added milestone_visit, first_visitor)
+- [x] Full integration test verified — response time 30.2s → 5.7s (5.3x speedup)
+- [x] DB connection leak prevention — all memory.py and party_stats.py ops use try/finally
+- [x] Audio buffer bounded at 500KB (prevents OOM on stuck audio)
+- [x] Emotion intensity reset on presence exit (0.3 baseline, prevents bleed-through)
+- [x] Bored/tired emotion routing fixed (was going to WORRIED, now correctly BORED)
+- [x] TTS cache key includes rate/pitch params (prevents cross-emotion cache hits)
+- [x] Idle loop CancelledError handling (clean shutdown)
+- [x] Conversation history trim optimization (triggers at 40, trims to 30)
+- [x] 7 new bathroom-specific idle mumbles (drain sounds, toilet paper debate, mirror angles)
+- [x] Emotion update debounce (skips 1-word noise fragments)
+- [x] TTS temp file cleanup with finally block (prevents stale .wav accumulation)
+- [x] Milestone visit greetings (1st visitor, 10th, 25th, 50th, 100th)
+- [x] Party stats error fallback (returns safe defaults on DB errors)
+- [ ] Try different Edge TTS base voices for better RVC result
+- [ ] Tune RVC pitch further (try 6, 10, 12 semitones)
+- [ ] Sentence streaming TTS (stream first sentence while generating rest)
 

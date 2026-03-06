@@ -65,17 +65,22 @@ class EmotionSystem:
         now = time.time()
         idle_time = now - self._last_interaction
 
+        # Decay intensity over time (emotions fade)
+        time_since_change = now - self._last_change
+        if time_since_change > 30 and self.intensity > 0.3:
+            self.intensity = max(0.3, self.intensity - 0.01 * (time_since_change / 60))
+
         # Time-based mood shifts
-        if idle_time > 300:  # 5 minutes alone
-            self.current = Emotion.BORED
-            self.intensity = min(1.0, idle_time / 600)
-        elif idle_time > 600:  # 10 minutes alone
+        if idle_time > 600:  # 10 minutes alone
             self.current = Emotion.SLEEPY
             self.intensity = 0.8
+        elif idle_time > 300:  # 5 minutes alone
+            self.current = Emotion.BORED
+            self.intensity = min(1.0, idle_time / 600)
 
-        # Late night = sleepy
+        # Late night = sleepy (midnight to 6am)
         hour = time.localtime().tm_hour
-        if hour >= 2 or hour < 6:
+        if hour >= 0 and hour < 6:
             if self.current not in (Emotion.EXCITED, Emotion.SURPRISED):
                 self.current = Emotion.SLEEPY
                 self.intensity = 0.6
@@ -93,7 +98,8 @@ class EmotionSystem:
 
         elif event == "presence_exit":
             self.current = Emotion.HAPPY
-            self.intensity = 0.5
+            self.intensity = 0.3
+            self._last_change = now
 
         elif event == "speech_detected":
             self._last_interaction = now
@@ -101,26 +107,48 @@ class EmotionSystem:
                 self.current = Emotion.SURPRISED
                 self.intensity = 0.7
 
-        # Transcript-based emotions
-        if transcript:
+        # Transcript-based emotions (skip very short noise fragments)
+        if transcript and len(transcript.split()) >= 2:
             self._last_interaction = now
             lower = transcript.lower()
 
-            if any(w in lower for w in ["love", "awesome", "amazing", "great", "best"]):
+            if any(w in lower for w in ["love", "awesome", "amazing", "great", "best", "beautiful", "wonderful"]):
                 self.current = Emotion.LOVING
                 self.intensity = 0.9
-            elif any(w in lower for w in ["what", "huh", "confused", "don't understand"]):
+            elif any(w in lower for w in ["what", "huh", "confused", "don't understand", "makes no sense"]):
                 self.current = Emotion.CONFUSED
                 self.intensity = 0.6
-            elif any(w in lower for w in ["help", "scared", "worried", "nervous"]):
+            elif any(w in lower for w in ["help", "scared", "worried", "nervous", "anxious", "stressed"]):
                 self.current = Emotion.WORRIED
                 self.intensity = 0.7
-            elif any(w in lower for w in ["funny", "joke", "laugh", "haha", "lol"]):
+            elif any(w in lower for w in ["funny", "joke", "laugh", "haha", "lol", "hilarious", "prank"]):
                 self.current = Emotion.MISCHIEVOUS
                 self.intensity = 0.8
-            elif any(w in lower for w in ["wow", "omg", "no way", "really", "seriously"]):
+            elif any(w in lower for w in ["wow", "omg", "no way", "really", "seriously", "wait what", "whoa"]):
                 self.current = Emotion.SURPRISED
                 self.intensity = 0.8
+            elif any(w in lower for w in ["wahoo", "let's go", "party", "excited", "woo", "yeah", "yay"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.9
+            elif any(w in lower for w in ["sad", "miss", "lonely", "down"]):
+                self.current = Emotion.WORRIED
+                self.intensity = 0.6
+            elif any(w in lower for w in ["tired", "exhausted", "bored", "meh", "sleepy"]):
+                self.current = Emotion.BORED
+                self.intensity = 0.6
+            elif any(w in lower for w in ["pasta", "food", "eat", "hungry", "pizza", "spaghetti", "garlic", "cake", "cookie", "gelato"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.85
+            elif any(w in lower for w in ["thank you", "thanks", "appreciate", "kind", "generous"]):
+                self.current = Emotion.HAPPY
+                self.intensity = 0.9
+            elif any(w in lower for w in ["secret", "whisper", "between us", "don't tell"]):
+                self.current = Emotion.MISCHIEVOUS
+                self.intensity = 0.7
+
+        # Track when emotion last changed for decay
+        if transcript or event:
+            self._last_change = time.time()
 
         if DEBUG_EMOTION:
             logger.info(f"[DEBUG_EMOTION] update: {self.current} (intensity={self.intensity:.1f})")

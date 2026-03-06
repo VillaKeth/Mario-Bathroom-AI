@@ -48,10 +48,17 @@ EMOTION_SPRITE_MAP = {
     "nervous": "negative/nervous",
     "scared": "negative/scared",
     "love": "positive/love",
+    "loving": "positive/love",
     "proud": "positive/proud",
     "embarrassed": "negative/embarrassed",
     "disgusted": "negative/disgusted",
     "determined": "thinking/determined",
+    "bored": "sleep/yawning",
+    "worried": "negative/nervous",
+    "curious": "thinking/curious",
+    "thinking": "thinking/thinking",
+    "shocked": "thinking/shocked",
+    "idea": "thinking/idea",
 }
 
 # Map states to AI pose paths
@@ -141,6 +148,7 @@ class MarioDisplay:
         self.state = STATE_IDLE
         self.current_text = ""
         self.subtitle_text = ""
+        self._subtitle_set_frame = 0
         self.connected = False
         self._frame = 0
         self._text_display_time = 0
@@ -154,6 +162,10 @@ class MarioDisplay:
         self._emotion = "happy"
         self._particles = []
         self._emotion_timer = 0
+
+        # Pose hint (server-driven sprite override)
+        self._pose_hint = None
+        self._pose_hint_timer = 0
 
         # Transition system
         self._transition_active = False
@@ -176,6 +188,15 @@ class MarioDisplay:
             (255, 255, 0), (255, 0, 255), (0, 255, 255),
         ]
         self._disco_index = 0
+
+        # Thinking animation (shown while waiting for LLM response)
+        self._thinking = False
+        self._thinking_dots = 0
+
+        # Response timing display
+        self._last_response_time = 0
+        self._visitor_count = 0
+        self._speaking = False
 
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
@@ -304,8 +325,9 @@ class MarioDisplay:
         self._text_display_time = self._frame
 
     def set_subtitle(self, text: str):
-        """Set subtitle text (what the user said)."""
+        """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
         self.subtitle_text = text
+        self._subtitle_set_frame = self._frame
 
     def set_state(self, state: str):
         """Set Mario's animation state."""
@@ -318,6 +340,22 @@ class MarioDisplay:
         self._emotion_timer = 0
         if emotion != prev:
             self._spawn_emotion_particles(emotion)
+
+    def set_pose_hint(self, pose_hint: str):
+        """Set an explicit pose hint from the server (highest priority for sprite selection)."""
+        if pose_hint and pose_hint in self._sprites:
+            self._pose_hint = pose_hint
+            self._pose_hint_timer = 0
+            if DEBUG_DISPLAY:
+                logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint}")
+        elif pose_hint:
+            if DEBUG_DISPLAY:
+                logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint} not found in loaded sprites")
+
+    def set_thinking(self, thinking: bool):
+        """Show/hide thinking animation (while waiting for server response)."""
+        self._thinking = thinking
+        self._thinking_dots = 0
 
     def start_transition(self, transition_type: str):
         """Start a walk-in or walk-out transition. Type: 'enter' or 'exit'."""
@@ -407,14 +445,25 @@ class MarioDisplay:
             return self._get_legacy_sprite_key()
 
     def _get_ai_sprite_key(self) -> str:
-        """Get sprite key for AI-generated poses (category/name format)."""
+        """Get sprite key for AI-generated poses (category/name format).
+
+        Priority: pose_hint (server) > state transitions > talking/dancing > emotion > idle
+        """
+        # Pose hint from server is highest priority (expires after ~120 frames / ~2s)
+        if self._pose_hint and self._pose_hint_timer < 120:
+            self._pose_hint_timer += 1
+            if self._pose_hint in self._sprites:
+                return self._pose_hint
+
+        # Clear expired pose hint
+        if self._pose_hint_timer >= 120:
+            self._pose_hint = None
+
         # Transitions use running sprite
         if self._transition_active:
             return "movement/running"
 
         # State-based selection
-        state_mapping = STATE_SPRITE_MAP.get(self.state)
-
         if self.state == STATE_TALKING:
             sprites = STATE_SPRITE_MAP[STATE_TALKING]
             self._talk_frame += 1
@@ -425,7 +474,6 @@ class MarioDisplay:
         elif self.state in (STATE_GREETING, STATE_THINKING, STATE_SLEEPING, STATE_ENTERING, STATE_EXITING):
             return STATE_SPRITE_MAP.get(self.state, "neutral/idle")
         elif self.state in (STATE_LISTENING, STATE_IDLE):
-            # Use emotion-based sprite
             emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
             if emo_sprite and emo_sprite in self._sprites:
                 if self.state == STATE_IDLE and self._emotion == "happy":
@@ -587,11 +635,28 @@ class MarioDisplay:
         self._screen.blit(title_bg, (WINDOW_WIDTH // 2 - title.get_width() // 2 - 10, 15))
         self._screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 20))
 
-        # Draw connection status
+        # Draw connection status + visitor count
         status_color = (0, 255, 0) if self.connected else (255, 0, 0)
         status_text = "\u25cf Connected" if self.connected else "\u25cf Disconnected"
         status_surf = self._font_small.render(status_text, True, status_color)
         self._screen.blit(status_surf, (WINDOW_WIDTH - 150, 15))
+
+        # Draw visitor count
+        if self._visitor_count > 0:
+            vc_text = f"\U0001f464 {self._visitor_count} visitor{'s' if self._visitor_count != 1 else ''}"
+            vc_surf = self._font_small.render(vc_text, True, (180, 180, 220))
+            self._screen.blit(vc_surf, (WINDOW_WIDTH - 150, 35))
+
+        # Speaking indicator (pulsing dot)
+        if self._speaking:
+            pulse = abs(math.sin(self._frame * 0.1)) * 255
+            speak_color = (int(pulse), 200, int(pulse))
+            speak_surf = self._font_small.render("\U0001f50a Speaking", True, speak_color)
+            self._screen.blit(speak_surf, (WINDOW_WIDTH - 150, 55))
+        elif self._last_response_time > 0:
+            rt_color = (100, 255, 100) if self._last_response_time < 5 else (255, 200, 100)
+            rt_surf = self._font_small.render(f"\u23f1 {self._last_response_time:.1f}s", True, rt_color)
+            self._screen.blit(rt_surf, (WINDOW_WIDTH - 150, 55))
 
         # Draw emotion indicator
         emo_surf = self._font_small.render(f"Mood: {self._emotion}", True, (200, 200, 100))
@@ -606,26 +671,39 @@ class MarioDisplay:
         # Draw particles on top of Mario
         self._draw_particles()
 
-        # Draw speech bubble with typewriter
+        # Draw speech bubble with typewriter (auto-clear after 8 seconds / 480 frames)
         if self.current_text:
-            self._draw_speech_bubble(self.current_text)
+            if self._frame - self._text_display_time > 480:
+                self.current_text = ""
+            else:
+                self._draw_speech_bubble(self.current_text)
+        elif self._thinking:
+            # Animated thinking dots
+            self._thinking_dots = (self._thinking_dots + 1) % 90
+            dots = "." * ((self._thinking_dots // 15) % 4)
+            self._draw_speech_bubble(f"Hmm{dots}")
 
-        # Draw subtitle
+        # Draw subtitle (auto-clear after 5 seconds / 300 frames)
         if self.subtitle_text:
-            self._draw_subtitle(self.subtitle_text)
+            if self._frame - self._subtitle_set_frame > 300:
+                self.subtitle_text = ""
+            else:
+                self._draw_subtitle(self.subtitle_text)
 
         # Draw keyboard input area
         if self.keyboard_mode:
             self._draw_keyboard_input()
 
         # Draw state / mode indicators
-        indicators = [f"[{self.state.upper()}]"]
+        conn_color = (50, 200, 50) if self.connected else (200, 50, 50)
+        conn_text = "● Connected" if self.connected else "● Disconnected"
+        indicators = [conn_text, f"[{self.state.upper()}]"]
         if self.keyboard_mode:
             indicators.append("[TAB: Keyboard Mode]")
         if self.party_mode:
             indicators.append("[F5: Party Mode]")
         ind_text = " ".join(indicators)
-        ind_surf = self._font_small.render(ind_text, True, (150, 150, 150))
+        ind_surf = self._font_small.render(ind_text, True, conn_color)
         ind_bg = pygame.Surface((ind_surf.get_width() + 10, ind_surf.get_height() + 6), pygame.SRCALPHA)
         ind_bg.fill((0, 0, 0, 140))
         self._screen.blit(ind_bg, (5, WINDOW_HEIGHT - 33))
@@ -685,6 +763,20 @@ class MarioDisplay:
         # Center the sprite
         cx = WINDOW_WIDTH // 2 - sprite.get_width() // 2 + offset_x
         cy = WINDOW_HEIGHT // 2 - sprite.get_height() // 2 + 40 + bounce
+
+        # Scale pulsing for excitement
+        if self._emotion == "excited" and not self._transition_active:
+            scale = 1.0 + math.sin(self._frame * 0.2) * 0.03
+            w = int(sprite.get_width() * scale)
+            h = int(sprite.get_height() * scale)
+            sprite = pygame.transform.smoothscale(sprite, (w, h))
+            cx = WINDOW_WIDTH // 2 - w // 2 + offset_x
+            cy = WINDOW_HEIGHT // 2 - h // 2 + 40 + bounce
+
+        # Gentle sway for idle
+        if self.state == STATE_IDLE and not self._transition_active:
+            sway = int(math.sin(self._frame * 0.03) * 3)
+            cx += sway
 
         self._screen.blit(sprite, (cx, cy))
 

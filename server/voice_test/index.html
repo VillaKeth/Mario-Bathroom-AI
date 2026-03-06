@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html><head><title>Mario Voice Comparison</title>
+<style>
+body { font-family: Arial; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+h1 { color: #ff0000; text-align: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+.card { background: #16213e; border-radius: 12px; padding: 20px; border: 2px solid #0f3460; }
+.card h3 { color: #e94560; margin-top: 0; }
+audio { width: 100%; margin-top: 10px; }
+.note { color: #888; font-size: 0.9em; }
+</style></head><body>
+<h1>🍄 Mario Voice Comparison — Edge TTS → RVC</h1>
+<p style="text-align:center">Same phrase through each Edge TTS voice + RVC Mario conversion. Pick your favorite!</p>
+<p style="text-align:center;color:#888">"Wahoo! Welcome to the bathroom, my friend! It is a me, Mario!"</p>
+<div class="grid">
+<div class="card"><h3>🎤 en-US-GuyNeural (Current)</h3><p class="note">Default voice. Mid-range male.</p><audio controls src="en-US-GuyNeural.wav"></audio></div>
+<div class="card"><h3>🎤 en-US-ChristopherNeural</h3><p class="note">Deeper male voice.</p><audio controls src="en-US-ChristopherNeural.wav"></audio></div>
+<div class="card"><h3>🎤 en-US-BrianNeural</h3><p class="note">Younger, lighter male.</p><audio controls src="en-US-BrianNeural.wav"></audio></div>
+<div class="card"><h3>🎤 en-US-RogerNeural</h3><p class="note">Authoritative male.</p><audio controls src="en-US-RogerNeural.wav"></audio></div>
+<div class="card"><h3>🎤 en-GB-RyanNeural</h3><p class="note">British accent male.</p><audio controls src="en-GB-RyanNeural.wav"></audio></div>
+</div>
+</body></html>

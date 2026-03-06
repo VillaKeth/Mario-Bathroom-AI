@@ -38,7 +38,8 @@ class MarioWSClient:
         self._thread.start()
 
     def _run(self):
-        """Connection loop with auto-reconnect."""
+        """Connection loop with exponential backoff auto-reconnect."""
+        attempt = 0
         while True:
             try:
                 self._ws = websocket.WebSocketApp(
@@ -48,19 +49,23 @@ class MarioWSClient:
                     on_error=self._on_error,
                     on_close=self._on_close,
                 )
-                self._ws.run_forever()
+                attempt += 1
+                self._ws.run_forever(ping_interval=30, ping_timeout=10)
             except Exception as e:
                 logger.error(f"[DEBUG_WS] connection error: {e}")
 
             self._connected = False
+            # Exponential backoff: 2s, 4s, 8s, max 30s
+            delay = min(30, self._reconnect_delay * (2 ** min(attempt - 1, 4)))
             if DEBUG_WS:
-                logger.info(f"[DEBUG_WS] reconnecting in {self._reconnect_delay}s...")
-            time.sleep(self._reconnect_delay)
+                logger.info(f"[DEBUG_WS] reconnecting in {delay:.0f}s (attempt {attempt})...")
+            time.sleep(delay)
 
     def _on_open(self, ws):
         if DEBUG_WS:
             logger.info("[DEBUG_WS] connected!")
         self._connected = True
+        self._reconnect_attempt = 0  # Reset on successful connect
         if self.on_connected:
             self.on_connected()
 
