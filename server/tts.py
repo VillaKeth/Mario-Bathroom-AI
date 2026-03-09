@@ -72,9 +72,9 @@ XTTS_SAMPLE_RATE = 24000
 _rvc_model = None
 _rvc_available = False
 
-# RVC model paths — Mario Super Show v2 (trained on Super Mario Bros. Super Show TV series)
-RVC_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "Mario_Super_Show_v2", "Mario_Super_Show_e220_s2420.pth")
-RVC_INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "Mario_Super_Show_v2", "added_IVF255_Flat_nprobe_1_Mario_Super_Show_v2.index")
+# RVC model paths — Nintendo Switch Era Mario (Charles Martinet, trained on MK8/NSMBU/Odyssey/Party)
+RVC_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "mario_models_new", "MarioSwitch", "SuperMario-NintendoSwitchEra.pth")
+RVC_INDEX_PATH = os.path.join(os.path.dirname(__file__), "..", "mario_models_new", "MarioSwitch", "added_IVF423_Flat_nprobe_1_SuperMario-NintendoSwitchEra_v2.index")
 
 # Curated 30s reference — best quality segment from full sentences
 MARIO_REF_PATH = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences_30s.wav")
@@ -84,10 +84,10 @@ MARIO_REF_FALLBACK = os.path.join(os.path.dirname(__file__), "data", "mario_refe
 MARIO_PITCH_SEMITONES = 0  # No pitch shift — let RVC model handle voice character
 MARIO_SPEED_FACTOR = 1.0  # Normal speed
 USE_RVC = True  # Use RVC for Mario voice conversion
-RVC_F0_UP_KEY = 8  # Pitch UP 8 semitones — Mario has a VERY high-pitched voice
-RVC_INDEX_RATE = 0.85  # High = more Mario character from training data
-RVC_PROTECT = 0.33  # Lower = more voice character conversion
-RVC_F0_METHOD = "pm"  # Fastest f0 method (~0.5s vs crepe ~3-10s)
+RVC_F0_UP_KEY = 12  # Pitch UP 12 semitones (full octave) — aggressive Mario pitch
+RVC_INDEX_RATE = 0.95  # Very high = max Mario character from training data
+RVC_PROTECT = 0.15  # Low = aggressive voice conversion
+RVC_F0_METHOD = "rmvpe"  # Deep learning pitch tracking — best quality
 
 # --- Speed mode ---
 # False = XTTS v2 voice cloning (quality, ~10-30s), True = Edge TTS (fast, ~1.5s)
@@ -114,7 +114,7 @@ XTTS_COND_LEN = 6
 # --- Edge TTS settings (fallback only) ---
 EDGE_VOICE = "en-US-GuyNeural"
 EDGE_PITCH_SHIFT = 0
-RATE = "+20%"  # Faster speech for party energy
+RATE = "+35%"  # Faster speech for Mario energy
 PITCH_OFFSET = "+0Hz"
 
 # --- Audio cache for instant playback (LRU with max 50 entries) ---
@@ -229,7 +229,7 @@ def init_tts():
     # --- Load RVC Mario voice conversion model (if enabled) ---
     if USE_RVC and os.path.exists(RVC_MODEL_PATH):
         try:
-            logger.info("[DEBUG_TTS] init_tts: loading RVC Mario model (TITAN 500 epoch)...")
+            logger.info("[DEBUG_TTS] init_tts: loading RVC Mario model (Switch Era, Charles Martinet)...")
             rvc_start = time.time()
             from rvc_python.infer import RVCInference
             _rvc_model = RVCInference(
