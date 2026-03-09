@@ -33,8 +33,16 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "server", "tts_cache")
 
 
 def init_pipeline():
-    """Initialize GPT-SoVITS pipeline — loads models onto GPU."""
+    """Initialize GPT-SoVITS pipeline — loads models onto GPU.
+    
+    Redirects stdout to stderr during loading to keep stdout clean for JSON protocol.
+    """
     import yaml
+    from io import StringIO
+
+    # Redirect stdout during model loading (libraries print to stdout)
+    _real_stdout = sys.stdout
+    sys.stdout = sys.stderr
     from TTS_infer_pack.TTS import TTS, TTS_Config
 
     config_path = os.path.join(MODEL_DIR, "tts_infer.yaml")
@@ -54,6 +62,9 @@ def init_pipeline():
 
     tts_config = TTS_Config(config_path)
     pipeline = TTS(tts_config)
+
+    # Restore stdout for JSON protocol
+    sys.stdout = _real_stdout
     return pipeline
 
 
@@ -67,7 +78,6 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         prompt_text = "It's a me Mario"
 
     # Clean text for better GPT-SoVITS synthesis
-    # Remove hyphens in Mario-speak (e.g., "It's-a" → "It'sa") to avoid phoneme confusion
     clean_text = text.replace("-a ", "a ").replace("-A ", "a ")
     
     req = {
@@ -76,15 +86,21 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         "ref_audio_path": ref_audio,
         "prompt_text": prompt_text,
         "prompt_lang": "en",
-        "text_split_method": "cut0",  # No splitting — short phrases stay intact, avoids garbled transitions
+        "text_split_method": "cut0",
         "speed_factor": speed,
     }
 
-    chunks = []
-    sr = 32000
-    for sr_chunk, audio_chunk in pipeline.run(req):
-        sr = sr_chunk
-        chunks.append(audio_chunk)
+    # Suppress stdout during inference (GPT-SoVITS prints progress bars)
+    _real_stdout = sys.stdout
+    sys.stdout = sys.stderr
+    try:
+        chunks = []
+        sr = 32000
+        for sr_chunk, audio_chunk in pipeline.run(req):
+            sr = sr_chunk
+            chunks.append(audio_chunk)
+    finally:
+        sys.stdout = _real_stdout
 
     if not chunks:
         raise RuntimeError("GPT-SoVITS produced no audio chunks")

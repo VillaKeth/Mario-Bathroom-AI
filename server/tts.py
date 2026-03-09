@@ -93,7 +93,19 @@ RVC_F0_METHOD = "rmvpe"  # Deep learning pitch tracking — best quality
 _sovits_process = None
 _sovits_available = False
 _sovits_lock = threading.Lock()
-_sovits_bg_thread = None  # Background thread for async GPT-SoVITS regeneration
+_sovits_restart_count = 0
+_sovits_max_restarts = 3  # Auto-restart up to 3 times before giving up
+
+# Background regeneration queue (replaces thread-per-request)
+import queue as _queue_mod
+_sovits_regen_queue = _queue_mod.Queue(maxsize=50)  # Cap pending regen jobs
+_sovits_worker_thread = None  # Single worker consuming from queue
+
+# GPU contention guard: bg worker only runs when main thread hasn't used GPU recently
+_gpu_busy = threading.Event()  # Set = GPU free, Clear = GPU busy
+_gpu_busy.set()  # Start as free
+_last_synth_time = 0.0  # Timestamp of last Edge+RVC synthesis completion
+_GPU_IDLE_THRESHOLD = 3.0  # Seconds of idle before bg worker can use GPU
 
 # GPT-SoVITS venv python path
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
@@ -132,7 +144,7 @@ EDGE_PITCH_SHIFT = 0
 RATE = "+35%"  # Faster speech for Mario energy
 PITCH_OFFSET = "+0Hz"
 
-# --- Audio cache for instant playback (LRU with max 50 entries) ---
+# --- Audio cache for instant playback (LRU with max entries) ---
 _audio_cache = {}
 _cache_order = []
 MAX_CACHE_SIZE = 200
@@ -141,6 +153,60 @@ _cache_misses = 0
 _rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
 _cache_lock = threading.Lock()  # Protects _audio_cache and _cache_order from concurrent access
 _edge_executor = None  # Reusable executor for Edge TTS async-in-sync calls
+
+# Disk cache for TTS audio persistence across restarts
+_DISK_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "server", "data", "tts_cache")
+
+def _load_disk_cache():
+    """Load cached TTS audio from disk at startup."""
+    if not os.path.exists(_DISK_CACHE_DIR):
+        return
+    import hashlib
+    loaded = 0
+    for fname in os.listdir(_DISK_CACHE_DIR):
+        if not fname.endswith(".wav"):
+            continue
+        key_file = os.path.join(_DISK_CACHE_DIR, fname.replace(".wav", ".key"))
+        if not os.path.exists(key_file):
+            continue
+        try:
+            with open(key_file, "r") as f:
+                cache_key = f.read().strip()
+            with open(os.path.join(_DISK_CACHE_DIR, fname), "rb") as f:
+                wav_bytes = f.read()
+            if wav_bytes and cache_key:
+                _audio_cache[cache_key] = wav_bytes
+                _cache_order.append(cache_key)
+                loaded += 1
+        except Exception:
+            continue
+    if loaded > 0:
+        logger.info(f"[DEBUG_TTS] disk cache: loaded {loaded} entries from {_DISK_CACHE_DIR}")
+
+def _save_to_disk_cache(cache_key: str, wav_bytes: bytes):
+    """Save a cache entry to disk for persistence across restarts."""
+    try:
+        import hashlib
+        os.makedirs(_DISK_CACHE_DIR, exist_ok=True)
+        key_hash = hashlib.md5(cache_key.encode()).hexdigest()[:16]
+        wav_path = os.path.join(_DISK_CACHE_DIR, f"{key_hash}.wav")
+        key_path = os.path.join(_DISK_CACHE_DIR, f"{key_hash}.key")
+        with open(wav_path, "wb") as f:
+            f.write(wav_bytes)
+        with open(key_path, "w") as f:
+            f.write(cache_key)
+    except Exception as e:
+        if DEBUG_TTS:
+            logger.warning(f"[DEBUG_TTS] disk cache: save failed: {e}")
+
+def _is_disk_cached(cache_key: str) -> bool:
+    """Check if a cache key has a disk cache entry (GPT-SoVITS quality)."""
+    try:
+        import hashlib
+        key_hash = hashlib.md5(cache_key.encode()).hexdigest()[:16]
+        return os.path.exists(os.path.join(_DISK_CACHE_DIR, f"{key_hash}.wav"))
+    except Exception:
+        return False
 CACHED_PHRASES = [
     # Greetings
     "It's-a me, Mario!",
@@ -203,10 +269,13 @@ CACHED_PHRASES = [
 def init_tts():
     """Initialize TTS — load base TTS engine and RVC Mario voice model."""
     global _xtts_model, _xtts_available, _gpt_cond_latents, _speaker_embedding
-    global _rvc_model, _rvc_available, _edge_executor
+    global _rvc_model, _rvc_available, _edge_executor, _sovits_available
 
     if DEBUG_TTS:
         logger.info("[DEBUG_TTS] init_tts: START")
+
+    # Load disk cache first for instant startup
+    _load_disk_cache()
 
     # --- Load base TTS engine ---
     if FAST_MODE:
@@ -292,10 +361,23 @@ def init_tts():
         logger.info("[DEBUG_TTS] init_tts: RVC model not found, skipping voice conversion")
         _rvc_available = False
 
-    # --- Start GPT-SoVITS subprocess (if mode is "sovits" or "hybrid") ---
-    if TTS_MODE in ("sovits", "hybrid"):
-        logger.info(f"[DEBUG_TTS] init_tts: TTS_MODE={TTS_MODE}, launching GPT-SoVITS subprocess...")
-        _start_sovits_subprocess()
+    # --- GPT-SoVITS setup ---
+    if TTS_MODE == "sovits":
+        # Direct sovits mode: keep subprocess running permanently
+        logger.info(f"[DEBUG_TTS] init_tts: TTS_MODE=sovits, launching GPT-SoVITS subprocess...")
+        if _start_sovits_subprocess():
+            try:
+                warmup_start = time.time()
+                _sovits_synthesize("Hello!")
+                logger.info(f"[DEBUG_TTS] sovits: warmup done in {time.time() - warmup_start:.1f}s")
+            except Exception as e:
+                logger.warning(f"[DEBUG_TTS] sovits: warmup failed: {e}")
+    elif TTS_MODE == "hybrid":
+        # Hybrid mode: do NOT start subprocess now — bg worker starts it on-demand
+        # This prevents VRAM contention between RVC and GPT-SoVITS on small GPUs
+        logger.info("[DEBUG_TTS] init_tts: TTS_MODE=hybrid, GPT-SoVITS will start on-demand during idle")
+        _sovits_available = True  # Mark as available so hybrid mode enqueues regen jobs
+        _start_sovits_worker()
 
     if DEBUG_TTS:
         logger.info(f"[DEBUG_TTS] init_tts: END (mode={TTS_MODE}, fast={FAST_MODE}, xtts={_xtts_available}, rvc={_rvc_available}, sovits={_sovits_available})")
@@ -317,15 +399,30 @@ def _start_sovits_subprocess():
     logger.info("[DEBUG_TTS] sovits: starting GPT-SoVITS subprocess...")
     start = time.time()
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"  # Prevent output buffering on Windows
         _sovits_process = sp.Popen(
             [SOVITS_PYTHON, SOVITS_SERVER_SCRIPT],
             stdin=sp.PIPE,
             stdout=sp.PIPE,
-            stderr=sp.DEVNULL,
+            stderr=sp.PIPE,  # Capture stderr separately (loading messages go here)
             cwd=os.path.dirname(os.path.dirname(__file__)),
             text=True,
             bufsize=1,
+            env=env,
         )
+        # Drain stderr in background to prevent pipe from filling up and blocking subprocess
+        def _drain_stderr():
+            try:
+                for line in _sovits_process.stderr:
+                    if DEBUG_TTS:
+                        line = line.strip()
+                        if line:
+                            logger.debug(f"[DEBUG_TTS] sovits-stderr: {line[:200]}")
+            except Exception:
+                pass
+        threading.Thread(target=_drain_stderr, daemon=True, name="sovits-stderr").start()
+
         # Wait for "ready" message (with timeout)
         import select
         deadline = time.time() + 120  # 2 min timeout for model loading
@@ -355,12 +452,23 @@ def _start_sovits_subprocess():
 
 
 def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
-    """Send text to GPT-SoVITS subprocess and get WAV bytes back."""
+    """Send text to GPT-SoVITS subprocess and get WAV bytes back.
+    
+    Auto-restarts subprocess on crash (up to _sovits_max_restarts times).
+    """
     import json as _json
-    global _sovits_process, _sovits_available
+    global _sovits_process, _sovits_available, _sovits_restart_count
 
     if not _sovits_available or _sovits_process is None:
-        raise RuntimeError("GPT-SoVITS subprocess not available")
+        # Try auto-restart if we haven't exceeded limit
+        if _sovits_restart_count < _sovits_max_restarts:
+            logger.info(f"[DEBUG_TTS] sovits: attempting auto-restart ({_sovits_restart_count + 1}/{_sovits_max_restarts})...")
+            if _start_sovits_subprocess():
+                _sovits_restart_count += 1
+            else:
+                raise RuntimeError("GPT-SoVITS subprocess not available and restart failed")
+        else:
+            raise RuntimeError("GPT-SoVITS subprocess not available (max restarts exceeded)")
 
     with _sovits_lock:
         try:
@@ -382,37 +490,160 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
                 os.unlink(audio_path)
             except OSError:
                 pass
+            # Reset restart counter on success
+            _sovits_restart_count = 0
             return wav_bytes
         except Exception as e:
             if "Broken pipe" in str(e) or "BrokenPipeError" in str(type(e).__name__):
                 _sovits_available = False
-                logger.error("[DEBUG_TTS] sovits: subprocess crashed, marked unavailable")
+                logger.error("[DEBUG_TTS] sovits: subprocess crashed, will auto-restart on next call")
             raise
 
 
-def _sovits_bg_regenerate(text: str, cache_key: str):
-    """Background thread: regenerate audio with GPT-SoVITS and replace cache entry."""
+def _kill_sovits_subprocess():
+    """Kill the GPT-SoVITS subprocess to free VRAM. Called after bg worker finishes a batch."""
+    global _sovits_process, _sovits_available
+    if _sovits_process is None:
+        return
     try:
-        wav_bytes = _sovits_synthesize(text)
-        with _cache_lock:
-            _audio_cache[cache_key] = wav_bytes
-            if cache_key not in _cache_order:
-                _cache_order.append(cache_key)
+        # Send quit command gracefully
+        try:
+            _sovits_process.stdin.write('{"command":"quit"}\n')
+            _sovits_process.stdin.flush()
+        except Exception:
+            pass
+        _sovits_process.terminate()
+        _sovits_process.wait(timeout=5)
+    except Exception:
+        try:
+            _sovits_process.kill()
+        except Exception:
+            pass
+    _sovits_process = None
+    # Keep _sovits_available = True for hybrid mode so queue keeps accepting items
+    if TTS_MODE == "hybrid":
+        _sovits_available = True
+    else:
+        _sovits_available = False
+    if DEBUG_TTS:
+        logger.info("[DEBUG_TTS] sovits: subprocess killed (VRAM freed)")
+
+
+def _sovits_bg_worker():
+    """Background worker that processes GPT-SoVITS regen requests on-demand.
+    
+    Architecture (prevents GPU contention on small GPUs like Quadro P1000 4GB):
+    1. Wait for items in the queue
+    2. Wait until GPU has been idle for _GPU_IDLE_THRESHOLD seconds (no Edge+RVC activity)
+    3. Start GPT-SoVITS subprocess (loads models, warms up CUDA)
+    4. Drain ALL queued items (batch processing)
+    5. Kill subprocess to free VRAM
+    6. Go back to step 1
+    
+    This ensures RVC and GPT-SoVITS never compete for VRAM simultaneously.
+    """
+    while True:
+        # Step 1: Wait for first item
+        try:
+            first_item = _sovits_regen_queue.get(timeout=10)
+        except _queue_mod.Empty:
+            continue
+        except Exception:
+            break
+
+        # Step 2: Wait until GPU has been idle long enough
+        while True:
+            _gpu_busy.wait(timeout=5)
+            idle_time = time.time() - _last_synth_time
+            if idle_time >= _GPU_IDLE_THRESHOLD:
+                break
+            time.sleep(0.5)
+
+        # Step 3: Start subprocess (models load, CUDA warms up)
         if DEBUG_TTS:
-            logger.info(f"[DEBUG_TTS] hybrid: background GPT-SoVITS replaced cache for '{text[:40]}...'")
-    except Exception as e:
+            logger.info("[DEBUG_TTS] hybrid: bg worker starting GPT-SoVITS subprocess for batch regen...")
+        if not _start_sovits_subprocess():
+            logger.warning("[DEBUG_TTS] hybrid: bg worker could not start subprocess, dropping batch")
+            _sovits_regen_queue.task_done()
+            continue
+        # Warmup first call
+        try:
+            _sovits_synthesize("Hello!")
+        except Exception:
+            pass
+
+        # Step 4: Process first item + drain rest of queue
+        batch = [first_item]
+        while not _sovits_regen_queue.empty():
+            try:
+                batch.append(_sovits_regen_queue.get_nowait())
+            except _queue_mod.Empty:
+                break
+
         if DEBUG_TTS:
-            logger.warning(f"[DEBUG_TTS] hybrid: background GPT-SoVITS failed for '{text[:40]}': {e}")
+            logger.info(f"[DEBUG_TTS] hybrid: bg worker processing {len(batch)} items...")
+
+        for text, cache_key in batch:
+            # Check if main thread started using GPU — abort batch
+            if time.time() - _last_synth_time < 1.0 and _last_synth_time > 0:
+                # GPU became busy, re-queue remaining items
+                idx = batch.index((text, cache_key))
+                for remaining in batch[idx:]:
+                    try:
+                        _sovits_regen_queue.put_nowait(remaining)
+                    except _queue_mod.Full:
+                        pass
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] hybrid: bg worker aborting batch — GPU busy, re-queued {len(batch) - idx} items")
+                break
+
+            try:
+                wav_bytes = _sovits_synthesize(text)
+                with _cache_lock:
+                    _audio_cache[cache_key] = wav_bytes
+                    if cache_key not in _cache_order:
+                        _cache_order.append(cache_key)
+                _save_to_disk_cache(cache_key, wav_bytes)
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] hybrid: bg worker replaced cache for '{text[:40]}...'")
+            except Exception as e:
+                if DEBUG_TTS:
+                    logger.warning(f"[DEBUG_TTS] hybrid: bg worker failed for '{text[:40]}': {e}")
+
+        # Mark all items as done
+        for _ in batch:
+            try:
+                _sovits_regen_queue.task_done()
+            except ValueError:
+                pass
+
+        # Step 5: Kill subprocess to free VRAM for future RVC calls
+        _kill_sovits_subprocess()
+        if DEBUG_TTS:
+            logger.info("[DEBUG_TTS] hybrid: bg worker batch complete, subprocess killed")
+
+
+def _start_sovits_worker():
+    """Start the background regeneration worker thread (idempotent)."""
+    global _sovits_worker_thread
+    if _sovits_worker_thread is not None and _sovits_worker_thread.is_alive():
+        return
+    _sovits_worker_thread = threading.Thread(target=_sovits_bg_worker, daemon=True, name="sovits-bg-worker")
+    _sovits_worker_thread.start()
+    if DEBUG_TTS:
+        logger.info("[DEBUG_TTS] sovits: background regeneration worker started")
 
 
 def precache_phrases():
     """Pre-cache common Mario phrases at startup for instant playback.
     
+    Phase 1: Edge+RVC for all phrases (fast, ~2s each)
+    Phase 2: GPT-SoVITS upgrade for top-priority phrases (hybrid mode only)
     Retries each failed phrase once after a short delay.
     """
     if not CACHED_PHRASES:
         return
-    logger.info(f"[DEBUG_TTS] precache: warming {len(CACHED_PHRASES)} phrases...")
+    logger.info(f"[DEBUG_TTS] precache: warming {len(CACHED_PHRASES)} phrases with Edge+RVC...")
     cache_start = time.time()
     failed = []
     for phrase in CACHED_PHRASES:
@@ -432,7 +663,28 @@ def precache_phrases():
                 logger.warning(f"[DEBUG_TTS] precache: retry failed '{phrase[:30]}': {e}")
     with _cache_lock:
         _cached_count = len(_audio_cache)
-    logger.info(f"[DEBUG_TTS] precache: done in {time.time() - cache_start:.1f}s ({_cached_count} cached)")
+    logger.info(f"[DEBUG_TTS] precache: Edge+RVC done in {time.time() - cache_start:.1f}s ({_cached_count} cached)")
+
+    # Phase 2: Queue top-priority phrases for bg GPT-SoVITS upgrade (hybrid mode)
+    # These get processed by the bg worker during idle (on-demand subprocess)
+    if TTS_MODE == "hybrid" and _sovits_available:
+        priority_phrases = CACHED_PHRASES[:20]
+        queued = 0
+        for phrase in priority_phrases:
+            _rate = "+0%"
+            _pitch = "+0Hz"
+            cache_key = f"{EDGE_VOICE}:{phrase.strip().lower()}:{_rate}:{_pitch}"
+            # Skip if already have GPT-SoVITS quality (from disk cache)
+            with _cache_lock:
+                if cache_key in _audio_cache and _is_disk_cached(cache_key):
+                    continue
+            try:
+                _sovits_regen_queue.put_nowait((phrase, cache_key))
+                queued += 1
+            except _queue_mod.Full:
+                break
+        if queued > 0:
+            logger.info(f"[DEBUG_TTS] precache: queued {queued} phrases for bg GPT-SoVITS upgrade")
 
 
 def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
@@ -504,10 +756,17 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     base_time = time.time() - start
 
     # Step 2: Convert voice to Mario via RVC (if enabled)
-    if USE_RVC:
-        result = _apply_rvc(base_wav)
-    else:
-        result = base_wav
+    # Signal GPU busy to pause background GPT-SoVITS worker
+    _gpu_busy.clear()
+    try:
+        if USE_RVC:
+            result = _apply_rvc(base_wav)
+        else:
+            result = base_wav
+    finally:
+        global _last_synth_time
+        _last_synth_time = time.time()
+        _gpu_busy.set()  # Signal GPU free
 
     total = time.time() - start
     if DEBUG_TTS:
@@ -523,16 +782,15 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
                 evict_key = _cache_order.pop(0)
                 _audio_cache.pop(evict_key, None)
 
-    # Hybrid mode: kick off background GPT-SoVITS regeneration to upgrade quality
+    # Hybrid mode: enqueue background GPT-SoVITS regeneration (deduped via queue)
     if TTS_MODE == "hybrid" and _sovits_available and len(text) < 200:
-        bg = threading.Thread(
-            target=_sovits_bg_regenerate,
-            args=(text, cache_key),
-            daemon=True,
-        )
-        bg.start()
-        if DEBUG_TTS:
-            logger.info(f"[DEBUG_TTS] hybrid: background GPT-SoVITS regeneration started for '{text[:40]}...'")
+        try:
+            _sovits_regen_queue.put_nowait((text, cache_key))
+            if DEBUG_TTS:
+                logger.info(f"[DEBUG_TTS] hybrid: queued bg regen for '{text[:40]}...' (queue={_sovits_regen_queue.qsize()})")
+        except _queue_mod.Full:
+            if DEBUG_TTS:
+                logger.info(f"[DEBUG_TTS] hybrid: regen queue full, skipping '{text[:40]}...'")
 
     return result
 

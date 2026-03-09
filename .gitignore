@@ -21,7 +21,7 @@ server/data/rvc_model/
 
 # Generated audio / test output
 voice_tests/
-server/tts_cache/
+server/data/tts_cache/
 
 # Test scripts (not part of main app)
 server/energy_test.py
