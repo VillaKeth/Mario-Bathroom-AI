@@ -606,13 +606,13 @@ async def _idle_loop(ws: WebSocket):
                 minutes = (time.time() - enter_time) / 60
                 comment = idle_behavior.get_long_stay_comment(minutes)
                 if comment:
-                    analyzed = analyze_text(comment)
-                    audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     try:
+                        analyzed = analyze_text(comment)
+                        audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                         await send_response(ws, analyzed["display_text"], audio,
                                             sound="coin", pose_hint=analyzed["pose_hint"])
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f"Long stay comment TTS failed: {e}")
             continue
 
         # DJ announcements when nobody is around (every 20+ minutes)
@@ -794,7 +794,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         async def _send_thinking_audio():
             try:
-                thinking_audio = await loop.run_in_executor(None, lambda: tts.synthesize(thinking_text))
+                thinking_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(thinking_text))
                 if thinking_audio and len(thinking_audio) > 44:
                     await ws.send_json({
                         "type": "mario_response",
@@ -1143,9 +1143,13 @@ async def handle_event(ws: WebSocket, event: dict):
 
             # Mario celebrates registering a new friend
             celebrate = f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice! Let's-a go!"
-            loop = asyncio.get_event_loop()
-            celebrate_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(celebrate))
-            await send_response(ws, celebrate, celebrate_audio, sound="oneup", emotion="excited")
+            try:
+                loop = asyncio.get_event_loop()
+                celebrate_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(celebrate))
+                await send_response(ws, celebrate, celebrate_audio, sound="oneup", emotion="excited")
+            except Exception as e:
+                logger.error(f"Registration celebration TTS failed: {e}")
+                await send_response(ws, celebrate, None, sound="oneup", emotion="excited")
 
     elif event_type == "vad_start":
         state_current["is_speaking"] = True

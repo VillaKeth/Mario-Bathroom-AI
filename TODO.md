@@ -43,11 +43,16 @@
 - [x] Fix time observation retry (moved timestamp to finally block)
 - [x] Fix text_input deadlock (removed outer _state_lock from message loop)
 - [x] Fix integration test greeting drain (wait up to 60s, handle thinking fillers)
-- [ ] Fix audio buffer thread safety (handle_audio without lock)
-- [ ] Add asyncio.wait_for timeout to presence_enter LLM call
-- [ ] Fix pose path inconsistency ("actions/" vs "action/")
-- [ ] Add WebSocket message rate limiting
-- [ ] Add config.json validation at startup
+- [x] Fix audio buffer thread safety (handle_audio — lock only buffer ops)
+- [x] Add asyncio.wait_for timeout to presence_enter LLM call (already had 30s)
+- [x] Fix pose path inconsistency ("actions/" → "action/" — 11 mappings)
+- [x] Add WebSocket message rate limiting (30 msg/sec deque-based)
+- [x] Add config.json validation at startup (warns on invalid config)
+- [x] Fix idle loop long_stay_comment TTS crash (was missing try/except)
+- [x] Fix thinking TTS wrong executor (None → _tts_executor, prevents GPU contention)
+- [x] Fix register_speaker TTS unprotected (added try/except + text-only fallback)
+- [x] Fix speaker embedding shape validation (skip mismatched dimensions)
+- [x] Add client echo duration comment (48000 = 24kHz × 2 bytes)
 
 
 ## ✅ Completed

@@ -195,6 +195,7 @@ class MarioClient:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
         self.audio_playback.play(wav_bytes)
         # Track when playback finishes for echo cancellation
+        # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
         # Schedule speaking state clear using a reusable timer (avoids thread leak)

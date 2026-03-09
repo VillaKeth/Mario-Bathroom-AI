@@ -119,11 +119,18 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     best_similarity = -1.0
 
     for row_id, name, emb_blob in rows:
-        stored_embedding = np.frombuffer(emb_blob, dtype=np.float32)
-        norm_product = np.linalg.norm(embedding) * np.linalg.norm(stored_embedding)
-        if norm_product == 0:
+        try:
+            stored_embedding = np.frombuffer(emb_blob, dtype=np.float32)
+            if stored_embedding.shape != embedding.shape:
+                logger.warning(f"[DEBUG_SPEAKER] Shape mismatch for {name}: stored={stored_embedding.shape} vs current={embedding.shape}, skipping")
+                continue
+            norm_product = np.linalg.norm(embedding) * np.linalg.norm(stored_embedding)
+            if norm_product == 0:
+                continue
+            similarity = np.dot(embedding, stored_embedding) / norm_product
+        except Exception as e:
+            logger.error(f"[DEBUG_SPEAKER] Error comparing embedding for {name}: {e}")
             continue
-        similarity = np.dot(embedding, stored_embedding) / norm_product
         if DEBUG_SPEAKER:
             logger.info(f"[DEBUG_SPEAKER] identify_speaker: {name} similarity={similarity:.3f}")
 
