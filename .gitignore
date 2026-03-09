@@ -1,6 +1,43 @@
-# Files
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
 
+# Virtual environments
+.venv/
+gpt_sovits_env/
+venv/
 
-# Folders
-_.claude
+# GPT-SoVITS (cloned repo, too large to track)
+gpt_sovits_repo/
+
+# Model files (large binaries)
+mario_models_new/GPT_SoVITS_Mario/
+mario_models_new/*.zip
+
+# Generated audio / test output
+voice_tests/
+server/tts_cache/
+
+# Test scripts (not part of main app)
+server/energy_test.py
+server/model_compare.py
+server/model_full_compare.py
+server/voice_quality_test.py
+
+# Database runtime files
+*.db-shm
+*.db-wal
+
+# IDE / OS
+.claude/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Client asset variants
 client/assets/variants
