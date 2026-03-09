@@ -164,28 +164,31 @@ def get_person_info(person_id: int) -> dict:
     """Get all info about a person."""
     try:
         conn = _get_conn()
-        conn.row_factory = sqlite3.Row
-        person = conn.execute("SELECT * FROM people WHERE id = ?", (person_id,)).fetchone()
+        original_factory = conn.row_factory
+        try:
+            conn.row_factory = sqlite3.Row
+            person = conn.execute("SELECT * FROM people WHERE id = ?", (person_id,)).fetchone()
 
-        if not person:
-            return None
+            if not person:
+                return None
 
-        info = dict(person)
+            info = dict(person)
 
-        # Get recent conversations (last 10)
-        convos = conn.execute(
-            "SELECT role, content, timestamp FROM conversations WHERE person_id = ? ORDER BY timestamp DESC LIMIT 10",
-            (person_id,),
-        ).fetchall()
-        info["recent_conversations"] = [dict(c) for c in convos]
+            # Get recent conversations (last 10)
+            convos = conn.execute(
+                "SELECT role, content, timestamp FROM conversations WHERE person_id = ? ORDER BY timestamp DESC LIMIT 10",
+                (person_id,),
+            ).fetchall()
+            info["recent_conversations"] = [dict(c) for c in convos]
 
-        # Get all facts
-        facts = conn.execute(
-            "SELECT fact FROM facts WHERE person_id = ?",
-            (person_id,),
-        ).fetchall()
-        info["facts"] = [f["fact"] for f in facts]
-        conn.row_factory = None  # Reset row factory for other queries
+            # Get all facts
+            facts = conn.execute(
+                "SELECT fact FROM facts WHERE person_id = ?",
+                (person_id,),
+            ).fetchall()
+            info["facts"] = [f["fact"] for f in facts]
+        finally:
+            conn.row_factory = original_factory
     except Exception as e:
         logger.error(f"get_person_info failed: {e}")
         return None

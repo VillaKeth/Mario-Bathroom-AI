@@ -155,7 +155,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
             "top_p": 0.9,
             "num_predict": 35,
             "repeat_penalty": 1.3,
-            "stop": ["\n\n", "User:", "Human:", "Assistant:", "Mario:", "[", "(OOC"],
+            "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
         },
     }
 

@@ -24,15 +24,30 @@ async def test():
     async with websockets.connect(uri, max_size=10*1024*1024) as ws:
         print("Connected to WebSocket")
 
-        # Drain initial messages
-        for _ in range(5):
+        # Drain greeting — server generates greeting (LLM+TTS) before entering
+        # the main message loop, so we must wait for it to finish (~15s)
+        print("Waiting for greeting...")
+        greeting_received = False
+        for _ in range(30):
             try:
                 msg = await asyncio.wait_for(ws.recv(), timeout=2.0)
                 if isinstance(msg, str):
                     d = json.loads(msg)
-                    print(f"  Init: type={d.get('type')}, text={str(d.get('text',''))[:60]}")
+                    mtype = d.get("type", "?")
+                    print(f"  Greeting: type={mtype}, text={str(d.get('text',''))[:60]}")
+                    if mtype == "mario_response":
+                        greeting_received = True
+                elif isinstance(msg, bytes):
+                    print(f"  Greeting audio: {len(msg)} bytes")
+                    if greeting_received:
+                        break  # Got both text + audio
             except asyncio.TimeoutError:
-                break
+                if greeting_received:
+                    break
+                continue
+        if not greeting_received:
+            print("WARNING: No greeting received within 60s!")
+        await asyncio.sleep(1.0)  # Let server settle into main loop
 
         # Test cases
         tests = [
@@ -50,13 +65,14 @@ async def test():
             await ws.send(json.dumps({"type": "text_input", "text": text}))
 
             got_text = False
+            got_real_response = False
             audio_frames = 0
             response_text = ""
 
-            deadline = time.time() + 60.0
+            deadline = time.time() + 30.0
             while time.time() < deadline:
                 try:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=10.0)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5.0)
                     if isinstance(msg, bytes):
                         audio_frames += 1
                         print(f"  AUDIO: {len(msg)} bytes")
@@ -64,9 +80,14 @@ async def test():
                         d = json.loads(msg)
                         mtype = d.get("type")
                         if mtype == "mario_response":
+                            is_filler = d.get("is_thinking_filler", False)
+                            if is_filler:
+                                print(f"  FILLER: {d.get('text', '')[:60]}")
+                                continue  # Don't count filler as the real response
                             response_text = d.get("text", "")
                             got_text = True
-                            resp_time = d.get("response_time", 0)
+                            got_real_response = True
+                            resp_time = d.get("response_time", "?")
                             print(f"  TEXT: {response_text[:80]}")
                             print(f"  Server response_time: {resp_time}s")
                             if not d.get("has_audio"):
@@ -75,7 +96,7 @@ async def test():
                             pass
                         else:
                             print(f"  OTHER: type={mtype}")
-                    if got_text and audio_frames > 0:
+                    if got_real_response and audio_frames > 0:
                         break
                 except asyncio.TimeoutError:
                     if got_text:
@@ -84,9 +105,9 @@ async def test():
                     continue
 
             elapsed = time.time() - t0
-            passed = got_text and audio_frames > 0
+            passed = got_real_response and audio_frames > 0
             status = "PASS" if passed else "FAIL"
-            print(f"  [{status}] {name}: text={got_text}, audio={audio_frames}, time={elapsed:.1f}s")
+            print(f"  [{status}] {name}: text={got_real_response}, audio={audio_frames}, time={elapsed:.1f}s")
             results.append((name, passed, elapsed))
 
             # Respect 2s text_input cooldown

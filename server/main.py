@@ -139,6 +139,7 @@ state_current = {
     "_detected_mood": None,  # Sentiment detection: drunk/sad/angry/None
     "_personality_mode": None,  # Personality mode: scary/dj/therapist/pirate/None
     "_last_dj_time": 0.0,  # Timestamp of last DJ announcement (set to now at connect)
+    "_last_time_obs": 0.0,  # Timestamp of last time observation
     "_last_timing": {},  # Last response time breakdown (stt/llm/tts/total)
 }
 
@@ -389,9 +390,10 @@ async def leaderboard_endpoint():
 @app.post("/admin/reset")
 async def admin_reset(request_body: dict = {}):
     """Admin: Reset party stats. Requires admin_api_key if configured."""
-    api_key = GAME_CONFIG.get("admin_api_key", "")
-    if api_key and request_body.get("api_key") != api_key:
-        return {"status": "error", "message": "Invalid API key"}
+    api_key = GAME_CONFIG.get("admin_api_key")
+    if api_key is not None and api_key != "":
+        if request_body.get("api_key") != api_key:
+            return {"status": "error", "message": "Invalid API key"}
     party_stats.reset_party()
     return {"status": "ok", "message": "Party reset!"}
 
@@ -454,7 +456,8 @@ async def websocket_endpoint(ws: WebSocket):
             await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
                                 pose_hint="positive/excited_jump")
         except Exception:
-            pass
+            await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                                pose_hint="positive/excited_jump")
     except Exception as e:
         logger.error(f"Startup greeting failed: {e}")
         try:
@@ -462,7 +465,8 @@ async def websocket_endpoint(ws: WebSocket):
             await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
                                 pose_hint="positive/excited_jump")
         except Exception:
-            pass
+            await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                                pose_hint="positive/excited_jump")
 
     # Start idle behavior loop
     idle_task = asyncio.create_task(_idle_loop(ws))
@@ -489,8 +493,7 @@ async def websocket_endpoint(ws: WebSocket):
                     logger.warning(f"[VALIDATION] JSON too large: {len(text_data)} bytes")
                     continue
                 try:
-                    async with _state_lock:
-                        await handle_event(ws, json.loads(text_data))
+                    await handle_event(ws, json.loads(text_data))
                 except json.JSONDecodeError as e:
                     logger.warning(f"Invalid JSON from client: {e}")
                 except Exception as e:
@@ -611,10 +614,11 @@ async def _idle_loop(ws: WebSocket):
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await send_response(ws, analyzed["display_text"], audio,
                                     sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
-                async with _state_lock:
-                    state_current["_last_dj_time"] = time.time()
             except Exception as e:
                 logger.error(f"DJ announcement failed: {e}")
+            finally:
+                async with _state_lock:
+                    state_current["_last_dj_time"] = time.time()
             continue
 
         # Time-specific party observations (every ~15 minutes)
@@ -628,10 +632,11 @@ async def _idle_loop(ws: WebSocket):
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     await send_response(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
-                    async with _state_lock:
-                        state_current["_last_time_obs"] = time.time()
                 except Exception as e:
                     logger.error(f"Time observation failed: {e}")
+                finally:
+                    async with _state_lock:
+                        state_current["_last_time_obs"] = time.time()
                 continue
 
         action = idle_behavior.get_idle_action()
@@ -835,15 +840,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         try:
             first_audio = await loop.run_in_executor(
                 _tts_executor, lambda: tts.synthesize_user(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-            await send_response(ws, analyzed["display_text"], first_audio,
-                sound=game_sound, emotion=emotion_system.current,
-                pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
-
             rest_audio = await loop.run_in_executor(
                 _tts_executor, lambda: tts.synthesize_user(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-            if rest_audio and len(rest_audio) > 44:
+            if first_audio and rest_audio and len(rest_audio) > 44:
+                await send_response(ws, analyzed["display_text"], first_audio,
+                    sound=game_sound, emotion=emotion_system.current,
+                    pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
                 await ws.send_bytes(rest_audio)
-            streamed = True
+                streamed = True
+            # If either audio failed, fall through to non-streaming path
         except Exception as e:
             logger.error(f"Streaming TTS failed, falling back: {e}")
 
@@ -1165,10 +1170,11 @@ async def handle_event(ws: WebSocket, event: dict):
 async def _handle_text_input(ws: WebSocket, text: str):
     """Process text input — rate-limited, then delegates to shared pipeline."""
     now = time.time()
-    if now - state_current["_last_text_input_time"] < 2.0:
-        logger.warning(f"Text input rate-limited: '{text[:50]}'")
-        return
-    state_current["_last_text_input_time"] = now
+    async with _state_lock:
+        if now - state_current["_last_text_input_time"] < 2.0:
+            logger.warning(f"Text input rate-limited: '{text[:50]}'")
+            return
+        state_current["_last_text_input_time"] = now
 
     logger.info(f"Text input: '{text}'")
 

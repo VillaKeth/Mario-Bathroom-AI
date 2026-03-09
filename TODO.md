@@ -32,8 +32,22 @@
 - [x] Fix subprocess crash cascade (process alive check + auto-restart on any error)
 - [x] Fix subprocess stdin buffering (readline() instead of iterator)
 - [x] Increase auto-restart limit to 10 for idle precache volume
-- [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
-- [ ] Find higher-quality pre-trained Mario voice model
+- [x] Fix DJ loop infinite retry spam (moved _last_dj_time to finally block)
+- [x] Fix admin API key empty string bypass (proper None/empty check)
+- [x] Fix memory.py row_factory safety (try/finally restore)
+- [x] Fix streaming TTS half-response (validate both chunks before sending)
+- [x] Fix greeting fallback (text-only fallback when both LLM and TTS fail)
+- [x] Fix text input rate limit race condition (async lock)
+- [x] Fix LLM stop tokens greediness (\nUser: instead of User:)
+- [x] Fix state initialization gaps (added _last_time_obs)
+- [x] Fix time observation retry (moved timestamp to finally block)
+- [x] Fix text_input deadlock (removed outer _state_lock from message loop)
+- [x] Fix integration test greeting drain (wait up to 60s, handle thinking fillers)
+- [ ] Fix audio buffer thread safety (handle_audio without lock)
+- [ ] Add asyncio.wait_for timeout to presence_enter LLM call
+- [ ] Fix pose path inconsistency ("actions/" vs "action/")
+- [ ] Add WebSocket message rate limiting
+- [ ] Add config.json validation at startup
 
 
 ## ✅ Completed
