@@ -768,7 +768,32 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 ctx.append(msg)
 
         await send_thinking(ws, subtitle=text)
-        response_text = await llm.generate_response(ctx, text)
+        # Play "thinking" audio AND run LLM concurrently
+        # These short phrases should be cache hits (instant)
+        thinking_phrases = ["Let me think about that.", "Hmm, let me think!", "Okie dokie, one moment!"]
+        thinking_text = random.choice(thinking_phrases)
+
+        async def _send_thinking_audio():
+            try:
+                thinking_audio = await loop.run_in_executor(None, lambda: tts.synthesize(thinking_text))
+                if thinking_audio and len(thinking_audio) > 44:
+                    await ws.send_json({
+                        "type": "mario_response",
+                        "text": thinking_text,
+                        "has_audio": True,
+                        "emotion": emotion_system.current,
+                        "pose_hint": "thinking/thinking",
+                        "is_thinking_filler": True,
+                    })
+                    await ws.send_bytes(thinking_audio)
+            except Exception as e:
+                logger.warning(f"Thinking audio failed (non-fatal): {e}")
+
+        # Run thinking TTS + LLM concurrently
+        _, response_text = await asyncio.gather(
+            _send_thinking_audio(),
+            llm.generate_response(ctx, text),
+        )
 
     response_text = filter_response(response_text)
     analyzed = analyze_text(response_text)

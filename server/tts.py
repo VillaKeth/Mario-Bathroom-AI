@@ -94,7 +94,7 @@ _sovits_process = None
 _sovits_available = False
 _sovits_lock = threading.Lock()
 _sovits_restart_count = 0
-_sovits_max_restarts = 3  # Auto-restart up to 3 times before giving up
+_sovits_max_restarts = 10  # Auto-restart up to 10 times before giving up
 
 # Background regeneration queue (replaces thread-per-request)
 import queue as _queue_mod
@@ -175,7 +175,7 @@ def _load_disk_cache():
         if not os.path.exists(key_file):
             continue
         try:
-            with open(key_file, "r") as f:
+            with open(key_file, "r", encoding="utf-8") as f:
                 cache_key = f.read().strip()
             with open(os.path.join(_DISK_CACHE_DIR, fname), "rb") as f:
                 wav_bytes = f.read()
@@ -198,7 +198,7 @@ def _save_to_disk_cache(cache_key: str, wav_bytes: bytes):
         key_path = os.path.join(_DISK_CACHE_DIR, f"{key_hash}.key")
         with open(wav_path, "wb") as f:
             f.write(wav_bytes)
-        with open(key_path, "w") as f:
+        with open(key_path, "w", encoding="utf-8") as f:
             f.write(cache_key)
     except Exception as e:
         if DEBUG_TTS:
@@ -268,6 +268,9 @@ CACHED_PHRASES = [
     "Thank you so much!",
     "I'm-a ready!",
     "One more time!",
+    # Thinking filler phrases (played while LLM generates response)
+    "Hmm, let me think!",
+    "Okie dokie, one moment!",
 ]
 
 
@@ -465,6 +468,12 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
     import json as _json
     global _sovits_process, _sovits_available, _sovits_restart_count
 
+    # Check if subprocess is alive before trying
+    if _sovits_process is not None and _sovits_process.poll() is not None:
+        logger.warning(f"[DEBUG_TTS] sovits: subprocess exited (code={_sovits_process.poll()}), marking dead")
+        _sovits_process = None
+        _sovits_available = False
+
     if not _sovits_available or _sovits_process is None:
         # Try auto-restart if we haven't exceeded limit
         if _sovits_restart_count < _sovits_max_restarts:
@@ -478,6 +487,9 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
 
     with _sovits_lock:
         try:
+            # Double-check process is still alive inside the lock
+            if _sovits_process.poll() is not None:
+                raise RuntimeError("GPT-SoVITS subprocess died before request")
             req = _json.dumps({"text": text, "speed": speed}) + "\n"
             _sovits_process.stdin.write(req)
             _sovits_process.stdin.flush()
@@ -500,9 +512,15 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
             _sovits_restart_count = 0
             return wav_bytes
         except Exception as e:
-            if "Broken pipe" in str(e) or "BrokenPipeError" in str(type(e).__name__):
+            # Mark subprocess as dead on any communication error — will auto-restart next call
+            err_str = str(e)
+            err_type = type(e).__name__
+            if ("Broken pipe" in err_str or "BrokenPipeError" in err_type
+                    or "Invalid argument" in err_str or "empty response" in err_str
+                    or "OSError" in err_type or "IOError" in err_type):
                 _sovits_available = False
-                logger.error("[DEBUG_TTS] sovits: subprocess crashed, will auto-restart on next call")
+                _sovits_process = None
+                logger.error(f"[DEBUG_TTS] sovits: subprocess failed ({err_type}: {err_str}), will auto-restart on next call")
             raise
 
 
@@ -732,6 +750,70 @@ def precache_phrases():
         if queued > 0:
             logger.info(f"[DEBUG_TTS] precache: queued {queued} phrases for bg GPT-SoVITS upgrade")
 
+    # Phase 3: Background idle phrase caching (runs slowly after main precache)
+    _start_idle_precache()
+
+
+def _start_idle_precache():
+    """Pre-cache idle behavior phrases in background so idle TTS is instant."""
+    def _idle_cache_worker():
+        try:
+            from idle_behavior import IDLE_MUMBLES, DJ_ANNOUNCEMENTS
+            all_idle = list(IDLE_MUMBLES) + list(DJ_ANNOUNCEMENTS)
+        except ImportError:
+            logger.warning("[DEBUG_TTS] idle_precache: idle_behavior module not found")
+            return
+
+        # Wait a bit before starting (let user get first response without contention)
+        time.sleep(10)
+
+        cached_count = 0
+        skipped = 0
+        for i, phrase in enumerate(all_idle):
+            # Yield to user TTS requests
+            if _user_tts_waiting.is_set():
+                while _user_tts_waiting.is_set():
+                    time.sleep(0.3)
+
+            # Check if already cached
+            from pose_analyzer import analyze_text
+            analyzed = analyze_text(phrase)
+            tts_text = analyzed.get("tts_text", phrase)
+            if not tts_text or len(tts_text) <= 5:
+                skipped += 1
+                continue
+
+            _rate = "+0%"
+            _pitch = "+0Hz"
+            cache_key = f"{EDGE_VOICE}:{tts_text.strip().lower()}:{_rate}:{_pitch}"
+            with _cache_lock:
+                if cache_key in _audio_cache:
+                    skipped += 1
+                    continue
+
+            try:
+                synthesize(tts_text)
+                cached_count += 1
+                consecutive_fails = 0
+                if cached_count % 10 == 0:
+                    logger.info(f"[DEBUG_TTS] idle_precache: {cached_count} generated, {skipped} skipped ({i+1}/{len(all_idle)})")
+            except Exception as e:
+                consecutive_fails = getattr(_idle_cache_worker, '_fails', 0) + 1
+                _idle_cache_worker._fails = consecutive_fails
+                logger.warning(f"[DEBUG_TTS] idle_precache: failed '{tts_text[:30]}...': {e}")
+                # If too many consecutive failures, wait longer for subprocess to recover
+                if consecutive_fails >= 3:
+                    logger.warning(f"[DEBUG_TTS] idle_precache: {consecutive_fails} consecutive failures, waiting 30s...")
+                    time.sleep(30)
+
+            # Pause between phrases to avoid GPU monopoly
+            time.sleep(2.0)
+
+        logger.info(f"[DEBUG_TTS] idle_precache: DONE — {cached_count} generated, {skipped} already cached/skipped")
+
+    t = threading.Thread(target=_idle_cache_worker, daemon=True, name="idle-precache")
+    t.start()
+
 
 def synthesize_user(text: str, rate: str = None, pitch: str = None) -> bytes:
     """User-priority TTS synthesis. Pauses precache while this runs."""
@@ -788,6 +870,8 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
                     if len(_cache_order) > MAX_CACHE_SIZE:
                         evict_key = _cache_order.pop(0)
                         _audio_cache.pop(evict_key, None)
+                # Persist to disk for instant startup next time
+                _save_to_disk_cache(cache_key, result)
             return result
         except Exception as e:
             logger.warning(f"[DEBUG_TTS] synthesize: GPT-SoVITS failed ({e}), falling back to Edge+RVC")

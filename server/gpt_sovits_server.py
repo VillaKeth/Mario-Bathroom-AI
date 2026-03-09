@@ -78,7 +78,22 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         prompt_text = "It's a me Mario"
 
     # Clean text for better GPT-SoVITS synthesis
+    # Remove Mario-style hyphenation that confuses the model
     clean_text = text.replace("-a ", "a ").replace("-A ", "a ")
+    # Remove special characters that cause garbled output
+    import re as _re
+    clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
+    clean_text = _re.sub(r'[\U0001F600-\U0001F64F]', '', clean_text)  # Emoticons
+    clean_text = _re.sub(r'[\U0001F300-\U0001F5FF]', '', clean_text)  # Misc symbols
+    clean_text = _re.sub(r'[\U0001F680-\U0001F6FF]', '', clean_text)  # Transport/map
+    clean_text = _re.sub(r'[\U0001F900-\U0001F9FF]', '', clean_text)  # Supplemental symbols
+    clean_text = clean_text.replace('*', '')  # Remove asterisks (action markers)
+    clean_text = clean_text.replace('~', '')  # Remove tildes
+    clean_text = clean_text.replace('…', '...')  # Normalize ellipsis
+    clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
+    clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
+    clean_text = clean_text.replace('—', ', ').replace('–', ', ')  # Em/en dashes → comma
+    clean_text = _re.sub(r'\s+', ' ', clean_text).strip()  # Collapse whitespace
     
     req = {
         "text": clean_text,
@@ -124,7 +139,10 @@ def main():
 
     print(json.dumps({"status": "ready", "msg": "GPT-SoVITS pipeline ready"}), flush=True)
 
-    for line in sys.stdin:
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break  # stdin closed
         line = line.strip()
         if not line:
             continue
@@ -166,9 +184,12 @@ def main():
             }), flush=True)
         except Exception as e:
             elapsed = time.time() - t0
+            err_msg = f"{type(e).__name__}: {e}"
+            # Log to stderr for debugging
+            print(f"[sovits-subprocess] ERROR: {err_msg}", file=sys.stderr, flush=True)
             print(json.dumps({
                 "status": "error",
-                "error": f"{type(e).__name__}: {e}",
+                "error": err_msg,
                 "elapsed": round(elapsed, 3),
             }), flush=True)
 
