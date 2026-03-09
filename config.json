@@ -9,7 +9,7 @@
         "tts_rate": "+20%",
         "tts_pitch": "+0Hz",
         "tts_fast_mode": true,
-        "tts_mode": "sovits",
+        "tts_mode": "hybrid",
         "speaker_similarity_threshold": 0.75,
         "debug_server": true,
         "debug_tts": true,

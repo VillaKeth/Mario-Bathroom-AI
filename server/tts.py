@@ -93,30 +93,31 @@ RVC_F0_METHOD = "rmvpe"  # Deep learning pitch tracking — best quality
 _sovits_process = None
 _sovits_available = False
 _sovits_lock = threading.Lock()
+_sovits_bg_thread = None  # Background thread for async GPT-SoVITS regeneration
 
 # GPT-SoVITS venv python path
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
 SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
 
 # --- Speed mode ---
-# "sovits" = GPT-SoVITS (best quality, ~3-10s, no RVC needed)
-# "edge" = Edge TTS + RVC (fast, ~1.5s)
-# "xtts" = XTTS v2 + RVC (quality base, ~10-30s)
-# Can be overridden via config.json: {"server": {"tts_mode": "sovits"}}
+# "hybrid" = Edge+RVC for instant response, GPT-SoVITS regenerates in background (RECOMMENDED)
+# "sovits" = GPT-SoVITS only (best quality, ~3-10s latency)
+# "edge" = Edge TTS + RVC only (fast, ~1.5s)
+# Can be overridden via config.json: {"server": {"tts_mode": "hybrid"}}
 _tts_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 _tts_config_fast = True
-_tts_mode = "edge"
+_tts_mode = "hybrid"
 if os.path.exists(_tts_config_path):
     try:
         import json as _json
         with open(_tts_config_path) as _f:
             _tts_cfg = _json.load(_f).get("server", {})
             _tts_config_fast = _tts_cfg.get("tts_fast_mode", True)
-            _tts_mode = _tts_cfg.get("tts_mode", "edge")
+            _tts_mode = _tts_cfg.get("tts_mode", "hybrid")
     except Exception:
         pass
 FAST_MODE = _tts_config_fast
-TTS_MODE = _tts_mode  # "sovits", "edge", or "xtts"
+TTS_MODE = _tts_mode  # "hybrid", "sovits", "edge", or "xtts"
 
 # --- XTTS inference params (defaults — natural sounding) ---
 XTTS_TEMPERATURE = 0.65
@@ -291,9 +292,9 @@ def init_tts():
         logger.info("[DEBUG_TTS] init_tts: RVC model not found, skipping voice conversion")
         _rvc_available = False
 
-    # --- Start GPT-SoVITS subprocess (if mode is "sovits") ---
-    if TTS_MODE == "sovits":
-        logger.info("[DEBUG_TTS] init_tts: TTS_MODE=sovits, launching GPT-SoVITS subprocess...")
+    # --- Start GPT-SoVITS subprocess (if mode is "sovits" or "hybrid") ---
+    if TTS_MODE in ("sovits", "hybrid"):
+        logger.info(f"[DEBUG_TTS] init_tts: TTS_MODE={TTS_MODE}, launching GPT-SoVITS subprocess...")
         _start_sovits_subprocess()
 
     if DEBUG_TTS:
@@ -389,6 +390,21 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
             raise
 
 
+def _sovits_bg_regenerate(text: str, cache_key: str):
+    """Background thread: regenerate audio with GPT-SoVITS and replace cache entry."""
+    try:
+        wav_bytes = _sovits_synthesize(text)
+        with _cache_lock:
+            _audio_cache[cache_key] = wav_bytes
+            if cache_key not in _cache_order:
+                _cache_order.append(cache_key)
+        if DEBUG_TTS:
+            logger.info(f"[DEBUG_TTS] hybrid: background GPT-SoVITS replaced cache for '{text[:40]}...'")
+    except Exception as e:
+        if DEBUG_TTS:
+            logger.warning(f"[DEBUG_TTS] hybrid: background GPT-SoVITS failed for '{text[:40]}': {e}")
+
+
 def precache_phrases():
     """Pre-cache common Mario phrases at startup for instant playback.
     
@@ -456,8 +472,8 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
             total = time.time() - start
             if DEBUG_TTS:
                 logger.info(f"[DEBUG_TTS] synthesize: END (GPT-SoVITS) total={total:.1f}s")
-            # Cache short phrases
-            if len(text) < 60:
+            # Cache all phrases (GPT-SoVITS is slower, cache more aggressively)
+            if len(text) < 200:
                 with _cache_lock:
                     _audio_cache[cache_key] = result
                     if cache_key not in _cache_order:
@@ -498,7 +514,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
         logger.info(f"[DEBUG_TTS] synthesize: END total={total:.1f}s (base={base_time:.1f}s + rvc={total - base_time:.1f}s)")
 
     # Cache short phrases for future instant playback (LRU eviction)
-    if len(text) < 60:
+    if len(text) < 200:
         with _cache_lock:
             _audio_cache[cache_key] = result
             if cache_key not in _cache_order:
@@ -506,6 +522,17 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
             if len(_cache_order) > MAX_CACHE_SIZE:
                 evict_key = _cache_order.pop(0)
                 _audio_cache.pop(evict_key, None)
+
+    # Hybrid mode: kick off background GPT-SoVITS regeneration to upgrade quality
+    if TTS_MODE == "hybrid" and _sovits_available and len(text) < 200:
+        bg = threading.Thread(
+            target=_sovits_bg_regenerate,
+            args=(text, cache_key),
+            daemon=True,
+        )
+        bg.start()
+        if DEBUG_TTS:
+            logger.info(f"[DEBUG_TTS] hybrid: background GPT-SoVITS regeneration started for '{text[:40]}...'")
 
     return result
 
