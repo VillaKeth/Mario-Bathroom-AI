@@ -1066,6 +1066,12 @@ async def handle_event(ws: WebSocket, event: dict):
                         logger.error(f"[GREETING] Send failed after retry: {send_err}")
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_enter greeting failed: {e}")
+            # Fallback: send text-only greeting so user isn't ignored
+            try:
+                await send_response(ws, "Hey! Welcome to Mario's-a bathroom! Wahoo!", None,
+                                    sound="greeting", pose_hint="greeting/wave_high")
+            except Exception:
+                pass
         finally:
             state_current["_greeting_in_progress"] = False
             state_current["presence_phase"] = "CONVERSING"

@@ -359,7 +359,7 @@ class MarioDisplay:
         self._emotion = emotion
         self._emotion_timer = 0
         if emotion != prev:
-            self.particles = []  # Clear old particles on emotion change
+            self._particles = []  # Clear old particles on emotion change
             self._spawn_emotion_particles(emotion)
 
     def set_pose_hint(self, pose_hint: str):
