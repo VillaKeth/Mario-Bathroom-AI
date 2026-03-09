@@ -1,5 +1,14 @@
 # Mario AI — Task Tracking
 
+## Voice Quality Improvement
+- [x] Downloaded Charles Martinet RVC models (Switch Era + TITAN 500ep)
+- [x] Built voice A/B testing tool (15 configs x 3 phrases)
+- [x] Tested female base voices for less pitch shift
+- [x] Applied best config: Switch Era, pitch +12st, rmvpe, rate +35%
+- [ ] Explore GPT-SoVITS or better voice cloning for more authentic Mario
+- [ ] Find higher-quality pre-trained Mario voice model
+
+
 ## ✅ Completed
 - [x] Server project setup (FastAPI WebSocket)
 - [x] Client project setup (Pygame display)
