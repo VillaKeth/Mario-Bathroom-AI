@@ -16,6 +16,8 @@ gpt_sovits_repo/
 # Model files (large binaries)
 mario_models_new/GPT_SoVITS_Mario/
 mario_models_new/*.zip
+Mario_Super_Show_v2/
+server/data/rvc_model/
 
 # Generated audio / test output
 voice_tests/
@@ -30,6 +32,10 @@ server/voice_quality_test.py
 # Database runtime files
 *.db-shm
 *.db-wal
+
+# Test/experiment results
+server/data/ralph_refs/
+server/data/ralph_results/
 
 # IDE / OS
 .claude/
