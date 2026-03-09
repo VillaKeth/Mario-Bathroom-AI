@@ -9,6 +9,15 @@
 - [x] Set up GPT-SoVITS V2 with official repo (Mario pre-trained model)
 - [x] Built GPT-SoVITS subprocess server for TTS integration
 - [x] Added "sovits" TTS mode to config.json and tts.py
+- [x] Hybrid TTS mode: Edge+RVC instant response + GPT-SoVITS background upgrade
+- [x] Fixed GPT-SoVITS garbled audio (cut0 no-split + hyphen cleaning)
+- [x] Queue-based background regeneration (replaces thread-per-request)
+- [x] GPT-SoVITS subprocess auto-restart on crash (up to 3 retries)
+- [x] GPT-SoVITS warmup at startup (eliminates first-call slowdown)
+- [x] Precache top 20 phrases with GPT-SoVITS quality
+- [x] Disk cache persistence (survives server restarts)
+- [x] Fixed GPU contention: on-demand GPT-SoVITS subprocess lifecycle (2.2s vs 12s)
+- [x] GPT-SoVITS stdout isolation (prevents JSON protocol contamination)
 - [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
 - [ ] Find higher-quality pre-trained Mario voice model
 
