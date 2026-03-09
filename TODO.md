@@ -615,3 +615,10 @@
 - [x] Verified tts.py bg worker queue management is correct (task_done counts, Full handling)
 - [x] Verified memory.py thread-local connections bounded for single-user scenario
 - [x] Verified llm.py response length capped at 80 chars + num_predict:35
+- [x] Fixed audio_capture.py stream resource leak on start() failure
+- [x] Clear audio_buffer and _last_buffer_time on new WebSocket connection
+- [x] Cap registered names at 50 chars in command_handlers.py
+- [x] Verified asyncio race conditions are false positives (single-threaded cooperative)
+- [x] Verified shared state_current is by-design for single-user bathroom bot
+- [x] Verified party_stats uses parameterized SQL queries (no injection risk)
+- [x] Verified idle_behavior bathroom humor is intentional for bathroom bot
