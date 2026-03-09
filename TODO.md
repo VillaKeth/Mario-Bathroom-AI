@@ -609,3 +609,9 @@
 - [x] Added plumber-specific humor triggers to command_handlers
 - [x] Added archive_old_conversations() to memory.py for DB cleanup
 - [x] Added _validate_config() startup config validation to main.py
+- [x] Fixed particle attribute mismatch (self.particles → self._particles) memory leak
+- [x] Added presence_enter greeting fallback for LLM/TTS failures
+- [x] Added Unicode normalization (NFKC) to safety_filter.py to block homoglyph bypass
+- [x] Verified tts.py bg worker queue management is correct (task_done counts, Full handling)
+- [x] Verified memory.py thread-local connections bounded for single-user scenario
+- [x] Verified llm.py response length capped at 80 chars + num_predict:35

@@ -3,6 +3,7 @@
 import re
 import logging
 import threading
+import unicodedata
 
 DEBUG_SAFETY = True
 logger = logging.getLogger(__name__)
@@ -70,9 +71,20 @@ _MAX_REDIRECT_HISTORY = 4
 _redirect_lock = threading.Lock()
 
 
+def _normalize_unicode(text: str) -> str:
+    """Normalize Unicode to defeat homoglyph/fullwidth/combining-mark bypass tricks."""
+    text = unicodedata.normalize('NFKC', text)
+    # Strip zero-width and formatting control chars (category Cf/Cc except newline/tab)
+    text = ''.join(c for c in text if unicodedata.category(c) not in ('Cf',) and c not in ('\u200b', '\u200c', '\u200d', '\ufeff'))
+    return text
+
+
 def filter_response(text: str) -> str:
     """Filter Mario's response for inappropriate content and LLM artifacts."""
     original = text
+
+    # Normalize Unicode to catch homoglyphs and fullwidth chars
+    text = _normalize_unicode(text)
 
     # Strip common LLM artifacts
     text = text.strip()
@@ -113,7 +125,8 @@ def check_input(text: str) -> dict:
     if not text:
         return {"safe": True, "redirect": None}
 
-    lower = text.lower()
+    # Normalize Unicode to catch homoglyphs and fullwidth chars
+    lower = _normalize_unicode(text).lower()
 
     # Check for harmful content
     for pattern in BLOCKED_RE:
