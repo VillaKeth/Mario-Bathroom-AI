@@ -13,13 +13,18 @@ Handles all heavy AI processing:
 """
 
 import asyncio
+import base64
 import json
 import logging
 import os
 import random
+import re
 import time
+import threading
+from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 import stt
 import tts
@@ -27,13 +32,13 @@ import llm
 import speaker_id
 import memory
 import mario_prompt
-from emotions import EmotionSystem
+from emotions import EmotionSystem, Emotion
 from party_stats import PartyStats
 from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior
 from pose_analyzer import analyze_text
+import command_handlers
 
-DEBUG_SERVER = True
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
 
@@ -48,12 +53,33 @@ else:
     logger.warning(f"Config not found at {CONFIG_PATH} — using defaults")
 server_config = config.get("server", {})
 
+DEBUG_SERVER = os.environ.get("DEBUG_MODE", "").lower() == "true" or server_config.get("debug_server", True)
+
+# Game configuration from config.json (with defaults)
+GAME_CONFIG = {
+    "simon_max_rounds": server_config.get("game_max_rounds_simon", 5),
+    "truth_dare_max_rounds": server_config.get("game_max_rounds_truth_dare", 5),
+    "twenty_q_max_questions": server_config.get("game_max_questions_20q", 10),
+    "riddle_max_attempts": server_config.get("game_max_attempts_riddle", 5),
+    "word_chain_max_rounds": server_config.get("game_max_rounds_word_chain", 10),
+    "rapid_fire_max_rounds": server_config.get("game_max_rounds_rapid_fire", 15),
+    "conversation_history_limit": server_config.get("conversation_history_limit", 28),
+    "command_cooldown": server_config.get("command_cooldown_seconds", 1.0),
+    "text_input_cooldown": server_config.get("text_input_cooldown_seconds", 2.0),
+    "llm_timeout": server_config.get("llm_timeout_seconds", 30),
+    "admin_api_key": server_config.get("admin_api_key", ""),
+}
+
 # Validate critical config values
 _required_keys = {"llm_model": str, "tts_rate": str, "tts_voice": str}
 for key, expected_type in _required_keys.items():
     val = server_config.get(key)
     if val is not None and not isinstance(val, expected_type):
         logger.warning(f"Config '{key}' should be {expected_type.__name__}, got {type(val).__name__}")
+if not server_config.get("llm_model"):
+    logger.warning("Config 'llm_model' not set — using default 'qwen2:1.5b'")
+if not server_config.get("tts_voice"):
+    logger.warning("Config 'tts_voice' not set — using default Edge TTS voice")
 
 # Systems
 emotion_system = EmotionSystem()
@@ -69,16 +95,28 @@ state_current = {
     "speaker_id": None,
     "is_speaking": False,
     "presence": False,
+    "presence_phase": "IDLE",  # State machine: IDLE → GREETING → CONVERSING → FAREWELL → IDLE
     "audio_buffer": bytearray(),
     "conversation_history": [],
     "current_visit_id": None,
     "enter_time": None,
     "_last_audio_chunk": None,
     "_user_request_active": False,  # Prevents idle TTS during user requests
+    "_greeting_in_progress": False,  # Prevents presence_exit from clearing state mid-greeting
+    "_last_buffer_time": 0.0,  # Timestamp of last audio buffer append
+    "_last_text_input_time": 0.0,  # Rate limit text_input handler
+    "_last_command_time": 0.0,  # Rate limit special commands (1s cooldown)
+    "_active_game": None,  # Active game mode (simon_says, twenty_questions, truth_or_dare)
+    "_game_state": {},  # Game-specific state data
+    "_response_times": [],  # Track last 50 response times for metrics
+    "_pending_announcement": None,  # Admin-queued announcement text
+    "_detected_mood": None,  # Sentiment detection: drunk/sad/angry/None
+    "_personality_mode": None,  # Personality mode: scary/dj/therapist/pirate/None
+    "_last_dj_time": 0.0,  # Timestamp of last DJ announcement
+    "_last_timing": {},  # Last response time breakdown (stt/llm/tts/total)
 }
 
 # Dedicated single-thread executor for TTS (prevents GPU contention)
-from concurrent.futures import ThreadPoolExecutor
 _tts_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
 
 
@@ -114,13 +152,16 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠ Ollama model '{llm.MODEL_NAME}' not found! Run: ollama pull {llm.MODEL_NAME}")
 
     # Pre-cache common phrases in background (truly non-blocking)
-    import threading
     threading.Thread(target=tts.precache_phrases, daemon=True).start()
     logger.info("Pre-caching common Mario phrases in background...")
 
     logger.info("=== Mario AI Server Ready! Let's-a go! ===")
     yield
     logger.info("=== Mario AI Server Shutting Down ===")
+    _tts_executor.shutdown(wait=False)
+    if tts._edge_executor:
+        tts._edge_executor.shutdown(wait=False)
+    logger.info("=== Server shutdown complete ===")
 
 
 app = FastAPI(title="Mario AI Server", lifespan=lifespan)
@@ -129,6 +170,10 @@ app = FastAPI(title="Mario AI Server", lifespan=lifespan)
 @app.get("/health")
 async def health():
     stats = party_stats.get_stats()
+    total_cache_requests = tts._cache_hits + tts._cache_misses
+    cache_hit_rate = (tts._cache_hits / max(1, total_cache_requests)) * 100
+    resp_times = state_current["_response_times"]
+    avg_response = sum(resp_times) / max(1, len(resp_times)) if resp_times else 0
     return {
         "status": "ok",
         "message": "It's-a me, Mario!",
@@ -139,10 +184,186 @@ async def health():
         "party_duration": stats["party_duration"],
         "current_hour": stats["current_hour"],
         "tts_cache_size": len(tts._audio_cache),
+        "tts_cache_hits": tts._cache_hits,
+        "tts_cache_misses": tts._cache_misses,
+        "tts_cache_hit_rate": f"{cache_hit_rate:.0f}%",
+        "avg_response_time": f"{avg_response:.1f}s",
+        "total_responses": len(resp_times),
         "conversation_length": len(state_current["conversation_history"]),
         "user_active": state_current["_user_request_active"],
+        "active_game": state_current["_active_game"],
         "llm_model": llm.MODEL_NAME,
+        "last_timing": state_current.get("_last_timing", {}),
     }
+
+
+@app.post("/config/reload")
+async def reload_config():
+    """Hot-reload config.json without restarting server."""
+    global server_config
+    try:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+        with open(config_path) as f:
+            full_config = json.load(f)
+        server_config = full_config.get("server", {})
+        GAME_CONFIG.update({
+            "simon_max_rounds": server_config.get("game_max_rounds_simon", 5),
+            "truth_dare_max_rounds": server_config.get("game_max_rounds_truth_dare", 5),
+            "twenty_q_max_questions": server_config.get("game_max_questions_20q", 10),
+            "riddle_max_attempts": server_config.get("game_max_attempts_riddle", 5),
+            "word_chain_max_rounds": server_config.get("game_max_rounds_word_chain", 10),
+            "rapid_fire_max_rounds": server_config.get("game_max_rounds_rapid_fire", 15),
+            "conversation_history_limit": server_config.get("conversation_history_limit", 28),
+            "command_cooldown": server_config.get("command_cooldown_seconds", 1.0),
+            "admin_api_key": server_config.get("admin_api_key", ""),
+        })
+        logger.info("Config reloaded successfully")
+        return {"status": "ok", "message": "Config reloaded!"}
+    except Exception as e:
+        logger.error(f"Config reload failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+# --- Sentiment Detection ---
+_DRUNK_WORDS = {"drunk", "wasted", "hammered", "smashed", "tipsy", "buzzed", "sloshed", "trashed", "plastered", "lit", "faded"}
+_SAD_WORDS = {"sad", "depressed", "lonely", "crying", "upset", "heartbroken", "miserable", "unhappy", "down", "broken", "hurting"}
+_ANGRY_WORDS = {"angry", "mad", "furious", "pissed", "annoyed", "frustrated", "hate", "stupid", "idiot", "sucks"}
+
+
+def detect_sentiment(text: str) -> str | None:
+    """Detect if user is drunk/sad/angry from their text. Returns mood or None."""
+    words = set(text.lower().split())
+    # Check for slurred patterns (repeated chars, all caps yelling)
+    slurred = bool(re.search(r'(.)\1{3,}', text)) or (len(text) > 10 and text == text.upper())
+    if words & _DRUNK_WORDS or slurred:
+        return "drunk"
+    if words & _SAD_WORDS:
+        return "sad"
+    if words & _ANGRY_WORDS:
+        return "angry"
+    return None
+
+
+# --- Holiday Detection ---
+def detect_holiday() -> str | None:
+    """Return the current holiday/special day name, or None."""
+    now = datetime.now()
+    m, d = now.month, now.day
+    holidays = {
+        (1, 1): "New Year's Day",
+        (2, 14): "Valentine's Day",
+        (3, 10): "Mario Day (MAR10)",
+        (3, 17): "St. Patrick's Day",
+        (4, 1): "April Fools' Day",
+        (7, 4): "Fourth of July",
+        (10, 31): "Halloween",
+        (12, 25): "Christmas Day",
+        (12, 31): "New Year's Eve",
+    }
+    return holidays.get((m, d))
+
+
+# --- Scheduled Events ---
+_scheduled_messages = {
+    "midnight": {"hour": 0, "text": "Mama mia, it's MIDNIGHT! The witching hour! Are there-a any Boos around?!"},
+    "one_am": {"hour": 1, "text": "It's-a 1 AM! The party warriors are still going! Wahoo!"},
+    "two_am": {"hour": 2, "text": "2 AM already?! Even Bowser is asleep by now!"},
+    "half_hour": {"hour": None, "minute": 30, "text": None},  # Generic half-hour marker
+}
+_last_scheduled_hour = -1
+
+
+def check_scheduled_events() -> str | None:
+    """Check if any scheduled event should trigger now."""
+    global _last_scheduled_hour
+    now = datetime.now()
+    hour = now.hour
+    if hour == _last_scheduled_hour:
+        return None
+    _last_scheduled_hour = hour
+    for key, ev in _scheduled_messages.items():
+        if ev.get("hour") == hour and ev.get("text"):
+            return ev["text"]
+    # Holiday announcement (once per hour at most)
+    holiday = detect_holiday()
+    if holiday and hour in (12, 18, 21):  # Announce at noon, 6pm, 9pm
+        return f"Hey everyone! Happy {holiday}! Let's-a celebrate! Wahoo!"
+    return None
+
+
+# --- Stats Endpoint ---
+@app.get("/stats")
+async def stats_endpoint():
+    """Analytics endpoint with detailed party stats."""
+    stats = party_stats.get_stats()
+    resp_times = state_current["_response_times"]
+    avg_response = sum(resp_times) / max(1, len(resp_times)) if resp_times else 0
+    trending = memory.get_trending_topics(limit=10)
+    return {
+        "party": {
+            "total_visits": stats["total_visits"],
+            "unique_visitors": stats["unique_visitors"],
+            "party_duration": stats["party_duration"],
+            "current_hour": stats["current_hour"],
+            "busiest_hour": stats.get("busiest_hour"),
+            "avg_visit_duration": stats.get("avg_visit_duration"),
+            "longest_visitor": stats.get("longest_visitor"),
+        },
+        "performance": {
+            "avg_response_time": f"{avg_response:.1f}s",
+            "total_responses": len(resp_times),
+            "tts_cache_size": len(tts._audio_cache),
+            "tts_cache_hits": tts._cache_hits,
+            "tts_cache_misses": tts._cache_misses,
+        },
+        "conversation": {
+            "active_game": state_current["_active_game"],
+            "conversation_length": len(state_current["conversation_history"]),
+            "presence_phase": state_current["presence_phase"],
+            "current_speaker": state_current["speaker_name"],
+            "emotion": emotion_system.current,
+        },
+        "trending_topics": trending,
+        "holiday": detect_holiday(),
+    }
+
+
+# --- Admin Endpoints ---
+@app.post("/admin/reset")
+async def admin_reset(request_body: dict = {}):
+    """Admin: Reset party stats. Requires admin_api_key if configured."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    party_stats.reset_party()
+    return {"status": "ok", "message": "Party reset!"}
+
+
+@app.post("/admin/set_emotion")
+async def admin_set_emotion(request_body: dict = {}):
+    """Admin: Set Mario's current emotion."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    new_emotion = request_body.get("emotion", "").lower()
+    valid_emotions = {v for k, v in vars(Emotion).items() if not k.startswith("_")}
+    if new_emotion in valid_emotions:
+        emotion_system.current = new_emotion
+        return {"status": "ok", "emotion": emotion_system.current}
+    return {"status": "error", "message": f"Invalid emotion: {new_emotion}. Valid: {', '.join(sorted(valid_emotions))}"}
+
+
+@app.post("/admin/announce")
+async def admin_announce(request_body: dict = {}):
+    """Admin: Queue a custom announcement for Mario to say."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    text = request_body.get("text", "")
+    if not text or len(text) > 200:
+        return {"status": "error", "message": "Text required (max 200 chars)"}
+    state_current["_pending_announcement"] = text
+    return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
 @app.websocket("/ws")
@@ -150,17 +371,32 @@ async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     logger.info("Client connected!")
 
-    # Send initial greeting
+    # Reset per-connection state (games, conversation, etc.)
+    state_current["_active_game"] = None
+    state_current["_game_state"] = {}
+    state_current["conversation_history"] = []
+    state_current["_detected_mood"] = None
+    state_current["presence_phase"] = "IDLE"
+
+    # Send initial greeting (with 30s timeout to prevent blocking)
     loop = asyncio.get_event_loop()
     try:
         greeting_ctx = mario_prompt.build_context(event="startup")
         greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-        greeting_text = await llm.generate_response(greeting_ctx)
+        greeting_text = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
         greeting_text = filter_response(greeting_text)
         analyzed = analyze_text(greeting_text)
         greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
         await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
                             pose_hint=analyzed["pose_hint"])
+    except asyncio.TimeoutError:
+        logger.error("Startup greeting timed out after 30s")
+        try:
+            fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
+            await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
+                                pose_hint="positive/excited_jump")
+        except Exception:
+            pass
     except Exception as e:
         logger.error(f"Startup greeting failed: {e}")
         try:
@@ -172,21 +408,31 @@ async def websocket_endpoint(ws: WebSocket):
 
     # Start idle behavior loop
     idle_task = asyncio.create_task(_idle_loop(ws))
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(ws))
+    emotion_decay_task = asyncio.create_task(_emotion_decay_loop())
 
     try:
         while True:
             data = await ws.receive()
 
             if "bytes" in data and data["bytes"]:
+                audio_bytes = data["bytes"]
+                if len(audio_bytes) > 5 * 1024 * 1024:  # 5MB max audio
+                    logger.warning(f"[VALIDATION] Audio too large: {len(audio_bytes)} bytes")
+                    continue
                 try:
                     async with _state_lock:
-                        await handle_audio(ws, data["bytes"])
+                        await handle_audio(ws, audio_bytes)
                 except Exception as e:
                     logger.error(f"handle_audio error: {e}")
             elif "text" in data and data["text"]:
+                text_data = data["text"]
+                if len(text_data) > 64 * 1024:  # 64KB max JSON
+                    logger.warning(f"[VALIDATION] JSON too large: {len(text_data)} bytes")
+                    continue
                 try:
                     async with _state_lock:
-                        await handle_event(ws, json.loads(data["text"]))
+                        await handle_event(ws, json.loads(text_data))
                 except json.JSONDecodeError as e:
                     logger.warning(f"Invalid JSON from client: {e}")
                 except Exception as e:
@@ -201,21 +447,90 @@ async def websocket_endpoint(ws: WebSocket):
             logger.error(f"WebSocket error: {e}")
     finally:
         idle_task.cancel()
+        try:
+            await idle_task
+        except asyncio.CancelledError:
+            pass
+        heartbeat_task.cancel()
+        try:
+            await heartbeat_task
+        except asyncio.CancelledError:
+            pass
+        emotion_decay_task.cancel()
+        try:
+            await emotion_decay_task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _heartbeat_loop(ws: WebSocket):
+    """Send periodic heartbeat pings to detect dead connections."""
+    _missed_pongs = 0
+    while True:
+        await asyncio.sleep(30)
+        try:
+            await ws.send_json({"type": "heartbeat", "server_time": time.time()})
+            _missed_pongs = 0
+        except Exception:
+            _missed_pongs += 1
+            if _missed_pongs >= 3:
+                logger.warning("[HEARTBEAT] 3 consecutive heartbeats failed — connection may be dead")
+                break
+
+
+async def _emotion_decay_loop():
+    """Gradually decay emotion intensity back to neutral when idle."""
+    while True:
+        await asyncio.sleep(300)  # Every 5 minutes
+        if not state_current.get("_user_request_active"):
+            emotion_system.update()  # Triggers natural decay in EmotionSystem
+            if DEBUG_SERVER:
+                logger.info(f"[EMOTION_DECAY] Emotion: {emotion_system.current}, intensity: {emotion_system.intensity:.2f}")
 
 
 async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
     loop = asyncio.get_event_loop()
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(random.uniform(3, 8))
 
         # Skip idle TTS when a user request is being processed (prevents GPU contention)
-        if state_current.get("_user_request_active"):
+        async with _state_lock:
+            user_active = state_current.get("_user_request_active")
+        if user_active:
             continue
 
-        if state_current["presence"]:
-            if state_current["enter_time"]:
-                minutes = (time.time() - state_current["enter_time"]) / 60
+        # Check for admin announcements (priority)
+        async with _state_lock:
+            announcement = state_current.pop("_pending_announcement", None)
+        if announcement:
+            try:
+                analyzed = analyze_text(announcement)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+            except Exception as e:
+                logger.error(f"Announcement failed: {e}")
+            continue
+
+        # Check scheduled time-based events
+        scheduled_msg = check_scheduled_events()
+        if scheduled_msg:
+            try:
+                analyzed = analyze_text(scheduled_msg)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="coin", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+            except Exception as e:
+                logger.error(f"Scheduled event failed: {e}")
+            continue
+
+        async with _state_lock:
+            has_presence = state_current["presence"]
+            enter_time = state_current["enter_time"] if has_presence else None
+        if has_presence:
+            if enter_time:
+                minutes = (time.time() - enter_time) / 60
                 comment = idle_behavior.get_long_stay_comment(minutes)
                 if comment:
                     analyzed = analyze_text(comment)
@@ -225,6 +540,23 @@ async def _idle_loop(ws: WebSocket):
                                             sound="coin", pose_hint=analyzed["pose_hint"])
                     except Exception:
                         pass
+            continue
+
+        # DJ announcements when nobody is around (every 20+ minutes)
+        async with _state_lock:
+            last_dj = state_current.get("_last_dj_time", 0.0)
+        if time.time() - last_dj >= 20 * 60:
+            from idle_behavior import DJ_ANNOUNCEMENTS
+            dj_msg = random.choice(DJ_ANNOUNCEMENTS)
+            try:
+                analyzed = analyze_text(dj_msg)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                async with _state_lock:
+                    state_current["_last_dj_time"] = time.time()
+            except Exception as e:
+                logger.error(f"DJ announcement failed: {e}")
             continue
 
         action = idle_behavior.get_idle_action()
@@ -265,7 +597,7 @@ async def _idle_loop(ws: WebSocket):
                 return
             except Exception as e:
                 logger.error(f"Idle loop error: {e}")
-                break
+                await asyncio.sleep(10)  # Back off on error, don't kill idle permanently
 
 
 async def handle_audio(ws: WebSocket, audio_bytes: bytes):
@@ -274,17 +606,27 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         logger.info(f"[DEBUG_SERVER] handle_audio: received {len(audio_bytes)} bytes")
 
     state_current["audio_buffer"].extend(audio_bytes)
+    state_current["_last_buffer_time"] = time.time()
 
     CHUNK_SIZE = 96000
+    MIN_PROCESS_SIZE = 16000  # Minimum buffer to process on timeout
+    BUFFER_TIMEOUT = 5.0  # Process partial buffer after 5s
     # Prevent unbounded buffer growth (max 500KB)
     MAX_BUFFER = 500000
     if len(state_current["audio_buffer"]) > MAX_BUFFER:
         state_current["audio_buffer"] = state_current["audio_buffer"][-CHUNK_SIZE:]
-    if len(state_current["audio_buffer"]) < CHUNK_SIZE:
-        return
 
-    audio_chunk = bytes(state_current["audio_buffer"][:CHUNK_SIZE])
-    state_current["audio_buffer"] = state_current["audio_buffer"][CHUNK_SIZE:]
+    buf_len = len(state_current["audio_buffer"])
+    buf_age = time.time() - state_current["_last_buffer_time"]
+
+    # Process if we have a full chunk OR if buffer has been sitting for 5s with enough data
+    if buf_len < CHUNK_SIZE:
+        if buf_len < MIN_PROCESS_SIZE or buf_age < BUFFER_TIMEOUT:
+            return
+
+    process_size = min(buf_len, CHUNK_SIZE)
+    audio_chunk = bytes(state_current["audio_buffer"][:process_size])
+    state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
     state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
 
     state_current["_user_request_active"] = True
@@ -294,54 +636,39 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         state_current["_user_request_active"] = False
 
 
-async def _process_audio(ws: WebSocket, audio_chunk: bytes):
-    """Inner audio processing — separated so we can wrap with request flag."""
+async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
+    """Shared response pipeline for both audio and text input.
 
-    # Run STT + speaker ID in parallel
-    _response_start = time.time()
+    Handles: safety check, emotion update, sentiment detection, special commands,
+    LLM context building, response filtering, TTS synthesis with sentence streaming,
+    conversation history, and memory saving.
+    """
+    if start_time is None:
+        start_time = time.time()
     loop = asyncio.get_event_loop()
-    transcript_task = loop.run_in_executor(None, stt.transcribe, audio_chunk)
-    speaker_task = loop.run_in_executor(None, speaker_id.identify_speaker, audio_chunk)
 
-    transcript, speaker_info = await asyncio.gather(transcript_task, speaker_task)
-
-    if not transcript or transcript.strip() == "":
-        if DEBUG_SERVER:
-            logger.info("[DEBUG_SERVER] handle_audio: no speech detected")
-        return
-
-    logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
-
-    # Send "thinking" state to client for latency masking
-    try:
-        await ws.send_json({"type": "state", "thinking": True, "subtitle": transcript})
-    except Exception:
-        pass
-
-    # Safety check on input
-    safety = check_input(transcript)
+    # Safety check
+    safety = check_input(text)
     if not safety["safe"]:
         logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
         redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(safety["redirect"]))
         await send_response(ws, safety["redirect"], redirect_audio)
         return
 
-    # Update emotion based on speech
-    emotion_system.update(event="speech_detected", transcript=transcript)
+    # Emotion + idle reset
+    emotion_system.update(event="speech_detected", transcript=text)
     idle_behavior.reset_timer()
 
-    # Update speaker state
-    if speaker_info and not speaker_info["is_new"]:
-        state_current["speaker_name"] = speaker_info["name"]
-        state_current["speaker_id"] = speaker_info["speaker_id"]
-    elif speaker_info and speaker_info["is_new"] and state_current["speaker_name"] is None:
-        # Unknown speaker — Mario should ask their name
-        pass
+    # Sentiment detection
+    mood = detect_sentiment(text)
+    if mood and mood != state_current.get("_detected_mood"):
+        state_current["_detected_mood"] = mood
+        logger.info(f"[SENTIMENT] Detected mood shift: {mood}")
 
-    # Check for special commands in transcript
-    response_text = await _handle_special_commands(transcript)
+    # Special commands
+    response_text = await _handle_special_commands(text)
     if response_text is None:
-        # Normal conversation
+        # Build LLM context
         memories = []
         if state_current["speaker_id"]:
             memories = memory.get_memories_for_context(state_current["speaker_id"])
@@ -350,234 +677,266 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
             speaker_name=state_current["speaker_name"],
             memories=memories,
         )
-
-        # Add emotion context
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-
-        # Add party stats context
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
 
-        # Add conversation history (12 messages = 6 exchanges for better context)
+        # Mood context
+        detected_mood = state_current.get("_detected_mood")
+        if detected_mood == "drunk":
+            ctx.append({"role": "system", "content": "The person seems tipsy/drunk. Be extra funny, keep them safe, suggest water. Don't judge them — be supportive and playful."})
+        elif detected_mood == "sad":
+            ctx.append({"role": "system", "content": "The person seems sad or upset. Be extra kind and supportive. Cheer them up gently. You're their friend."})
+        elif detected_mood == "angry":
+            ctx.append({"role": "system", "content": "The person seems frustrated or angry. Be calm, empathetic, and try to lighten the mood gently. Don't escalate."})
+
+        # Conversation history (12 messages = 6 exchanges)
         for msg in state_current["conversation_history"][-12:]:
             ctx.append(msg)
 
-        await send_thinking(ws, subtitle=transcript)
-        response_text = await llm.generate_response(ctx, transcript)
+        await send_thinking(ws, subtitle=text)
+        response_text = await llm.generate_response(ctx, text)
+
     response_text = filter_response(response_text)
     analyzed = analyze_text(response_text)
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
-    # Save conversation
-    state_current["conversation_history"].append({"role": "user", "content": transcript})
+    # Trim + append history
+    _hist_limit = GAME_CONFIG["conversation_history_limit"]
+    if len(state_current["conversation_history"]) > _hist_limit:
+        state_current["conversation_history"] = state_current["conversation_history"][-_hist_limit:]
+    state_current["conversation_history"].append({"role": "user", "content": text})
     state_current["conversation_history"].append({"role": "assistant", "content": response_text})
-    # Trim history to prevent memory bloat (trim at 40 → keep last 30)
-    if len(state_current["conversation_history"]) > 40:
-        state_current["conversation_history"] = state_current["conversation_history"][-30:]
 
+    # Save to memory
     if state_current["speaker_id"]:
-        memory.save_conversation(state_current["speaker_id"], "user", transcript)
+        memory.save_conversation(state_current["speaker_id"], "user", text)
         memory.save_conversation(state_current["speaker_id"], "mario", response_text)
-        # Auto-extract facts from user speech
-        for fact in memory.extract_facts(transcript):
+        for fact in memory.extract_facts(text):
             memory.save_fact(state_current["speaker_id"], fact)
             logger.info(f"Learned fact: {fact}")
+        topics = memory.extract_topics(text)
+        if topics:
+            memory.save_topics(topics, state_current["speaker_id"])
+
+    # TTS with sentence streaming
     voice_params = emotion_system.get_voice_params()
+    game_sound = state_current.pop("_game_sound_hint", None)
+    tts_text = analyzed["tts_text"]
+    sentences = re.split(r'(?<=[.!?])\s+', tts_text, maxsplit=1)
+    streamed = False
+
+    if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
+        try:
+            first_audio = await loop.run_in_executor(
+                _tts_executor, lambda: tts.synthesize(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            await send_response(ws, analyzed["display_text"], first_audio,
+                sound=game_sound, emotion=emotion_system.current,
+                pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
+
+            rest_audio = await loop.run_in_executor(
+                _tts_executor, lambda: tts.synthesize(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            if rest_audio and len(rest_audio) > 44:
+                await ws.send_bytes(rest_audio)
+            streamed = True
+        except Exception as e:
+            logger.error(f"Streaming TTS failed, falling back: {e}")
+
+    if not streamed:
+        try:
+            response_audio = await loop.run_in_executor(
+                _tts_executor, lambda: tts.synthesize(tts_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+        except Exception as e:
+            logger.error(f"TTS failed: {e} — sending text only")
+            response_audio = None
+        await send_response(ws, analyzed["display_text"], response_audio,
+            sound=game_sound, emotion=emotion_system.current,
+            pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
+
+    # Track response time
+    total_time = time.time() - start_time
+    state_current["_response_times"].append(total_time)
+    if len(state_current["_response_times"]) > 50:
+        state_current["_response_times"] = state_current["_response_times"][-50:]
+    logger.info(f"⏱ {source} response time: {total_time:.1f}s")
+
+
+async def _process_audio(ws: WebSocket, audio_chunk: bytes):
+    """Inner audio processing — STT + speaker ID, then shared pipeline."""
+    _response_start = time.time()
+    loop = asyncio.get_event_loop()
+
+    # STT + Speaker ID in parallel
+    transcript_task = loop.run_in_executor(None, stt.transcribe, audio_chunk)
+    speaker_task = loop.run_in_executor(None, speaker_id.identify_speaker, audio_chunk)
     try:
-        response_audio = await loop.run_in_executor(
-            _tts_executor, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
-        )
-    except Exception as e:
-        logger.error(f"TTS failed: {e} — sending text only")
-        response_audio = None
+        transcript, speaker_info = await asyncio.wait_for(
+            asyncio.gather(transcript_task, speaker_task), timeout=30.0)
+    except asyncio.TimeoutError:
+        logger.error("[DEBUG_SERVER] STT + speaker ID timed out after 30s")
+        return
 
-    await send_response(ws, analyzed["display_text"], response_audio,
-                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"],
-                        response_time=time.time() - _response_start)
+    if not transcript or transcript.strip() == "":
+        if DEBUG_SERVER:
+            logger.info("[DEBUG_SERVER] handle_audio: no speech detected")
+        return
 
-    _total_time = time.time() - _response_start
-    logger.info(f"⏱ Total response time: {_total_time:.1f}s (STT+SpeakerID → LLM → TTS → Send)")
+    logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
+
+    # Send thinking
+    try:
+        await ws.send_json({"type": "state", "thinking": True, "subtitle": transcript})
+    except Exception:
+        pass
+
+    # Update speaker state
+    if speaker_info and not speaker_info["is_new"]:
+        state_current["speaker_name"] = speaker_info["name"]
+        state_current["speaker_id"] = speaker_info["speaker_id"]
+    elif speaker_info and speaker_info["is_new"] and state_current["speaker_name"] is None:
+        pass
+
+    await _generate_and_send_response(ws, transcript, source="audio", start_time=_response_start)
 
 
 async def _handle_special_commands(transcript: str) -> str:
     """Handle special commands/requests in the transcript. Returns response text or None."""
-    lower = transcript.lower()
-
-    # Tell a joke
-    if any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
-        emotion_system.current = "mischievous"
-        return idle_behavior.get_joke()
-
-    # Trivia
-    if any(w in lower for w in ["tell me a fact", "trivia", "fun fact", "did you know"]):
-        emotion_system.current = "excited"
-        return idle_behavior.get_trivia()
-
-    # Sing
-    if any(w in lower for w in ["sing", "song", "music", "hum"]):
-        emotion_system.current = "happy"
-        return idle_behavior.get_song()
-
-    # Party stats
-    if any(w in lower for w in ["how many people", "party stats", "how long", "statistics", "how many visits"]):
-        stats = party_stats.get_stats()
-        return (
-            f"Wahoo! Let me-a check my notes! "
-            f"Tonight we've had {stats['total_visits']} bathroom visits from "
-            f"{stats['unique_visitors']} different people! "
-            f"The party's been going for {stats['party_duration']}! "
-            f"{'The record holder is ' + stats['most_frequent_name'] + '!' if stats['most_frequent_name'] else ''}"
-        )
-
-    # Name learning — register voice when user says their name
-    if any(w in lower for w in ["my name is", "i'm called", "call me", "i am "]):
-        import re
-        match = re.search(r"(?:my name is|i'm called|call me|i am)\s+(\w+)", lower)
-        if match:
-            name = match.group(1).capitalize()
-            # Register this voice with the name
-            if state_current.get("_last_audio_chunk"):
-                new_id = speaker_id.register_speaker(name, state_current["_last_audio_chunk"])
-                memory.register_person(new_id, name)
-                state_current["speaker_name"] = name
-                state_current["speaker_id"] = new_id
-                emotion_system.current = "excited"
-                logger.info(f"Registered new speaker: {name} (id={new_id})")
-                return f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice from now on! Let's-a go!"
-            else:
-                state_current["speaker_name"] = name
-                return f"Nice to meet-a you, {name}! Wahoo! I'll remember you!"
-
-    # What time is it
-    if any(w in lower for w in ["what time", "how late"]):
-        stats = party_stats.get_stats()
-        return f"It's-a {stats['current_hour']}! Time flies when you're having fun in the bathroom!"
-
-    # Compliment request
-    if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
-        emotion_system.current = "loving"
-        return idle_behavior.get_compliment()
-
-    # Challenge request
-    if any(w in lower for w in ["challenge", "quiz me", "test me", "trivia"]):
-        emotion_system.current = "mischievous"
-        return idle_behavior.get_challenge()
-
-    # Hand wash reminder
-    if any(w in lower for w in ["wash my hands", "should i wash", "hygiene", "wash hands", "hand wash", "soap"]):
-        return idle_behavior.get_hand_wash_reminder()
-
-    # How many visitors
-    if any(w in lower for w in ["how many visitors", "how busy", "popular"]):
-        stats = party_stats.get_stats()
-        if stats['total_visits'] > 10:
-            return f"Mama mia! We've had {stats['total_visits']} visits tonight! This bathroom is-a the hottest spot at the party!"
-        else:
-            return f"So far {stats['total_visits']} visits! The party is-a still warming up!"
-
-    # Who was here last
-    if any(w in lower for w in ["who was here", "who came", "last person", "before me"]):
-        stats = party_stats.get_stats()
-        last = stats.get('last_visitor_name')
-        if last:
-            return f"The last person before you was-a {last}! Nice person!"
-        else:
-            return f"You know, I've been here a while but my memory is-a fuzzy! Too many guests!"
-
-    # Who am I / what do you know about me
-    if any(w in lower for w in ["who am i", "do you know me", "remember me", "know anything about me", "what do you remember"]):
-        if state_current["speaker_id"]:
-            memories = memory.get_memories_for_context(state_current["speaker_id"])
-            if memories:
-                facts_text = ", ".join(memories[:4])
-                return f"Of course I remember-a you, {state_current['speaker_name'] or 'friend'}! I know that {facts_text}!"
-        if state_current["speaker_name"]:
-            return f"You're-a {state_current['speaker_name']}! But that's all I know so far. Tell me more!"
-        return "Hmm, I don't think we've-a met properly! What's your name, friend?"
-
-    # How do I look
-    if any(w in lower for w in ["how do i look", "do i look good", "am i pretty", "am i handsome"]):
-        emotion_system.current = "loving"
-        return random.choice([
-            "Mama mia! You look-a absolutely magnificent! Like a Super Star!",
-            "Bellissimo! You're looking-a fantastic tonight! Ten out of ten!",
-            "You look like-a million coins! Gold star for style!",
-        ])
-
-    return None
+    return command_handlers.handle_special_commands(
+        transcript, state_current, GAME_CONFIG, emotion_system,
+        idle_behavior, party_stats, memory
+    )
 
 
 async def handle_event(ws: WebSocket, event: dict):
     """Handle events from the client (presence, commands, etc.)."""
     event_type = event.get("type")
+
+    # --- Input validation ---
+    VALID_EVENT_TYPES = {
+        "presence_enter", "presence_exit", "text_input",
+        "set_name", "audio_level", "ping",
+        "register_speaker", "vad_start", "vad_stop",
+        "health_ping", "heartbeat",
+    }
+    if event_type not in VALID_EVENT_TYPES:
+        logger.warning(f"[VALIDATION] Unknown event type: {event_type}")
+        return
+    # Validate text_input has text field
+    if event_type == "text_input" and not isinstance(event.get("text"), str):
+        logger.warning("[VALIDATION] text_input event missing 'text' string")
+        return
+    # Validate set_name has name field
+    if event_type == "set_name" and not isinstance(event.get("name"), str):
+        logger.warning("[VALIDATION] set_name event missing 'name' string")
+        return
+
     if DEBUG_SERVER:
         logger.info(f"[DEBUG_SERVER] handle_event: {event_type}")
 
     if event_type == "presence_enter":
+        if state_current["presence_phase"] not in ("IDLE", "FAREWELL"):
+            logger.info(f"[STATE] Ignoring presence_enter during {state_current['presence_phase']}")
+            return
+        state_current["presence_phase"] = "GREETING"
         state_current["presence"] = True
         state_current["conversation_history"] = []
         state_current["enter_time"] = time.time()
+        state_current["_greeting_in_progress"] = True
         emotion_system.update(event="presence_enter")
         idle_behavior.reset_timer()
 
-        # Try to identify by audio
-        if event.get("audio"):
-            import base64
-            audio_data = base64.b64decode(event["audio"])
-            info = speaker_id.identify_speaker(audio_data)
-            if not info["is_new"]:
-                state_current["speaker_name"] = info["name"]
-                state_current["speaker_id"] = info["speaker_id"]
-                memory.record_visit(info["speaker_id"])
+        try:
+            # Try to identify by audio
+            if event.get("audio"):
+                audio_data = base64.b64decode(event["audio"])
+                info = speaker_id.identify_speaker(audio_data)
+                if not info["is_new"]:
+                    state_current["speaker_name"] = info["name"]
+                    state_current["speaker_id"] = info["speaker_id"]
+                    memory.record_visit(info["speaker_id"])
 
-        # Record visit in party stats
-        visit_id = party_stats.record_enter(
-            person_id=state_current["speaker_id"],
-            person_name=state_current["speaker_name"],
-        )
-        state_current["current_visit_id"] = visit_id
-        party_stats.record_event("enter", state_current["speaker_name"])
-
-        # Check for milestone visits
-        stats = party_stats.get_stats()
-        total = stats.get("total_visits", 0)
-        event_type_greeting = "enter_unknown"
-
-        if state_current["speaker_name"]:
-            event_type_greeting = "enter_known"
-            memories = memory.get_memories_for_context(state_current["speaker_id"])
-            person_info = memory.get_person_info(state_current["speaker_id"])
-            actual_visits = person_info["visit_count"] if person_info else 1
-            ctx = mario_prompt.build_context(
-                speaker_name=state_current["speaker_name"],
-                memories=memories,
-                event="enter_known",
-                visit_count=actual_visits,
-                last_topic=memories[-1] if memories else "nothing special",
+            # Record visit in party stats
+            visit_id = party_stats.record_enter(
+                person_id=state_current["speaker_id"],
+                person_name=state_current["speaker_name"],
             )
-        elif total == 1:
-            ctx = mario_prompt.build_context(event="first_visitor")
-        elif total in (10, 25, 50, 100):
-            ctx = mario_prompt.build_context(event="milestone_visit", count=total)
-        else:
-            ctx = mario_prompt.build_context(event="enter_unknown")
+            state_current["current_visit_id"] = visit_id
+            party_stats.record_event("enter", state_current["speaker_name"])
 
-        ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            # Check for milestone visits
+            stats = party_stats.get_stats()
+            total = stats.get("total_visits", 0)
+            event_type_greeting = "enter_unknown"
 
-        response_text = await llm.generate_response(ctx)
-        response_text = filter_response(response_text)
+            if state_current["speaker_name"]:
+                event_type_greeting = "enter_known"
+                memories = memory.get_memories_for_context(state_current["speaker_id"])
+                person_info = memory.get_person_info(state_current["speaker_id"])
+                actual_visits = person_info["visit_count"] if person_info else 1
+                last_emotion = memory.get_last_emotion(state_current["speaker_id"])
+                ctx = mario_prompt.build_context(
+                    speaker_name=state_current["speaker_name"],
+                    memories=memories,
+                    event="enter_known",
+                    visit_count=actual_visits,
+                    last_topic=memories[-1] if memories else "nothing special",
+                    last_emotion=last_emotion,
+                )
+            elif total == 1:
+                ctx = mario_prompt.build_context(event="first_visitor")
+            elif total in (10, 25, 50, 100):
+                ctx = mario_prompt.build_context(event="milestone_visit", count=total)
+            else:
+                ctx = mario_prompt.build_context(event="enter_unknown")
 
-        if not state_current["speaker_name"]:
-            response_text += " What's-a your name, friend?"
+            ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
 
-        analyzed = analyze_text(response_text)
-        loop = asyncio.get_event_loop()
-        voice_params = emotion_system.get_voice_params()
-        response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
-            analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-        await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
-                            emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high")
+            response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+            response_text = filter_response(response_text)
+
+            if not state_current["speaker_name"]:
+                response_text += " What's-a your name, friend?"
+
+            analyzed = analyze_text(response_text)
+            loop = asyncio.get_event_loop()
+            voice_params = emotion_system.get_voice_params()
+            response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+                analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            # Send with retry on failure
+            for _attempt in range(2):
+                try:
+                    await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
+                                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high")
+                    break
+                except Exception as send_err:
+                    if _attempt == 0:
+                        logger.warning(f"[GREETING] Send failed, retrying: {send_err}")
+                        await asyncio.sleep(0.5)
+                    else:
+                        logger.error(f"[GREETING] Send failed after retry: {send_err}")
+        except Exception as e:
+            logger.error(f"[DEBUG_SERVER] presence_enter greeting failed: {e}")
+        finally:
+            state_current["_greeting_in_progress"] = False
+            state_current["presence_phase"] = "CONVERSING"
 
     elif event_type == "presence_exit":
+        # Don't process exit while greeting is still being generated
+        if state_current.get("_greeting_in_progress"):
+            logger.warning("[DEBUG_SERVER] Ignoring presence_exit — greeting still in progress")
+            return
+        state_current["presence_phase"] = "FAREWELL"
+
+        # Auto-cleanup active game if user leaves mid-game
+        if state_current["_active_game"]:
+            logger.info(f"[STATE] Cleaning up active game '{state_current['_active_game']}' on presence_exit")
+            state_current["_active_game"] = None
+            state_current["_game_state"] = {}
+
+        # Reset personality mode on exit
+        if state_current.get("_personality_mode"):
+            logger.info(f"[STATE] Resetting personality mode '{state_current['_personality_mode']}' on presence_exit")
+            state_current["_personality_mode"] = None
+
         state_current["presence"] = False
         emotion_system.update(event="presence_exit")
 
@@ -585,30 +944,37 @@ async def handle_event(ws: WebSocket, event: dict):
             party_stats.record_exit(state_current["current_visit_id"])
         party_stats.record_event("exit", state_current["speaker_name"])
 
-        if state_current["speaker_name"]:
-            ctx = mario_prompt.build_context(
-                speaker_name=state_current["speaker_name"],
-                event="exit_known",
-            )
-        else:
-            ctx = mario_prompt.build_context(event="exit_unknown")
+        try:
+            if state_current["speaker_name"]:
+                ctx = mario_prompt.build_context(
+                    speaker_name=state_current["speaker_name"],
+                    event="exit_known",
+                )
+            else:
+                ctx = mario_prompt.build_context(event="exit_unknown")
 
-        ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
 
-        response_text = await llm.generate_response(ctx)
-        response_text = filter_response(response_text)
+            response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+            response_text = filter_response(response_text)
 
-        # Always add hand wash reminder on exit
-        wash_reminder = idle_behavior.get_hand_wash_reminder()
-        response_text = f"{response_text} {wash_reminder}"
+            # Always add hand wash reminder on exit
+            wash_reminder = idle_behavior.get_hand_wash_reminder()
+            response_text = f"{response_text} {wash_reminder}"
 
-        analyzed = analyze_text(response_text)
-        loop = asyncio.get_event_loop()
-        voice_params = emotion_system.get_voice_params()
-        response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
-            analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-        await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",
-                            emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
+            analyzed = analyze_text(response_text)
+            loop = asyncio.get_event_loop()
+            voice_params = emotion_system.get_voice_params()
+            response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+                analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",
+                                emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
+        except Exception as e:
+            logger.error(f"[DEBUG_SERVER] presence_exit farewell failed: {e}")
+
+        # Save emotion memory before exit
+        if state_current["speaker_id"]:
+            memory.save_emotion(state_current["speaker_id"], emotion_system.current)
 
         # Reset state
         state_current["speaker_name"] = None
@@ -616,12 +982,12 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["conversation_history"] = []
         state_current["current_visit_id"] = None
         state_current["enter_time"] = None
+        state_current["presence_phase"] = "IDLE"
 
     elif event_type == "register_speaker":
         name = event.get("name", "Friend")
         audio_data = event.get("audio")
         if audio_data:
-            import base64
             audio_bytes_data = base64.b64decode(audio_data)
             new_id = speaker_id.register_speaker(name, audio_bytes_data)
             memory.register_person(new_id, name)
@@ -655,79 +1021,36 @@ async def handle_event(ws: WebSocket, event: dict):
         finally:
             state_current["_user_request_active"] = False
 
+    elif event_type == "health_ping":
+        # Respond to client health pings
+        try:
+            await ws.send_json({
+                "type": "health_pong",
+                "server_time": time.time(),
+                "client_time": event.get("timestamp", 0),
+                "emotion": emotion_system.current,
+                "active_game": state_current["_active_game"],
+            })
+        except Exception:
+            pass
+
 
 async def _handle_text_input(ws: WebSocket, text: str):
-    """Process text input — extracted so we can wrap with request flag."""
-    logger.info(f"Text input: '{text}'")
-    _text_start = time.time()
+    """Process text input — rate-limited, then delegates to shared pipeline."""
+    now = time.time()
+    if now - state_current["_last_text_input_time"] < 2.0:
+        logger.warning(f"Text input rate-limited: '{text[:50]}'")
+        return
+    state_current["_last_text_input_time"] = now
 
-    # Send thinking state
+    logger.info(f"Text input: '{text}'")
+
     try:
         await ws.send_json({"type": "state", "thinking": True, "subtitle": text})
     except Exception:
         pass
 
-    # Safety check
-    safety = check_input(text)
-    if not safety["safe"]:
-        loop = asyncio.get_event_loop()
-        redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(safety["redirect"]))
-        await send_response(ws, safety["redirect"], redirect_audio)
-        return
-
-    emotion_system.update(event="speech_detected", transcript=text)
-    idle_behavior.reset_timer()
-
-    # Check special commands
-    response_text = await _handle_special_commands(text)
-    if response_text is None:
-        memories = []
-        if state_current["speaker_id"]:
-            memories = memory.get_memories_for_context(state_current["speaker_id"])
-
-        ctx = mario_prompt.build_context(
-            speaker_name=state_current["speaker_name"],
-            memories=memories,
-        )
-        ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-        ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
-
-        for msg in state_current["conversation_history"][-12:]:
-            ctx.append(msg)
-
-        await send_thinking(ws, subtitle=text)
-        response_text = await llm.generate_response(ctx, text)
-
-    response_text = filter_response(response_text)
-    analyzed = analyze_text(response_text)
-    logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
-
-    state_current["conversation_history"].append({"role": "user", "content": text})
-    state_current["conversation_history"].append({"role": "assistant", "content": response_text})
-    if len(state_current["conversation_history"]) > 40:
-        state_current["conversation_history"] = state_current["conversation_history"][-30:]
-
-    if state_current["speaker_id"]:
-        memory.save_conversation(state_current["speaker_id"], "user", text)
-        memory.save_conversation(state_current["speaker_id"], "mario", response_text)
-        for fact in memory.extract_facts(text):
-            memory.save_fact(state_current["speaker_id"], fact)
-            logger.info(f"Learned fact: {fact}")
-
-    voice_params = emotion_system.get_voice_params()
-    loop = asyncio.get_event_loop()
-    try:
-        response_audio = await loop.run_in_executor(
-            _tts_executor, lambda: tts.synthesize(analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch"))
-        )
-    except Exception as e:
-        logger.error(f"TTS failed for text_input: {e} — sending text only")
-        response_audio = None
-    await send_response(ws, analyzed["display_text"], response_audio,
-                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"],
-                        response_time=time.time() - _text_start)
-
-    logger.info(f"⏱ Text response time: {time.time() - _text_start:.1f}s")
+    await _generate_and_send_response(ws, text, source="text", start_time=now)
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):

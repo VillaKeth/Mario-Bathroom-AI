@@ -1,7 +1,6 @@
 """Emotion and mood system for Mario."""
 
 import logging
-import random
 import threading
 import time
 
@@ -19,6 +18,9 @@ class Emotion:
     LOVING = "loving"
     MISCHIEVOUS = "mischievous"
     SLEEPY = "sleepy"
+    PROUD = "proud"
+    FRUSTRATED = "frustrated"
+    EMBARRASSED = "embarrassed"
     NEUTRAL = "neutral"
 
 
@@ -33,6 +35,9 @@ EMOTION_VOICE_MAP = {
     Emotion.LOVING:     {"rate": "-5%", "pitch": "+2Hz"},
     Emotion.MISCHIEVOUS: {"rate": "+5%", "pitch": "+3Hz"},
     Emotion.SLEEPY:     {"rate": "-20%", "pitch": "-4Hz"},
+    Emotion.PROUD:      {"rate": "+5%", "pitch": "+1Hz"},
+    Emotion.FRUSTRATED: {"rate": "+10%", "pitch": "-2Hz"},
+    Emotion.EMBARRASSED: {"rate": "-10%", "pitch": "+3Hz"},
     Emotion.NEUTRAL:    {"rate": "+0%", "pitch": "+0Hz"},
 }
 
@@ -47,6 +52,9 @@ EMOTION_DESCRIPTIONS = {
     Emotion.LOVING:     "You're feeling warm and friendly! You love meeting people!",
     Emotion.MISCHIEVOUS: "You're feeling mischievous! Time for some playful jokes!",
     Emotion.SLEEPY:     "You're getting sleepy... it's been a long party...",
+    Emotion.PROUD:      "You're feeling proud and confident! Like a true hero!",
+    Emotion.FRUSTRATED: "You're a bit frustrated! Things aren't going your way! Mama mia!",
+    Emotion.EMBARRASSED: "You're a little embarrassed... oops! That was awkward!",
     Emotion.NEUTRAL:    "You're feeling normal — ready for anything!",
 }
 
@@ -153,8 +161,11 @@ class EmotionSystem:
                 self.current = Emotion.MISCHIEVOUS
                 self.intensity = 0.7
             elif any(w in lower for w in ["hate", "sucks", "stupid", "ugh", "annoying", "worst"]):
-                self.current = Emotion.WORRIED
-                self.intensity = 0.5
+                self.current = Emotion.FRUSTRATED
+                self.intensity = 0.7
+            elif any(w in lower for w in ["oops", "my bad", "sorry", "awkward", "embarrassing", "cringe"]):
+                self.current = Emotion.EMBARRASSED
+                self.intensity = 0.6
             elif any(w in lower for w in ["cool", "nice", "sweet", "fire", "lit", "sick", "dope"]):
                 self.current = Emotion.HAPPY
                 self.intensity = 0.8
@@ -164,6 +175,33 @@ class EmotionSystem:
             elif any(w in lower for w in ["bye", "goodbye", "leaving", "going", "gotta go"]):
                 self.current = Emotion.HAPPY
                 self.intensity = 0.6
+            elif any(w in lower for w in ["peach", "princess", "daisy", "rosalina"]):
+                self.current = Emotion.LOVING
+                self.intensity = 0.8
+            elif any(w in lower for w in ["bowser", "villain", "enemy", "bad guy", "boss fight"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.85
+            elif any(w in lower for w in ["gross", "ew", "disgusting", "nasty", "yuck"]):
+                self.current = Emotion.SURPRISED
+                self.intensity = 0.6
+            elif any(w in lower for w in ["please", "pretty please", "come on", "begging"]):
+                self.current = Emotion.MISCHIEVOUS
+                self.intensity = 0.7
+            elif any(w in lower for w in ["roast", "insult", "diss", "burn me", "make fun"]):
+                self.current = Emotion.MISCHIEVOUS
+                self.intensity = 0.9
+            elif any(w in lower for w in ["epic", "legendary", "incredible", "unbelievable"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.9
+            elif any(w in lower for w in ["game over", "warp zone", "konami", "power up"]):
+                self.current = Emotion.EXCITED
+                self.intensity = 0.85
+            elif any(w in lower for w in ["cheers", "toast", "raise a glass", "celebration"]):
+                self.current = Emotion.HAPPY
+                self.intensity = 0.9
+            elif any(w in lower for w in ["proud", "hero", "champion", "number one", "the best", "nailed it", "crushed it"]):
+                self.current = Emotion.PROUD
+                self.intensity = 0.85
 
         # Track when emotion last changed for decay
         if transcript or event:
@@ -196,6 +234,9 @@ class EmotionSystem:
             Emotion.LOVING: "loving",
             Emotion.MISCHIEVOUS: "mischievous",
             Emotion.SLEEPY: "sleepy",
+            Emotion.PROUD: "proud",
+            Emotion.FRUSTRATED: "frustrated",
+            Emotion.EMBARRASSED: "embarrassed",
             Emotion.NEUTRAL: "idle",
         }
         return mapping.get(self.current, "idle")

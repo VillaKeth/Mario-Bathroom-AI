@@ -2,15 +2,25 @@
 
 import sqlite3
 import os
-import json
 import logging
 import re
+import threading
 from datetime import datetime
 
 DEBUG_MEMORY = True
 logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "memory.db")
+
+# Thread-local connection cache for SQLite connection pooling
+_local = threading.local()
+
+
+def _get_conn():
+    if not hasattr(_local, 'conn') or _local.conn is None:
+        _local.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        _local.conn.execute("PRAGMA journal_mode=WAL")
+    return _local.conn
 
 
 def init_memory():
@@ -20,6 +30,7 @@ def init_memory():
 
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS people (
             id INTEGER PRIMARY KEY,
@@ -45,6 +56,27 @@ def init_memory():
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (person_id) REFERENCES people(id)
         );
+
+        CREATE TABLE IF NOT EXISTS emotion_memory (
+            person_id INTEGER PRIMARY KEY,
+            last_emotion TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (person_id) REFERENCES people(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS conversation_topics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic TEXT NOT NULL,
+            person_id INTEGER,
+            mentioned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            mention_count INTEGER DEFAULT 1,
+            FOREIGN KEY (person_id) REFERENCES people(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_topics_topic ON conversation_topics(topic);
+        CREATE INDEX IF NOT EXISTS idx_conversations_person ON conversations(person_id);
+        CREATE INDEX IF NOT EXISTS idx_facts_person ON facts(person_id);
+        CREATE INDEX IF NOT EXISTS idx_conversations_timestamp ON conversations(timestamp);
     """)
     conn.commit()
     conn.close()
@@ -58,13 +90,12 @@ def register_person(speaker_id: int, name: str):
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] register_person: id={speaker_id} name={name}")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = _get_conn()
     conn.execute(
         "INSERT OR REPLACE INTO people (id, name) VALUES (?, ?)",
         (speaker_id, name),
     )
     conn.commit()
-    conn.close()
 
 
 def record_visit(person_id: int):
@@ -72,31 +103,35 @@ def record_visit(person_id: int):
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] record_visit: person_id={person_id}")
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = _get_conn()
     conn.execute(
         "UPDATE people SET visit_count = visit_count + 1, last_seen = CURRENT_TIMESTAMP WHERE id = ?",
         (person_id,),
     )
     conn.commit()
-    conn.close()
 
 
 def save_conversation(person_id: int, role: str, content: str):
-    """Save a conversation line."""
+    """Save a conversation line. Caps at 500 conversations per person."""
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] save_conversation: person={person_id} role={role} content='{content[:50]}'")
 
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = _get_conn()
         conn.execute(
             "INSERT INTO conversations (person_id, role, content) VALUES (?, ?, ?)",
             (person_id, role, content),
         )
+        # Trim old conversations to prevent unbounded growth (keep last 500 per person)
+        conn.execute("""
+            DELETE FROM conversations WHERE id IN (
+                SELECT id FROM conversations WHERE person_id = ?
+                ORDER BY timestamp DESC LIMIT -1 OFFSET 500
+            )
+        """, (person_id,))
         conn.commit()
     except Exception as e:
         logger.error(f"save_conversation failed: {e}")
-    finally:
-        conn.close()
 
 
 def save_fact(person_id: int, fact: str):
@@ -105,7 +140,7 @@ def save_fact(person_id: int, fact: str):
         logger.info(f"[DEBUG_MEMORY] save_fact: person={person_id} fact='{fact}'")
 
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = _get_conn()
         # Check for duplicate (case-insensitive)
         existing = conn.execute(
             "SELECT id FROM facts WHERE person_id = ? AND LOWER(fact) = LOWER(?)",
@@ -122,14 +157,12 @@ def save_fact(person_id: int, fact: str):
         conn.commit()
     except Exception as e:
         logger.error(f"save_fact failed: {e}")
-    finally:
-        conn.close()
 
 
 def get_person_info(person_id: int) -> dict:
     """Get all info about a person."""
-    conn = sqlite3.connect(DB_PATH)
     try:
+        conn = _get_conn()
         conn.row_factory = sqlite3.Row
         person = conn.execute("SELECT * FROM people WHERE id = ?", (person_id,)).fetchone()
 
@@ -151,11 +184,10 @@ def get_person_info(person_id: int) -> dict:
             (person_id,),
         ).fetchall()
         info["facts"] = [f["fact"] for f in facts]
+        conn.row_factory = None  # Reset row factory for other queries
     except Exception as e:
         logger.error(f"get_person_info failed: {e}")
         return None
-    finally:
-        conn.close()
 
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] get_person_info: person={person_id} visits={info['visit_count']} facts={len(info['facts'])}")
@@ -175,7 +207,6 @@ def get_memories_for_context(person_id: int) -> list[str]:
 
     # Time since first met
     try:
-        from datetime import datetime
         first = datetime.fromisoformat(info['first_seen'])
         diff = datetime.now() - first
         if diff.days > 0:
@@ -227,7 +258,13 @@ _FACT_RE_FAN = re.compile(r"(?:i'm|i am) (?:a )?(\w+) (?:fan|lover|enthusiast)")
 
 
 def extract_facts(text: str) -> list[str]:
-    """Extract learnable facts from user speech (simple pattern matching)."""
+    """Extract learnable facts from user speech (simple pattern matching).
+    
+    Guards against regex backtracking on very long inputs by capping at 500 chars.
+    """
+    # Guard: skip very long inputs to prevent regex slowdown
+    if len(text) > 500:
+        text = text[:500]
     facts = []
     text_lower = text.lower()
 
@@ -273,3 +310,134 @@ def extract_facts(text: str) -> list[str]:
             unique_facts.append(fact)
 
     return unique_facts
+
+
+def save_emotion(person_id: int, emotion: str):
+    """Store the last emotional state for a person."""
+    if DEBUG_MEMORY:
+        logger.info(f"[DEBUG_MEMORY] save_emotion: person_id={person_id}, emotion={emotion}")
+    conn = _get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO emotion_memory (person_id, last_emotion, updated_at) VALUES (?, ?, ?)",
+        (person_id, emotion, datetime.now().isoformat())
+    )
+    conn.commit()
+
+
+def get_last_emotion(person_id: int) -> str | None:
+    """Get the last emotional state for a person."""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT last_emotion FROM emotion_memory WHERE person_id = ?", (person_id,)
+    ).fetchone()
+    return row[0] if row else None
+
+
+# Common stop words to skip during topic extraction
+_TOPIC_STOP_WORDS = {
+    "i", "me", "my", "you", "your", "we", "the", "a", "an", "is", "are", "was", "were",
+    "it", "its", "this", "that", "do", "did", "does", "don't", "can", "can't", "will",
+    "would", "should", "could", "have", "has", "had", "been", "be", "am", "just", "so",
+    "but", "and", "or", "not", "no", "yes", "yeah", "yep", "nah", "nope", "oh", "hey",
+    "what", "who", "how", "when", "where", "why", "like", "know", "think", "want", "got",
+    "get", "go", "come", "make", "take", "see", "say", "said", "one", "two", "here",
+    "there", "really", "very", "too", "much", "about", "than", "then", "some", "more",
+    "well", "also", "back", "up", "out", "now", "right", "going", "thing", "things",
+    "with", "from", "for", "in", "on", "at", "to", "of", "mario", "wahoo", "mama", "mia",
+}
+
+
+def extract_topics(text: str) -> list[str]:
+    """Extract simple topic keywords from conversation text."""
+    if not text or len(text) < 5:
+        return []
+    words = re.findall(r'\b[a-z]{3,}\b', text.lower())
+    topics = [w for w in words if w not in _TOPIC_STOP_WORDS and len(w) >= 4]
+    return list(set(topics))[:5]
+
+
+def save_topics(topics: list[str], person_id: int = None):
+    """Save extracted topics to the database."""
+    if not topics:
+        return
+    conn = _get_conn()
+    for topic in topics:
+        existing = conn.execute(
+            "SELECT id, mention_count FROM conversation_topics WHERE topic = ? AND (person_id = ? OR person_id IS NULL)",
+            (topic, person_id)
+        ).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE conversation_topics SET mention_count = mention_count + 1, mentioned_at = ? WHERE id = ?",
+                (datetime.now().isoformat(), existing[0])
+            )
+        else:
+            conn.execute(
+                "INSERT INTO conversation_topics (topic, person_id, mentioned_at) VALUES (?, ?, ?)",
+                (topic, person_id, datetime.now().isoformat())
+            )
+    conn.commit()
+
+
+def get_trending_topics(limit: int = 5) -> list[dict]:
+    """Get the most frequently mentioned topics."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT topic, SUM(mention_count) as total FROM conversation_topics "
+        "GROUP BY topic ORDER BY total DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
+    return [{"topic": r[0], "count": r[1]} for r in rows]
+
+
+def get_recent_conversations(person_id: int, limit: int = 6) -> list[str]:
+    """Get recent conversation topics for a specific person."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT topic FROM conversation_topics WHERE person_id = ? "
+        "ORDER BY mentioned_at DESC LIMIT ?",
+        (person_id, limit)
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+def get_player_stats(person_id: int) -> dict:
+    """Get game stats for difficulty adjustment."""
+    conn = _get_conn()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS game_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER,
+            game_type TEXT,
+            score INTEGER,
+            max_score INTEGER,
+            played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    rows = conn.execute(
+        "SELECT game_type, AVG(CAST(score AS FLOAT) / MAX(max_score, 1)) as win_rate, COUNT(*) as games "
+        "FROM game_results WHERE person_id = ? GROUP BY game_type",
+        (person_id,)
+    ).fetchall()
+    return {r[0]: {"win_rate": r[1], "games_played": r[2]} for r in rows}
+
+
+def save_game_result(person_id: int, game_type: str, score: int, max_score: int):
+    """Save a game result for difficulty tracking."""
+    conn = _get_conn()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS game_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER,
+            game_type TEXT,
+            score INTEGER,
+            max_score INTEGER,
+            played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute(
+        "INSERT INTO game_results (person_id, game_type, score, max_score) VALUES (?, ?, ?, ?)",
+        (person_id, game_type, score, max_score)
+    )
+    conn.commit()

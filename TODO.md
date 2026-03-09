@@ -225,7 +225,266 @@
 - [x] Time-aware idle comments wired into idle loop — 15% chance to inject time comment
 - [x] Config validation at startup — warns on invalid types for critical config values
 - [x] LLM temperature logged per call — visible in server logs for debugging
+- [x] Client _clear_speaking() thread leak fix — single reusable Timer instead of Thread per audio response
+- [x] Idle task proper cancellation — await idle_task in try/except after cancel()
+- [x] WebSocket old connection cleanup before reconnect — prevents ghost connections
+- [x] _reconnect_attempt reset on successful WebSocket connection
+- [x] Greeting-in-progress guard — prevents presence_exit from clearing state mid-greeting
+- [x] Audio playback WAV header validation — rejects < 44 bytes (malformed WAV)
+- [x] Client audio null/short check — guards _on_mario_audio with len < 44 check
+- [x] Memory DB retention policy — caps at 500 conversations per person (DELETE overflow)
+- [x] SQLite WAL mode for memory.py and party_stats.py — better concurrent read/write
+- [x] WebSocket send validation — checks sock and sock.connected before sending
+- [x] Display update() crash protection — wraps in try/except for pygame.error
+- [x] Emotion validation in set_emotion() — validates against EMOTION_SPRITE_MAP, falls back to "happy"
+- [x] Camera release on failed open — prevents leaked cv2.VideoCapture handles
+- [x] Camera consecutive failure detection — stops after 30 consecutive read failures
+- [x] Config missing key warnings — specific warnings for llm_model and tts_voice
+- [x] Graceful shutdown — signal handlers + _tts_executor.shutdown(wait=False) in lifespan teardown
+- [x] "What can you do?" special command — lists all abilities
+- [x] "About yourself" special command — Mario introduces himself
+- [x] "Goodbye" special command — farewell responses with wash hands reminder
+- [x] Idle mumbles expanded to 100 (leaning on wall, feng shui, fishing joke, leaderboard, mirror talk, belt, toilet confession, flagpole, pizza)
+- [x] Jokes expanded to 39 (plumber's crack, Goombas hate parties, Luigi horror movie, Mario fishing, Bowser diet)
+- [x] Compliments expanded to 20 (save twice, Bowser stops evil, golden wrench confidence)
+- [x] Emotion triggers expanded (peach→LOVING, bowser→EXCITED, gross→SURPRISED, please→MISCHIEVOUS)
+- [x] CONTENT_POSE_MAP expanded to ~181 entries (abilities, introduce, leaving, gross, pretty, villain, pizza, spaghetti, hungry, cake)
+- [x] Per-category content rotation — sequential with random start index, guarantees every item seen before repeats
+- [x] Speaker ID graceful error handling — try/except around get_embedding
+- [x] Full integration test passed — all 7 tests (health, greeting, abilities, about, goodbye, enter, exit)
+- [x] Speaker ID SQL connection leak fix — try/except/finally with proper cursor cleanup
+- [x] Speaker ID zero-division guard for embedding norm
+- [x] Speaker ID configurable similarity threshold from config.json (default 0.75)
+- [x] TTS cache race condition fix — lock held for full read + LRU reorder
+- [x] TTS true LRU eviction — move to end on cache hit (was FIFO only)
+- [x] TTS FAST_MODE reads from config.json (tts_fast_mode key)
+- [x] TTS RVC warmup file cleanup — safe unlink with exists() check
+- [x] WebSocket reconnect counter fix — self._attempt instance var, reset on connect
+- [x] Safety filter thread-safe _recent_redirects with threading.Lock
+- [x] Safety filter logs which regex pattern matched
+- [x] Safety filter MULTILINE flag on blocked patterns
+- [x] Presence enter try/finally for _greeting_in_progress flag
+- [x] Multi-word name regex fix ([A-Za-z]+(?:\s[A-Za-z]+)? instead of \w+)
+- [x] STT+SpeakerID 30s timeout via asyncio.wait_for
+- [x] Conversation history trim BEFORE append (keep last 28 = 14 exchanges)
+- [x] Audio buffer timeout — process partial buffer (min 16KB) after 5s silence
+- [x] LLM minimum response length check (≥3 chars)
+- [x] Party stats removed duplicate last_visitor key
+- [x] Client audio buffer cap increased 32KB→64KB with overflow logging
+- [x] Mario display clear particles on emotion change
+- [x] Idle behavior noon/lunchtime time comments
+- [x] Party stage detection (early/peak/marathon/eternal based on duration)
+- [x] Easter egg system — 12 trigger phrases (konami code, wahoo, game over, warp zone, etc.)
+- [x] Roast/teasing special command — 7 light-hearted Mario roasts with speaker name
+- [x] Vibe check command — shows party stage + visitor count
+- [x] Abilities list updated with roast command
+- [x] Roast name fallback fix (uses "friend" instead of None)
+- [x] Startup greeting 30s timeout (TimeoutError falls back to cached "Wahoo!")
+- [x] Pygame quit safety check (getattr _initialized, catches Exception)
+- [x] Audio capture drain() thread-safe with _drain_lock
+- [x] Audio capture device selection logging (default device name, scan when no default)
+- [x] Audio playback stop() race fix — sd.stop() on stop, lock around _playing flag
+- [x] Idle behavior array validation (guard empty options in _pick_unique, max(1, len) for randint)
+- [x] Memory.py SQLite context managers (with sqlite3.connect) for all DB ops
+- [x] Party stats SQLite context managers (with sqlite3.connect) for all DB ops
+- [x] CONTENT_POSE_MAP expanded to ~195 entries (roast, easter egg, vibe, atmosphere keywords)
+- [x] Emotion triggers expanded (roast→MISCHIEVOUS, epic→EXCITED, game refs→EXCITED, cheers→HAPPY)
+- [x] Content expanded: +5 trivia (25 total), +5 challenges (19 total), +2 hand wash reminders (10 total)
+- [x] Mumbles expanded to ~120, jokes to ~44, songs to ~31, compliments to 20
+- [x] Full round 650 integration test — all 11 features verified on server (roast, easter eggs, vibe, abilities, joke, trivia, compliment, song, wahoo easter egg, goodbye)
+- [x] "Give me a nickname" special command — 7 Mario-themed nicknames using speaker name
+- [x] "Rate the party" special command — dynamic rating based on visitor count (4-10 scale)
+- [x] "Tell me a secret" special command — 7 funny Mario secrets (whispered)
+- [x] "Dare me" special command — 6 fun party dares
+- [x] Abilities list expanded (joke, trivia, song, challenge, dare, compliment, roast, nickname, secret, party stats, party rating)
+- [x] Presence exit error handling — try/except/finally for farewell generation
+- [x] Presence exit LLM timeout — asyncio.wait_for 30s (matches enter handler)
+- [x] Conversation history trim consistent — both audio + text handlers trim at 28 (14 exchanges)
+- [x] CONTENT_POSE_MAP pre-sorted at module load — _CONTENT_KEYS_SORTED avoids re-sorting per call
+- [x] CONTENT_POSE_MAP expanded to ~210 entries (nickname, rating, stretches, hums, invincible, checkpoint, echo)
+- [x] Fact extraction regex length guard — caps at 500 chars to prevent regex backtracking
+- [x] TTS precache retry logic — retries failed phrases once after 2s delay
+- [x] XTTS fallback logging improved — logs reason (FAST_MODE=True, XTTS not available, or XTTS error type)
+- [x] Time-of-day comments now cover all hours (morning 7-12, noon 12-14, afternoon 14-17, evening 17-20, night 20-23, late 0-4, dawn 4-7)
+- [x] Debug flags from config.json (debug_server, debug_tts, debug_idle, debug_pose)
+- [x] TTS debug flag reads from config.json at module load (no circular import)
+- [x] Mumbles expanded to ~130, jokes to ~50, songs to ~35, trivia to 30
+- [x] Full round 750 integration test — all 5 new features verified (nickname, secret, dare, party rating, updated abilities)
+- [x] Module-level imports cleanup — threading, re, base64, concurrent.futures moved to top of main.py (removed 5 inline imports)
+- [x] LLM module-level imports — random and re moved to top of llm.py (removed 2 inline imports)
+- [x] Idle behavior module-level imports — datetime moved to top of idle_behavior.py
+- [x] Memory.py inline datetime import removed (uses module-level)
+- [x] Speaker ID register_speaker — converted raw conn to `with sqlite3.connect()` context manager
+- [x] Speaker ID init — converted raw conn to `with sqlite3.connect()` context manager
+- [x] Edge TTS ThreadPoolExecutor reuse — `_edge_executor` created once, reused across calls (was creating new per call)
+- [x] Idle loop error recovery — `await asyncio.sleep(10)` instead of `break` on errors (idle survives crashes)
+- [x] "Proud" emotion added — new Emotion.PROUD constant, EMOTION_VOICE_MAP entry, EMOTION_DESCRIPTIONS, animation_state mapping, keyword triggers (hero, champion, nailed it)
+- [x] Text input rate limiting — 2s cooldown between text_input commands (prevents spam)
+- [x] Graceful shutdown enhanced — also shuts down `_edge_executor` and logs completion
+- [x] "Tell my fortune" command — 8 Mario fortune teller responses
+- [x] "How are you feeling" command — returns current emotion state with unique response per mood (11 moods)
+- [x] "Would you rather" command — 8 Mario-themed party game questions
+- [x] "Tongue twister" command — 6 Mario-themed tongue twisters
+- [x] "Tell me a story" command — 6 short Mario adventure stories
+- [x] "Pickup line" command — 8 Mario-themed pickup lines
+- [x] "Bathroom tip" command — 6 bathroom etiquette tips from Mario
+- [x] "Rap for me" command — 5 Mario freestyle raps
+- [x] "Motivate me" command — 8 motivational Mario quotes (also triggers on "i'm sad", "feeling down")
+- [x] "I have a confession" command — 4 dramatic Mario confession reactions
+- [x] "Memory quiz" command — quizzes user on stored facts about them
+- [x] "Compliment battle" command — 3 competitive compliment responses
+- [x] "Count to ten" command — Mario counts with Italian flair
+- [x] "What time is it" command — shows time with context-aware comment (late night, party time, etc.)
+- [x] Abilities list updated with all new commands (fortune, tongue twister, story, rap, motivation, pickup line, bathroom tip)
+- [x] Easter eggs expanded to 20 — added spaghetti, mushroom, yoshi, toad, star, coin, pipe, world record
+- [x] CONTENT_POSE_MAP expanded to ~250 entries — fortune, would you rather, tongue twister, story, pickup line, rap, motivation, confession, counting keywords
+- [x] Noise reactions expanded from 8 to 12 (Bob-omb, toilet talking, ghost/plumbing)
+- [x] state_current variable name fix in _handle_text_input rate limiter (was referencing undefined `state`)
+- [x] Full round 1000 integration test — 14/14 new commands verified (fortune, mood, would you rather, tongue twister, story, pickup line, bathroom tip, rap, motivate, confession, count, what time, spaghetti easter egg, yoshi easter egg)
+
+## Rounds 1000-1250: Infrastructure, Games & Content
+- [x] TTS cache hit/miss metrics — _cache_hits/_cache_misses counters with hit rate logging
+- [x] Party stats persistence — party_meta table stores party_start_time across restarts
+- [x] Memory DB indexes — idx_conversations_person, idx_facts_person, idx_conversations_timestamp
+- [x] Easter egg emotion constant — string "excited" → Emotion.EXCITED
+- [x] datetime import moved to module level in main.py (removed inline import)
+- [x] Command cooldown — 1s between special commands to prevent spam
+- [x] Game state tracking — _active_game and _game_state in state_current
+- [x] Speaker update/delete/list functions in speaker_id.py
+- [x] Simon Says game — 5 rounds, score tracking, trick questions
+- [x] 20 Questions game — 8 things to guess, hints system, 10 questions
+- [x] Truth or Dare game — 5 rounds, 10 truths, 10 dares
+- [x] Stop Game universal command (quit/stop/end game)
+- [x] Party Leaderboard command — top 5 visitors by count
+- [x] Trending Topics command — most common facts from DB
+- [x] Reset Party command — resets party_start_time in DB
+- [x] Forget Me / privacy command — deletes speaker voice data
+- [x] Updated abilities list with game modes
+- [x] New emotions: FRUSTRATED and EMBARRASSED — full wiring (constants, voice params, descriptions, triggers, animation mappings)
+- [x] 30+ new CONTENT_POSE_MAP entries (games, leaderboard, privacy, frustration, embarrassment)
+- [x] 12 new bathroom-specific jokes (toilet humor, plumber jokes)
+- [x] 15 new idle mumbles (stretches, tile counting, DJ Mario, etc.)
+- [x] 5 new songs (bathroom acoustics, bathroom blues, Rosalina, Green Hill Zone, party mix)
+- [x] WebSocket reconnect jitter — random 0-2s added to backoff
+- [x] Client health ping method + server health_pong handler
+- [x] Health endpoint expanded (cache hit rate, active game)
+- [x] Integration test — 18/18 commands verified working (health ping, simon says, 20 questions, truth or dare, leaderboard, trending, reset party, forget me, fortune, yoshi)
+
+### Rounds 1250-1500 — Streaming, Games, Intelligence
+- [x] Sentence streaming TTS — splits at first sentence boundary, sends first chunk immediately
+- [x] Config hot-reload — POST /config/reload re-reads config.json without restart
+- [x] Response time metrics — tracks last 50 response times, avg shown in /health
+- [x] 40 new idle mumbles (total ~185)
+- [x] 25 new jokes (total ~83)
+- [x] 15 new songs (total ~55+)
+- [x] 10 new easter eggs (fire flower, 1-up, blue shell, banana peel, invincible, etc.)
+- [x] Riddle game mode — 10 riddles with 3 progressive hints, 5 guess attempts
+- [x] Word Chain game — Mario vs player, turn-based, 10 rounds with fallback dictionary
+- [x] Karaoke mode — 5 songs with lyrics display (one-shot command)
+- [x] Achievement/badge system — 6 badge types (Named Visitor, Party Starter, Frequent Flusher, etc.)
+- [x] Party phase detection — time-based phases (Pre-game, Warm Up, Peak Party, After Hours, Wind Down)
+- [x] Sound effect hints — game events send correct/wrong/achievement/game_over/hint SFX hints
+- [x] 30+ new CONTENT_POSE_MAP entries for riddles, word chain, karaoke, achievements, party phases
+- [x] Enhanced greeting variety — time-of-day and day-of-week flavor text in prompts
+- [x] Emotion memory — stores/recalls last emotional state per person across visits
+- [x] Conversation topic tracking — extracts keywords, stores in DB, powers trending command
+- [x] Trending topics command — now uses actual tracked conversation topics with counts
+- [x] Adaptive speaker threshold — EMA blending (80/20) of old/new voice embeddings on update
+- [x] Crew/group detection — tracks people arriving within 10min window as a crew
+- [x] Abilities list updated with all new game modes and features
+- [x] Integration test — 20/20 commands verified working
+
+- [x] Extracted game logic into server/game_handlers.py module (start_game + handle_game_input)
+- [x] Removed ~387 lines of game content/logic from main.py (1882 → 1495 lines)
+- [x] game_handlers.py: 421 lines (all game data + start + input handling)
+
+## Future
 - [ ] Try different Edge TTS base voices for better RVC result
 - [ ] Tune RVC pitch further (try 6, 10, 12 semitones)
 - [ ] Sentence streaming TTS (stream first sentence while generating rest)
 
+## ✅ Rounds 1500-1750 (Completed)
+- [x] LLM fallback pool (25 pre-written Mario responses when Ollama fails)
+- [x] Config-driven game settings (max rounds, cooldowns, history limit in config.json)
+- [x] Input validation (event type whitelist, size limits, field validation)
+- [x] Presence state machine (IDLE→GREETING→CONVERSING→FAREWELL→IDLE)
+- [x] Expanded 20 Questions (20 items, was 8)
+- [x] Expanded Riddles (20 items, was 10)
+- [x] Expanded Trivia (+20 facts)
+- [x] Expanded Compliments (+15 items)
+- [x] Expanded Hand Wash Reminders (+10 items)
+- [x] Dynamic difficulty tracking (game_results table, player stats)
+- [x] Scheduled time events (midnight, 1am, 2am announcements)
+- [x] Sentiment detection (drunk/sad/angry mood detection from text)
+- [x] GET /stats analytics endpoint (party, performance, conversation data)
+- [x] Admin endpoints (POST /admin/reset, /admin/set_emotion, /admin/announce)
+- [x] Holiday detection (9 holidays including Mario Day MAR10)
+- [x] Late night personality shift (after midnight = extra goofy/chaotic)
+- [x] Conversation summary command ("our conversation", "recap")
+- [x] Sound effect catalog command
+- [x] Rapid-fire quiz game (20 Mario trivia questions, timed)
+- [x] Connection state reset (game/conversation cleared on new WebSocket)
+- [x] Config reload also updates GAME_CONFIG
+- [x] New pose mappings (rapid fire, quiz, drunk, holiday, admin, etc.)
+
+## ✅ Rounds 1750-2000 (Completed)
+- [x] State lock coverage in _idle_loop (prevent race conditions with handlers)
+- [x] UUID temp files for RVC (prevent thread ID collisions)
+- [x] Enforce command cooldown from config (was hardcoded 1.0s)
+- [x] Expand TTS cached phrases (10→50 common Mario phrases)
+- [x] Increase TTS cache size (50→200 entries)
+- [x] DEBUG flags respect environment variable
+- [x] Extract game handlers into game_handlers.py (~400 lines out of main.py)
+- [x] Game state cleanup on presence_exit (mid-game disconnect)
+- [x] WebSocket heartbeat ping every 30s (detect dead connections)
+- [x] Emotion decay loop (intensity decays every 5 min when idle)
+- [x] Greeting send retry on WebSocket failure (2 attempts)
+- [x] Expand redirect responses (10→30 Mario-themed redirects)
+- [x] Expand LLM fallback pool (25→50 responses)
+- [x] Anti-repetition system for content pools (60% threshold reset)
+- [x] 3-tier LLM timeout (8s fast fail, immediate fallback)
+- [x] Would You Rather game mode (20 Mario-themed questions)
+- [x] Dynamic personalized compliments (uses name, game stats, visit count)
+- [x] Expand idle mumbles (167→207 items)
+- [x] Expand songs (55→80 items)
+- [x] Expand jokes (83→102 items)
+- [x] Integration test 18/18 passing
+
+- [x] State lock in _idle_loop (wrap state reads with _state_lock, release before TTS/send)
+- [x] UUID temp files in tts.py _apply_rvc (replace thread ID with uuid4 for true uniqueness)
+- [x] Command cooldown uses GAME_CONFIG value instead of hardcoded 1.0
+- [x] Expanded CACHED_PHRASES to 50 entries (greetings, reactions, games, farewells, hygiene, commands)
+- [x] Increased TTS cache size from 50 to 200
+- [x] DEBUG_SERVER supports DEBUG_MODE environment variable override
+- [x] Game cleanup on presence_exit (auto-clear active game when user leaves)
+- [x] WebSocket heartbeat loop (30s ping, detect dead connections after 3 failures)
+- [x] Emotion decay loop (gradual intensity decay every 5 minutes when idle)
+- [x] Greeting retry on send failure (1 retry with 0.5s delay)
+- [x] Expanded REDIRECT_RESPONSES to 30 entries (Mario-themed safety redirects)
+- [x] Expanded LLM_FALLBACKS to 50 entries (varied moods, characters, conversation starters)
+- [x] Extracted _handle_special_commands into server/command_handlers.py (~600 lines out of main.py)
+- [x] Rock Paper Scissors game — best of 3, trash talk, 10 win/lose/tie reactions each
+- [x] Hangman game — 25 Mario-themed words, 6 wrong guesses, letter tracking
+- [x] Hot Takes game — 30 Mario hot takes, 5 rounds, agree/disagree with defend/concede reactions
+- [x] Updated abilities list with Rock Paper Scissors, Hangman, Hot Takes
+- [x] Personality mode switching (scary/DJ/therapist/pirate) with auto-reset on exit
+- [x] Bathroom facts command (30 real hygiene/bathroom fun facts)
+- [x] Party suggestions command (25 fun activity ideas for bored guests)
+- [x] Auto DJ announcements in idle loop (15 DJ shout-outs every 20 min when alone)
+- [x] Visitor milestone badges in achievements (First Timer/Regular/VIP/Bathroom Legend)
+- [x] Reconnection status display (ws_client reconnect_info property + main.py disconnect message)
+- [x] Audio echo cancellation cooldown (500ms post-play silence in audio stream loop)
+- [x] Fullscreen toggle (F11 key in mario_display.py)
+- [x] Health ping loop (60s background thread sending health_ping events)
+- [x] Graceful shutdown (send presence_exit on stop if someone is present)
+
+- [x] Response time breakdown tracking (STT/LLM/TTS timing in _process_audio + /health endpoint)
+- [x] Sentence streaming for audio responses in _process_audio (split first sentence for faster perceived response)
+- [x] SQLite connection pooling in memory.py (thread-local cached connections with WAL mode)
+- [x] Idle loop jitter (randomized 3-8s sleep interval for natural feel)
+- [x] Expanded easter eggs (20 new entries: Galaxy, Odyssey, Paper Mario, Mario Kart, Smash Bros, general gaming)
+- [x] Expanded roasts (20 total, was 7 — light party-appropriate Mario-themed burns)
+- [x] Expanded fortunes (20 total, was 8 — party predictions and Mario-themed prophecies)
+- [x] Expanded stories (15 total, was 6 — interactive elements with listener questions)
+- [x] DRY refactor: extracted _generate_and_send_response() shared pipeline from _process_audio and _handle_text_input
+- [x] Removed dead imports: signal and game_handlers from main.py, random from emotions.py, json from memory.py
