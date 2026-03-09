@@ -105,7 +105,8 @@ def _validate_config(cfg):
     return len(warnings) == 0
 
 
-_validate_config(config)
+if not _validate_config(config):
+    logger.warning("Config validation had warnings — check logs above")
 
 # Systems
 emotion_system = EmotionSystem()
@@ -473,9 +474,21 @@ async def websocket_endpoint(ws: WebSocket):
     heartbeat_task = asyncio.create_task(_heartbeat_loop(ws))
     emotion_decay_task = asyncio.create_task(_emotion_decay_loop())
 
+    # Message rate limiting (flood protection)
+    _msg_timestamps = deque(maxlen=50)  # Track last 50 message times
+    _WS_MAX_MSGS_PER_SEC = 30  # Max 30 messages/sec (generous for audio)
+
     try:
         while True:
             data = await ws.receive()
+
+            # Rate limit: drop messages if flooding
+            now = time.time()
+            _msg_timestamps.append(now)
+            if len(_msg_timestamps) >= 50:
+                window = now - _msg_timestamps[0]
+                if window > 0 and len(_msg_timestamps) / window > _WS_MAX_MSGS_PER_SEC:
+                    continue  # Silently drop flood messages
 
             if "bytes" in data and data["bytes"]:
                 audio_bytes = data["bytes"]
@@ -483,8 +496,7 @@ async def websocket_endpoint(ws: WebSocket):
                     logger.warning(f"[VALIDATION] Audio too large: {len(audio_bytes)} bytes")
                     continue
                 try:
-                    async with _state_lock:
-                        await handle_audio(ws, audio_bytes)
+                    await handle_audio(ws, audio_bytes)
                 except Exception as e:
                     logger.error(f"handle_audio error: {e}")
             elif "text" in data and data["text"]:
@@ -681,29 +693,31 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
     if DEBUG_SERVER:
         logger.info(f"[DEBUG_SERVER] handle_audio: received {len(audio_bytes)} bytes")
 
-    state_current["audio_buffer"].extend(audio_bytes)
-    state_current["_last_buffer_time"] = time.time()
+    # Lock only for buffer operations (short hold), not for audio processing
+    async with _state_lock:
+        state_current["audio_buffer"].extend(audio_bytes)
+        state_current["_last_buffer_time"] = time.time()
 
-    CHUNK_SIZE = 96000
-    MIN_PROCESS_SIZE = 16000  # Minimum buffer to process on timeout
-    BUFFER_TIMEOUT = 5.0  # Process partial buffer after 5s
-    # Prevent unbounded buffer growth (max 500KB)
-    MAX_BUFFER = 500000
-    if len(state_current["audio_buffer"]) > MAX_BUFFER:
-        state_current["audio_buffer"] = state_current["audio_buffer"][-CHUNK_SIZE:]
+        CHUNK_SIZE = 96000
+        MIN_PROCESS_SIZE = 16000  # Minimum buffer to process on timeout
+        BUFFER_TIMEOUT = 5.0  # Process partial buffer after 5s
+        # Prevent unbounded buffer growth (max 500KB)
+        MAX_BUFFER = 500000
+        if len(state_current["audio_buffer"]) > MAX_BUFFER:
+            state_current["audio_buffer"] = state_current["audio_buffer"][-CHUNK_SIZE:]
 
-    buf_len = len(state_current["audio_buffer"])
-    buf_age = time.time() - state_current["_last_buffer_time"]
+        buf_len = len(state_current["audio_buffer"])
+        buf_age = time.time() - state_current["_last_buffer_time"]
 
-    # Process if we have a full chunk OR if buffer has been sitting for 5s with enough data
-    if buf_len < CHUNK_SIZE:
-        if buf_len < MIN_PROCESS_SIZE or buf_age < BUFFER_TIMEOUT:
-            return
+        # Process if we have a full chunk OR if buffer has been sitting for 5s with enough data
+        if buf_len < CHUNK_SIZE:
+            if buf_len < MIN_PROCESS_SIZE or buf_age < BUFFER_TIMEOUT:
+                return
 
-    process_size = min(buf_len, CHUNK_SIZE)
-    audio_chunk = bytes(state_current["audio_buffer"][:process_size])
-    state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
-    state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
+        process_size = min(buf_len, CHUNK_SIZE)
+        audio_chunk = bytes(state_current["audio_buffer"][:process_size])
+        state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
+        state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
 
     state_current["_user_request_active"] = True
     try:

@@ -490,10 +490,29 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
             # Double-check process is still alive inside the lock
             if _sovits_process.poll() is not None:
                 raise RuntimeError("GPT-SoVITS subprocess died before request")
+            # Truncate long text to prevent extremely slow synthesis (87s+ for long strings)
+            MAX_SOVITS_CHARS = 120
+            if len(text) > MAX_SOVITS_CHARS:
+                # Cut at last sentence boundary within limit
+                truncated = text[:MAX_SOVITS_CHARS]
+                for sep in ['. ', '! ', '? ', ', ']:
+                    idx = truncated.rfind(sep)
+                    if idx > 30:
+                        truncated = truncated[:idx + 1]
+                        break
+                text = truncated.strip()
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] sovits: truncated to {len(text)} chars")
             req = _json.dumps({"text": text, "speed": speed}) + "\n"
             _sovits_process.stdin.write(req)
             _sovits_process.stdin.flush()
-            line = _sovits_process.stdout.readline().strip()
+            # Use a thread to read with timeout (prevent 87s+ blocking)
+            import concurrent.futures
+            def _read_line():
+                return _sovits_process.stdout.readline().strip()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_read_line)
+                line = future.result(timeout=30)  # 30s max per synthesis
             if not line:
                 raise RuntimeError("GPT-SoVITS subprocess returned empty response")
             resp = _json.loads(line)
@@ -517,7 +536,8 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
             err_type = type(e).__name__
             if ("Broken pipe" in err_str or "BrokenPipeError" in err_type
                     or "Invalid argument" in err_str or "empty response" in err_str
-                    or "OSError" in err_type or "IOError" in err_type):
+                    or "OSError" in err_type or "IOError" in err_type
+                    or "TimeoutError" in err_type or "timed out" in err_str.lower()):
                 _sovits_available = False
                 _sovits_process = None
                 logger.error(f"[DEBUG_TTS] sovits: subprocess failed ({err_type}: {err_str}), will auto-restart on next call")
