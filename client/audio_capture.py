@@ -78,6 +78,12 @@ class AudioCapture:
             return True
         except Exception as e:
             logger.warning(f"[DEBUG_AUDIO] AudioCapture.start: no mic available: {e}")
+            if self._stream:
+                try:
+                    self._stream.close()
+                except Exception:
+                    pass
+                self._stream = None
             self._running = False
             return False
 

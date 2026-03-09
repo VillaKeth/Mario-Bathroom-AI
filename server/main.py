@@ -438,6 +438,8 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["_detected_mood"] = None
     state_current["presence_phase"] = "IDLE"
     state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
+    state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
+    state_current["_last_buffer_time"] = 0.0
 
     # Send initial greeting (with 30s timeout to prevent blocking)
     loop = asyncio.get_event_loop()

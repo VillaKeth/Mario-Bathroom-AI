@@ -424,7 +424,7 @@ def handle_special_commands(
     if any(w in lower for w in ["my name is", "i'm called", "call me", "i am "]):
         match = re.search(r"(?:my name is|i'm called|call me|i am)\s+([A-Za-z]+(?:\s[A-Za-z]+)?)", lower)
         if match:
-            name = match.group(1).capitalize()
+            name = match.group(1)[:50].capitalize()  # Cap at 50 chars
             # Register this voice with the name
             if state.get("_last_audio_chunk"):
                 new_id = speaker_id.register_speaker(name, state["_last_audio_chunk"])
