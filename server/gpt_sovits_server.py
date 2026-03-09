@@ -66,13 +66,17 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     if prompt_text is None:
         prompt_text = "It's a me Mario"
 
+    # Clean text for better GPT-SoVITS synthesis
+    # Remove hyphens in Mario-speak (e.g., "It's-a" → "It'sa") to avoid phoneme confusion
+    clean_text = text.replace("-a ", "a ").replace("-A ", "a ")
+    
     req = {
-        "text": text,
+        "text": clean_text,
         "text_lang": "en",
         "ref_audio_path": ref_audio,
         "prompt_text": prompt_text,
         "prompt_lang": "en",
-        "text_split_method": "cut5",
+        "text_split_method": "cut0",  # No splitting — short phrases stay intact, avoids garbled transitions
         "speed_factor": speed,
     }
 

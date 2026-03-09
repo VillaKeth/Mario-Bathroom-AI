@@ -72,13 +72,15 @@ for i, phrase in enumerate(phrases):
     t0 = time.time()
     
     try:
+        # Clean text: remove Mario-speak hyphens that confuse phonemes
+        clean = phrase.replace("-a ", "a ").replace("-A ", "a ")
         req = {
-            "text": phrase,
+            "text": clean,
             "text_lang": "en",
             "ref_audio_path": REF_AUDIO,
             "prompt_text": "It's a me Mario",
             "prompt_lang": "en",
-            "text_split_method": "cut5",
+            "text_split_method": "cut0",  # No splitting — keeps phrase intact
             "speed_factor": 1.0,
         }
         
