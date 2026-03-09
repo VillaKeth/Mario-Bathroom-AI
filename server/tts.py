@@ -89,20 +89,34 @@ RVC_INDEX_RATE = 0.95  # Very high = max Mario character from training data
 RVC_PROTECT = 0.15  # Low = aggressive voice conversion
 RVC_F0_METHOD = "rmvpe"  # Deep learning pitch tracking — best quality
 
+# --- GPT-SoVITS state ---
+_sovits_process = None
+_sovits_available = False
+_sovits_lock = threading.Lock()
+
+# GPT-SoVITS venv python path
+SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
+SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
+
 # --- Speed mode ---
-# False = XTTS v2 voice cloning (quality, ~10-30s), True = Edge TTS (fast, ~1.5s)
-# Can be overridden via config.json: {"server": {"tts_fast_mode": true}}
+# "sovits" = GPT-SoVITS (best quality, ~3-10s, no RVC needed)
+# "edge" = Edge TTS + RVC (fast, ~1.5s)
+# "xtts" = XTTS v2 + RVC (quality base, ~10-30s)
+# Can be overridden via config.json: {"server": {"tts_mode": "sovits"}}
 _tts_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 _tts_config_fast = True
+_tts_mode = "edge"
 if os.path.exists(_tts_config_path):
     try:
         import json as _json
         with open(_tts_config_path) as _f:
             _tts_cfg = _json.load(_f).get("server", {})
             _tts_config_fast = _tts_cfg.get("tts_fast_mode", True)
+            _tts_mode = _tts_cfg.get("tts_mode", "edge")
     except Exception:
         pass
 FAST_MODE = _tts_config_fast
+TTS_MODE = _tts_mode  # "sovits", "edge", or "xtts"
 
 # --- XTTS inference params (defaults — natural sounding) ---
 XTTS_TEMPERATURE = 0.65
@@ -277,8 +291,102 @@ def init_tts():
         logger.info("[DEBUG_TTS] init_tts: RVC model not found, skipping voice conversion")
         _rvc_available = False
 
+    # --- Start GPT-SoVITS subprocess (if mode is "sovits") ---
+    if TTS_MODE == "sovits":
+        logger.info("[DEBUG_TTS] init_tts: TTS_MODE=sovits, launching GPT-SoVITS subprocess...")
+        _start_sovits_subprocess()
+
     if DEBUG_TTS:
-        logger.info(f"[DEBUG_TTS] init_tts: END (fast={FAST_MODE}, xtts={_xtts_available}, rvc={_rvc_available})")
+        logger.info(f"[DEBUG_TTS] init_tts: END (mode={TTS_MODE}, fast={FAST_MODE}, xtts={_xtts_available}, rvc={_rvc_available}, sovits={_sovits_available})")
+
+
+def _start_sovits_subprocess():
+    """Launch GPT-SoVITS server as a subprocess (runs in separate venv)."""
+    import subprocess as sp
+    import json as _json
+    global _sovits_process, _sovits_available
+
+    if not os.path.exists(SOVITS_PYTHON):
+        logger.warning(f"[DEBUG_TTS] sovits: venv python not found at {SOVITS_PYTHON}")
+        return False
+    if not os.path.exists(SOVITS_SERVER_SCRIPT):
+        logger.warning(f"[DEBUG_TTS] sovits: server script not found at {SOVITS_SERVER_SCRIPT}")
+        return False
+
+    logger.info("[DEBUG_TTS] sovits: starting GPT-SoVITS subprocess...")
+    start = time.time()
+    try:
+        _sovits_process = sp.Popen(
+            [SOVITS_PYTHON, SOVITS_SERVER_SCRIPT],
+            stdin=sp.PIPE,
+            stdout=sp.PIPE,
+            stderr=sp.DEVNULL,
+            cwd=os.path.dirname(os.path.dirname(__file__)),
+            text=True,
+            bufsize=1,
+        )
+        # Wait for "ready" message (with timeout)
+        import select
+        deadline = time.time() + 120  # 2 min timeout for model loading
+        while time.time() < deadline:
+            line = _sovits_process.stdout.readline()
+            if not line:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                msg = _json.loads(line)
+                if msg.get("status") == "ready":
+                    _sovits_available = True
+                    logger.info(f"[DEBUG_TTS] sovits: ready in {time.time() - start:.1f}s")
+                    return True
+                elif msg.get("status") == "loading":
+                    if DEBUG_TTS:
+                        logger.info(f"[DEBUG_TTS] sovits: {msg.get('msg', 'loading...')}")
+            except _json.JSONDecodeError:
+                pass  # skip non-JSON startup output
+        logger.warning("[DEBUG_TTS] sovits: subprocess did not become ready in time")
+        return False
+    except Exception as e:
+        logger.error(f"[DEBUG_TTS] sovits: failed to start subprocess: {e}")
+        return False
+
+
+def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
+    """Send text to GPT-SoVITS subprocess and get WAV bytes back."""
+    import json as _json
+    global _sovits_process, _sovits_available
+
+    if not _sovits_available or _sovits_process is None:
+        raise RuntimeError("GPT-SoVITS subprocess not available")
+
+    with _sovits_lock:
+        try:
+            req = _json.dumps({"text": text, "speed": speed}) + "\n"
+            _sovits_process.stdin.write(req)
+            _sovits_process.stdin.flush()
+            line = _sovits_process.stdout.readline().strip()
+            if not line:
+                raise RuntimeError("GPT-SoVITS subprocess returned empty response")
+            resp = _json.loads(line)
+            if resp.get("status") != "ok":
+                raise RuntimeError(f"GPT-SoVITS error: {resp.get('error', 'unknown')}")
+            audio_path = resp["audio_path"]
+            if DEBUG_TTS:
+                logger.info(f"[DEBUG_TTS] sovits: generated {resp['duration']:.1f}s audio in {resp['elapsed']:.1f}s")
+            with open(audio_path, "rb") as f:
+                wav_bytes = f.read()
+            try:
+                os.unlink(audio_path)
+            except OSError:
+                pass
+            return wav_bytes
+        except Exception as e:
+            if "Broken pipe" in str(e) or "BrokenPipeError" in str(type(e).__name__):
+                _sovits_available = False
+                logger.error("[DEBUG_TTS] sovits: subprocess crashed, marked unavailable")
+            raise
 
 
 def precache_phrases():
@@ -337,11 +445,31 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     _cache_misses += 1
 
     if DEBUG_TTS:
-        logger.info(f"[DEBUG_TTS] synthesize: START text='{text[:50]}...'")
+        logger.info(f"[DEBUG_TTS] synthesize: START text='{text[:50]}...' mode={TTS_MODE}")
 
     start = time.time()
 
-    # Step 1: Generate base speech
+    # GPT-SoVITS mode: direct synthesis, no RVC needed
+    if TTS_MODE == "sovits" and _sovits_available:
+        try:
+            result = _sovits_synthesize(text)
+            total = time.time() - start
+            if DEBUG_TTS:
+                logger.info(f"[DEBUG_TTS] synthesize: END (GPT-SoVITS) total={total:.1f}s")
+            # Cache short phrases
+            if len(text) < 60:
+                with _cache_lock:
+                    _audio_cache[cache_key] = result
+                    if cache_key not in _cache_order:
+                        _cache_order.append(cache_key)
+                    if len(_cache_order) > MAX_CACHE_SIZE:
+                        evict_key = _cache_order.pop(0)
+                        _audio_cache.pop(evict_key, None)
+            return result
+        except Exception as e:
+            logger.warning(f"[DEBUG_TTS] synthesize: GPT-SoVITS failed ({e}), falling back to Edge+RVC")
+
+    # Step 1: Generate base speech (Edge TTS or XTTS)
     if FAST_MODE:
         if DEBUG_TTS:
             logger.info("[DEBUG_TTS] synthesize: using Edge TTS (FAST_MODE=True)")

@@ -5,7 +5,11 @@
 - [x] Built voice A/B testing tool (15 configs x 3 phrases)
 - [x] Tested female base voices for less pitch shift
 - [x] Applied best config: Switch Era, pitch +12st, rmvpe, rate +35%
-- [ ] Explore GPT-SoVITS or better voice cloning for more authentic Mario
+- [x] Explore GPT-SoVITS or better voice cloning for more authentic Mario
+- [x] Set up GPT-SoVITS V2 with official repo (Mario pre-trained model)
+- [x] Built GPT-SoVITS subprocess server for TTS integration
+- [x] Added "sovits" TTS mode to config.json and tts.py
+- [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
 - [ ] Find higher-quality pre-trained Mario voice model
 
 
