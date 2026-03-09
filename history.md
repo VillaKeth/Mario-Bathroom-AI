@@ -142,3 +142,18 @@
   - Talking alternates between `speech/talking` and `speech/talking_excited`; dancing alternates between `movement/dancing_1` and `movement/dancing_2`
 - **Bug fix**: `--no-camera` flag set `self.presence = None` but `start()` and `stop()` didn't guard against None → `AttributeError`
 - **End-to-end verified**: Server (STT + TTS + LLM + speaker ID) + Client (74 AI poses + WebSocket + audio playback) all working together
+
+## 2026-03-06 — Game Logic Extraction Refactor
+- **Decision**: Extracted all interactive game code from `server/main.py` into `server/game_handlers.py`
+- **Reason**: main.py grew to ~1880 lines; game content data (lists, dicts) and game logic accounted for ~387 lines and was logically independent of the server WebSocket/LLM/TTS machinery
+- **API**: Two functions — `start_game(game_name, state, config, emotion_sys)` and `handle_game_input(lower, state, emotion_sys)`. State dict passed by reference so mutations propagate to main.py's `state_current`.
+- **Games moved**: Simon Says, 20 Questions, Truth or Dare, Riddles, Word Chain, Karaoke, Rapid Fire Quiz
+- **Data moved**: SIMON_ACTIONS, TWENTY_Q_THINGS, RIDDLES, STARTER_WORDS, KARAOKE_SONGS, RAPID_FIRE_QUESTIONS, TRUTH_QUESTIONS, DARES
+- **Result**: main.py reduced to ~1495 lines; game_handlers.py is 421 lines
+
+## 2026-03-XX — Extracted command handlers into command_handlers.py
+- **Decision**: Move `_handle_special_commands` logic and all its inline content data from main.py into server/command_handlers.py
+- **Reason**: main.py still ~1760 lines; the special command handler contained ~600 lines of content data (easter eggs, secrets, dares, nicknames, fortunes, roasts, etc.) and branching logic that was independent of WebSocket/LLM/TTS infrastructure
+- **API**: One function — `handle_special_commands(transcript, state, game_config, emotion_system, idle_behavior, party_stats, memory_module)`. Synchronous (no async). Wrapper in main.py remains async for callers.
+- **Data moved**: EASTER_EGGS, SECRETS, DARES, NICKNAMES, FORTUNES, MOOD_RESPONSES, TWISTERS, STORIES, PICKUP_LINES, BATHROOM_TIPS, RAPS, MOTIVATIONS, CONFESSIONS, ROASTS
+- **Result**: main.py reduced to ~1150 lines; command_handlers.py is 683 lines

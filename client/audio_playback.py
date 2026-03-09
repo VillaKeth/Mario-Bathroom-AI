@@ -34,20 +34,29 @@ class AudioPlayback:
         """Stop playback and drain queue."""
         if DEBUG_PLAYBACK:
             logger.info("[DEBUG_PLAYBACK] AudioPlayback.stop: stopping worker")
-        self._playing = False
+        with self._lock:
+            self._playing = False
         # Drain any queued audio to prevent stale playback on restart
         while not self._play_queue.empty():
             try:
                 self._play_queue.get_nowait()
             except queue.Empty:
                 break
+        # Stop any currently playing audio
+        try:
+            sd.stop()
+        except Exception:
+            pass
         if self._thread:
             self._thread.join(timeout=2.0)
 
     def play(self, wav_bytes: bytes):
         """Queue WAV audio bytes for playback."""
-        if wav_bytes and len(wav_bytes) > 0:
-            self._play_queue.put(wav_bytes)
+        if not wav_bytes or len(wav_bytes) < 44:
+            if DEBUG_PLAYBACK:
+                logger.warning(f"[DEBUG_PLAYBACK] play: invalid audio ({len(wav_bytes) if wav_bytes else 0} bytes), skipping")
+            return
+        self._play_queue.put(wav_bytes)
 
     @property
     def is_playing(self) -> bool:

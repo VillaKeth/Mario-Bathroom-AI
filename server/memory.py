@@ -5,7 +5,7 @@ import os
 import logging
 import re
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DEBUG_MEMORY = True
 logger = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ def init_memory():
         CREATE INDEX IF NOT EXISTS idx_topics_topic ON conversation_topics(topic);
         CREATE INDEX IF NOT EXISTS idx_conversations_person ON conversations(person_id);
         CREATE INDEX IF NOT EXISTS idx_facts_person ON facts(person_id);
+        CREATE INDEX IF NOT EXISTS idx_topics_person ON conversation_topics(person_id);
         CREATE INDEX IF NOT EXISTS idx_conversations_timestamp ON conversations(timestamp);
     """)
     conn.commit()
@@ -441,3 +442,21 @@ def save_game_result(person_id: int, game_type: str, score: int, max_score: int)
         (person_id, game_type, score, max_score)
     )
     conn.commit()
+
+
+def archive_old_conversations(days_old=30):
+    """Delete conversations older than N days to keep DB manageable."""
+    conn = _get_conn()
+    try:
+        cutoff = datetime.now() - timedelta(days=days_old)
+        cutoff_str = cutoff.strftime("%Y-%m-%d %H:%M:%S")
+        cursor = conn.execute(
+            "DELETE FROM conversations WHERE timestamp < ?", (cutoff_str,))
+        deleted = cursor.rowcount
+        conn.commit()
+        if deleted > 0:
+            logger.info(f"Archived {deleted} conversations older than {days_old} days")
+        return deleted
+    except Exception as e:
+        logger.error(f"Failed to archive conversations: {e}")
+        return 0

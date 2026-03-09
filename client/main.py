@@ -50,6 +50,8 @@ class MarioClient:
 
         self._running = False
         self._audio_thread = None
+        self._health_thread = None
+        self._last_play_end_time = 0  # Echo cancellation tracking
 
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
@@ -93,11 +95,18 @@ class MarioClient:
         self._audio_thread = threading.Thread(target=self._audio_stream_loop, daemon=True)
         self._audio_thread.start()
 
+        # Start health ping thread
+        self._health_thread = threading.Thread(target=self._health_ping_loop, daemon=True)
+        self._health_thread.start()
+
         logger.info("=== Mario AI Client Ready! ===")
 
         # Main display loop (must run on main thread for Pygame)
         try:
             while self._running:
+                # Keep reconnect info fresh for display
+                if not self.display.connected:
+                    self.display._reconnect_info = self.ws.reconnect_info
                 if not self.display.update():
                     break
         except KeyboardInterrupt:
@@ -109,6 +118,12 @@ class MarioClient:
         """Stop all client components."""
         logger.info("=== Mario AI Client Shutting Down ===")
         self._running = False
+        # Send farewell if someone is present
+        if self.presence and self.presence.someone_present and self.ws.connected:
+            self.ws.send_event({"type": "presence_exit"})
+            time.sleep(0.5)  # Brief delay to let server process
+        if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
+            self._speaking_timer.cancel()
         self.audio_capture.stop()
         self.audio_playback.stop()
         if self.presence:
@@ -129,14 +144,16 @@ class MarioClient:
 
             # Send in batches
             if len(audio_buffer) >= 8000 and self.ws.connected:
-                # Don't send while Mario is talking (avoid echo)
-                if not self.audio_playback.is_playing:
+                # Echo cancellation: don't send audio while playing OR for 500ms after
+                play_ended_recently = (time.time() - self._last_play_end_time) < 0.5
+                if not self.audio_playback.is_playing and not play_ended_recently:
                     self.ws.send_audio(bytes(audio_buffer))
                     self.display.set_state(STATE_LISTENING)
                     self.display.set_thinking(True)
                 audio_buffer = bytearray()
-            elif len(audio_buffer) > 32000:
+            elif len(audio_buffer) > 64000:
                 # Cap buffer to prevent memory bloat under heavy audio load
+                logger.warning(f"[DEBUG_CLIENT] Audio buffer overflow ({len(audio_buffer)} bytes), trimming")
                 audio_buffer = audio_buffer[-8000:]
 
             time.sleep(0.01)
@@ -171,25 +188,38 @@ class MarioClient:
 
     def _on_mario_audio(self, wav_bytes: bytes):
         """Called when Mario's voice audio arrives."""
+        if not wav_bytes or len(wav_bytes) < 44:
+            logger.warning("[DEBUG_CLIENT] Received empty or too-small audio, skipping")
+            return
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
         self.audio_playback.play(wav_bytes)
-        # After audio finishes, clear speaking state
-        def _clear_speaking():
-            time.sleep(len(wav_bytes) / 48000)  # Rough estimate
-            self.display._speaking = False
-            self.display.set_state(STATE_IDLE)
-        threading.Thread(target=_clear_speaking, daemon=True).start()
+        # Track when playback finishes for echo cancellation
+        duration = max(0.5, len(wav_bytes) / 48000)
+        self._last_play_end_time = time.time() + duration
+        # Schedule speaking state clear using a reusable timer (avoids thread leak)
+        if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
+            self._speaking_timer.cancel()
+        self._speaking_timer = threading.Timer(duration, self._clear_speaking_state)
+        self._speaking_timer.daemon = True
+        self._speaking_timer.start()
+
+    def _clear_speaking_state(self):
+        """Clear speaking state after audio finishes."""
+        self.display._speaking = False
+        self.display.set_state(STATE_IDLE)
 
     def _on_connected(self):
         logger.info("Connected to Mario AI server!")
         self.display.connected = True
+        self.display._reconnect_info = None
         self.display.set_state(STATE_GREETING)
 
     def _on_disconnected(self):
         logger.warning("Disconnected from server!")
         self.display.connected = False
-        self.display.set_mario_text("Mama mia! Lost connection...")
+        self.display._reconnect_info = self.ws.reconnect_info
+        self.display.set_mario_text("Mama mia! Reconnecting...")
         self.display.set_state(STATE_IDLE)
 
     def _on_state_update(self, state: dict):
@@ -218,6 +248,13 @@ class MarioClient:
         self.display.set_state(STATE_EXITING)
         self.display.set_subtitle("")
         self.sfx.play("goodbye")
+
+    def _health_ping_loop(self):
+        """Send periodic health pings to the server."""
+        while self._running:
+            time.sleep(60)
+            if self.ws.connected:
+                self.ws.send_health_ping()
 
     def _on_keyboard_submit(self, text: str):
         """Called when user submits text via keyboard input."""

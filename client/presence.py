@@ -46,6 +46,8 @@ class PresenceDetector:
         self._cap = cv2.VideoCapture(self.camera_index)
         if not self._cap.isOpened():
             logger.error("[DEBUG_PRESENCE] Failed to open camera!")
+            self._cap.release()
+            self._cap = None
             return False
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
@@ -73,11 +75,17 @@ class PresenceDetector:
 
     def _detection_loop(self):
         """Background thread for continuous motion detection."""
+        _consecutive_read_failures = 0
         while self._running:
             ret, frame = self._cap.read()
             if not ret:
+                _consecutive_read_failures += 1
+                if _consecutive_read_failures > 30:
+                    logger.error("[DEBUG_PRESENCE] Camera read failed 30 times, stopping detection")
+                    break
                 time.sleep(0.1)
                 continue
+            _consecutive_read_failures = 0
 
             self._frame_count += 1
             if self._frame_count % FRAME_SKIP != 0:

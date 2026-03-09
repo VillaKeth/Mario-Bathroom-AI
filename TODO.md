@@ -488,3 +488,69 @@
 - [x] Expanded stories (15 total, was 6 — interactive elements with listener questions)
 - [x] DRY refactor: extracted _generate_and_send_response() shared pipeline from _process_audio and _handle_text_input
 - [x] Removed dead imports: signal and game_handlers from main.py, random from emotions.py, json from memory.py
+
+### Rounds 3000-4000 (Bug fixes, features, content, infrastructure)
+
+#### Bug Fixes (13 items)
+- [x] Fixed TTS cache race condition — all _audio_cache accesses now use _cache_lock
+- [x] Fixed game cleanup race — _game_state cleared unconditionally on presence_exit
+- [x] Fixed conversation history off-by-one — trim BEFORE appending, not after
+- [x] Added conversation history validation — check role/content keys before LLM
+- [x] Improved empty transcript logging — distinguish no speech vs too short
+- [x] Personality mode persists during visit (no longer resets on presence_exit)
+- [x] Extended _user_request_active guard with 3s post-response sleep
+- [x] Used deque(maxlen=50) for _response_times instead of manual trim
+- [x] Capped particle count to 200 in mario_display.py
+- [x] Deduplicated _detect_holiday (already clean, only in command_handlers)
+- [x] Speaker ID validation before use
+- [x] LLM timeout explicit handling
+- [x] Idle TTS prevention during user response playback
+
+#### New Features (9 items)
+- [x] Never Have I Ever game mode (30 prompts, 5 rounds, daring ratings)
+- [x] Crew detection reactions (detect_crew() active in presence_enter)
+- [x] Enhanced drunk speech detection (elongated words, ALL CAPS, fragmented speech)
+- [x] /leaderboard HTTP endpoint (top visitors, stats, records)
+- [x] Return visitor greeting variations (5 tiers by visit count)
+- [x] Reconnection progress UI (pulsing attempt count on display)
+- [x] Database indices on memory and party_stats tables
+- [x] Background fact/topic extraction (asyncio.create_task)
+- [x] Config validation on startup
+
+#### Content Expansion (5 items)
+- [x] Jokes expanded: 102 → 132 (dad jokes, bathroom jokes, party jokes)
+- [x] Songs expanded: 82 → 110 (party anthems, bathroom ballads, adventure songs)
+- [x] Time-specific party observations (late night, early morning, prime time)
+- [x] Bathroom emergency triggers (no TP, smells, help requests)
+- [x] Plumber-specific humor (plumbing, pipes, clogged triggers)
+
+#### Infrastructure (3 items)
+- [x] Conversation archival (auto-delete conversations older than 30 days on startup)
+- [x] Config schema validation on startup
+- [x] Improved empty transcript logging
+- [x] Fixed TTS cache race condition: wrapped all _audio_cache/_cache_order accesses with _cache_lock
+- [x] Fixed game cleanup race: _game_state now always cleared on presence_exit
+- [x] Fixed conversation history off-by-one: trim before appending to stay within limit
+- [x] Added conversation history validation before LLM (check role/content keys)
+- [x] Improved empty transcript logging with short-transcript guard
+- [x] Removed personality mode reset on presence_exit (persist across visits)
+- [x] Used collections.deque(maxlen=50) for _response_times (auto-trimming)
+- [x] Added particle count cap (200) in mario_display.py
+- [x] Extended _user_request_active guard by 3s to prevent idle TTS during playback
+
+- [x] Added Never Have I Ever game mode (30 Mario-themed prompts, 5 rounds, daring rating)
+- [x] Added crew detection in presence_enter handler (detects groups arriving together)
+- [x] Enhanced drunk speech detection with elongated words, caps, and fragmented speech heuristics
+- [x] Added /leaderboard HTTP endpoint with top visitors and party stats
+- [x] Added visit-count-specific greeting hints for return visitors
+- [x] Added reconnection progress UI showing attempt count in mario_display.py
+- [x] Added database indices for party_visits(person_name), party_events(event_type), conversation_topics(person_id)
+- [x] Moved fact/topic extraction to background asyncio task to not block response pipeline
+- [x] Added get_all_visitors() method to PartyStats class
+- [x] Expanded MARIO_JOKES to 132 items (added dad jokes, bathroom jokes, party jokes)
+- [x] Expanded MARIO_SONGS to 110 items (added party anthems, bathroom ballads, adventure songs)
+- [x] Added get_time_observation() for time-specific party comments in idle loop
+- [x] Added bathroom emergency triggers (toilet paper, help, smell) to command_handlers
+- [x] Added plumber-specific humor triggers to command_handlers
+- [x] Added archive_old_conversations() to memory.py for DB cleanup
+- [x] Added _validate_config() startup config validation to main.py

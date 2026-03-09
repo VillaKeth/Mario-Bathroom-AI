@@ -4,6 +4,7 @@ Designed for Neuro-sama style engagement: reactive, sassy, memorable, dynamic.
 """
 
 import re
+from datetime import datetime
 
 MARIO_SYSTEM_PROMPT = """You are Mario from Super Mario Bros, guarding a bathroom at a party. Stay in character always.
 
@@ -41,6 +42,47 @@ GREETING_PROMPTS = {
     "slow_night": "Not many visitors tonight. Make a funny comment about how quiet the bathroom has been.",
 }
 
+# Time-of-day flavor text injected into greetings
+_TIME_FLAVORS = {
+    "morning": "It's morning — who parties this early?! You're impressed.",
+    "afternoon": "It's afternoon! The party is still going? Mama mia!",
+    "evening": "It's evening — prime party time! You're pumped!",
+    "late_night": "It's late night — the party animals are still going! You're a bit tired but excited.",
+    "early_morning": "It's the wee hours! Only the real champions are still partying.",
+}
+
+# Day-of-week flavor text
+_DAY_FLAVORS = {
+    0: "It's Monday — a MONDAY party?! These people are wild!",
+    4: "It's Friday night — the best time for a party! WAHOO!",
+    5: "Saturday party! Classic! Everyone loves a Saturday bash!",
+    6: "Sunday party — gotta enjoy the weekend before it's over!",
+}
+
+
+def _get_time_flavor() -> str:
+    """Get contextual flavor text based on current time and day."""
+    now = datetime.now()
+    hour = now.hour
+    flavors = []
+
+    if 5 <= hour < 12:
+        flavors.append(_TIME_FLAVORS["morning"])
+    elif 12 <= hour < 17:
+        flavors.append(_TIME_FLAVORS["afternoon"])
+    elif 17 <= hour < 22:
+        flavors.append(_TIME_FLAVORS["evening"])
+    elif 22 <= hour or hour < 2:
+        flavors.append(_TIME_FLAVORS["late_night"])
+    else:
+        flavors.append(_TIME_FLAVORS["early_morning"])
+
+    weekday = now.weekday()
+    if weekday in _DAY_FLAVORS:
+        flavors.append(_DAY_FLAVORS[weekday])
+
+    return " ".join(flavors)
+
 
 def _sanitize_input(text: str) -> str:
     """Sanitize user-provided text to prevent prompt injection."""
@@ -56,6 +98,21 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
     """Build the conversation context for the LLM based on the current situation."""
     speaker_name = _sanitize_input(speaker_name) if speaker_name else None
     messages = [{"role": "system", "content": MARIO_SYSTEM_PROMPT}]
+
+    # Add time/day flavor for greetings
+    if event in ("startup", "enter_known", "enter_unknown", "first_visitor", "party_peak"):
+        time_flavor = _get_time_flavor()
+        messages.append({"role": "system", "content": f"[CONTEXT]: {time_flavor}"})
+
+    # Late night personality shift (after midnight)
+    hour = datetime.now().hour
+    if hour >= 0 and hour < 5:
+        messages.append({"role": "system", "content": "[LATE NIGHT MODE]: It's after midnight! Be extra goofy and unhinged. Tell weird stories, ask bizarre questions, be more chaotic. The party is in full swing and so are you!"})
+
+    # Add last emotional state if returning visitor
+    last_emotion = kwargs.get("last_emotion")
+    if last_emotion and event == "enter_known":
+        messages.append({"role": "system", "content": f"[MOOD]: Last time {speaker_name or 'they'} visited, the vibe was {last_emotion}. Factor this into your greeting!"})
 
     if memories:
         memory_text = "## What you remember about this person:\n"

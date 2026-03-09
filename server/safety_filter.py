@@ -2,6 +2,7 @@
 
 import re
 import logging
+import threading
 
 DEBUG_SAFETY = True
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ BLOCKED_PATTERNS = [
     r'\b(n[i1]gg|f[a4]gg?|r[e3]tard)\b',
 ]
 
-BLOCKED_RE = [re.compile(p, re.IGNORECASE) for p in BLOCKED_PATTERNS]
+BLOCKED_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in BLOCKED_PATTERNS]
 
 # Mario-style replacements for mild language
 MILD_REPLACEMENTS = {
@@ -41,11 +42,32 @@ REDIRECT_RESPONSES = [
     "That's-a not in my dictionary! Let's talk about something-a fun instead!",
     "Mama mia! I'd rather talk about-a my adventures! Ever been to Rainbow Road?",
     "Okie dokie, let's-a steer this ship in a better direction! What music do you like?",
+    "Mamma mia! How about we talk about-a kart racing instead? Vroom vroom!",
+    "Yahoo! That's-a no good! Hey, what's your favorite power-up?",
+    "Whoa whoa whoa! Mario says let's-a talk about spaghetti! You like-a meatballs?",
+    "Ha! That's-a not how we do it in the Mushroom Kingdom! Tell me about your day!",
+    "Oof! Let's-a hit the reset button on this conversation! What games do you play?",
+    "No no no! Mario prefers-a talking about coins and stars! How many stars you got?",
+    "Mamma mia, that's-a wild! But hey, ever tried a Super Mushroom? Makes you big!",
+    "Okie dokie, Mario's-a changing the channel! What's your favorite Mario game?",
+    "Wah! That's-a Wario territory! Let's stay on the sunny side, eh?",
+    "Bada bing, bada boom! How about we talk about-a pizza instead? Delizioso!",
+    "Yikes! That's scarier than a Chain Chomp! Let's-a talk about something nice!",
+    "Ha ha, Mario's-a not touching that one! Ever been to Isle Delfino? Beautiful place!",
+    "Let's-a go in a different direction! You ever ride a Yoshi? It's-a the best!",
+    "Mama mia! Mario needs-a brain bleach! Quick, tell me your favorite dessert!",
+    "That's-a not in the plumber's handbook! Wanna hear about my latest adventure?",
+    "Ooh, let's-a not go down that pipe! How about a nice game of tennis instead?",
+    "Uh oh, red shell incoming! Let's-a dodge that topic! What snacks do you like?",
+    "Ha! Even Bowser wouldn't say that! Let's talk about-a something more fun!",
+    "Mamma mia! Time for a star power topic change! What's your favorite animal?",
+    "Whew! That's-a too spicy even for Fire Mario! How about we talk about music?",
 ]
 
 # Track recent redirects to avoid repeating
 _recent_redirects = []
 _MAX_REDIRECT_HISTORY = 4
+_redirect_lock = threading.Lock()
 
 
 def filter_response(text: str) -> str:
@@ -69,7 +91,7 @@ def filter_response(text: str) -> str:
     for pattern in BLOCKED_RE:
         if pattern.search(text):
             if DEBUG_SAFETY:
-                logger.warning(f"[DEBUG_SAFETY] Blocked pattern found in response, sanitizing")
+                logger.warning(f"[DEBUG_SAFETY] Blocked pattern '{pattern.pattern}' found in response, sanitizing")
             text = pattern.sub("****", text)
 
     # Apply mild replacements
@@ -99,14 +121,15 @@ def check_input(text: str) -> dict:
             if DEBUG_SAFETY:
                 logger.warning(f"[DEBUG_SAFETY] check_input: unsafe input detected")
             import random
-            available = [r for r in REDIRECT_RESPONSES if r not in _recent_redirects]
-            if not available:
-                _recent_redirects.clear()
-                available = REDIRECT_RESPONSES
-            redirect = random.choice(available)
-            _recent_redirects.append(redirect)
-            if len(_recent_redirects) > _MAX_REDIRECT_HISTORY:
-                _recent_redirects.pop(0)
+            with _redirect_lock:
+                available = [r for r in REDIRECT_RESPONSES if r not in _recent_redirects]
+                if not available:
+                    _recent_redirects.clear()
+                    available = REDIRECT_RESPONSES
+                redirect = random.choice(available)
+                _recent_redirects.append(redirect)
+                if len(_recent_redirects) > _MAX_REDIRECT_HISTORY:
+                    _recent_redirects.pop(0)
             return {
                 "safe": False,
                 "redirect": redirect,

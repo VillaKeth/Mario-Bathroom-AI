@@ -332,7 +332,204 @@ CONTENT_POSE_MAP = {
     "why": "thinking/curious",
     "what": "thinking/curious",
     "where": "thinking/curious",
+    # New special commands
+    "abilities": "positive/proud",
+    "can do": "positive/excited_jump",
+    "about yourself": "positive/proud",
+    "introduce": "greeting/wave_high",
+    "leaving": "greeting/farewell",
+    "gotta go": "greeting/farewell",
+    # Emotions / Reactions
+    "gross": "negative/disgusted",
+    "disgusting": "negative/disgusted",
+    "pretty": "positive/love",
+    "handsome": "positive/love",
+    "cute": "positive/love",
+    "villain": "thinking/determined",
+    "boss fight": "action/fighting_stance",
+    "please": "thinking/thinking",
+    "begging": "negative/nervous",
+    # Food
+    "pizza": "positive/excited_jump",
+    "spaghetti": "positive/excited_jump",
+    "hungry": "thinking/curious",
+    "cake": "positive/very_happy",
+    # Roast/teasing
+    "roast": "thinking/mischievous",
+    "kidding": "positive/laughing",
+    "just joking": "positive/laughing",
+    "tease": "thinking/mischievous",
+    "burn": "thinking/mischievous",
+    "ouch": "thinking/surprised",
+    # Easter egg triggers
+    "konami": "positive/excited_jump",
+    "game over": "negative/scared",
+    "warp zone": "thinking/surprised",
+    "power up": "powerup/star_power",
+    "continue": "thinking/determined",
+    # Vibe/atmosphere
+    "legendary": "positive/proud",
+    "epic": "positive/excited_jump",
+    "amazing": "positive/very_happy",
+    "incredible": "positive/excited_jump",
+    "wonderful": "positive/love",
+    "terrible": "negative/sad",
+    "boring": "sleep/yawning",
+    "lame": "negative/annoyed",
+    # Nicknames
+    "nickname": "thinking/mischievous",
+    "super star": "positive/excited_jump",
+    "fire flower": "action/power_up",
+    # Party rating
+    "rating": "thinking/curious",
+    "ten out of ten": "positive/excited_jump",
+    "eight out of ten": "positive/very_happy",
+    "six out of ten": "neutral/thinking",
+    "four": "neutral/thinking",
+    # More actions
+    "stretches": "action/stretching",
+    "whistles": "action/whistle",
+    "taps": "action/tapping",
+    "peeks": "thinking/curious",
+    "hums": "neutral/idle",
+    "reads": "thinking/thinking",
+    "leans": "neutral/idle",
+    "adjusts": "neutral/idle",
+    # More reactions
+    "invincible": "positive/excited_jump",
+    "speed run": "action/running",
+    "checkpoint": "positive/proud",
+    "coin block": "action/jumping",
+    "echo": "action/shouting",
+    # Fortune / psychic
+    "fortune": "thinking/thinking",
+    "predict": "thinking/thinking",
+    "crystal ball": "thinking/thinking",
+    "future": "thinking/thinking",
+    "prophecy": "thinking/thinking",
+    # Would you rather / party games
+    "would you rather": "thinking/thinking",
+    "choice": "thinking/thinking",
+    # Tongue twister
+    "tongue twister": "action/shouting",
+    "say it fast": "action/shouting",
+    # Story time
+    "once upon": "thinking/thinking",
+    "story": "neutral/idle",
+    "legend": "positive/proud",
+    # Pickup line / flirting
+    "pickup line": "positive/peace_sign",
+    "rizz": "positive/peace_sign",
+    "flirt": "positive/peace_sign",
+    "heart": "positive/waving",
+    # Rap / freestyle
+    "yo yo": "action/shouting",
+    "rap": "action/shouting",
+    "freestyle": "action/shouting",
+    "bars": "action/shouting",
+    # Motivation
+    "motivate": "positive/proud",
+    "never give up": "positive/proud",
+    "champion": "positive/proud",
+    "believe": "positive/proud",
+    "inspire": "positive/proud",
+    # Bathroom etiquette
+    "etiquette": "thinking/thinking",
+    "tip": "thinking/thinking",
+    "courtesy": "thinking/thinking",
+    # Confession
+    "confession": "thinking/thinking",
+    "spicy": "positive/excited_jump",
+    # Compliment battle
+    "compliment battle": "positive/waving",
+    "awesome": "positive/excited_jump",
+    # Counting
+    "count": "positive/waving",
+    # Game modes
+    "simon says": "action/pointing",
+    "simon": "action/pointing",
+    "20 questions": "thinking/thinking",
+    "twenty questions": "thinking/thinking",
+    "truth or dare": "positive/excited_jump",
+    "truth": "thinking/thinking",
+    "dare": "action/punching",
+    "round": "positive/thumbs_up",
+    "correct": "positive/excited_jump",
+    "wrong": "negative/face_palm",
+    "score": "positive/victory_pose",
+    "champion": "positive/victory_pose",
+    "game over": "neutral/standing",
+    "hint": "thinking/thinking",
+    "guess": "thinking/chin_scratch",
+    # Leaderboard / trending
+    "leaderboard": "positive/victory_pose",
+    "trending": "positive/excited_jump",
+    "popular": "positive/waving",
+    "topics": "thinking/thinking",
+    # Privacy
+    "forget": "negative/worried",
+    "delete": "negative/worried",
+    "privacy": "thinking/thinking",
+    # Frustration / embarrassment
+    "frustrated": "negative/face_palm",
+    "argh": "negative/face_palm",
+    "ugh": "negative/face_palm",
+    "embarrassed": "negative/looking_away",
+    "awkward": "negative/looking_away",
+    "oops": "negative/looking_away",
+    "cringe": "negative/looking_away",
+    "my bad": "negative/looking_away",
+    # --- Rounds 1250+ poses ---
+    "riddle": "thinking/curious",
+    "riddles": "thinking/curious",
+    "guess": "thinking/curious",
+    "hint": "positive/wink",
+    "word chain": "positive/peace",
+    "chain": "positive/peace",
+    "karaoke": "actions/singing",
+    "sing along": "actions/singing",
+    "microphone": "actions/singing",
+    "achievement": "positive/celebrate",
+    "achievements": "positive/celebrate",
+    "badge": "positive/celebrate",
+    "award": "positive/celebrate",
+    "trophy": "positive/celebrate",
+    "champion": "positive/celebrate",
+    "genius": "positive/celebrate",
+    "phase": "thinking/curious",
+    "energy": "positive/dance",
+    "warm up": "positive/dance",
+    "peak party": "positive/celebrate",
+    "after hours": "actions/yawn",
+    "wind down": "actions/yawn",
+    "pre-game": "positive/thumbs_up",
+    "fire flower": "power_ups/fire",
+    "1-up": "power_ups/star",
+    "blue shell": "negative/scared",
+    "banana peel": "negative/scared",
+    "invincible": "power_ups/star",
+    "keyboard": "thinking/idea",
+    "candle": "actions/point",
+    "echo": "actions/shout",
+    "rapid fire": "actions/run",
+    "quiz": "thinking/idea",
+    "speed": "actions/run",
+    "drunk": "negative/confused",
+    "tipsy": "negative/confused",
+    "water": "actions/offer",
+    "holiday": "positive/excited_jump",
+    "celebrate": "positive/happy_dance",
+    "sentiment": "thinking/idea",
+    "mood": "thinking/concern",
+    "midnight": "environment/night",
+    "announcement": "actions/shout",
+    "summary": "thinking/idea",
+    "recap": "thinking/recall",
+    "admin": "thinking/serious",
 }
+
+# Pre-sort content keywords by length (longer matches first) — avoids re-sorting on every call
+_CONTENT_KEYS_SORTED = sorted(CONTENT_POSE_MAP.keys(), key=len, reverse=True)
 
 
 def analyze_text(text: str) -> dict:
@@ -396,9 +593,8 @@ def _match_content_pose(text: str) -> str | None:
     if text.strip().endswith("?"):
         return "thinking/curious"
 
-    # Check content keywords (longer matches first for specificity)
-    sorted_keys = sorted(CONTENT_POSE_MAP.keys(), key=len, reverse=True)
-    for keyword in sorted_keys:
+    # Check content keywords (pre-sorted by length for specificity)
+    for keyword in _CONTENT_KEYS_SORTED:
         if keyword in lower:
             return CONTENT_POSE_MAP[keyword]
 

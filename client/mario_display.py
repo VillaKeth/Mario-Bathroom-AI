@@ -150,6 +150,7 @@ class MarioDisplay:
         self.subtitle_text = ""
         self._subtitle_set_frame = 0
         self.connected = False
+        self._reconnect_info = None
         self._frame = 0
         self._text_display_time = 0
 
@@ -197,6 +198,9 @@ class MarioDisplay:
         self._last_response_time = 0
         self._visitor_count = 0
         self._speaking = False
+
+        # Fullscreen toggle
+        self._fullscreen = False
 
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
@@ -257,6 +261,7 @@ class MarioDisplay:
             logger.info("[DEBUG_DISPLAY] MarioDisplay.init: START")
 
         pygame.init()
+        self._initialized = True
         pygame.display.set_caption("Mario AI \U0001f344")
         self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         self._clock = pygame.time.Clock()
@@ -276,32 +281,43 @@ class MarioDisplay:
         if not self._running:
             return False
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self._running = False
-                return False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    if self.keyboard_mode:
-                        self.keyboard_mode = False
+        try:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._running = False
+                    return False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        if self.keyboard_mode:
+                            self.keyboard_mode = False
+                            self._keyboard_text = ""
+                        else:
+                            self._running = False
+                            return False
+                    elif event.key == pygame.K_TAB:
+                        self.keyboard_mode = not self.keyboard_mode
                         self._keyboard_text = ""
-                    else:
-                        self._running = False
-                        return False
-                elif event.key == pygame.K_TAB:
-                    self.keyboard_mode = not self.keyboard_mode
-                    self._keyboard_text = ""
-                elif event.key == pygame.K_F5:
-                    self.party_mode = not self.party_mode
-                elif self.keyboard_mode:
-                    self._handle_keyboard_input(event)
+                    elif event.key == pygame.K_F5:
+                        self.party_mode = not self.party_mode
+                    elif event.key == pygame.K_F11:
+                        self._fullscreen = not self._fullscreen
+                        if self._fullscreen:
+                            self._screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                        else:
+                            self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    elif self.keyboard_mode:
+                        self._handle_keyboard_input(event)
 
-        self._frame += 1
-        self._update_typewriter()
-        self._update_transition()
-        self._draw()
-        self._clock.tick(30)
-        return True
+            self._frame += 1
+            self._update_typewriter()
+            self._update_transition()
+            self._draw()
+            self._clock.tick(30)
+            return True
+        except pygame.error as e:
+            logger.error(f"[DEBUG_DISPLAY] Pygame error in update(): {e}")
+            self._running = False
+            return False
 
     def _handle_keyboard_input(self, event):
         """Handle keyboard input when in keyboard mode."""
@@ -335,10 +351,15 @@ class MarioDisplay:
 
     def set_emotion(self, emotion: str):
         """Set Mario's emotional state, spawning particles."""
+        if emotion and emotion not in EMOTION_SPRITE_MAP:
+            if DEBUG_DISPLAY:
+                logger.info(f"[DEBUG_DISPLAY] set_emotion: unknown emotion '{emotion}', using 'happy'")
+            emotion = "happy"
         prev = self._emotion
         self._emotion = emotion
         self._emotion_timer = 0
         if emotion != prev:
+            self.particles = []  # Clear old particles on emotion change
             self._spawn_emotion_particles(emotion)
 
     def set_pose_hint(self, pose_hint: str):
@@ -412,6 +433,9 @@ class MarioDisplay:
                 shape=cfg["shape"],
             ))
 
+        if len(self._particles) > 200:
+            self._particles = self._particles[-200:]
+
     def _spawn_confetti(self, count=20):
         """Spawn confetti particles for party mode."""
         for _ in range(count):
@@ -427,6 +451,8 @@ class MarioDisplay:
                 shape="rect",
             ))
             self._particles[-1].gravity = 0.05
+        if len(self._particles) > 200:
+            self._particles = self._particles[-200:]
 
     def _update_particles(self):
         """Update and remove dead particles."""
@@ -638,6 +664,14 @@ class MarioDisplay:
         # Draw connection status + visitor count
         status_color = (0, 255, 0) if self.connected else (255, 0, 0)
         status_text = "\u25cf Connected" if self.connected else "\u25cf Disconnected"
+        # Show reconnection attempt info when disconnected
+        reconnect_info = self._reconnect_info
+        if not self.connected and reconnect_info and reconnect_info.get("attempting"):
+            attempt = reconnect_info.get("attempt", 0)
+            max_att = reconnect_info.get("max_attempts", 0)
+            status_text = f"\u25cf Reconnecting... ({attempt}/{max_att})"
+            pulse = abs(math.sin(self._frame * 0.08))
+            status_color = (255, int(165 * pulse), 0)
         status_surf = self._font_small.render(status_text, True, status_color)
         self._screen.blit(status_surf, (WINDOW_WIDTH - 150, 15))
 
@@ -953,4 +987,9 @@ class MarioDisplay:
     def quit(self):
         """Clean up Pygame."""
         self._running = False
-        pygame.quit()
+        if getattr(self, '_initialized', False):
+            try:
+                pygame.quit()
+            except Exception:
+                pass
+            self._initialized = False

@@ -13,6 +13,7 @@ Speed optimizations:
 """
 
 import io
+import uuid
 import wave
 import logging
 import asyncio
@@ -28,8 +29,21 @@ from scipy import signal as scipy_signal
 from scipy.io import wavfile
 from contextlib import nullcontext
 
-DEBUG_TTS = True
 logger = logging.getLogger(__name__)
+
+# Load debug flag from config (default: True)
+def _load_debug_flag():
+    try:
+        _cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+        if os.path.exists(_cfg_path):
+            import json as _json
+            with open(_cfg_path) as _f:
+                return _json.load(_f).get("server", {}).get("debug_tts", True)
+    except Exception:
+        pass
+    return True
+
+DEBUG_TTS = _load_debug_flag()
 
 # --- Monkey-patches (MUST run before importing TTS) ---
 _original_torch_load = torch.load
@@ -77,7 +91,18 @@ RVC_F0_METHOD = "pm"  # Fastest f0 method (~0.5s vs crepe ~3-10s)
 
 # --- Speed mode ---
 # False = XTTS v2 voice cloning (quality, ~10-30s), True = Edge TTS (fast, ~1.5s)
-FAST_MODE = True
+# Can be overridden via config.json: {"server": {"tts_fast_mode": true}}
+_tts_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+_tts_config_fast = True
+if os.path.exists(_tts_config_path):
+    try:
+        import json as _json
+        with open(_tts_config_path) as _f:
+            _tts_cfg = _json.load(_f).get("server", {})
+            _tts_config_fast = _tts_cfg.get("tts_fast_mode", True)
+    except Exception:
+        pass
+FAST_MODE = _tts_config_fast
 
 # --- XTTS inference params (defaults — natural sounding) ---
 XTTS_TEMPERATURE = 0.65
@@ -95,27 +120,75 @@ PITCH_OFFSET = "+0Hz"
 # --- Audio cache for instant playback (LRU with max 50 entries) ---
 _audio_cache = {}
 _cache_order = []
-MAX_CACHE_SIZE = 50
+MAX_CACHE_SIZE = 200
+_cache_hits = 0
+_cache_misses = 0
 _rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
 _cache_lock = threading.Lock()  # Protects _audio_cache and _cache_order from concurrent access
+_edge_executor = None  # Reusable executor for Edge TTS async-in-sync calls
 CACHED_PHRASES = [
+    # Greetings
     "It's-a me, Mario!",
+    "Hello there!",
+    "Welcome, welcome!",
+    "Hey, nice to see you!",
+    "Good to see you again!",
+    "Nice to meet-a you!",
+    # Reactions/exclamations
     "Wahoo!",
     "Mama mia!",
+    "Oh no!",
+    "Wow, that's-a amazing!",
+    "Ha ha ha!",
+    "That's-a funny!",
+    "Oh yeah!",
+    "Yippee!",
+    "Super!",
+    "Fantastic!",
+    # Game prompts
+    "Correct!",
+    "Wrong!",
+    "Let's play!",
     "Let's-a go!",
-    "Don't forget to wash-a your hands!",
-    "Nice to meet-a you!",
+    "You got it!",
+    "Try again!",
+    "Great job!",
+    "Your turn!",
+    # Farewells
     "See you later!",
+    "Bye bye!",
+    "Until next time!",
+    "Take-a care!",
+    "See you soon, friend!",
+    "Goodbye!",
+    # Hand wash reminders
+    "Don't forget to wash-a your hands!",
+    "Wash those hands, it's-a important!",
+    "Clean hands, happy Mario!",
+    "Scrub-a scrub-a, nice and clean!",
+    "Time to wash-a your hands!",
+    # Common commands/responses
     "Okie dokie!",
     "Here we go!",
-    "That's-a funny!",
+    "Yes!",
+    "No way!",
+    "Of course!",
+    "I don't-a know about that.",
+    "Tell me more!",
+    "What do you think?",
+    "That's-a good question!",
+    "Let me think about that.",
+    "You're-a welcome!",
+    "Thank you so much!",
+    "I'm-a ready!",
+    "One more time!",
 ]
 
 
 def init_tts():
     """Initialize TTS — load base TTS engine and RVC Mario voice model."""
     global _xtts_model, _xtts_available, _gpt_cond_latents, _speaker_embedding
-    global _rvc_model, _rvc_available
+    global _rvc_model, _rvc_available, _edge_executor
 
     if DEBUG_TTS:
         logger.info("[DEBUG_TTS] init_tts: START")
@@ -187,7 +260,11 @@ def init_tts():
                 _rvc_model.infer_file(tmp_in, tmp_out)
                 try:
                     os.unlink(tmp_in)
-                    os.unlink(tmp_out)
+                except OSError:
+                    pass
+                try:
+                    if os.path.exists(tmp_out):
+                        os.unlink(tmp_out)
                 except OSError:
                     pass
                 logger.info(f"[DEBUG_TTS] init_tts: RVC pipeline warmed in {time.time() - warmup_start:.1f}s")
@@ -205,17 +282,33 @@ def init_tts():
 
 
 def precache_phrases():
-    """Pre-cache common Mario phrases at startup for instant playback."""
+    """Pre-cache common Mario phrases at startup for instant playback.
+    
+    Retries each failed phrase once after a short delay.
+    """
     if not CACHED_PHRASES:
         return
     logger.info(f"[DEBUG_TTS] precache: warming {len(CACHED_PHRASES)} phrases...")
     cache_start = time.time()
+    failed = []
     for phrase in CACHED_PHRASES:
         try:
             synthesize(phrase)
         except Exception as e:
             logger.warning(f"[DEBUG_TTS] precache: failed '{phrase[:30]}': {e}")
-    logger.info(f"[DEBUG_TTS] precache: done in {time.time() - cache_start:.1f}s ({len(_audio_cache)} cached)")
+            failed.append(phrase)
+    # Retry failed phrases once after a brief delay
+    if failed:
+        logger.info(f"[DEBUG_TTS] precache: retrying {len(failed)} failed phrases...")
+        time.sleep(2)
+        for phrase in failed:
+            try:
+                synthesize(phrase)
+            except Exception as e:
+                logger.warning(f"[DEBUG_TTS] precache: retry failed '{phrase[:30]}': {e}")
+    with _cache_lock:
+        _cached_count = len(_audio_cache)
+    logger.info(f"[DEBUG_TTS] precache: done in {time.time() - cache_start:.1f}s ({_cached_count} cached)")
 
 
 def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
@@ -227,11 +320,21 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
     cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
+    global _cache_hits, _cache_misses
     with _cache_lock:
-        if cache_key in _audio_cache:
+        cached = _audio_cache.get(cache_key)
+        if cached is not None:
+            # Move to end of LRU order on cache hit
+            if cache_key in _cache_order:
+                _cache_order.remove(cache_key)
+                _cache_order.append(cache_key)
+            _cache_hits += 1
             if DEBUG_TTS:
-                logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...'")
-            return _audio_cache[cache_key]
+                hit_rate = _cache_hits / max(1, _cache_hits + _cache_misses) * 100
+                logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...' (rate={hit_rate:.0f}%)")
+            return cached
+
+    _cache_misses += 1
 
     if DEBUG_TTS:
         logger.info(f"[DEBUG_TTS] synthesize: START text='{text[:50]}...'")
@@ -239,13 +342,19 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     start = time.time()
 
     # Step 1: Generate base speech
-    if FAST_MODE or not _xtts_available:
+    if FAST_MODE:
+        if DEBUG_TTS:
+            logger.info("[DEBUG_TTS] synthesize: using Edge TTS (FAST_MODE=True)")
+        base_wav = _synthesize_edge(text, rate, pitch)
+    elif not _xtts_available:
+        if DEBUG_TTS:
+            logger.info("[DEBUG_TTS] synthesize: using Edge TTS (XTTS not available)")
         base_wav = _synthesize_edge(text, rate, pitch)
     else:
         try:
             base_wav = _synthesize_xtts_raw(text)
         except Exception as e:
-            logger.error(f"[DEBUG_TTS] synthesize: XTTS failed: {e}, falling back to Edge")
+            logger.error(f"[DEBUG_TTS] synthesize: XTTS failed ({type(e).__name__}: {e}), falling back to Edge TTS")
             base_wav = _synthesize_edge(text, rate, pitch)
 
     base_time = time.time() - start
@@ -301,10 +410,9 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
     try:
         rvc_start = time.time()
 
-        # Unique temp files per call (thread-safe)
-        tid = threading.current_thread().ident
-        tmp_in = os.path.join(tempfile.gettempdir(), f"mario_rvc_in_{tid}.wav")
-        tmp_out = os.path.join(tempfile.gettempdir(), f"mario_rvc_out_{tid}.wav")
+        call_id = uuid.uuid4().hex[:12]
+        tmp_in = os.path.join(tempfile.gettempdir(), f"mario_rvc_in_{call_id}.wav")
+        tmp_out = os.path.join(tempfile.gettempdir(), f"mario_rvc_out_{call_id}.wav")
         with open(tmp_in, "wb") as f:
             f.write(wav_bytes)
 
@@ -400,6 +508,7 @@ def _synthesize_xtts_raw(text: str) -> bytes:
 
 def _synthesize_edge(text: str, rate: str = None, pitch: str = None) -> bytes:
     """Fallback: generate speech using Edge TTS with pitch shifting."""
+    global _edge_executor
     if DEBUG_TTS:
         logger.info("[DEBUG_TTS] _synthesize_edge: START (fallback)")
 
@@ -412,9 +521,10 @@ def _synthesize_edge(text: str, rate: str = None, pitch: str = None) -> bytes:
 
         if loop and loop.is_running():
             import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(lambda: asyncio.run(_edge_async(text, rate, pitch)))
-                return future.result(timeout=30) or b""
+            if _edge_executor is None:
+                _edge_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="edge_tts")
+            future = _edge_executor.submit(lambda: asyncio.run(_edge_async(text, rate, pitch)))
+            return future.result(timeout=30) or b""
         else:
             return asyncio.run(_edge_async(text, rate, pitch)) or b""
 

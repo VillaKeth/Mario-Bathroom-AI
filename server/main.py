@@ -24,6 +24,7 @@ import threading
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 import stt
@@ -81,6 +82,31 @@ if not server_config.get("llm_model"):
 if not server_config.get("tts_voice"):
     logger.warning("Config 'tts_voice' not set — using default Edge TTS voice")
 
+
+def _validate_config(cfg):
+    """Validate config has required keys with correct types."""
+    required = {
+        "server": {"host": str, "port": int},
+    }
+    warnings = []
+    server_cfg = cfg.get("server", {})
+    if not server_cfg:
+        warnings.append("Missing 'server' section in config")
+    if not isinstance(server_cfg.get("port", 8765), int):
+        warnings.append("server.port must be an integer")
+    if "llm" in cfg:
+        llm_cfg = cfg["llm"]
+        if "model" in llm_cfg and not isinstance(llm_cfg["model"], str):
+            warnings.append("llm.model must be a string")
+        if "num_predict" in llm_cfg and not isinstance(llm_cfg["num_predict"], int):
+            warnings.append("llm.num_predict must be an integer")
+    for w in warnings:
+        logger.warning(f"[CONFIG] {w}")
+    return len(warnings) == 0
+
+
+_validate_config(config)
+
 # Systems
 emotion_system = EmotionSystem()
 party_stats = PartyStats()
@@ -108,7 +134,7 @@ state_current = {
     "_last_command_time": 0.0,  # Rate limit special commands (1s cooldown)
     "_active_game": None,  # Active game mode (simon_says, twenty_questions, truth_or_dare)
     "_game_state": {},  # Game-specific state data
-    "_response_times": [],  # Track last 50 response times for metrics
+    "_response_times": deque(maxlen=50),  # Track last 50 response times for metrics
     "_pending_announcement": None,  # Admin-queued announcement text
     "_detected_mood": None,  # Sentiment detection: drunk/sad/angry/None
     "_personality_mode": None,  # Personality mode: scary/dj/therapist/pirate/None
@@ -143,6 +169,9 @@ async def lifespan(app: FastAPI):
 
     logger.info("Initializing memory system...")
     memory.init_memory()
+
+    # Archive old conversations on startup
+    memory.archive_old_conversations(days_old=30)
 
     logger.info("Checking Ollama connection...")
     if server_config.get("llm_model"):
@@ -237,6 +266,18 @@ def detect_sentiment(text: str) -> str | None:
     slurred = bool(re.search(r'(.)\1{3,}', text)) or (len(text) > 10 and text == text.upper())
     if words & _DRUNK_WORDS or slurred:
         return "drunk"
+    # Enhanced drunk detection heuristics
+    word_list = text.split()
+    if len(word_list) >= 3:
+        elongated_words = sum(1 for w in word_list if re.search(r'(.)\1{3,}', w))
+        if elongated_words >= 2:
+            return "drunk"
+        caps_words = sum(1 for w in word_list if w.isupper() and len(w) > 2)
+        if caps_words >= 3:
+            return "drunk"
+        short_words = sum(1 for w in word_list if len(w) <= 2)
+        if len(word_list) >= 5 and short_words / len(word_list) > 0.6:
+            return "drunk"
     if words & _SAD_WORDS:
         return "sad"
     if words & _ANGRY_WORDS:
@@ -325,6 +366,20 @@ async def stats_endpoint():
         },
         "trending_topics": trending,
         "holiday": detect_holiday(),
+    }
+
+
+@app.get("/leaderboard")
+async def leaderboard_endpoint():
+    """Return party leaderboard data."""
+    stats = party_stats.get_stats()
+    people = party_stats.get_all_visitors()
+    return {
+        "total_visits": stats.get("total_visits", 0),
+        "unique_visitors": stats.get("unique_visitors", 0),
+        "longest_visit": stats.get("longest_visit_seconds", 0),
+        "most_talkative": stats.get("most_frequent_name", "nobody"),
+        "visitors": people[:10],
     }
 
 
@@ -559,6 +614,23 @@ async def _idle_loop(ws: WebSocket):
                 logger.error(f"DJ announcement failed: {e}")
             continue
 
+        # Time-specific party observations (every ~15 minutes)
+        async with _state_lock:
+            last_obs = state_current.get("_last_time_obs", 0.0)
+        if time.time() - last_obs >= 15 * 60:
+            obs = idle_behavior.get_time_observation()
+            if obs:
+                try:
+                    analyzed = analyze_text(obs)
+                    audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                    await send_response(ws, analyzed["display_text"], audio,
+                                        pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                    async with _state_lock:
+                        state_current["_last_time_obs"] = time.time()
+                except Exception as e:
+                    logger.error(f"Time observation failed: {e}")
+                continue
+
         action = idle_behavior.get_idle_action()
         # Occasionally inject time-aware comments
         time_comment = idle_behavior.get_time_comment()
@@ -569,12 +641,8 @@ async def _idle_loop(ws: WebSocket):
             analyzed = analyze_text(action)
             try:
                 # If it's purely an action (no spoken text after stripping), just send pose change
-                if not analyzed["tts_text"] or analyzed["tts_text"] == action.strip():
-                    has_spoken = len(analyzed["tts_text"]) > 3 and not analyzed["tts_text"].startswith("♪")
-                else:
-                    has_spoken = True
-
-                if has_spoken and len(analyzed["tts_text"]) > 5:
+                # Voice ALL idle messages that have enough text
+                if analyzed["tts_text"] and len(analyzed["tts_text"]) > 5:
                     audio = await loop.run_in_executor(
                         _tts_executor, lambda: tts.synthesize(analyzed["tts_text"])
                     )
@@ -633,6 +701,8 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
     try:
         await _process_audio(ws, audio_chunk)
     finally:
+        # Keep guard active for 3s after response to prevent idle TTS during audio playback
+        await asyncio.sleep(3.0)
         state_current["_user_request_active"] = False
 
 
@@ -689,9 +759,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         elif detected_mood == "angry":
             ctx.append({"role": "system", "content": "The person seems frustrated or angry. Be calm, empathetic, and try to lighten the mood gently. Don't escalate."})
 
-        # Conversation history (12 messages = 6 exchanges)
+        # Conversation history (12 messages = 6 exchanges) — validate each entry
         for msg in state_current["conversation_history"][-12:]:
-            ctx.append(msg)
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                ctx.append(msg)
 
         await send_thinking(ws, subtitle=text)
         response_text = await llm.generate_response(ctx, text)
@@ -700,23 +771,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     analyzed = analyze_text(response_text)
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
-    # Trim + append history
+    # Trim BEFORE appending to stay within limit
     _hist_limit = GAME_CONFIG["conversation_history_limit"]
-    if len(state_current["conversation_history"]) > _hist_limit:
-        state_current["conversation_history"] = state_current["conversation_history"][-_hist_limit:]
+    _hist = state_current["conversation_history"]
+    if len(_hist) >= _hist_limit - 1:
+        state_current["conversation_history"] = _hist[-(_hist_limit - 2):]
     state_current["conversation_history"].append({"role": "user", "content": text})
     state_current["conversation_history"].append({"role": "assistant", "content": response_text})
 
-    # Save to memory
+    # Save to memory (conversations sync, facts/topics in background)
     if state_current["speaker_id"]:
         memory.save_conversation(state_current["speaker_id"], "user", text)
         memory.save_conversation(state_current["speaker_id"], "mario", response_text)
-        for fact in memory.extract_facts(text):
-            memory.save_fact(state_current["speaker_id"], fact)
-            logger.info(f"Learned fact: {fact}")
-        topics = memory.extract_topics(text)
-        if topics:
-            memory.save_topics(topics, state_current["speaker_id"])
+        _speaker_id = state_current["speaker_id"]
+        async def _bg_extract():
+            try:
+                for fact in memory.extract_facts(text):
+                    memory.save_fact(_speaker_id, fact)
+                    logger.info(f"Learned fact: {fact}")
+                topics = memory.extract_topics(text)
+                if topics:
+                    memory.save_topics(topics, _speaker_id)
+            except Exception as e:
+                logger.error(f"Background fact extraction failed: {e}")
+        asyncio.create_task(_bg_extract())
 
     # TTS with sentence streaming
     voice_params = emotion_system.get_voice_params()
@@ -755,8 +833,6 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Track response time
     total_time = time.time() - start_time
     state_current["_response_times"].append(total_time)
-    if len(state_current["_response_times"]) > 50:
-        state_current["_response_times"] = state_current["_response_times"][-50:]
     logger.info(f"⏱ {source} response time: {total_time:.1f}s")
 
 
@@ -777,7 +853,10 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
 
     if not transcript or transcript.strip() == "":
         if DEBUG_SERVER:
-            logger.info("[DEBUG_SERVER] handle_audio: no speech detected")
+            logger.info("[DEBUG_SERVER] handle_audio: empty transcript (no speech detected in audio)")
+        return
+    if len(transcript.strip()) < 2:
+        logger.info(f"[DEBUG_SERVER] handle_audio: transcript too short to process: '{transcript}'")
         return
 
     logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
@@ -862,6 +941,17 @@ async def handle_event(ws: WebSocket, event: dict):
             state_current["current_visit_id"] = visit_id
             party_stats.record_event("enter", state_current["speaker_name"])
 
+            # Detect crew (groups of people who arrive together)
+            crews = party_stats.detect_crew()
+            crew_ctx = None
+            if crews and state_current["speaker_name"]:
+                for crew in crews:
+                    if state_current["speaker_name"] in crew and len(crew) > 1:
+                        crew_names = ", ".join(n for n in crew[:3] if n != state_current["speaker_name"])
+                        if crew_names:
+                            crew_ctx = f"This person arrived as part of a crew/group with: {crew_names}. Acknowledge their crew!"
+                        break
+
             # Check for milestone visits
             stats = party_stats.get_stats()
             total = stats.get("total_visits", 0)
@@ -881,6 +971,18 @@ async def handle_event(ws: WebSocket, event: dict):
                     last_topic=memories[-1] if memories else "nothing special",
                     last_emotion=last_emotion,
                 )
+                # Visit-count-specific greeting hints
+                if actual_visits == 1:
+                    visit_hint = "This is their FIRST time meeting you! Be welcoming and ask their name."
+                elif actual_visits <= 3:
+                    visit_hint = f"They've visited {actual_visits} times. They're becoming a regular! Acknowledge this."
+                elif actual_visits <= 10:
+                    visit_hint = f"They've visited {actual_visits} times! They're a loyal fan! Reference past conversations."
+                elif actual_visits <= 25:
+                    visit_hint = f"They've visited {actual_visits} times! They're practically family! Give them a special nickname."
+                else:
+                    visit_hint = f"They've visited {actual_visits} times! They're a LEGEND! Treat them like royalty!"
+                ctx.append({"role": "system", "content": visit_hint})
             elif total == 1:
                 ctx = mario_prompt.build_context(event="first_visitor")
             elif total in (10, 25, 50, 100):
@@ -889,6 +991,8 @@ async def handle_event(ws: WebSocket, event: dict):
                 ctx = mario_prompt.build_context(event="enter_unknown")
 
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            if crew_ctx:
+                ctx.append({"role": "system", "content": crew_ctx})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
@@ -930,12 +1034,7 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["_active_game"]:
             logger.info(f"[STATE] Cleaning up active game '{state_current['_active_game']}' on presence_exit")
             state_current["_active_game"] = None
-            state_current["_game_state"] = {}
-
-        # Reset personality mode on exit
-        if state_current.get("_personality_mode"):
-            logger.info(f"[STATE] Resetting personality mode '{state_current['_personality_mode']}' on presence_exit")
-            state_current["_personality_mode"] = None
+        state_current["_game_state"] = {}  # Always clear to prevent stale state
 
         state_current["presence"] = False
         emotion_system.update(event="presence_exit")

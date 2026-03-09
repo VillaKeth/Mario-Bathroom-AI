@@ -7,6 +7,8 @@ import httpx
 import json
 import logging
 import asyncio
+import random
+import re
 import time
 
 DEBUG_LLM = True
@@ -17,6 +19,60 @@ MODEL_NAME = "qwen2:1.5b"  # Best balance of speed (~3-5s) and Mario character q
 MODEL_FALLBACK = "llama3"  # Fallback if qwen2 not available
 
 _warmup_task = None
+
+# Fallback responses when Ollama is unavailable or times out
+LLM_FALLBACKS = [
+    "Wahoo! Let's-a go!",
+    "Mama mia! That's-a interesting!",
+    "Ha ha! You're-a funny one!",
+    "Okie dokie! Mario likes-a that!",
+    "Bellissimo! Tell me more!",
+    "That's-a so cool! What else?",
+    "Magnifico! You're-a great company!",
+    "Ha! That's what Luigi would say too!",
+    "Mama mia, this party is-a amazing! Having fun?",
+    "You remind me of a friend from the Mushroom Kingdom!",
+    "I was just thinking about pasta! You hungry?",
+    "Don't forget to wash-a your hands! It's-a important!",
+    "This bathroom has-a great acoustics! Wahoo!",
+    "You know what I love about parties? The people!",
+    "Ha ha! That reminds me of the time Bowser tried to cook!",
+    "Wow, you're-a really something! In a good way!",
+    "I bet you could beat Bowser in a race!",
+    "Speaking of pipes, this bathroom has-a nice plumbing!",
+    "Are you having fun at the party? I hope so!",
+    "If Princess Peach were here, she'd love this party!",
+    "Ooh, that's-a spicy! Like a fire flower!",
+    "You're braver than me — I always get scared of Boos!",
+    "Wahoo! Every conversation is-a like a new adventure!",
+    "Tell me something I don't know! Mario loves learning!",
+    "Ha! You should come visit the Mushroom Kingdom sometime!",
+    "Ooh, what's-a your favorite color? Mine is red, obviously!",
+    "Did you know Toad can lift ten times his weight? Crazy!",
+    "I wonder what Bowser is-a up to right now... probably cooking!",
+    "This reminds me of World 4 — the giant world! Everything's huge!",
+    "You ever play the tuba? Asking for a friend named Waluigi!",
+    "Ha! I just remembered — I left my hat in Sarasaland!",
+    "What do you think clouds taste like? Lakitu won't-a tell me!",
+    "Daisy would love this conversation! She's-a really fun!",
+    "I'm-a thinking about starting a cooking show. Mario's Kitchen!",
+    "Okie dokie, pop quiz! How many coins in a coin block? Trick question!",
+    "You're-a making my mustache twitch with excitement!",
+    "Rosalina told me the stars are listening. Cool, right?",
+    "Ever wonder why all the pipes are green? Even I don't know!",
+    "Toadette baked cookies today! Wish I could share some with you!",
+    "I've been to space, underwater, and a haunted house — all in one week!",
+    "Luigi is-a probably hiding from ghosts right now. Poor guy!",
+    "What's-a your special move? Mine is the triple jump! Yahoo!",
+    "Donkey Kong and I are friends now! Took a while though, ha ha!",
+    "I bet you'd be great at Mario Party! You seem-a competitive!",
+    "Sometimes I just like to sit on a hill and watch the sunset. Peaceful!",
+    "Kamek keeps turning things into monsters. Not cool, Kamek!",
+    "Hey, what superpower would you want? I'd pick flying — oh wait, I have a cape!",
+    "Shy Guys are actually pretty nice once you get to know them!",
+    "The best sound in the world? Coin collecting! Cha-ching!",
+    "You know what? You're-a cooler than an Ice Flower! And that's-a pretty cool!",
+]
 
 
 async def check_ollama():
@@ -86,7 +142,6 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
     if transcript:
         messages.append({"role": "user", "content": transcript})
 
-    import random
     temp = 0.85 + random.uniform(-0.05, 0.10)
     if DEBUG_LLM:
         logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, model={MODEL_NAME}")
@@ -104,57 +159,51 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         },
     }
 
-    for attempt in range(2):  # One retry on timeout
-        try:
-            chunks = []
-            async with httpx.AsyncClient() as client:
-                async with client.stream(
-                    "POST",
-                    f"{OLLAMA_URL}/api/chat",
-                    json=payload,
-                    timeout=30.0,
-                ) as resp:
-                    resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if not line.strip():
-                            continue
-                        try:
-                            data = json.loads(line)
-                            token = data.get("message", {}).get("content", "")
-                            if token:
-                                chunks.append(token)
-                            if data.get("done"):
-                                break
-                        except json.JSONDecodeError:
-                            continue
+    try:
+        chunks = []
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{OLLAMA_URL}/api/chat",
+                json=payload,
+                timeout=8.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        token = data.get("message", {}).get("content", "")
+                        if token:
+                            chunks.append(token)
+                        if data.get("done"):
+                            break
+                    except json.JSONDecodeError:
+                        continue
 
-            response_text = "".join(chunks).strip()
-            if not response_text or len(response_text) < 3:
-                logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
-                return "Wahoo! Let's-a go!"
-            response_text = _clean_response(response_text)
+        response_text = "".join(chunks).strip()
+        if not response_text or len(response_text) < 3:
+            logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
+            return random.choice(LLM_FALLBACKS)
+        response_text = _clean_response(response_text)
 
-            elapsed = time.time() - start
-            if DEBUG_LLM:
-                logger.info(f"[DEBUG_LLM] generate_response: {elapsed:.1f}s response={response_text[:100]}")
-            return response_text
+        elapsed = time.time() - start
+        if DEBUG_LLM:
+            logger.info(f"[DEBUG_LLM] generate_response: {elapsed:.1f}s response={response_text[:100]}")
+        return response_text
 
-        except httpx.TimeoutException:
-            if attempt == 0:
-                logger.warning("[DEBUG_LLM] generate_response: timeout, retrying...")
-                continue
-            logger.error("[DEBUG_LLM] generate_response: Ollama timeout (2 attempts)")
-            return "Mama mia! My brain is-a taking a break! Give me a moment!"
-        except Exception as e:
-            logger.error(f"[DEBUG_LLM] generate_response: error: {e}")
-            return "Wahoo! Something went-a wrong in my head! Let's-a try again!"
-
-    return "Mama mia! Mario needs-a moment to think!"
+    except httpx.TimeoutException:
+        elapsed = time.time() - start
+        logger.warning(f"[DEBUG_LLM] generate_response: timeout after {elapsed:.1f}s, using fallback")
+        return random.choice(LLM_FALLBACKS)
+    except Exception as e:
+        logger.error(f"[DEBUG_LLM] generate_response: error: {e}")
+        return random.choice(LLM_FALLBACKS)
 
 
 def _clean_response(text: str) -> str:
     """Clean up LLM response artifacts."""
-    import re
     # Remove thinking tags, brackets, meta-commentary
     text = re.sub(r'\[.*?\]', '', text)
     text = re.sub(r'\(.*?OOC.*?\)', '', text, flags=re.IGNORECASE)
@@ -182,9 +231,9 @@ def _clean_response(text: str) -> str:
     text = re.sub(r'(\b\w+!)\s*\1', r'\1', text)
     # Remove double/triple punctuation (e.g., "!!!" -> "!", "..." stays)
     text = re.sub(r'([!?])\1{2,}', r'\1\1', text)
-    # Ensure non-empty
-    if not text.strip():
-        text = "Wahoo!"
+    # Ensure non-empty and meaningful (minimum 3 chars for a real word)
+    if not text.strip() or len(text.strip()) < 3:
+        text = "Wahoo! Let's-a go!"
     # Cap response length for faster TTS (long text = very slow RVC on Quadro P1000)
     # Benchmarks: 18 chars→1.8s, 34 chars→1.6s, 104 chars→25.8s RVC
     if len(text) > 80:

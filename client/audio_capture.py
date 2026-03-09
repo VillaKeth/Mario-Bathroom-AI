@@ -25,6 +25,7 @@ class AudioCapture:
         self.audio_queue = queue.Queue()
         self._stream = None
         self._running = False
+        self._drain_lock = threading.Lock()
 
     def _audio_callback(self, indata, frames, time_info, status):
         """Called by sounddevice for each audio block."""
@@ -45,13 +46,17 @@ class AudioCapture:
             # Find an input device if default isn't set
             device = None
             try:
-                sd.query_devices(sd.default.device[0], 'input')
+                default_dev = sd.query_devices(sd.default.device[0], 'input')
+                if DEBUG_AUDIO:
+                    logger.info(f"[DEBUG_AUDIO] Using default input device: {default_dev['name']}")
             except Exception:
                 # No default input — find one, preferring WDM-KS/WASAPI over ASIO
+                if DEBUG_AUDIO:
+                    logger.info("[DEBUG_AUDIO] No default input device, scanning available devices...")
                 for i, d in enumerate(sd.query_devices()):
                     if d["max_input_channels"] > 0 and "ASIO" not in d["name"]:
                         device = i
-                        logger.info(f"[DEBUG_AUDIO] Trying input device {i}: {d['name']}")
+                        logger.info(f"[DEBUG_AUDIO] Selected input device {i}: {d['name']} ({d['max_input_channels']}ch)")
                         break
 
             if device is None and sd.default.device[0] == -1:
@@ -97,14 +102,15 @@ class AudioCapture:
             return None
 
     def drain(self) -> bytes:
-        """Drain all available audio from the queue into a single buffer."""
-        chunks = []
-        while not self.audio_queue.empty():
-            try:
-                chunks.append(self.audio_queue.get_nowait())
-            except queue.Empty:
-                break
-        return b"".join(chunks) if chunks else None
+        """Drain all available audio from the queue into a single buffer (thread-safe)."""
+        with self._drain_lock:
+            chunks = []
+            while not self.audio_queue.empty():
+                try:
+                    chunks.append(self.audio_queue.get_nowait())
+                except queue.Empty:
+                    break
+            return b"".join(chunks) if chunks else None
 
 
 def list_devices():
