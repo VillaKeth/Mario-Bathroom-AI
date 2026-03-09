@@ -25,6 +25,13 @@
 - [x] Skip RVC loading in sovits mode to free VRAM for GPT-SoVITS
 - [x] Fixed DJ announcement timing (set _last_dj_time on connect)
 - [x] BG worker kills subprocess when user request arrives (VRAM priority)
+- [x] Text preprocessing: strip emojis, special chars, smart quotes for GPT-SoVITS
+- [x] Thinking audio filler: Mario says "Hmm, let me think!" while LLM generates
+- [x] Idle phrase precache: background thread caches 222 idle mumbles + DJ phrases
+- [x] Fix disk cache UTF-8 encoding (♪ character was breaking saves)
+- [x] Fix subprocess crash cascade (process alive check + auto-restart on any error)
+- [x] Fix subprocess stdin buffering (readline() instead of iterator)
+- [x] Increase auto-restart limit to 10 for idle precache volume
 - [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
 - [ ] Find higher-quality pre-trained Mario voice model
 
