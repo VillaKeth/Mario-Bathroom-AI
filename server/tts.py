@@ -315,8 +315,9 @@ def init_tts():
             logger.warning(f"[DEBUG_TTS] init_tts: XTTS v2 failed: {e}")
             _xtts_available = False
 
-    # --- Load RVC Mario voice conversion model (if enabled) ---
-    if USE_RVC and os.path.exists(RVC_MODEL_PATH):
+    # --- Load RVC Mario voice conversion model (if enabled and not sovits-only mode) ---
+    # In sovits mode, GPT-SoVITS already produces Mario's voice — skip RVC to save VRAM
+    if USE_RVC and os.path.exists(RVC_MODEL_PATH) and TTS_MODE != "sovits":
         try:
             logger.info("[DEBUG_TTS] init_tts: loading RVC Mario model (Switch Era, Charles Martinet)...")
             rvc_start = time.time()
@@ -545,7 +546,7 @@ def _sovits_bg_worker():
     5. Kill subprocess to free VRAM
     6. Go back to step 1
     
-    This ensures RVC and GPT-SoVITS never compete for VRAM simultaneously.
+    Aborts immediately if _user_tts_waiting is set (kills subprocess to free VRAM).
     """
     while True:
         # Step 1: Wait for first item
@@ -556,11 +557,14 @@ def _sovits_bg_worker():
         except Exception:
             break
 
-        # Step 2: Wait until GPU has been idle long enough
+        # Step 2: Wait until GPU has been idle long enough AND no user TTS pending
         while True:
+            if _user_tts_waiting.is_set():
+                time.sleep(0.5)
+                continue
             _gpu_busy.wait(timeout=5)
             idle_time = time.time() - _last_synth_time
-            if idle_time >= _GPU_IDLE_THRESHOLD:
+            if idle_time >= _GPU_IDLE_THRESHOLD and not _user_tts_waiting.is_set():
                 break
             time.sleep(0.5)
 
@@ -571,6 +575,18 @@ def _sovits_bg_worker():
             logger.warning("[DEBUG_TTS] hybrid: bg worker could not start subprocess, dropping batch")
             _sovits_regen_queue.task_done()
             continue
+
+        # Check if user request arrived during startup — abort immediately
+        if _user_tts_waiting.is_set():
+            if DEBUG_TTS:
+                logger.info("[DEBUG_TTS] hybrid: user request detected during subprocess startup, killing subprocess")
+            _kill_sovits_subprocess()
+            try:
+                _sovits_regen_queue.put_nowait(first_item)
+            except _queue_mod.Full:
+                pass
+            continue
+
         # Warmup first call
         try:
             _sovits_synthesize("Hello!")
@@ -589,9 +605,21 @@ def _sovits_bg_worker():
             logger.info(f"[DEBUG_TTS] hybrid: bg worker processing {len(batch)} items...")
 
         for text, cache_key in batch:
+            # Check if user request arrived — kill subprocess and re-queue remaining
+            if _user_tts_waiting.is_set():
+                idx = batch.index((text, cache_key))
+                for remaining in batch[idx:]:
+                    try:
+                        _sovits_regen_queue.put_nowait(remaining)
+                    except _queue_mod.Full:
+                        pass
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] hybrid: bg worker aborting — user request, re-queued {len(batch) - idx}, killing subprocess")
+                _kill_sovits_subprocess()
+                break
+
             # Check if main thread started using GPU — abort batch
             if time.time() - _last_synth_time < 1.0 and _last_synth_time > 0:
-                # GPU became busy, re-queue remaining items
                 idx = batch.index((text, cache_key))
                 for remaining in batch[idx:]:
                     try:

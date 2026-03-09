@@ -138,7 +138,7 @@ state_current = {
     "_pending_announcement": None,  # Admin-queued announcement text
     "_detected_mood": None,  # Sentiment detection: drunk/sad/angry/None
     "_personality_mode": None,  # Personality mode: scary/dj/therapist/pirate/None
-    "_last_dj_time": 0.0,  # Timestamp of last DJ announcement
+    "_last_dj_time": 0.0,  # Timestamp of last DJ announcement (set to now at connect)
     "_last_timing": {},  # Last response time breakdown (stt/llm/tts/total)
 }
 
@@ -434,6 +434,7 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["conversation_history"] = []
     state_current["_detected_mood"] = None
     state_current["presence_phase"] = "IDLE"
+    state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
 
     # Send initial greeting (with 30s timeout to prevent blocking)
     loop = asyncio.get_event_loop()

@@ -21,6 +21,10 @@
 - [x] User-priority TTS: precache pauses for user requests (synthesize_user)
 - [x] Precache status tracking (_precache_done flag, /health endpoint)
 - [x] Integration test: 3/3 passed (hello/joke/bye with audio)
+- [x] Switched to GPT-SoVITS only mode (sovits) — better voice, 3-5s latency
+- [x] Skip RVC loading in sovits mode to free VRAM for GPT-SoVITS
+- [x] Fixed DJ announcement timing (set _last_dj_time on connect)
+- [x] BG worker kills subprocess when user request arrives (VRAM priority)
 - [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
 - [ ] Find higher-quality pre-trained Mario voice model
 
