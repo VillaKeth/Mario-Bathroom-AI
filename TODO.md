@@ -18,6 +18,9 @@
 - [x] Disk cache persistence (survives server restarts)
 - [x] Fixed GPU contention: on-demand GPT-SoVITS subprocess lifecycle (2.2s vs 12s)
 - [x] GPT-SoVITS stdout isolation (prevents JSON protocol contamination)
+- [x] User-priority TTS: precache pauses for user requests (synthesize_user)
+- [x] Precache status tracking (_precache_done flag, /health endpoint)
+- [x] Integration test: 3/3 passed (hello/joke/bye with audio)
 - [ ] A/B test GPT-SoVITS vs Edge+RVC quality comparison
 - [ ] Find higher-quality pre-trained Mario voice model
 

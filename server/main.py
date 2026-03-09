@@ -218,6 +218,8 @@ async def health():
         "tts_cache_hit_rate": f"{cache_hit_rate:.0f}%",
         "avg_response_time": f"{avg_response:.1f}s",
         "total_responses": len(resp_times),
+        "precache_done": tts._precache_done.is_set(),
+        "precache_active": tts._precache_active,
         "conversation_length": len(state_current["conversation_history"]),
         "user_active": state_current["_user_request_active"],
         "active_game": state_current["_active_game"],
@@ -721,7 +723,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     safety = check_input(text)
     if not safety["safe"]:
         logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
-        redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(safety["redirect"]))
+        redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(safety["redirect"]))
         await send_response(ws, safety["redirect"], redirect_audio)
         return
 
@@ -806,13 +808,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
         try:
             first_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                _tts_executor, lambda: tts.synthesize_user(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             await send_response(ws, analyzed["display_text"], first_audio,
                 sound=game_sound, emotion=emotion_system.current,
                 pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
 
             rest_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                _tts_executor, lambda: tts.synthesize_user(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             if rest_audio and len(rest_audio) > 44:
                 await ws.send_bytes(rest_audio)
             streamed = True
@@ -822,7 +824,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not streamed:
         try:
             response_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize(tts_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                _tts_executor, lambda: tts.synthesize_user(tts_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
         except Exception as e:
             logger.error(f"TTS failed: {e} — sending text only")
             response_audio = None

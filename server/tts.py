@@ -107,6 +107,11 @@ _gpu_busy.set()  # Start as free
 _last_synth_time = 0.0  # Timestamp of last Edge+RVC synthesis completion
 _GPU_IDLE_THRESHOLD = 3.0  # Seconds of idle before bg worker can use GPU
 
+# Precache state — allows user requests to preempt precache
+_precache_done = threading.Event()  # Set when precache completes
+_precache_active = False  # True while precache is synthesizing
+_user_tts_waiting = threading.Event()  # Set when a user TTS call is waiting for RVC lock
+
 # GPT-SoVITS venv python path
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
 SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
@@ -639,14 +644,23 @@ def precache_phrases():
     
     Phase 1: Edge+RVC for all phrases (fast, ~2s each)
     Phase 2: GPT-SoVITS upgrade for top-priority phrases (hybrid mode only)
-    Retries each failed phrase once after a short delay.
+    Yields to user requests between phrases (checks _user_tts_waiting).
     """
+    global _precache_active
     if not CACHED_PHRASES:
+        _precache_done.set()
         return
     logger.info(f"[DEBUG_TTS] precache: warming {len(CACHED_PHRASES)} phrases with Edge+RVC...")
     cache_start = time.time()
     failed = []
-    for phrase in CACHED_PHRASES:
+    _precache_active = True
+    for i, phrase in enumerate(CACHED_PHRASES):
+        # Yield to user TTS requests — pause until user is done
+        if _user_tts_waiting.is_set():
+            logger.info(f"[DEBUG_TTS] precache: pausing for user request (at phrase {i+1}/{len(CACHED_PHRASES)})")
+            while _user_tts_waiting.is_set():
+                time.sleep(0.2)
+            logger.info("[DEBUG_TTS] precache: resuming after user request")
         try:
             synthesize(phrase)
         except Exception as e:
@@ -657,16 +671,21 @@ def precache_phrases():
         logger.info(f"[DEBUG_TTS] precache: retrying {len(failed)} failed phrases...")
         time.sleep(2)
         for phrase in failed:
+            if _user_tts_waiting.is_set():
+                while _user_tts_waiting.is_set():
+                    time.sleep(0.2)
             try:
                 synthesize(phrase)
             except Exception as e:
                 logger.warning(f"[DEBUG_TTS] precache: retry failed '{phrase[:30]}': {e}")
+    _precache_active = False
     with _cache_lock:
         _cached_count = len(_audio_cache)
-    logger.info(f"[DEBUG_TTS] precache: Edge+RVC done in {time.time() - cache_start:.1f}s ({_cached_count} cached)")
+    elapsed = time.time() - cache_start
+    logger.info(f"[DEBUG_TTS] precache: Edge+RVC done in {elapsed:.1f}s ({_cached_count} cached)")
+    _precache_done.set()
 
     # Phase 2: Queue top-priority phrases for bg GPT-SoVITS upgrade (hybrid mode)
-    # These get processed by the bg worker during idle (on-demand subprocess)
     if TTS_MODE == "hybrid" and _sovits_available:
         priority_phrases = CACHED_PHRASES[:20]
         queued = 0
@@ -674,7 +693,6 @@ def precache_phrases():
             _rate = "+0%"
             _pitch = "+0Hz"
             cache_key = f"{EDGE_VOICE}:{phrase.strip().lower()}:{_rate}:{_pitch}"
-            # Skip if already have GPT-SoVITS quality (from disk cache)
             with _cache_lock:
                 if cache_key in _audio_cache and _is_disk_cached(cache_key):
                     continue
@@ -685,6 +703,15 @@ def precache_phrases():
                 break
         if queued > 0:
             logger.info(f"[DEBUG_TTS] precache: queued {queued} phrases for bg GPT-SoVITS upgrade")
+
+
+def synthesize_user(text: str, rate: str = None, pitch: str = None) -> bytes:
+    """User-priority TTS synthesis. Pauses precache while this runs."""
+    _user_tts_waiting.set()
+    try:
+        return synthesize(text, rate, pitch)
+    finally:
+        _user_tts_waiting.clear()
 
 
 def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
