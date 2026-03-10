@@ -3183,3 +3183,131 @@ def evolve_handshake(exchange_count: int) -> str:
 def reset_handshake_evolution():
     global _handshake_step
     _handshake_step = 0
+
+# ── Batch 45 ─────────────────────────────────────────────
+
+# "Did you know" random facts
+DID_YOU_KNOW = [
+    "Mario's full name is Mario Mario!",
+    "Mario was originally called 'Jumpman'!",
+    "Boo was inspired by the designer's shy wife!",
+    "Chain Chomps are based on a dog that scared Miyamoto!",
+    "Mario has appeared in over 200 games!",
+    "The Super Star music was composed in one day!",
+    "Yoshi was planned for the original SMB but couldn't fit!",
+    "Wario's name = 'warui' (bad in Japanese) + Mario!",
+]
+_fact_given = False
+
+def maybe_did_you_know(exchange_count: int) -> str:
+    global _fact_given
+    if _fact_given or exchange_count < 4:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _fact_given = True
+        return f"Share a fun fact: {random.choice(DID_YOU_KNOW)}"
+    return ""
+
+def reset_did_you_know():
+    global _fact_given
+    _fact_given = False
+
+# Recap game (summarize convo in exactly 5 words)
+_recap_game_used = False
+
+def maybe_recap_game(exchange_count: int) -> str:
+    global _recap_game_used
+    if _recap_game_used or exchange_count < 12:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _recap_game_used = True
+        return "Summarize your entire conversation in exactly 5 words!"
+    return ""
+
+def reset_recap_game():
+    global _recap_game_used
+    _recap_game_used = False
+
+# Sports talk reaction
+SPORTS_REACTIONS = {
+    "soccer": "Soccer! Mario Strikers is the BEST sports game!",
+    "football": "Football? Mario tackles Bowser every day!",
+    "basketball": "Basketball! Mario Hoops 3-on-3, baby!",
+    "baseball": "Baseball! Mario Super Sluggers home run!",
+    "tennis": "Tennis! Mario Tennis Aces—WAHOO serve!",
+    "golf": "Golf! Mario Golf—hole in one!",
+    "boxing": "Boxing! Punch-Out!! Mario was the referee!",
+    "racing": "Racing! Mario Kart is the ULTIMATE race!",
+}
+
+def check_sports_talk(text: str) -> str:
+    low = text.lower()
+    for sport, reaction in SPORTS_REACTIONS.items():
+        if sport in low:
+            return reaction
+    return ""
+
+# Philosophical question
+PHILOSOPHY = [
+    "If Mario dies and gets a 1-Up, is he the same Mario?",
+    "Do Goombas have families? Are we the bad guys?",
+    "If the princess is always in another castle, is the journey the real reward?",
+    "What came first—the egg or the Yoshi?",
+]
+_philosophy_used = False
+
+def maybe_philosophy(exchange_count: int) -> str:
+    global _philosophy_used
+    if _philosophy_used or exchange_count < 10:
+        return ""
+    import random
+    if random.random() < 0.05:
+        _philosophy_used = True
+        return f"Get philosophical: {random.choice(PHILOSOPHY)}"
+    return ""
+
+def reset_philosophy():
+    global _philosophy_used
+    _philosophy_used = False
+
+# Skill brag (Mario brags about something)
+_brag_used = False
+
+def maybe_skill_brag(exchange_count: int) -> str:
+    global _brag_used
+    if _brag_used or exchange_count < 7:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _brag_used = True
+        brags = [
+            "Brag about your triple jump skills!",
+            "Brag about defeating Bowser with your eyes closed!",
+            "Brag about your coin collection (it's millions!)",
+            "Brag about your world record pipe speed run!",
+        ]
+        return random.choice(brags)
+    return ""
+
+def reset_skill_brag():
+    global _brag_used
+    _brag_used = False
+
+# Gratitude burst (random appreciation moment)
+_gratitude_used = False
+
+def maybe_gratitude(exchange_count: int) -> str:
+    global _gratitude_used
+    if _gratitude_used or exchange_count < 8:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _gratitude_used = True
+        return "Express genuine gratitude for talking to them—heartfelt Mario moment!"
+    return ""
+
+def reset_gratitude():
+    global _gratitude_used
+    _gratitude_used = False

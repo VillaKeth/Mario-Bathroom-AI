@@ -985,6 +985,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if weather:
             reaction_parts.append(weather)
 
+        # Sports talk
+        sports = mario_prompt.check_sports_talk(text)
+        if sports:
+            reaction_parts.append(sports)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1397,6 +1402,36 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if hse:
                 conv_hint = hse
 
+        # Did you know
+        if not conv_hint:
+            dyk = mario_prompt.maybe_did_you_know(exchange_count)
+            if dyk:
+                conv_hint = dyk
+
+        # Recap game
+        if not conv_hint:
+            recap_g = mario_prompt.maybe_recap_game(exchange_count)
+            if recap_g:
+                conv_hint = recap_g
+
+        # Philosophy
+        if not conv_hint:
+            philo = mario_prompt.maybe_philosophy(exchange_count)
+            if philo:
+                conv_hint = philo
+
+        # Skill brag
+        if not conv_hint:
+            brag = mario_prompt.maybe_skill_brag(exchange_count)
+            if brag:
+                conv_hint = brag
+
+        # Gratitude burst
+        if not conv_hint:
+            grat = mario_prompt.maybe_gratitude(exchange_count)
+            if grat:
+                conv_hint = grat
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1715,6 +1750,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_tongue_twister()
         mario_prompt.reset_alter_ego()
         mario_prompt.reset_handshake_evolution()
+        mario_prompt.reset_did_you_know()
+        mario_prompt.reset_recap_game()
+        mario_prompt.reset_philosophy()
+        mario_prompt.reset_skill_brag()
+        mario_prompt.reset_gratitude()
 
         try:
             # Try to identify by audio
