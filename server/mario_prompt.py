@@ -1167,3 +1167,84 @@ def get_dynamic_goodbye(exchange_count: int, topics: set) -> str:
     else:
         category = "short"
     return random.choice(GOODBYE_TEMPLATES.get(category, GOODBYE_TEMPLATES["short"]))
+
+
+# ============================================================
+# BATCH 28: Conversation bookmarks, reaction suggestions, compliment generator
+# ============================================================
+
+# Conversation bookmarks — remember notable moments from this conversation
+_bookmarks = []
+
+def add_bookmark(user_text: str, exchange_count: int):
+    """Bookmark notable moments for potential callbacks."""
+    lower = user_text.lower()
+    # Bookmark if they share something personal or interesting
+    bookmark_triggers = ["my name", "i love", "i hate", "favorite", "i work", "i live",
+                         "my job", "my dog", "my cat", "my friend", "believe", "dream"]
+    for trigger in bookmark_triggers:
+        if trigger in lower and len(_bookmarks) < 5:
+            _bookmarks.append({"text": user_text[:80], "exchange": exchange_count})
+            break
+
+def get_bookmark_callback(exchange_count: int) -> str:
+    """Reference a bookmarked moment from earlier (8% after 5+ exchanges)."""
+    import random
+    if not _bookmarks or exchange_count < 5 or random.random() > 0.08:
+        return ""
+    bm = random.choice(_bookmarks)
+    if exchange_count - bm["exchange"] < 3:
+        return ""  # too recent
+    return f"Earlier they said: '{bm['text'][:50]}' — bring it up!"
+
+def reset_bookmarks():
+    """Reset bookmarks for new conversation."""
+    global _bookmarks
+    _bookmarks = []
+
+
+# Reaction suggestions — hint at what facial expression/animation to show
+REACTION_MAP = {
+    "laugh": ["haha", "lol", "funny", "joke", "lmao", "hilarious"],
+    "shock": ["what", "no way", "seriously", "really", "omg"],
+    "love": ["love", "beautiful", "amazing", "wonderful", "awesome", "great"],
+    "think": ["hmm", "wonder", "think", "maybe", "consider", "guess"],
+    "cry": ["sad", "miss", "lonely", "cry", "sorry", "lost"],
+    "anger": ["angry", "mad", "hate", "stupid", "terrible", "worst"],
+}
+
+def suggest_reaction(user_text: str) -> str:
+    """Suggest a reaction/expression based on user's message."""
+    lower = user_text.lower()
+    for reaction, triggers in REACTION_MAP.items():
+        if any(t in lower for t in triggers):
+            return reaction
+    return ""
+
+
+# Compliment generator — Mario gives genuine compliments
+COMPLIMENTS = [
+    "You know what? You're really fun to talk to!",
+    "Mario doesn't say this to everyone, but you're pretty cool!",
+    "You've got great taste! Mario approves!",
+    "If you were in the Mushroom Kingdom, you'd be a star!",
+    "You know, talking to you makes this whole bathroom gig worth it!",
+    "You're the kind of person Mario would team up with!",
+    "Honestly? Best conversation tonight! Don't tell the others!",
+]
+
+_compliment_given = False
+
+def maybe_give_compliment(exchange_count: int) -> str:
+    """Give a genuine compliment (10% after 5+ exchanges, one per visit)."""
+    global _compliment_given
+    import random
+    if _compliment_given or exchange_count < 5 or random.random() > 0.10:
+        return ""
+    _compliment_given = True
+    return f"Say: {random.choice(COMPLIMENTS)}"
+
+def reset_compliment():
+    """Reset compliment state."""
+    global _compliment_given
+    _compliment_given = False

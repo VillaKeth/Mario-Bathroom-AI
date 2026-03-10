@@ -1010,6 +1010,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         else:
             mario_prompt.update_convo_score(text, exchange_count)  # still track silently
 
+        # Bookmark callback
+        if not conv_hint:
+            bm_hint = mario_prompt.get_bookmark_callback(exchange_count)
+            if bm_hint:
+                conv_hint = bm_hint
+
+        # Compliment
+        if not conv_hint:
+            comp = mario_prompt.maybe_give_compliment(exchange_count)
+            if comp:
+                conv_hint = comp
+
+        # Always track bookmarks (even if not used as hint)
+        mario_prompt.add_bookmark(text, exchange_count)
+
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
@@ -1071,6 +1086,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_text = mario_prompt.maybe_add_trivia(response_text, exchange_count)
 
     analyzed = analyze_text(response_text)
+    # Use reaction suggestion to enhance pose if none detected
+    if not analyzed.get("pose_hint"):
+        reaction = mario_prompt.suggest_reaction(text)
+        if reaction:
+            pose_map = {"laugh": "emotion/laugh", "shock": "emotion/surprise",
+                        "love": "emotion/happy", "think": "idle/think",
+                        "cry": "emotion/sad", "anger": "emotion/angry"}
+            analyzed["pose_hint"] = pose_map.get(reaction, "")
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
     # Trim BEFORE appending to stay within limit
@@ -1234,6 +1257,8 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_achievements()
         mario_prompt.reset_collab_story()
         mario_prompt.reset_quiz()
+        mario_prompt.reset_bookmarks()
+        mario_prompt.reset_compliment()
 
         try:
             # Try to identify by audio

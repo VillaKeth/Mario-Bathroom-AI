@@ -693,6 +693,10 @@
 - [x] Mario quiz mode: 8 trivia questions with answer checking (6% trigger after 6+ exchanges)
 - [x] Conversation puzzles: 5 riddles/brain teasers dropped naturally (5% after 7+ exchanges)
 - [x] Dynamic goodbyes: topic-aware farewell messages (short/long/food/gaming categories)
+- [x] Conversation bookmarks: remembers notable moments for later callbacks (8% trigger)
+- [x] Reaction suggestions: maps user mood to Mario poses (laugh/shock/love/think/cry/anger)
+- [x] Compliment generator: 7 genuine compliments (10% trigger after 5+ exchanges, one per visit)
+- [x] Pose enhancement: reaction-based pose fallback when no other pose detected
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
