@@ -81,6 +81,22 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     import re as _re
     clean_text = text
 
+    # Strip control characters (newlines, tabs, carriage returns cause garbled output)
+    clean_text = clean_text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+
+    # Replace non-standard words that GPT-SoVITS mispronounces
+    clean_text = _re.sub(r'\bhmm+\b', 'hm', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bumm+\b', 'um', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\buhh+\b', 'uh', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bahh+\b', 'ah', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bohh+\b', 'oh', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text)  # non-standard → standard
+    clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bbrrr+\b', 'brrr', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bshh+\b', 'shh', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bpfft+\b', 'pfft', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bmwah+\b', 'mwah', clean_text, flags=_re.IGNORECASE)
+
     # Collapse repeated characters that cause letter-by-letter pronunciation
     # "YAAAAYYYY" → "YAAY", "BAAAAAALLS" → "BAALLS", "AHHHAARRRRRGGGGHHH" → "AHHAARRGGHH"
     clean_text = _re.sub(r'(.)\1{2,}', r'\1\1', clean_text)
