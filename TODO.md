@@ -72,8 +72,23 @@
 - [x] Fix "tick tock" not being removed (added to sfx pattern)
 - [x] Added first-letter capitalization after all text cleaning
 - [x] Added empty-text guard (all-sfx text returns silence, not crash)
+- [x] Built automated TTS verification pipeline (verify_tts.py: Whisper transcription comparison)
+- [x] Ran full 73-phrase verification: 35 GOOD, 14 OK, 17 WEAK, 7 BAD
+- [x] Fixed critical numpy import scoping bug (GPT-SoVITS was broken for ALL calls, silently falling back to Edge TTS)
+- [x] Fixed empty-text silence return type (numpy array → WAV file for JSON serialization)
+- [x] Added number-to-words conversion (0-999) for better TTS pronunciation
+- [x] Added percentage spelling ("50%" → "fifty percent")
+- [x] Added Goomba/Koopa phonetic replacements (tested, reverted — original spelling works better)
+- [x] Added non-contraction quote removal (keeps don't, removes 'quoted text')
+- [x] Built ralph_tts_loop.py automated quality iteration system (73 phrases, alternatives testing)
+- [x] Fixed ellipsis garbling ("..." → comma pause) — massive improvement (#58: 17% → 100%)
+- [x] Added interjection phonetics ("Ha He" → "Hah hey", "Ha ha ha" → "Hah hah hah", "Da da da" → "Dah dah dah")
+- [x] Completed 3 ralph loop rounds: R1=71%, R3=63% (GPT-SoVITS has ~10% non-deterministic variation)
+- [ ] Fix short-phrase TTS garbling (pad 2-3 word phrases with context for GPT-SoVITS)
+- [ ] Fix "Bowzer" still mispronounced in some contexts (#31, #52)
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
 - [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
+- [ ] Consider Edge TTS fallback for very short phrases (<4 words)
 
 
 ## ✅ Completed

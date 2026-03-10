@@ -32,6 +32,22 @@ DEFAULT_REF_AUDIO = os.path.join(MODEL_DIR, "mario_ref.wav")
 OUTPUT_DIR = os.path.join(BASE_DIR, "server", "tts_cache")
 
 
+def _num_to_words(n):
+    """Convert integer 0-999 to English words for TTS pronunciation."""
+    ones = ['zero','one','two','three','four','five','six','seven','eight','nine',
+            'ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen',
+            'seventeen','eighteen','nineteen']
+    tens_w = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety']
+    if not isinstance(n, int) or n < 0 or n > 999:
+        return str(n)
+    if n < 20:
+        return ones[n]
+    elif n < 100:
+        return tens_w[n // 10] + ('' if n % 10 == 0 else ' ' + ones[n % 10])
+    else:
+        return ones[n // 100] + ' hundred' + ('' if n % 100 == 0 else ' ' + _num_to_words(n % 100))
+
+
 def init_pipeline():
     """Initialize GPT-SoVITS pipeline — loads models onto GPU.
     
@@ -102,6 +118,7 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
 
     # Replace non-standard words with pronounceable alternatives
     clean_text = _re.sub(r'\bbowser\b', 'Bowzer', clean_text, flags=_re.IGNORECASE)
+    # Goomba/Koopa: keep original spelling (phonetic "Goombah" tested worse)
     clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bokie\b', 'okey', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bdokie\b', 'dokey', clean_text, flags=_re.IGNORECASE)
@@ -113,6 +130,24 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'\byippee+\b', 'yippee', clean_text, flags=_re.IGNORECASE)
     # Number fractions: "10/10" → "10 out of 10"
     clean_text = _re.sub(r'(\d+)\s*/\s*(\d+)', r'\1 out of \2', clean_text)
+
+    # Convert percentages to spoken form: "50%" → "fifty percent"
+    def _pct_repl(m):
+        try:
+            n = int(m.group(1))
+            return (_num_to_words(n) if 0 <= n <= 999 else m.group(1)) + ' percent'
+        except ValueError:
+            return m.group(0)
+    clean_text = _re.sub(r'(\d+)%', _pct_repl, clean_text)
+
+    # Convert standalone numbers (0-999) to words for better pronunciation
+    def _num_repl(m):
+        try:
+            n = int(m.group(0))
+            return _num_to_words(n) if 0 <= n <= 999 else m.group(0)
+        except ValueError:
+            return m.group(0)
+    clean_text = _re.sub(r'\b\d{1,3}\b', _num_repl, clean_text)
 
     # Collapse repeated characters — vowels to 1, consonants to 2
     # "BAAAAAALLS" → "BALLS", "YAAAAY" → "YAY", "BRRRR" → "BRR"
@@ -136,6 +171,13 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'\s+-+\s+', ', ', clean_text)
     # Step 3: Remove ALL remaining hyphens (leading, trailing, multiple dashes)
     clean_text = _re.sub(r'-+', '', clean_text)
+
+    # Interjection phonetics — must run AFTER hyphen removal & char collapse
+    # "Ha He!" → "Hah hey!", "Ha ha ha" → "Hah hah hah", "Da da da" → "Dah dah dah"
+    clean_text = _re.sub(r'\bha\s+he\b', 'hah hey', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bha(?:\s+ha)+\b', lambda m: ' '.join(['hah'] * len(m.group().split())), clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bha\b(?=[!.,?])', 'hah', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bda(?:\s+da)+\b', lambda m: ' '.join(['dah'] * len(m.group().split())), clean_text, flags=_re.IGNORECASE)
 
     # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
@@ -161,16 +203,19 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = clean_text.replace('/', ' ')  # Slashes → space
     clean_text = clean_text.replace('\\', ' ')  # Backslashes → space
     clean_text = clean_text.replace('_', ' ')  # Underscores → space
-    clean_text = clean_text.replace('…', '...')  # Normalize ellipsis
+    clean_text = clean_text.replace('…', ', ')  # Smart ellipsis → comma pause
+    clean_text = clean_text.replace('...', ', ')  # Ellipsis → comma pause (TTS garbles dots)
     clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
     clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
     clean_text = clean_text.replace('"', '')  # Remove remaining quotes (TTS reads them)
+    # Remove non-contraction single quotes: 'hello' → hello, but keep don't, it's
+    clean_text = _re.sub(r"(?<![a-zA-Z])'|'(?![a-zA-Z])", '', clean_text)
     clean_text = clean_text.replace('—', ', ').replace('–', ', ')  # Em/en dashes → comma
     # Remove excessive punctuation ("?!?!" → "?!")
     clean_text = _re.sub(r'([!?])\1+', r'\1', clean_text)
     clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
-    # Remove excessive dots ("....." → "...")
-    clean_text = _re.sub(r'\.{4,}', '...', clean_text)
+    # Remove excessive dots (shouldn't occur after ellipsis→comma conversion, but safety)
+    clean_text = _re.sub(r'\.{3,}', ', ', clean_text)
     # Clean up multiple commas/spaces from substitutions
     clean_text = _re.sub(r',\s*,', ',', clean_text)
     # Strip leading/trailing punctuation left from removals
@@ -182,12 +227,15 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     if clean_text and clean_text[0].islower():
         clean_text = clean_text[0].upper() + clean_text[1:]
 
-    # If text was entirely sound effects/filler, return silence
+    # If text was entirely sound effects/filler, return a short silence file
     if not clean_text or len(clean_text.strip()) == 0:
         if DEBUG_SOVITS:
             print(f"[sovits] ORIGINAL: '{text[:100]}' → EMPTY after cleaning, returning silence", file=sys.stderr)
-        import numpy as np
-        return np.zeros(16000, dtype=np.float32), 32000
+        silence = np.zeros(16000, dtype=np.float32)  # 0.5s silence at 32kHz
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        silence_path = os.path.join(OUTPUT_DIR, f"silence_{int(time.time()*1000)}.wav")
+        sf.write(silence_path, silence, 32000)
+        return silence_path, 0.5
 
     if DEBUG_SOVITS:
         if clean_text != text:

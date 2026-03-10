@@ -1,0 +1,124 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+============================================================
+ROUND 3 (loop 1/1)
+============================================================
+   1. + [92%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. ~ [86%] OK    | What's a going on?
+   4. + [100%] GOOD  | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. X [27%] BAD   "Take a care!" -> "Cut the two!"
+   7. ~ [82%] OK    | This a soap dispenser is very modern!
+   8. + [91%] GOOD  | Not like a my castle pipes!
+   9. + [97%] GOOD  | Time flies a when you're having fun!
+  10. ! [71%] WEAK  "Good a time to recharge!" -> "This is the time to recharge."
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. ! [65%] WEAK  "Bowzer is mean, but I still win!" -> "Heave, I was mean. I STILL WOOOOON!"
+  13. ! [68%] WEAK  "One coin, two coins, three coins!" -> "One coin! Two coins! Ha-ha-ha-ha-ha!"
+  14. + [92%] GOOD  | The mushroom kingdom, what a place!
+  15. ! [65%] WEAK  "Bathroom breaks, very important!" -> "Very very important"
+  16. ~ [84%] OK    | Mine cart madness!
+  17. ~ [86%] OK    | Hah hey! I'm Mario!
+  18. + [100%] GOOD  | That was amazing!
+  19. ~ [77%] OK    | Bowzer is going Down!
+  20. ~ [87%] OK    | I found a Mushroom and a Star!
+  21. + [98%] GOOD  | Mama Mia that's incredible!
+  22. ! [74%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the minute, Fungion Boogie."
+  23. + [93%] GOOD  | The Power of the Fire Flower!
+  24. + [100%] GOOD  | Let me think!
+  25. + [100%] GOOD  | I wonder what Luigi is doing
+  26. ! [71%] WEAK  "I'm not sure about that." -> "Make sure about that, there!"
+  27. + [100%] GOOD  | Maybe try again?
+  28. + [100%] GOOD  | That feels nice!
+  29. + [100%] GOOD  | What a surprise!
+  30. + [94%] GOOD  | It's cold in here!
+  31. ! [56%] WEAK  "Bowzer might hear us!" -> "Hey, I might kill us!"
+  32. X [33%] BAD   "Here we go!" -> "Ew!"
+  33. X [0%] BAD   "Okey dokey!" -> "I"
+  34. + [95%] GOOD  | I wonder if Chain Chomps count as pets? They're very bi
+  35. + [100%] GOOD  | That's nothing!
+  36. ! [69%] WEAK  "Dah dah dah! Level complete!" -> "And then, level complete!"
+  37. + [100%] GOOD  | Jump jump jump!
+  38. ~ [88%] OK    | There goes the fireball!
+  39. X [0%] BAD   "Bathroom fun!" -> ""
+  40. X [36%] BAD   "Hurry up!" -> "Hey!"
+  41. X [49%] BAD   "Another Goomba defeated!" -> "a natal kumbata fitter."
+  42. ~ [77%] OK    | The mushroom kingdom.. dah dah dah!
+  43. + [100%] GOOD  | Super Star Power!
+  44. ! [70%] WEAK  "I give it a ten out of ten!" -> "I'll give it the 10 out of 10."
+  45. ! [66%] WEAK  "The score is one hundred and counting!" -> "This score is 100 in the counting."
+  46. ! [67%] WEAK  "Email me at mario at mushroom.kingdom" -> "Meet me at Mario at my room. Hoooo!"
+  47. ! [70%] WEAK  "It's fifty percent off on mushrooms!" -> "It's a 10% off on the mushrooms!"
+  48. + [93%] GOOD  | Afternoon break! Good time to recharge!
+  49. ~ [79%] OK    | Hello there! How are you doing today?
+  50. ! [57%] WEAK  "Line one. Line two. Line three." -> "Line 1, line, line 3."
+  51. ! [71%] WEAK  "Yay! I won!" -> "I won!"
+  52. X [0%] BAD   "No! Bowzer got me!" -> "Fauci!"
+  53. + [100%] GOOD  | Let's go!
+  54. ! [70%] WEAK  "Balls of fire!" -> "So fire!"
+  55. + [100%] GOOD  | So excited right now!
+  56. ~ [83%] OK    | Help! Someone help!
+  57. + [92%] GOOD  | What?! You defeated Bowzer?!
+  58. + [100%] GOOD  | Amazing, just, amazing
+  59. ~ [76%] OK    | Wait, really?!
+  60. ! [58%] WEAK  "Hah hah hah! That's hilarious!" -> "Ha ha ha ha ha! Let's heal him!"
+  61. + [100%] GOOD  | Can you hear me?
+  62. + [100%] GOOD  | The answer is: Mushroom!
+  63. ! [56%] WEAK  "quoted speech is fun!" -> "It's beach, it's a fun!"
+  64. + [99%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ! [70%] WEAK  "I once traveled through eight worlds, defeate" -> "travel through eight worlds. The seated count"
+  66. + [100%] GOOD  | The party is in full swing! What a night!
+  67. + [100%] GOOD  | Evening bathroom visits are the best! The lighting is s
+  68. X [42%] BAD   "Afternoon already! Time flies when you're hav" -> "I have to know no already. Fine!"
+  69. ~ [85%] OK    | I bet Toad would appreciate this tile pattern. Very mus
+  70. + [90%] GOOD  | This bathroom is cleaner than Bowzer's castle!
+  71. X [49%] BAD   "Did you know? In Super Mario sixty four, I ca" -> "Did you know? In Super Mario 64!"
+  72. + [100%] GOOD  | I wonder what Luigi is doing right now
+  73. + [99%] GOOD  | Mama mia, the acoustics in here are perfect for singing
+
+  Score: 33 GOOD, 13 OK, 18 WEAK, 9 BAD / 73 total
+  Quality: 63.0% acceptable (GOOD+OK)
+
+  Problem phrases (27):
+    #6: [27%] "Take a care!" -> "Cut the two!"
+    #10: [71%] "Good a time to recharge!" -> "This is the time to recharge."
+    #12: [65%] "Bowzer is mean, but I still win!" -> "Heave, I was mean. I STILL WOOOOON!"
+    #13: [68%] "One coin, two coins, three coins!" -> "One coin! Two coins! Ha-ha-ha-ha-ha!"
+    #15: [65%] "Bathroom breaks, very important!" -> "Very very important"
+    #22: [74%] "Suction To The Beat! Plunge and boogie!" -> "Section to the minute, Fungion Boogie."
+    #26: [71%] "I'm not sure about that." -> "Make sure about that, there!"
+    #31: [56%] "Bowzer might hear us!" -> "Hey, I might kill us!"
+    #32: [33%] "Here we go!" -> "Ew!"
+    #33: [0%] "Okey dokey!" -> "I"
+    #36: [69%] "Dah dah dah! Level complete!" -> "And then, level complete!"
+    #39: [0%] "Bathroom fun!" -> ""
+    #40: [36%] "Hurry up!" -> "Hey!"
+    #41: [49%] "Another Goomba defeated!" -> "a natal kumbata fitter."
+    #44: [70%] "I give it a ten out of ten!" -> "I'll give it the 10 out of 10."
+    #45: [66%] "The score is one hundred and counting!" -> "This score is 100 in the counting."
+    #46: [67%] "Email me at mario at mushroom.kingdom" -> "Meet me at Mario at my room. Hoooo!"
+    #47: [70%] "It's fifty percent off on mushrooms!" -> "It's a 10% off on the mushrooms!"
+    #50: [57%] "Line one. Line two. Line three." -> "Line 1, line, line 3."
+    #51: [71%] "Yay! I won!" -> "I won!"
+    #52: [0%] "No! Bowzer got me!" -> "Fauci!"
+    #54: [70%] "Balls of fire!" -> "So fire!"
+    #60: [58%] "Hah hah hah! That's hilarious!" -> "Ha ha ha ha ha! Let's heal him!"
+    #63: [56%] "quoted speech is fun!" -> "It's beach, it's a fun!"
+    #65: [70%] "I once traveled through eight worlds, de" -> "travel through eight worlds. The seated "
+    #68: [42%] "Afternoon already! Time flies when you'r" -> "I have to know no already. Fine!"
+    #71: [49%] "Did you know? In Super Mario sixty four," -> "Did you know? In Super Mario 64!"
+
+============================================================
+FINAL SUMMARY
+============================================================
+  Rounds completed: 3
+  Latest: 33 GOOD, 13 OK, 18 WEAK, 9 BAD
+
+  Progress:
+    Round 1: 71% acceptable (32G+20O / 73)
+    Round 2: 63% acceptable (33G+13O / 73)
+    Round 3: 63% acceptable (33G+13O / 73)
