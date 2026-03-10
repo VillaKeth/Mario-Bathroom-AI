@@ -2694,3 +2694,139 @@ def get_catchphrase_milestone() -> str:
 def reset_catchphrase_count():
     global _catchphrase_count
     _catchphrase_count = 0
+
+# ── Batch 41 ─────────────────────────────────────────────
+
+# Mirror commentary (when user mentions mirror/reflection)
+MIRROR_COMMENTS = [
+    "Comment on how fabulous they look in the mirror",
+    "Pretend to fix your own mustache in the mirror",
+    "Rate their mirror selfie pose out of 10",
+    "Challenge them to a mirror staring contest",
+]
+
+def check_mirror(text: str) -> str:
+    low = text.lower()
+    if any(w in low for w in ["mirror", "reflection", "selfie", "look at myself"]):
+        import random
+        return random.choice(MIRROR_COMMENTS)
+    return ""
+
+# Countdown mode (dramatic countdowns for random things)
+_countdown_used = False
+
+def maybe_countdown(exchange_count: int) -> str:
+    global _countdown_used
+    if _countdown_used or exchange_count < 8:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _countdown_used = True
+        topics = [
+            "Do a dramatic 3-2-1 countdown then reveal something silly",
+            "Countdown to 'the moment of truth' then say something random",
+            "Build suspense with 3-2-1 then compliment them",
+        ]
+        return random.choice(topics)
+    return ""
+
+def reset_countdown():
+    global _countdown_used
+    _countdown_used = False
+
+# Excuse generator (why they took so long)
+EXCUSES = [
+    "Offer excuse: 'tell them you were fighting Bowser in here'",
+    "Offer excuse: 'say the toilet was a warp pipe and you traveled'",
+    "Offer excuse: 'blame it on a very important mushroom inspection'",
+    "Offer excuse: 'say you were on a phone call with Princess Peach'",
+    "Offer excuse: 'claim you found a hidden star in the bathroom'",
+]
+_excuse_given = False
+
+def maybe_excuse(exchange_count: int) -> str:
+    global _excuse_given
+    if _excuse_given or exchange_count < 12:
+        return ""
+    import random
+    if random.random() < 0.10:
+        _excuse_given = True
+        return random.choice(EXCUSES)
+    return ""
+
+def reset_excuse():
+    global _excuse_given
+    _excuse_given = False
+
+# Party role assignment
+PARTY_ROLES = [
+    "You are now the Official Party Plumber!",
+    "You are now the Royal Mushroom Taster!",
+    "You are now the Star Collector General!",
+    "You are now the Chief Coin Inspector!",
+    "You are now the Honorary Pipe Engineer!",
+    "You are now the Vice President of Wahoo-ing!",
+]
+_role_assigned = False
+
+def maybe_assign_role(exchange_count: int) -> str:
+    global _role_assigned
+    if _role_assigned or exchange_count < 6:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _role_assigned = True
+        return f"Assign them a party role: {random.choice(PARTY_ROLES)}"
+    return ""
+
+def reset_role():
+    global _role_assigned
+    _role_assigned = False
+
+# Word of the day
+WORDS_OF_DAY = [
+    ("Fungible", "like a mushroom—replaceable but still special!"),
+    ("Plumbastic", "a word Mario just invented—means fantastic at plumbing!"),
+    ("Koopa-fied", "when something surprises you like a Koopa shell!"),
+    ("Star-struck", "not celebrity star—actual Power Star!"),
+    ("Pipe-dream", "a dream you have while traveling through pipes!"),
+]
+_word_given = False
+
+def maybe_word_of_day(exchange_count: int) -> str:
+    global _word_given
+    if _word_given or exchange_count < 9:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _word_given = True
+        word, defn = random.choice(WORDS_OF_DAY)
+        return f"Share word of the day: '{word}' — {defn}"
+    return ""
+
+def reset_word_of_day():
+    global _word_given
+    _word_given = False
+
+# Audience participation prompt
+AUDIENCE_PROMPTS = [
+    "Ask them to clap twice if they agree",
+    "Ask them to stomp like a Goomba",
+    "Ask them to say 'wahoo' on the count of 3",
+    "Ask them to do their best jump sound effect",
+]
+_audience_used = False
+
+def maybe_audience_prompt(exchange_count: int) -> str:
+    global _audience_used
+    if _audience_used or exchange_count < 7:
+        return ""
+    import random
+    if random.random() < 0.05:
+        _audience_used = True
+        return random.choice(AUDIENCE_PROMPTS)
+    return ""
+
+def reset_audience():
+    global _audience_used
+    _audience_used = False
