@@ -776,24 +776,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
 
-        # Mood context
+        # Mood context (short hints only — small model can't process long instructions)
         detected_mood = state_current.get("_detected_mood")
         if detected_mood == "drunk":
-            ctx.append({"role": "system", "content": "The person seems tipsy/drunk. Be extra funny, keep them safe, suggest water. Don't judge them — be supportive and playful."})
+            ctx.append({"role": "system", "content": "Person seems tipsy. Be funny, suggest water."})
         elif detected_mood == "sad":
-            ctx.append({"role": "system", "content": "The person seems sad or upset. Be extra kind and supportive. Cheer them up gently. You're their friend."})
+            ctx.append({"role": "system", "content": "Person seems sad. Be kind, cheer them up."})
         elif detected_mood == "angry":
-            ctx.append({"role": "system", "content": "The person seems frustrated or angry. Be calm, empathetic, and try to lighten the mood gently. Don't escalate."})
+            ctx.append({"role": "system", "content": "Person seems frustrated. Be calm, lighten mood."})
 
-        # Conversation momentum — shift personality based on exchange count
+        # Conversation momentum — short personality shift hints
         exchange_count = len(state_current["conversation_history"]) // 2
         if exchange_count >= 8:
-            ctx.append({"role": "system", "content": "You've been chatting a while! Be more familiar, teasing, and personal. Reference things from earlier in the conversation. Act like old friends."})
+            ctx.append({"role": "system", "content": "You're old friends now. Be teasing and familiar."})
         elif exchange_count >= 4:
-            ctx.append({"role": "system", "content": "You're warming up! Be more playful and curious. Ask follow-up questions. Show genuine interest."})
+            ctx.append({"role": "system", "content": "Getting comfortable. Be playful, ask questions."})
 
-        # Conversation history — validate each entry, use more context for longer chats
-        hist_window = min(20, len(state_current["conversation_history"]))
+        # Conversation history — keep window small for fast LLM on 1.5B model
+        hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)

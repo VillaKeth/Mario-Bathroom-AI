@@ -60,7 +60,7 @@ EMOTION_DESCRIPTIONS = {
 
 
 class EmotionSystem:
-    """Tracks Mario's current emotional state."""
+    """Tracks Mario's current emotional state and rolling sentiment."""
 
     def __init__(self):
         self.current = Emotion.HAPPY
@@ -69,6 +69,9 @@ class EmotionSystem:
         self._last_interaction = time.time()
         self._lock = threading.Lock()
         self._visitor_count = 0
+        # Rolling sentiment tracker — average mood over recent exchanges
+        self._sentiment_history = []  # list of (timestamp, score) — score: -1.0 to +1.0
+        self._conversation_energy = 0.5  # 0=dead, 1=high energy
 
     def update(self, event: str = None, transcript: str = None):
         """Update emotion based on events and conversation."""
@@ -207,6 +210,21 @@ class EmotionSystem:
         if transcript or event:
             self._last_change = time.time()
 
+        # Update rolling sentiment from transcript
+        if transcript and len(transcript.split()) >= 2:
+            score = self._score_sentiment(transcript)
+            self._sentiment_history.append((time.time(), score))
+            # Keep only last 10 entries
+            if len(self._sentiment_history) > 10:
+                self._sentiment_history = self._sentiment_history[-10:]
+            # Update conversation energy based on message frequency
+            if len(self._sentiment_history) >= 2:
+                time_gap = self._sentiment_history[-1][0] - self._sentiment_history[-2][0]
+                if time_gap < 10:
+                    self._conversation_energy = min(1.0, self._conversation_energy + 0.1)
+                elif time_gap > 30:
+                    self._conversation_energy = max(0.2, self._conversation_energy - 0.1)
+
         if DEBUG_EMOTION:
             logger.info(f"[DEBUG_EMOTION] update: {self.current} (intensity={self.intensity:.1f})")
 
@@ -216,10 +234,60 @@ class EmotionSystem:
             return EMOTION_VOICE_MAP.get(self.current, EMOTION_VOICE_MAP[Emotion.NEUTRAL])
 
     def get_prompt_addition(self) -> str:
-        """Get text to add to LLM prompt about current emotion."""
+        """Get text to add to LLM prompt about current emotion. Kept short for small models."""
         with self._lock:
             desc = EMOTION_DESCRIPTIONS.get(self.current, "")
-            return f"[MOOD: {self.current.upper()}]: {desc}"
+            prompt = f"[MOOD: {self.current.upper()}]: {desc}"
+            # Only add energy/sentiment hints if they're notable
+            if self._conversation_energy >= 0.8:
+                prompt += " HIGH energy!"
+            elif self._conversation_energy <= 0.3:
+                prompt += " Chill vibes."
+            if self._sentiment_history:
+                total = 0.0
+                weight = 0.0
+                for i, (_, score) in enumerate(self._sentiment_history):
+                    w = 1.0 + i * 0.5
+                    total += score * w
+                    weight += w
+                avg = total / weight if weight else 0.0
+                if avg < -0.3:
+                    prompt += " Lift the mood!"
+                elif avg > 0.5:
+                    prompt += " Great vibes!"
+            return prompt
+
+    def _score_sentiment(self, text: str) -> float:
+        """Score a message's sentiment from -1.0 (negative) to +1.0 (positive)."""
+        lower = text.lower()
+        score = 0.0
+        positive_words = ["love", "awesome", "amazing", "great", "best", "happy", "fun", "cool",
+                          "nice", "sweet", "thanks", "good", "wow", "excited", "beautiful",
+                          "wonderful", "perfect", "excellent", "fantastic", "incredible"]
+        negative_words = ["hate", "sucks", "stupid", "annoying", "worst", "ugly", "terrible",
+                          "boring", "sad", "angry", "mad", "frustrated", "ugh", "gross",
+                          "disgusting", "awful", "horrible", "bad", "upset", "stressed"]
+        for w in positive_words:
+            if w in lower:
+                score += 0.2
+        for w in negative_words:
+            if w in lower:
+                score -= 0.2
+        return max(-1.0, min(1.0, score))
+
+    def get_rolling_sentiment(self) -> float:
+        """Get the average sentiment over recent exchanges. -1.0 to +1.0."""
+        with self._lock:
+            if not self._sentiment_history:
+                return 0.0
+            # Weight recent entries more heavily
+            total = 0.0
+            weight = 0.0
+            for i, (_, score) in enumerate(self._sentiment_history):
+                w = 1.0 + i * 0.5  # Later entries get more weight
+                total += score * w
+                weight += w
+            return total / weight if weight else 0.0
 
     @property
     def animation_state(self) -> str:

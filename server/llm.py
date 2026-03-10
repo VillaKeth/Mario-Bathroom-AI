@@ -133,6 +133,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
     """Send messages to Ollama and get Mario's response.
 
     Uses streaming internally for faster first-token, but returns complete text.
+    Dynamic temperature: higher for humor/fun, lower for questions/facts.
     """
     if DEBUG_LLM:
         logger.info(f"[DEBUG_LLM] generate_response: START, transcript={transcript}")
@@ -142,9 +143,19 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
     if transcript:
         messages.append({"role": "user", "content": transcript})
 
-    temp = 0.85 + random.uniform(-0.05, 0.10)
+    # Dynamic temperature based on input content
+    base_temp = 0.85
+    if transcript:
+        lower = transcript.lower()
+        if any(w in lower for w in ["joke", "funny", "laugh", "roast", "dare", "crazy", "wild"]):
+            base_temp = 0.95  # More creative for humor
+        elif any(w in lower for w in ["?", "what", "how", "why", "when", "where", "who"]):
+            base_temp = 0.75  # More focused for questions
+        elif any(w in lower for w in ["sad", "upset", "angry", "mad", "hate", "crying"]):
+            base_temp = 0.70  # More careful/empathetic for emotional topics
+    temp = base_temp + random.uniform(-0.05, 0.05)
     if DEBUG_LLM:
-        logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, model={MODEL_NAME}")
+        logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, base={base_temp}, model={MODEL_NAME}")
 
     payload = {
         "model": MODEL_NAME,
@@ -153,7 +164,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         "options": {
             "temperature": round(temp, 2),
             "top_p": 0.9,
-            "num_predict": 60,
+            "num_predict": 50,
             "repeat_penalty": 1.3,
             "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
         },
