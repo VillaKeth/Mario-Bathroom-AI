@@ -21,7 +21,7 @@
         "game_max_attempts_riddle": 5,
         "game_max_rounds_word_chain": 10,
         "game_max_rounds_rapid_fire": 15,
-        "conversation_history_limit": 28,
+        "conversation_history_limit": 40,
         "command_cooldown_seconds": 1.0,
         "text_input_cooldown_seconds": 2.0,
         "llm_timeout_seconds": 30,

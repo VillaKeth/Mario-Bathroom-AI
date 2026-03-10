@@ -622,3 +622,20 @@
 - [x] Verified shared state_current is by-design for single-user bathroom bot
 - [x] Verified party_stats uses parameterized SQL queries (no injection risk)
 - [x] Verified idle_behavior bathroom humor is intentional for bathroom bot
+
+## Conversation Quality Overhaul (Neuro-sama style)
+- [x] Increased LLM num_predict from 35→60 tokens (longer, more expressive responses)
+- [x] Raised response length cap from 80→120 chars (matches GPT-SoVITS sentence limit)
+- [x] Enhanced system prompt with deeper personality (unpredictable, opinionated, competitive, teasing)
+- [x] Increased conversation history limit from 28→40 messages (20 exchanges)
+- [x] Added conversation momentum injection (personality shifts after 4/8 exchanges)
+- [x] Expanded history window from 12→20 messages in LLM context
+- [x] Added contextual idle behavior (get_contextual_idle riffs on recent conversation topics)
+- [x] Contextual idle covers 8 topic categories (food, music, work, games, pets, drinks, love, generic)
+- [x] Integration test 3/3 passing with improved conversation quality
+- [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
+- [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
+- [ ] Add topic threading (detect when user circles back to earlier topic)
+- [ ] Add sentiment tracking (rolling 5-message mood average)
+- [ ] Add dynamic temperature (higher for jokes, lower for facts)
+- [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

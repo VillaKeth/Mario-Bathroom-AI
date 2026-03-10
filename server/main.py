@@ -653,7 +653,9 @@ async def _idle_loop(ws: WebSocket):
                         state_current["_last_time_obs"] = time.time()
                 continue
 
-        action = idle_behavior.get_idle_action()
+        # Try context-aware idle first (riffs on recent conversation topics)
+        contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
+        action = contextual or idle_behavior.get_idle_action()
         # Occasionally inject time-aware comments
         time_comment = idle_behavior.get_time_comment()
         if time_comment and random.random() < 0.15:
@@ -783,8 +785,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         elif detected_mood == "angry":
             ctx.append({"role": "system", "content": "The person seems frustrated or angry. Be calm, empathetic, and try to lighten the mood gently. Don't escalate."})
 
-        # Conversation history (12 messages = 6 exchanges) — validate each entry
-        for msg in state_current["conversation_history"][-12:]:
+        # Conversation momentum — shift personality based on exchange count
+        exchange_count = len(state_current["conversation_history"]) // 2
+        if exchange_count >= 8:
+            ctx.append({"role": "system", "content": "You've been chatting a while! Be more familiar, teasing, and personal. Reference things from earlier in the conversation. Act like old friends."})
+        elif exchange_count >= 4:
+            ctx.append({"role": "system", "content": "You're warming up! Be more playful and curious. Ask follow-up questions. Show genuine interest."})
+
+        # Conversation history — validate each entry, use more context for longer chats
+        hist_window = min(20, len(state_current["conversation_history"]))
+        for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
 
