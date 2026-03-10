@@ -95,13 +95,13 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     # Also handle single ALL-CAP words at sentence start
     clean_text = _re.sub(r'(?<=[.!?]\s)[A-Z]{2,}\b', _normalize_caps, clean_text)
 
-    # Remove ALL hyphens between word characters (GPT-SoVITS reads "-" as "minus")
-    # "It's-a me" → "It's a me", "1-Up" → "1 Up", "wash-a" → "wash a"
+    # Remove ALL hyphens — GPT-SoVITS either reads "-" as "minus" or produces silence
+    # Step 1: "word-word" → "word word" (compound words keep space)
     clean_text = _re.sub(r'(?<=\w)-(?=\w)', ' ', clean_text)
-    # Remove trailing hyphens: "It's-a!" → "It's a!"
-    clean_text = _re.sub(r'(?<=\w)-(?=[^a-zA-Z0-9])', '', clean_text)
-    # Remove leading hyphens: "-a" at start
-    clean_text = _re.sub(r'(?<=[^a-zA-Z0-9])-(?=\w)', '', clean_text)
+    # Step 2: " - " freestanding hyphens → comma pause
+    clean_text = _re.sub(r'\s+-+\s+', ', ', clean_text)
+    # Step 3: Remove ALL remaining hyphens (leading, trailing, multiple dashes)
+    clean_text = _re.sub(r'-+', '', clean_text)
 
     # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
@@ -142,6 +142,8 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
 
     if DEBUG_SOVITS:
+        if clean_text != text:
+            print(f"[sovits] ORIGINAL: '{text[:100]}'", file=sys.stderr)
         print(f"[sovits] clean_text: '{clean_text[:100]}'", file=sys.stderr)
 
     req = {

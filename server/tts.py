@@ -426,7 +426,9 @@ def _start_sovits_subprocess():
                 for line in _sovits_process.stderr:
                     if DEBUG_TTS:
                         line = line.strip()
-                        if line:
+                        if line and '[sovits]' in line:
+                            logger.info(f"[DEBUG_TTS] {line[:200]}")
+                        elif line:
                             logger.debug(f"[DEBUG_TTS] sovits-stderr: {line[:200]}")
             except Exception:
                 pass
