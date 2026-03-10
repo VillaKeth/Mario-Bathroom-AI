@@ -1555,6 +1555,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     # TTS with sentence streaming
     voice_params = emotion_system.get_voice_params()
+    # Boost energy for high-energy text (detected from ALL CAPS before cleaning)
+    if analyzed.get("energy") == "high":
+        voice_params["rate"] = "+15%"
+        voice_params["pitch"] = "+5Hz"
     game_sound = state_current.pop("_game_sound_hint", None)
     tts_text = analyzed["tts_text"]
     sentences = re.split(r'(?<=[.!?])\s+', tts_text, maxsplit=1)
@@ -1847,6 +1851,9 @@ async def handle_event(ws: WebSocket, event: dict):
             analyzed = analyze_text(response_text)
             loop = asyncio.get_event_loop()
             voice_params = emotion_system.get_voice_params()
+            if analyzed.get("energy") == "high":
+                voice_params["rate"] = "+15%"
+                voice_params["pitch"] = "+5Hz"
             response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
                 analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             # Send with retry on failure
@@ -1926,6 +1933,9 @@ async def handle_event(ws: WebSocket, event: dict):
             analyzed = analyze_text(response_text)
             loop = asyncio.get_event_loop()
             voice_params = emotion_system.get_voice_params()
+            if analyzed.get("energy") == "high":
+                voice_params["rate"] = "+15%"
+                voice_params["pitch"] = "+5Hz"
             response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
                 analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",

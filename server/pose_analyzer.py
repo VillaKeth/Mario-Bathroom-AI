@@ -551,6 +551,11 @@ def analyze_text(text: str) -> dict:
     tts_text = re.sub(r'\*[^*]+\*', '', text).strip()
     tts_text = re.sub(r'\s+', ' ', tts_text).strip()
 
+    # Detect energy level BEFORE cleaning (caps = high energy)
+    caps_words = len(re.findall(r'\b[A-Z]{2,}\b', tts_text))
+    has_exclamation = '!' in tts_text or '!!' in text
+    energy = "high" if (caps_words >= 2 or (caps_words >= 1 and has_exclamation)) else "normal"
+
     # TTS-safe cleanup: collapse repeated characters that cause letter-by-letter speech
     tts_text = re.sub(r'(.)\1{2,}', r'\1\1', tts_text)
 
@@ -576,6 +581,7 @@ def analyze_text(text: str) -> dict:
         "display_text": text,
         "pose_hint": pose_hint,
         "actions": actions,
+        "energy": energy,
     }
 
 

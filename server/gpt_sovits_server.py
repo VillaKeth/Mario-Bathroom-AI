@@ -85,18 +85,23 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     # "YAAAAYYYY" → "YAAY", "BAAAAAALLS" → "BAALLS", "AHHHAARRRRRGGGGHHH" → "AHHAARRGGHH"
     clean_text = _re.sub(r'(.)\1{2,}', r'\1\1', clean_text)
 
-    # Normalize ALL CAPS words to title case (GPT-SoVITS spells out caps)
+    # Normalize ALL CAPS to lowercase (GPT-SoVITS spells out capital letters)
+    # Preserve first-letter caps for natural sentence flow
     def _normalize_caps(m):
         word = m.group(0)
-        if len(word) >= 3:
-            return word.capitalize()
-        return word
-    clean_text = _re.sub(r'\b[A-Z]{3,}\b', _normalize_caps, clean_text)
+        return word[0] + word[1:].lower()
+    # Match any word with 2+ consecutive uppercase letters
+    clean_text = _re.sub(r'\b[A-Z][A-Z]+\b', _normalize_caps, clean_text)
+    # Also handle single ALL-CAP words at sentence start
+    clean_text = _re.sub(r'(?<=[.!?]\s)[A-Z]{2,}\b', _normalize_caps, clean_text)
 
-    # Remove Mario-style hyphenation that confuses the model
-    # "It's-a noon" → "It's a noon" (preserve the space)
-    clean_text = _re.sub(r"-a\s", " a ", clean_text)
-    clean_text = _re.sub(r"-A\s", " a ", clean_text)
+    # Remove ALL hyphens between word characters (GPT-SoVITS reads "-" as "minus")
+    # "It's-a me" → "It's a me", "1-Up" → "1 Up", "wash-a" → "wash a"
+    clean_text = _re.sub(r'(?<=\w)-(?=\w)', ' ', clean_text)
+    # Remove trailing hyphens: "It's-a!" → "It's a!"
+    clean_text = _re.sub(r'(?<=\w)-(?=[^a-zA-Z0-9])', '', clean_text)
+    # Remove leading hyphens: "-a" at start
+    clean_text = _re.sub(r'(?<=[^a-zA-Z0-9])-(?=\w)', '', clean_text)
 
     # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
@@ -104,19 +109,40 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'[\U0001F300-\U0001F5FF]', '', clean_text)  # Misc symbols
     clean_text = _re.sub(r'[\U0001F680-\U0001F6FF]', '', clean_text)  # Transport/map
     clean_text = _re.sub(r'[\U0001F900-\U0001F9FF]', '', clean_text)  # Supplemental symbols
-    clean_text = clean_text.replace('*', '')  # Remove asterisks (action markers)
-    clean_text = clean_text.replace('~', '')  # Remove tildes
+    clean_text = _re.sub(r'[\u2600-\u26FF]', '', clean_text)  # Misc symbols (★, ☆, etc.)
+    clean_text = _re.sub(r'[\u2700-\u27BF]', '', clean_text)  # Dingbats (✓, ✗, etc.)
+    clean_text = _re.sub(r'[\u2190-\u21FF]', '', clean_text)  # Arrows
+    clean_text = _re.sub(r'[\u2500-\u257F]', '', clean_text)  # Box drawing
+    clean_text = clean_text.replace('*', '')  # Asterisks (action markers)
+    clean_text = clean_text.replace('~', '')  # Tildes
+    clean_text = clean_text.replace('#', '')  # Hash symbols
+    clean_text = clean_text.replace('@', ' at ')  # @ sign → spoken form
+    clean_text = clean_text.replace('&', ' and ')  # Ampersand → spoken form
+    clean_text = clean_text.replace('+', ' plus ')  # Plus sign → spoken form
+    clean_text = clean_text.replace('=', ' equals ')  # Equals → spoken form
+    clean_text = clean_text.replace('<', '').replace('>', '')  # Angle brackets
+    clean_text = clean_text.replace('{', '').replace('}', '')  # Curly braces
+    clean_text = clean_text.replace('[', '').replace(']', '')  # Square brackets
+    clean_text = clean_text.replace('(', ', ').replace(')', ', ')  # Parentheses → pauses
+    clean_text = clean_text.replace('/', ' ')  # Slashes → space
+    clean_text = clean_text.replace('\\', ' ')  # Backslashes → space
+    clean_text = clean_text.replace('_', ' ')  # Underscores → space
     clean_text = clean_text.replace('…', '...')  # Normalize ellipsis
     clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
     clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
+    clean_text = clean_text.replace('"', '')  # Remove remaining quotes (TTS reads them)
     clean_text = clean_text.replace('—', ', ').replace('–', ', ')  # Em/en dashes → comma
     # Remove excessive punctuation ("?!?!" → "?!")
     clean_text = _re.sub(r'([!?])\1+', r'\1', clean_text)
     clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
-    clean_text = _re.sub(r'\s+', ' ', clean_text).strip()  # Collapse whitespace
+    # Remove excessive dots ("....." → "...")
+    clean_text = _re.sub(r'\.{4,}', '...', clean_text)
+    # Clean up multiple commas/spaces from substitutions
+    clean_text = _re.sub(r',\s*,', ',', clean_text)
+    clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
 
     if DEBUG_SOVITS:
-        print(f"[sovits] clean_text: '{clean_text[:80]}...'", file=sys.stderr)
+        print(f"[sovits] clean_text: '{clean_text[:100]}'", file=sys.stderr)
 
     req = {
         "text": clean_text,
