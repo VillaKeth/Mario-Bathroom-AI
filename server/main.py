@@ -898,6 +898,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if challenge:
         response_text = response_text.rstrip() + " " + challenge
 
+    # Mario trivia — occasional fun fact drops
+    response_text = mario_prompt.maybe_add_trivia(response_text, exchange_count)
+
     analyzed = analyze_text(response_text)
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
@@ -1198,6 +1201,11 @@ async def handle_event(ws: WebSocket, event: dict):
                 ctx = mario_prompt.build_context(event="exit_unknown")
 
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+
+            # Add visit recap for personalized goodbye
+            recap = mario_prompt.build_visit_recap(state_current["conversation_history"])
+            if recap:
+                ctx.append({"role": "system", "content": f"[RECAP]: {recap} Reference it in your goodbye!"})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)

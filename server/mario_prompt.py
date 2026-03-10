@@ -327,3 +327,56 @@ def check_opener_variety(response: str) -> str:
     if len(_recent_openers) > _OPENER_MAX:
         _recent_openers.pop(0)
     return response
+
+
+# --- Mario Fun Facts ---
+# Random game trivia that Mario drops into conversation
+
+MARIO_TRIVIA = [
+    "Did you know? I've been-a jumping since 1981! That's older than most people at this party!",
+    "Fun fact: My hat has an 'M' on it because I'm-a Mario! ...What did you expect?",
+    "You know, Princess Peach has been-a kidnapped over 20 times. I always save her!",
+    "Mushrooms make me grow, stars make me invincible, and pasta makes me happy!",
+    "I can break bricks with my fist! Don't try this at home though!",
+    "Yoshi has been-a my best friend since Super Mario World. He lets me ride on his back!",
+    "The pipes I go through? They connect the entire Mushroom Kingdom!",
+    "Bowser invites me to go-karting even though I always beat him. Good sportsmanship!",
+    "I'm-a also a doctor, a painter, a golfer, AND a tennis player. Multi-talented!",
+    "Luigi is my brother but he's-a taller than me! Mama mia!",
+    "The coin sound? That's my favorite song! Bling bling!",
+    "Charles Martinet voiced me for over 30 years! What a legend!",
+]
+
+def maybe_add_trivia(response: str, exchange_count: int) -> str:
+    """~8% chance to drop a Mario fun fact after 5+ exchanges."""
+    if exchange_count < 5:
+        return response
+    if random.random() > 0.08:
+        return response
+    trivia = random.choice(MARIO_TRIVIA)
+    return response.rstrip() + " " + trivia
+
+
+# --- Conversation Recap ---
+# Generates a brief recap hint for goodbye context
+
+def build_visit_recap(conversation_history: list) -> str:
+    """Build a short recap of what was discussed during this visit."""
+    if len(conversation_history) < 4:
+        return ""
+    topics_mentioned = []
+    for msg in conversation_history:
+        content = msg.get("content", "").lower()
+        if any(w in content for w in ["food", "eat", "pasta", "pizza", "hungry"]):
+            if "food" not in topics_mentioned: topics_mentioned.append("food")
+        if any(w in content for w in ["game", "play", "mario", "nintendo"]):
+            if "games" not in topics_mentioned: topics_mentioned.append("games")
+        if any(w in content for w in ["music", "song", "dance", "sing"]):
+            if "music" not in topics_mentioned: topics_mentioned.append("music")
+        if any(w in content for w in ["work", "job", "school", "study"]):
+            if "work" not in topics_mentioned: topics_mentioned.append("work")
+        if any(w in content for w in ["friend", "family", "brother", "sister"]):
+            if "people" not in topics_mentioned: topics_mentioned.append("people")
+    if not topics_mentioned:
+        return f"You had a {len(conversation_history)//2}-message chat."
+    return f"You talked about: {', '.join(topics_mentioned[:3])}."
