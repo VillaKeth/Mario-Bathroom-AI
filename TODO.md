@@ -669,6 +669,7 @@
 - [x] Question dodging: Mario playfully avoids personal questions (12 dodge patterns, 5 responses)
 - [x] Secret sharing: 8 fun Mario secrets shared after 8+ exchanges (7% trigger)
 - [x] Emotional mirroring: detects user mood (happy/sad/angry/scared/silly) and matches energy
+- [x] Context hint consolidation: merged 17 individual hints into max 3 grouped messages for LLM performance
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

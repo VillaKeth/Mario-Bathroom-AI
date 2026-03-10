@@ -814,101 +814,120 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Conversation momentum — short personality shift hints
         exchange_count = len(state_current["conversation_history"]) // 2
+
+        # ── Consolidated context hints (max 3 combined messages for 1.5B perf) ──
+        # Gather all hints, then merge into at most 3 system messages
+
+        # --- REACTION hints (respond to what they said) --- priority: highest
+        reaction_parts = []
+
+        # Compliment/insult/dodge — mutually exclusive, pick strongest
+        compliment = mario_prompt.detect_compliment(text)
+        insult = mario_prompt.detect_insult(text)
+        dodge = mario_prompt.detect_dodge_question(text)
+        if dodge:
+            reaction_parts.append(dodge)
+        elif insult:
+            reaction_parts.append(insult)
+        elif compliment:
+            reaction_parts.append(compliment)
+
+        # Opinion on specific topic
+        opinion = mario_prompt.get_opinion_hint(text)
+        if opinion:
+            reaction_parts.append(opinion)
+
+        # Emotional mirroring
+        mirror = mario_prompt.detect_emotion_mirror(text)
+        if mirror:
+            reaction_parts.append(mirror)
+
+        # Running gag
+        gag_hint = mario_prompt.detect_running_gag(text, exchange_count)
+        if gag_hint:
+            reaction_parts.append(gag_hint)
+
+        # Excitement boost
+        excitement = mario_prompt.get_excitement_boost(text, exchange_count)
+        if excitement:
+            reaction_parts.append(excitement)
+
+        if reaction_parts:
+            # Cap at 2 strongest reaction hints
+            ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
+
+        # --- PERSONALITY hints (how to behave) --- priority: medium
+        personality_parts = []
+
+        # Momentum
         if exchange_count >= 8:
-            ctx.append({"role": "system", "content": "You're old friends now. Be teasing and familiar."})
+            personality_parts.append("Old friends now — tease, be familiar")
         elif exchange_count >= 4:
-            ctx.append({"role": "system", "content": "Getting comfortable. Be playful, ask questions."})
+            personality_parts.append("Getting comfortable — be playful")
 
-        # Energy escalation — Mario gets more animated over time
-        energy_hint = mario_prompt.get_energy_hint(exchange_count)
-        if energy_hint:
-            ctx.append({"role": "system", "content": f"[ENERGY]: {energy_hint}"})
+        # Energy + stamina (pick one — stamina is more specific)
+        stamina = mario_prompt.get_stamina_hint(exchange_count)
+        if stamina:
+            personality_parts.append(stamina)
 
-        # Personality intensity amplifier
+        # Pacing
+        pacing = mario_prompt.get_pacing_hint(exchange_count, len(text))
+        if pacing:
+            personality_parts.append(pacing)
+
+        # Personality intensity
         personality_mod = emotion_system.get_personality_modifier()
         if personality_mod:
-            ctx.append({"role": "system", "content": personality_mod})
+            personality_parts.append(personality_mod)
 
-        # Memory callback — reference something they said before if relevant
-        if state_current.get("speaker_id"):
-            callback = memory.get_callback_opportunity(state_current["speaker_id"], text)
-            if callback:
-                ctx.append({"role": "system", "content": f"[CALLBACK]: {callback} Reference it naturally!"})
-
-        # Nickname system — after 4+ exchanges, use their nickname
+        # Nickname
         if state_current.get("speaker_id"):
             nickname = mario_prompt.get_or_assign_nickname(
                 state_current["speaker_id"],
                 state_current.get("speaker_name", "friend"),
                 exchange_count)
             if nickname:
-                ctx.append({"role": "system", "content": f"[NICKNAME]: Call them '{nickname}' sometimes!"})
+                personality_parts.append(f"Call them '{nickname}'")
 
-        # Mario's opinions — strong reactions to specific topics
-        opinion = mario_prompt.get_opinion_hint(text)
-        if opinion:
-            ctx.append({"role": "system", "content": f"[OPINION]: {opinion}"})
+        if personality_parts:
+            ctx.append({"role": "system", "content": " | ".join(personality_parts[:3])})
 
-        # Conversation pacing — vary response length based on context
-        pacing = mario_prompt.get_pacing_hint(exchange_count, len(text))
-        if pacing:
-            ctx.append({"role": "system", "content": f"[PACING]: {pacing}"})
+        # --- CONVERSATION hints (callbacks, stories, secrets) --- priority: low, pick one
+        conv_hint = None
 
-        # Running gag detection — build callbacks to repeated words
-        gag_hint = mario_prompt.detect_running_gag(text, exchange_count)
-        if gag_hint:
-            ctx.append({"role": "system", "content": f"[RUNNING GAG]: {gag_hint}"})
+        # Memory callback from past visits
+        if not conv_hint and state_current.get("speaker_id"):
+            cb = memory.get_callback_opportunity(state_current["speaker_id"], text)
+            if cb:
+                conv_hint = f"{cb} Reference it naturally!"
 
-        # Conversation stamina — Mario's energy shifts over long chats
-        stamina = mario_prompt.get_stamina_hint(exchange_count)
-        if stamina:
-            ctx.append({"role": "system", "content": f"[STAMINA]: {stamina}"})
+        # Running conversation callback
+        if not conv_hint:
+            cb2 = mario_prompt.build_callback_hint(
+                state_current["conversation_history"], exchange_count)
+            if cb2:
+                conv_hint = cb2
 
-        # Compliment detector — Mario reacts big to praise
-        compliment = mario_prompt.detect_compliment(text)
-        if compliment:
-            ctx.append({"role": "system", "content": f"[COMPLIMENT]: {compliment}"})
+        # Story mode
+        if not conv_hint:
+            story = mario_prompt.maybe_start_story(exchange_count)
+            if story:
+                conv_hint = story
 
-        # Conversation callback — reference something from earlier
-        callback = mario_prompt.build_callback_hint(
-            state_current["conversation_history"], exchange_count)
-        if callback:
-            ctx.append({"role": "system", "content": f"[CALLBACK]: {callback}"})
+        # Secret sharing
+        if not conv_hint:
+            secret = mario_prompt.maybe_share_secret(exchange_count)
+            if secret:
+                conv_hint = secret
 
-        # Story mode — occasionally prompt Mario to tell a mini adventure
-        story_hint = mario_prompt.maybe_start_story(exchange_count)
-        if story_hint:
-            ctx.append({"role": "system", "content": story_hint})
+        # Topic stall pivot
+        if not conv_hint:
+            stall = mario_prompt.detect_topic_stall(text, exchange_count)
+            if stall:
+                conv_hint = stall
 
-        # Insult comeback — Mario claps back playfully
-        insult = mario_prompt.detect_insult(text)
-        if insult:
-            ctx.append({"role": "system", "content": f"[COMEBACK]: {insult}"})
-
-        # Topic stall detection — suggest pivoting
-        stall = mario_prompt.detect_topic_stall(text, exchange_count)
-        if stall:
-            ctx.append({"role": "system", "content": f"[PIVOT]: {stall}"})
-
-        # Excitement amplifier — boost energy for shared interests
-        excitement = mario_prompt.get_excitement_boost(text, exchange_count)
-        if excitement:
-            ctx.append({"role": "system", "content": f"[HYPE]: {excitement}"})
-
-        # Question dodging — playfully avoid personal questions
-        dodge = mario_prompt.detect_dodge_question(text)
-        if dodge:
-            ctx.append({"role": "system", "content": f"[DODGE]: {dodge}"})
-
-        # Secret sharing — occasionally share fun secrets
-        secret = mario_prompt.maybe_share_secret(exchange_count)
-        if secret:
-            ctx.append({"role": "system", "content": f"[SECRET]: {secret}"})
-
-        # Emotional mirroring — match user's energy
-        mirror = mario_prompt.detect_emotion_mirror(text)
-        if mirror:
-            ctx.append({"role": "system", "content": f"[MIRROR]: {mirror}"})
+        if conv_hint:
+            ctx.append({"role": "system", "content": conv_hint})
 
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
