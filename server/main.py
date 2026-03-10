@@ -991,7 +991,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Pre-extract facts to let Mario acknowledge them in the response
         new_facts = memory.extract_facts(text)
         if new_facts and state_current.get("speaker_id"):
-            ctx.append({"role": "system", "content": f"[JUST LEARNED]: {new_facts[0]} — Acknowledge this naturally!"})
+            ctx.append({"role": "system", "content": f"Learned: {new_facts[0]}"})
 
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently

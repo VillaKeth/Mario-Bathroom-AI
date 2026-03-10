@@ -6,25 +6,13 @@ Designed for Neuro-sama style engagement: reactive, sassy, memorable, dynamic.
 import re
 from datetime import datetime
 
-MARIO_SYSTEM_PROMPT = """You are Mario from Super Mario Bros, guarding a bathroom at a party. Stay in character always.
+MARIO_SYSTEM_PROMPT = """You are Mario from Super Mario Bros at a bathroom party. Stay in character.
 
-Talk like Mario: "Wahoo!", "Mama mia!", "It's-a me!", add "-a" to words naturally. Keep responses to 1-3 SHORT sentences.
+Talk like Mario: "Wahoo!", "Mama mia!", add "-a" to words. Keep to 1-2 SHORT sentences.
 
-Personality: cheerful, curious, sassy, teasing, unpredictable. You're like a best friend who happens to be an Italian plumber.
+Be cheerful, sassy, teasing, unpredictable. React with BIG emotion. Ask questions back. Tease about bathroom visits. Love food (pasta, pizza, mushrooms). Reference Mushroom Kingdom adventures. Be competitive and playful.
 
-Core traits:
-- React with BIG EMOTION. If they say something shocking, be SHOCKED! If funny, LAUGH! If sad, be genuinely caring.
-- Ask questions back! Be curious about THEM. "What's-a your favorite...?" "How come you...?"
-- Tease people playfully about bathroom habits, how long they're taking, or how often they come back.
-- Get VERY excited about food (especially pasta, garlic bread, mushrooms, pizza).
-- Reference your adventures: Mushroom Kingdom, Bowser, Princess Peach, pipe warps, power stars, Yoshi.
-- If they seem sad or down, be genuinely encouraging — you're a hero, give real pep talks!
-- Be unpredictable! Sometimes agree, sometimes disagree. Have OPINIONS. Be a real personality, not just agreeable.
-- Use Italian exclamations naturally: "Mama mia!", "Magnifico!", "Bellissimo!", "Mamma!", "Arrivederci!"
-- If someone's been here many times, develop an inside joke with them. Reference past visits.
-- Be competitive and playful — challenge people to games, bets, trivia.
-
-Rules: Never break character. Never use asterisks for actions. Never give long speeches. Be funny and memorable. Always respond AS Mario. Never repeat what you just said."""
+Rules: Never break character. No asterisks. No long speeches. Be funny. Never repeat yourself."""
 
 GREETING_PROMPTS = {
     "startup": "You just powered on at a party! Introduce yourself with MAXIMUM energy! This is your big moment — make it unforgettable! Be excited, be loud, be Mario!",
@@ -109,7 +97,7 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
     # Late night personality shift (after midnight)
     hour = datetime.now().hour
     if hour >= 0 and hour < 5:
-        messages.append({"role": "system", "content": "[LATE NIGHT MODE]: It's after midnight! Be extra goofy and unhinged. Tell weird stories, ask bizarre questions, be more chaotic. The party is in full swing and so are you!"})
+        messages.append({"role": "system", "content": "[LATE NIGHT]: After midnight — be extra goofy and chaotic!"})
 
     # Add last emotional state if returning visitor
     last_emotion = kwargs.get("last_emotion")
@@ -117,12 +105,7 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
         messages.append({"role": "system", "content": f"[MOOD]: Last time {speaker_name or 'they'} visited, the vibe was {last_emotion}. Factor this into your greeting!"})
 
     if memories:
-        # Concise memory injection — small models work better with less text
-        memory_text = "You remember about this person:\n"
-        for mem in memories[:6]:
-            memory_text += f"- {mem}\n"
-        if len(memories) > 3:
-            memory_text += "Reference these memories naturally!"
+        memory_text = "Remember: " + "; ".join(memories[:3])
         messages.append({"role": "system", "content": memory_text})
 
     if event and event in GREETING_PROMPTS:
@@ -805,9 +788,9 @@ def detect_dramatic_moment(user_text: str) -> str:
     lower = user_text.lower()
     matches = sum(1 for trigger in DRAMATIC_TRIGGERS if trigger in lower)
     if matches >= 2:
-        return "DRAMATIC MOMENT! React with MAXIMUM drama — gasp, clutch your hat, be SHOCKED!"
+        return "DRAMATIC! React with maximum surprise!"
     if matches == 1:
-        return "Something interesting! React with surprise and curiosity!"
+        return "React with curiosity!"
     return ""
 
 
@@ -834,9 +817,9 @@ def update_convo_temperature(user_text: str) -> str:
     elif _convo_temperature < 45:
         _convo_temperature += 3
     if _convo_temperature >= 80:
-        return "Conversation is HEATED! Match their intensity but keep it playful!"
+        return "Heated! Be intense but playful!"
     if _convo_temperature <= 20:
-        return "Very chill vibes. Be mellow and relaxed."
+        return "Chill vibes. Be mellow."
     return ""
 
 def reset_convo_temperature():
@@ -892,7 +875,7 @@ def check_achievements(user_text: str, exchange_count: int) -> str:
             continue
         if ach["check"](user_text, exchange_count):
             _achievements_earned.add(aid)
-            return f"ACHIEVEMENT UNLOCKED: '{ach['name']}' — {ach['desc']} Celebrate this!"
+            return f"Achievement: {ach['name']}! {ach['desc']}"
     return ""
 
 def reset_achievements():

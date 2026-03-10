@@ -682,6 +682,10 @@
 - [x] Personality tagging: detect 8 traits (gamer, foodie, sarcastic, shy, competitive, etc.)
 - [x] Conversation memory search: reference earlier topics in current conversation
 - [x] Performance: capped personality hints at 2, reduced history window to 6 messages
+- [x] Performance pass: compressed system prompt (1050→400 chars), shortened all context hints
+- [x] Reduced num_predict 50→40 tokens, history window 8→6, personality cap 3→2
+- [x] Compacted memory injection (6 items→3, formatted as single line)
+- [x] Shortened late night mode, JUST LEARNED, achievement, dramatic, temperature hints
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
