@@ -900,3 +900,101 @@ def reset_achievements():
     global _achievements_earned
     keep = {"return_visitor"} if "return_visitor" in _achievements_earned else set()
     _achievements_earned = keep
+
+
+# ============================================================
+# BATCH 24: Collaborative storytelling, personality tags, memory search
+# ============================================================
+
+# Collaborative storytelling — Mario and user build a story together
+STORY_STARTERS = [
+    "Once upon a time, in the Mushroom Kingdom, a mysterious pipe appeared...",
+    "It was a dark and stormy night in Bowser's castle when suddenly...",
+    "Mario was eating spaghetti when a Toad burst in shouting...",
+    "Deep in the sewers of Brooklyn, Mario found a glowing coin that...",
+    "Princess Peach threw the BIGGEST party ever, but then...",
+    "Yoshi laid an egg, and when it hatched, out came...",
+]
+
+_collab_story_active = False
+_collab_story_turns = 0
+
+def maybe_start_collab_story(exchange_count: int) -> str:
+    """Start a collaborative story (4% after 8+ exchanges, one-time)."""
+    global _collab_story_active, _collab_story_turns
+    import random
+    if _collab_story_active or exchange_count < 8 or random.random() > 0.04:
+        return ""
+    _collab_story_active = True
+    _collab_story_turns = 0
+    starter = random.choice(STORY_STARTERS)
+    return f"Start a collaborative story! Say: '{starter}' Then ask them to add the next part!"
+
+def continue_collab_story(user_text: str) -> str:
+    """Continue the collaborative story if one is active."""
+    global _collab_story_turns, _collab_story_active
+    if not _collab_story_active:
+        return ""
+    _collab_story_turns += 1
+    if _collab_story_turns > 4:
+        _collab_story_active = False
+        return "Wrap up the story with a funny Mario ending! Say something like 'And they all ate-a pasta!'"
+    return "Continue the story they're building! Add your part (1-2 sentences) and ask 'What happens next?'"
+
+def reset_collab_story():
+    """Reset collaborative story state."""
+    global _collab_story_active, _collab_story_turns
+    _collab_story_active = False
+    _collab_story_turns = 0
+
+
+# Personality tagging — remember traits about users for future visits
+TRAIT_PATTERNS = {
+    "likes_puns": ["pun", "wordplay", "haha", "get it", "dad joke"],
+    "is_sarcastic": ["sure", "whatever", "right", "totally", "obviously"],
+    "is_shy": ["idk", "i guess", "maybe", "not sure", "i don't know"],
+    "is_loud": ["!!!",  "HAHA", "OMG", "WOW", "YOOO", "BRO"],
+    "loves_food": ["pizza", "pasta", "food", "eat", "hungry", "cook", "dinner", "lunch"],
+    "is_gamer": ["game", "play", "level", "boss", "score", "gaming", "nintendo", "xbox", "playstation"],
+    "is_competitive": ["bet", "challenge", "win", "lose", "beat", "versus", "competition"],
+    "is_philosophical": ["think", "meaning", "life", "wonder", "purpose", "believe", "theory"],
+}
+
+def detect_personality_traits(user_text: str) -> list:
+    """Detect personality traits from user text."""
+    traits = []
+    lower = user_text.lower()
+    for trait, patterns in TRAIT_PATTERNS.items():
+        if any(p in lower for p in patterns) or any(p in user_text for p in patterns):
+            traits.append(trait)
+    return traits
+
+def get_personality_tag_hint(traits: list) -> str:
+    """Generate a hint based on detected traits."""
+    if not traits:
+        return ""
+    trait_hints = {
+        "likes_puns": "Add a pun!",
+        "is_sarcastic": "Match their sarcasm!",
+        "is_shy": "Be extra warm!",
+        "is_loud": "Match their ENERGY!",
+        "loves_food": "Bond over food!",
+        "is_gamer": "Talk games!",
+        "is_competitive": "Challenge them!",
+        "is_philosophical": "Get deep (but Mario)!",
+    }
+    hints = [trait_hints[t] for t in traits[:1] if t in trait_hints]
+    return hints[0] if hints else ""
+
+
+# Conversation memory search — reference specific past conversation topics
+def search_conversation_memory(conversation_history: list, keyword: str) -> str:
+    """Search recent conversation for a topic and summarize what was said."""
+    mentions = []
+    for msg in conversation_history:
+        if isinstance(msg, dict) and keyword.lower() in msg.get("content", "").lower():
+            role = "you" if msg["role"] == "assistant" else "they"
+            mentions.append(f"{role} said: '{msg['content'][:60]}'")
+    if mentions:
+        return f"Earlier in this conversation about '{keyword}': {mentions[0]}"
+    return ""

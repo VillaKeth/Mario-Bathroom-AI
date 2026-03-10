@@ -904,8 +904,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if nickname:
                 personality_parts.append(f"Call them '{nickname}'")
 
+        # Personality tag hints
+        traits = mario_prompt.detect_personality_traits(text)
+        if traits:
+            tag_hint = mario_prompt.get_personality_tag_hint(traits)
+            if tag_hint and len(personality_parts) < 3:
+                personality_parts.append(tag_hint)
+
         if personality_parts:
-            ctx.append({"role": "system", "content": " | ".join(personality_parts[:3])})
+            ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
 
         # --- CONVERSATION hints (callbacks, stories, secrets) --- priority: low, pick one
         conv_hint = None
@@ -953,6 +960,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if take:
                 conv_hint = take
 
+        # Collaborative storytelling
+        if not conv_hint:
+            # Check if story already active
+            story_cont = mario_prompt.continue_collab_story(text)
+            if story_cont:
+                conv_hint = story_cont
+            else:
+                story_start = mario_prompt.maybe_start_collab_story(exchange_count)
+                if story_start:
+                    conv_hint = story_start
+
         # Conversation scoring milestone — lowest priority conversation hint
         if not conv_hint:
             score_hint = mario_prompt.update_convo_score(text, exchange_count)
@@ -965,7 +983,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx.append({"role": "system", "content": conv_hint})
 
         # Conversation history — keep window small for fast LLM on 1.5B model
-        hist_window = min(8, len(state_current["conversation_history"]))
+        hist_window = min(6, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
@@ -1183,6 +1201,7 @@ async def handle_event(ws: WebSocket, event: dict):
         # Reset per-conversation state in mario_prompt
         mario_prompt.reset_convo_temperature()
         mario_prompt.reset_achievements()
+        mario_prompt.reset_collab_story()
 
         try:
             # Try to identify by audio

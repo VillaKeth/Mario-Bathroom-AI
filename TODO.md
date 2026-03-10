@@ -678,6 +678,10 @@
 - [x] Hot takes mode: 8 spicy Mario universe opinions dropped naturally (5% trigger after 7+ exchanges)
 - [x] Achievement system: 7 unlockable achievements (Comedy Gold, Super Fan, Best Friends, Chatterbox, Curious Cat, Pasta Pal, Regular)
 - [x] Per-conversation state resets (temperature, achievements reset on new visitor)
+- [x] Collaborative storytelling: Mario and user build stories together (6 starters, 4-turn limit)
+- [x] Personality tagging: detect 8 traits (gamer, foodie, sarcastic, shy, competitive, etc.)
+- [x] Conversation memory search: reference earlier topics in current conversation
+- [x] Performance: capped personality hints at 2, reduced history window to 6 messages
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
