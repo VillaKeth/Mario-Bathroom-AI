@@ -638,7 +638,13 @@
 - [x] Fixed deadlock in emotions.py (get_prompt_addition calling locked method)
 - [x] Optimized context for qwen2:1.5b (shorter hints, 12-msg window, compact memory injection)
 - [x] Reduced num_predict 60→50 for faster responses (8-17s vs 22-28s)
+- [x] Question-back system: Mario asks follow-up questions ~25% of the time (6 topic categories)
+- [x] Personality intensity scaling: emotion intensity drives LLM personality amplifiers
+- [x] Idle acknowledgment: Mario references what he was doing when someone enters
+- [x] Memory callback system: detects when user talks about previously mentioned topics
+- [x] Fact acknowledgment: Mario acknowledges newly learned facts in real-time
+- [x] Repeat detection: ring buffer prevents duplicate responses
+- [x] Expanded thinking fillers from 3 to 9 phrases
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
-- [ ] Add topic threading (detect when user circles back to earlier topic)
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
