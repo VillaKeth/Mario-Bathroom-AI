@@ -801,11 +801,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if personality_mod:
             ctx.append({"role": "system", "content": personality_mod})
 
+        # Memory callback — reference something they said before if relevant
+        if state_current.get("speaker_id"):
+            callback = memory.get_callback_opportunity(state_current["speaker_id"], text)
+            if callback:
+                ctx.append({"role": "system", "content": f"[CALLBACK]: {callback} Reference it naturally!"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
+
+        # Pre-extract facts to let Mario acknowledge them in the response
+        new_facts = memory.extract_facts(text)
+        if new_facts and state_current.get("speaker_id"):
+            ctx.append({"role": "system", "content": f"[JUST LEARNED]: {new_facts[0]} — Acknowledge this naturally!"})
 
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently

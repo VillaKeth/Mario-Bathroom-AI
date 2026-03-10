@@ -405,6 +405,50 @@ def get_recent_conversations(person_id: int, limit: int = 6) -> list[str]:
     return [r[0] for r in rows]
 
 
+def get_callback_opportunity(person_id: int, current_text: str) -> str | None:
+    """Check if user is talking about something they mentioned before — enables Mario to callback.
+    
+    Returns a hint string if a topic overlap is found, None otherwise.
+    """
+    if not person_id or not current_text or len(current_text) < 10:
+        return None
+
+    try:
+        # Get facts about this person
+        conn = _get_conn()
+        facts = conn.execute(
+            "SELECT fact FROM facts WHERE person_id = ?", (person_id,)
+        ).fetchall()
+        fact_texts = [f[0].lower() for f in facts]
+
+        # Check for keyword overlap between current text and stored facts
+        current_words = set(re.findall(r'\b[a-z]{4,}\b', current_text.lower())) - _TOPIC_STOP_WORDS
+        
+        for fact in fact_texts:
+            fact_words = set(re.findall(r'\b[a-z]{4,}\b', fact)) - _TOPIC_STOP_WORDS
+            overlap = current_words & fact_words
+            if overlap and len(overlap) >= 1:
+                return f"They mentioned this before! You know: '{facts[fact_texts.index(fact)][0]}'"
+
+        # Also check past conversation content for topic overlap
+        past_convos = conn.execute(
+            "SELECT content FROM conversations WHERE person_id = ? AND role = 'user' "
+            "ORDER BY timestamp DESC LIMIT 20",
+            (person_id,)
+        ).fetchall()
+        
+        for convo in past_convos:
+            past_words = set(re.findall(r'\b[a-z]{4,}\b', convo[0].lower())) - _TOPIC_STOP_WORDS
+            overlap = current_words & past_words
+            if len(overlap) >= 2:  # Need 2+ word overlap for conversation matches
+                return f"They talked about this before: '{convo[0][:60]}'"
+
+    except Exception as e:
+        logger.error(f"get_callback_opportunity failed: {e}")
+    
+    return None
+
+
 def get_player_stats(person_id: int) -> dict:
     """Get game stats for difficulty adjustment."""
     conn = _get_conn()
