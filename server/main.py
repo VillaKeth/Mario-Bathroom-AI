@@ -656,6 +656,10 @@ async def _idle_loop(ws: WebSocket):
         # Try context-aware idle first (riffs on recent conversation topics)
         contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
         action = contextual or idle_behavior.get_idle_action()
+        # Track last idle action for greeting acknowledgment
+        if action:
+            async with _state_lock:
+                state_current["_last_idle_action"] = action
         # Occasionally inject time-aware comments
         time_comment = idle_behavior.get_time_comment()
         if time_comment and random.random() < 0.15:
@@ -792,6 +796,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         elif exchange_count >= 4:
             ctx.append({"role": "system", "content": "Getting comfortable. Be playful, ask questions."})
 
+        # Personality intensity amplifier
+        personality_mod = emotion_system.get_personality_modifier()
+        if personality_mod:
+            ctx.append({"role": "system", "content": personality_mod})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
@@ -827,6 +836,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         )
 
     response_text = filter_response(response_text)
+    response_text = mario_prompt.maybe_add_question(response_text, text)
     analyzed = analyze_text(response_text)
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
@@ -1050,6 +1060,10 @@ async def handle_event(ws: WebSocket, event: dict):
                 ctx = mario_prompt.build_context(event="enter_unknown")
 
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            # Idle acknowledgment — reference what Mario was doing before they arrived
+            last_idle = state_current.get("_last_idle_action", "")
+            if last_idle and not state_current.get("presence"):
+                ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})
 

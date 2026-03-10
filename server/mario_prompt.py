@@ -133,3 +133,71 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
         messages.append({"role": "system", "content": f"[EVENT]: {prompt}"})
 
     return messages
+
+
+# --- Question-Back System ---
+# Makes Mario ask follow-up questions ~25% of the time for more natural conversation flow
+
+QUESTION_TEMPLATES = {
+    "food": [
+        "What's-a your favorite food?",
+        "You like-a spicy or mild?",
+        "Ever tried-a real Italian pasta?",
+    ],
+    "hobby": [
+        "How long have you been-a doing that?",
+        "What's the most-a fun part?",
+        "Can you teach-a Mario sometime?",
+    ],
+    "people": [
+        "How do you-a know them?",
+        "Do they-a like video games?",
+        "Sounds like a good-a friend!",
+    ],
+    "emotion": [
+        "What happened-a today?",
+        "Want to talk-a about it?",
+        "Mario's-a here for you!",
+    ],
+    "work": [
+        "Is that-a fun?",
+        "Do you like-a your job?",
+        "Sounds busy! You need-a vacation!",
+    ],
+    "games": [
+        "What's-a your favorite game?",
+        "Have you played-a any Mario games?",
+        "Are you-a good at it?",
+    ],
+}
+
+def maybe_add_question(response: str, transcript: str) -> str:
+    """Append a follow-up question ~25% of the time to keep conversation flowing."""
+    import random
+
+    if random.random() > 0.25:
+        return response
+
+    # Don't add if response already ends with ?
+    if response.rstrip().endswith("?"):
+        return response
+
+    lower = transcript.lower()
+    topic = None
+
+    if any(w in lower for w in ["eat", "food", "pizza", "sushi", "pasta", "cook", "hungry", "dinner", "lunch"]):
+        topic = "food"
+    elif any(w in lower for w in ["play", "game", "sport", "hobby", "music", "guitar", "sing"]):
+        topic = "games" if any(w in lower for w in ["game", "play"]) else "hobby"
+    elif any(w in lower for w in ["friend", "brother", "sister", "mom", "dad", "boyfriend", "girlfriend"]):
+        topic = "people"
+    elif any(w in lower for w in ["sad", "happy", "excited", "angry", "worried", "stressed", "tired"]):
+        topic = "emotion"
+    elif any(w in lower for w in ["work", "job", "school", "class", "study", "office", "boss"]):
+        topic = "work"
+
+    if topic and topic in QUESTION_TEMPLATES:
+        question = random.choice(QUESTION_TEMPLATES[topic])
+        return response.rstrip() + " " + question
+
+    return response

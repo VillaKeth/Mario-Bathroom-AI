@@ -289,6 +289,23 @@ class EmotionSystem:
                 weight += w
             return total / weight if weight else 0.0
 
+    def get_personality_modifier(self) -> str:
+        """Return a short personality amplifier based on emotion + intensity."""
+        with self._lock:
+            if self.intensity < 0.5:
+                return ""
+            modifiers = {
+                Emotion.EXCITED: "SUPER hyped! Over-the-top energy!",
+                Emotion.MISCHIEVOUS: "Full tease mode! Be playfully mean!",
+                Emotion.BORED: "So bored! Be dramatic and sarcastic about it!",
+                Emotion.PROUD: "Feeling like a HERO! Boast a little!",
+                Emotion.LOVING: "Extra warm and kind! Compliment them!",
+                Emotion.SLEEPY: "So sleepy... mumble a bit, be goofy tired.",
+                Emotion.FRUSTRATED: "A bit grumpy! Show it playfully!",
+            }
+            mod = modifiers.get(self.current, "")
+            return f"[PERSONALITY]: {mod}" if mod and self.intensity >= 0.6 else ""
+
     @property
     def animation_state(self) -> str:
         """Map emotion to animation state name."""
