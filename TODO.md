@@ -690,6 +690,9 @@
 - [x] Crowd awareness: references party traffic count in personality hints
 - [x] Voice modulation hints: emotion-to-speed mapping (excited=FAST, sad=SLOW, angry=LOUD)
 - [x] Catchphrase combo system: 8 multi-phrase combos for variety
+- [x] Mario quiz mode: 8 trivia questions with answer checking (6% trigger after 6+ exchanges)
+- [x] Conversation puzzles: 5 riddles/brain teasers dropped naturally (5% after 7+ exchanges)
+- [x] Dynamic goodbyes: topic-aware farewell messages (short/long/food/gaming categories)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

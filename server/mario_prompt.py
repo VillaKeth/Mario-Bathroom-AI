@@ -1056,3 +1056,114 @@ def get_random_catchphrase_combo() -> str:
     """Get a random catchphrase combo for variety."""
     import random
     return random.choice(CATCHPHRASE_COMBOS)
+
+
+# ============================================================
+# BATCH 27: Mario quiz, conversation puzzles, dynamic goodbyes
+# ============================================================
+
+# Mario quiz — test their Mario knowledge
+MARIO_QUIZZES = [
+    {"q": "What color is Mario's hat?", "a": "red"},
+    {"q": "What is Luigi's brother's name?", "a": "mario"},
+    {"q": "What does Mario collect for extra lives?", "a": "coins"},
+    {"q": "Who keeps kidnapping Princess Peach?", "a": "bowser"},
+    {"q": "What's the name of Mario's dinosaur friend?", "a": "yoshi"},
+    {"q": "What Kingdom does Princess Peach rule?", "a": "mushroom"},
+    {"q": "What makes Mario grow bigger?", "a": "mushroom"},
+    {"q": "What is Bowser's son's name?", "a": "bowser jr"},
+]
+
+_quiz_active = False
+_quiz_current = None
+_quiz_count = 0
+
+def maybe_start_quiz(exchange_count: int) -> str:
+    """Start a quiz question (6% after 6+ exchanges)."""
+    global _quiz_active, _quiz_current, _quiz_count
+    import random
+    if _quiz_active or exchange_count < 6 or _quiz_count >= 3 or random.random() > 0.06:
+        return ""
+    _quiz_active = True
+    _quiz_current = random.choice(MARIO_QUIZZES)
+    return f"Quiz time! Ask them: '{_quiz_current['q']}'"
+
+def check_quiz_answer(user_text: str) -> str:
+    """Check if they answered the quiz correctly."""
+    global _quiz_active, _quiz_current, _quiz_count
+    if not _quiz_active or not _quiz_current:
+        return ""
+    _quiz_active = False
+    _quiz_count += 1
+    if _quiz_current["a"].lower() in user_text.lower():
+        _quiz_current = None
+        return "They got it RIGHT! Celebrate wildly!"
+    _quiz_current = None
+    return "Wrong answer! Tease them playfully!"
+
+def reset_quiz():
+    """Reset quiz state."""
+    global _quiz_active, _quiz_current, _quiz_count
+    _quiz_active = False
+    _quiz_current = None
+    _quiz_count = 0
+
+
+# Conversation puzzles — brain teasers for fun
+PUZZLES = [
+    "Riddle: What has keys but no locks? A piano!",
+    "Riddle: What has a head and tail but no body? A coin!",
+    "Brain teaser: If Mario has 3 mushrooms and gives 1 to Luigi, how many power-ups does he have?",
+    "Riddle: What goes up but never comes down? Your age!",
+    "Riddle: What has many rings but no fingers? A telephone!",
+]
+
+_puzzle_used = set()
+
+def maybe_pose_puzzle(exchange_count: int) -> str:
+    """Pose a fun puzzle (5% after 7+ exchanges)."""
+    import random
+    if exchange_count < 7 or random.random() > 0.05:
+        return ""
+    available = [p for i, p in enumerate(PUZZLES) if i not in _puzzle_used]
+    if not available:
+        return ""
+    puzzle = random.choice(available)
+    _puzzle_used.add(PUZZLES.index(puzzle))
+    return f"Share this: {puzzle}"
+
+
+# Dynamic goodbyes — personalized farewell based on conversation
+GOODBYE_TEMPLATES = {
+    "short": [
+        "Bye-a! Come back soon!",
+        "Arrivederci! It was-a fun!",
+        "See ya later, alligator!",
+    ],
+    "long": [
+        "What a conversation! You're-a one of the best tonight!",
+        "Mama mia, that was FUN! Don't forget about Mario!",
+        "You made Mario's day! Come back anytime!",
+    ],
+    "food": [
+        "Go eat some-a pizza for Mario! Arrivederci!",
+        "Save some garlic bread for me-a! Bye!",
+    ],
+    "gaming": [
+        "Keep-a playing! Mario believes in you!",
+        "Level up out there! See you in World 2!",
+    ],
+}
+
+def get_dynamic_goodbye(exchange_count: int, topics: set) -> str:
+    """Generate a context-aware goodbye message."""
+    import random
+    if exchange_count >= 6:
+        category = "long"
+    elif any(t in topics for t in ["food", "pizza", "pasta", "eat"]):
+        category = "food"
+    elif any(t in topics for t in ["game", "play", "mario", "nintendo"]):
+        category = "gaming"
+    else:
+        category = "short"
+    return random.choice(GOODBYE_TEMPLATES.get(category, GOODBYE_TEMPLATES["short"]))

@@ -978,7 +978,6 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Collaborative storytelling
         if not conv_hint:
-            # Check if story already active
             story_cont = mario_prompt.continue_collab_story(text)
             if story_cont:
                 conv_hint = story_cont
@@ -986,6 +985,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 story_start = mario_prompt.maybe_start_collab_story(exchange_count)
                 if story_start:
                     conv_hint = story_start
+
+        # Mario quiz
+        if not conv_hint:
+            quiz_answer = mario_prompt.check_quiz_answer(text)
+            if quiz_answer:
+                conv_hint = quiz_answer
+            else:
+                quiz_q = mario_prompt.maybe_start_quiz(exchange_count)
+                if quiz_q:
+                    conv_hint = quiz_q
+
+        # Puzzle
+        if not conv_hint:
+            puzzle = mario_prompt.maybe_pose_puzzle(exchange_count)
+            if puzzle:
+                conv_hint = puzzle
 
         # Conversation scoring milestone — lowest priority conversation hint
         if not conv_hint:
@@ -1218,6 +1233,7 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_convo_temperature()
         mario_prompt.reset_achievements()
         mario_prompt.reset_collab_story()
+        mario_prompt.reset_quiz()
 
         try:
             # Try to identify by audio
@@ -1370,7 +1386,12 @@ async def handle_event(ws: WebSocket, event: dict):
             # Add visit recap for personalized goodbye
             recap = mario_prompt.build_visit_recap(state_current["conversation_history"])
             if recap:
-                ctx.append({"role": "system", "content": f"[RECAP]: {recap} Reference it in your goodbye!"})
+                ctx.append({"role": "system", "content": f"Recap: {recap}"})
+            else:
+                # Dynamic goodbye based on conversation topics
+                topics = state_current.get("_session_topics", set())
+                goodbye = mario_prompt.get_dynamic_goodbye(exchange_count, topics)
+                ctx.append({"role": "system", "content": f"Say goodbye like: {goodbye}"})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
