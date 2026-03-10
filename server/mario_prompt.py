@@ -513,3 +513,72 @@ def get_stamina_hint(exchange_count: int) -> str:
         return STAMINA_STAGES["tired"]
     else:
         return STAMINA_STAGES["second_wind"]
+
+
+# ─── Batch 18: Compliment detector, story mode, conversation callbacks ───
+
+# Compliment detector — Mario reacts BIG to compliments
+COMPLIMENT_WORDS = {
+    "awesome", "amazing", "cool", "great", "best", "love", "funny", "hilarious",
+    "smart", "genius", "beautiful", "wonderful", "incredible", "fantastic",
+    "favorite", "favourite", "legend", "hero", "perfect", "brilliant",
+}
+
+def detect_compliment(user_text: str) -> str:
+    """Detect if user is complimenting Mario and return a reaction hint."""
+    words = set(user_text.lower().split())
+    # Check if compliment words appear near "you" or "mario"
+    has_you = "you" in words or "mario" in words or "you're" in words
+    matches = words & COMPLIMENT_WORDS
+    if matches and has_you:
+        return "They just COMPLIMENTED you! React with pure joy — blush, get flustered, be adorably humble!"
+    if len(matches) >= 2:
+        return "They said something really positive! Be touched and grateful!"
+    return ""
+
+
+# Story mode — Mario starts telling mini adventure stories
+MARIO_STORIES = [
+    "Once, I was jumping across lava pits in Bowser's castle when I found a hidden room full of gold coins...",
+    "Let me tell you about the time Yoshi ate a blue shell and could FLY! We soared over the Mushroom Kingdom...",
+    "So there I was, tiny Mario, facing a GIANT Bowser. No power-ups, no Yoshi, just my jumping skills...",
+    "One time, Toad bet me I couldn't clear World 1-1 blindfolded. Want to know what happened?",
+    "The scariest thing in the Mushroom Kingdom? Not Bowser. Not Boos. Piano in Big Boo's Haunt. THAT piano...",
+    "Did I ever tell you about the time Luigi got lost in a haunted mansion? I had to save HIM for once...",
+    "There was this one pipe that led to a room where EVERYTHING was giant. Even the Goombas were bigger than me!",
+    "Princess Peach once baked me a cake so good, Bowser kidnapped the CAKE instead of her!",
+]
+
+_story_index = 0
+
+def maybe_start_story(exchange_count: int) -> str:
+    """Occasionally offer to tell a mini adventure story after 6+ exchanges."""
+    global _story_index
+    if exchange_count < 6:
+        return ""
+    import random
+    if random.random() < 0.06:  # 6% chance
+        story = MARIO_STORIES[_story_index % len(MARIO_STORIES)]
+        _story_index += 1
+        return f"[STORY TIME]: Start telling this mini-story naturally: '{story}'"
+    return ""
+
+
+# Conversation callback — reference something specific from earlier
+def build_callback_hint(conversation_history: list, exchange_count: int) -> str:
+    """Pick something from earlier in the conversation to callback to."""
+    if exchange_count < 5 or len(conversation_history) < 6:
+        return ""
+    import random
+    if random.random() > 0.10:  # 10% chance
+        return ""
+    # Look at earlier messages from the user
+    user_msgs = [m["content"] for m in conversation_history if m.get("role") == "user"]
+    if len(user_msgs) < 3:
+        return ""
+    # Pick a message from the first half of the conversation
+    early_msg = random.choice(user_msgs[:len(user_msgs)//2])
+    if len(early_msg) > 10:
+        snippet = early_msg[:60].strip()
+        return f"Earlier they said: '{snippet}' — casually reference or callback to this!"
+    return ""

@@ -657,6 +657,12 @@
 - [x] Conversation recap for personalized goodbyes (topic summary on exit)
 - [x] Mario opinions system: 12 topic→opinion mappings for strong reactions (Bowser, pizza, Luigi, etc.)
 - [x] Conversation pacing: adapts response length guidance based on user message length + exchange count
+- [x] Running gag system: detects repeated words and builds escalating callbacks
+- [x] Mood-reactive greetings: adapts greeting energy to party phase (early/peak/late/winding/morning)
+- [x] Conversation stamina: energy shifts over long chats (fresh→warmed→deep→tired→second wind)
+- [x] Compliment detector: Mario reacts with joy when praised
+- [x] Story mode: 8 mini adventure stories injected as LLM context hints (6% trigger after 6+ exchanges)
+- [x] Conversation callbacks: references earlier conversation topics (10% trigger after 5+ exchanges)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

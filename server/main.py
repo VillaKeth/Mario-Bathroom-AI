@@ -864,6 +864,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if stamina:
             ctx.append({"role": "system", "content": f"[STAMINA]: {stamina}"})
 
+        # Compliment detector — Mario reacts big to praise
+        compliment = mario_prompt.detect_compliment(text)
+        if compliment:
+            ctx.append({"role": "system", "content": f"[COMPLIMENT]: {compliment}"})
+
+        # Conversation callback — reference something from earlier
+        callback = mario_prompt.build_callback_hint(
+            state_current["conversation_history"], exchange_count)
+        if callback:
+            ctx.append({"role": "system", "content": f"[CALLBACK]: {callback}"})
+
+        # Story mode — occasionally prompt Mario to tell a mini adventure
+        story_hint = mario_prompt.maybe_start_story(exchange_count)
+        if story_hint:
+            ctx.append({"role": "system", "content": story_hint})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
