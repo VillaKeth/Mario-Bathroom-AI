@@ -201,3 +201,36 @@ def maybe_add_question(response: str, transcript: str) -> str:
         return response.rstrip() + " " + question
 
     return response
+
+
+# --- Challenge Interrupt System ---
+# After several exchanges, Mario randomly throws out fun mini-challenges
+
+QUICK_CHALLENGES = [
+    "Hey! Can you say 'It's-a me, Mario!' in your best voice? I dare you!",
+    "Quick! Name 3 Mario characters! Go go go!",
+    "I bet you can't do a Mario jump right now! One hop! Wahoo!",
+    "Pop quiz! What color is Mario's hat? You better know this!",
+    "Say 'Mama Mia' like you really mean it! I'll rate you out of 10!",
+    "What's-a the best pizza topping? Wrong answers only!",
+    "Quick! Make the best Mario sound effect you can! Boing! Wahoo! Anything!",
+    "I challenge you to make me laugh! One joke, give it your best!",
+    "Who would win in a race — me or Sonic? Choose wisely!",
+    "Tell me something nobody else at this party knows about you!",
+    "Do your best Italian accent! Say 'Mamma mia, that's-a spicy meatball!'",
+    "What's your party superpower? Are you the dancer? The storyteller? The snack finder?",
+]
+
+def maybe_challenge(exchange_count: int, mood_positive: bool = True) -> str | None:
+    """Return a challenge string if conditions are right, else None.
+    
+    Triggers ~12% of the time after 3+ exchanges, only when mood is positive.
+    """
+    import random
+    if exchange_count < 3:
+        return None
+    if not mood_positive:
+        return None
+    if random.random() > 0.12:
+        return None
+    return random.choice(QUICK_CHALLENGES)

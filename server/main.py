@@ -71,6 +71,27 @@ GAME_CONFIG = {
     "admin_api_key": server_config.get("admin_api_key", ""),
 }
 
+# Keyword → particle effect mapping for client-side visual reactions
+KEYWORD_PARTICLES = {
+    "fire": "fire", "flame": "fire", "hot": "fire", "burn": "fire",
+    "star": "stars", "stars": "stars", "wahoo": "stars", "amazing": "stars", "awesome": "stars",
+    "love": "hearts", "heart": "hearts", "cute": "hearts", "beautiful": "hearts",
+    "party": "confetti", "celebrate": "confetti", "woohoo": "confetti", "birthday": "confetti",
+    "sad": "rain", "cry": "rain", "crying": "rain",
+    "jump": "sparkle", "hop": "sparkle", "bounce": "sparkle",
+    "mushroom": "mushroom", "power": "mushroom", "1up": "mushroom",
+    "coin": "coins", "money": "coins", "rich": "coins", "gold": "coins",
+}
+
+def _detect_particle_effect(text: str) -> str | None:
+    """Detect keyword in text and return particle effect name."""
+    import string
+    words = set(w.strip(string.punctuation) for w in text.lower().split())
+    for keyword, effect in KEYWORD_PARTICLES.items():
+        if keyword in words:
+            return effect
+    return None
+
 # Validate critical config values
 _required_keys = {"llm_model": str, "tts_rate": str, "tts_voice": str}
 for key, expected_type in _required_keys.items():
@@ -851,6 +872,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
+
+    # Challenge interrupt — after 3+ exchanges, sometimes throw a fun challenge
+    exchange_count = len(state_current["conversation_history"]) // 2
+    sentiment = emotion_system.get_rolling_sentiment()
+    challenge = mario_prompt.maybe_challenge(exchange_count, mood_positive=(sentiment >= -0.2))
+    if challenge:
+        response_text = response_text.rstrip() + " " + challenge
+
     analyzed = analyze_text(response_text)
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
@@ -885,6 +914,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     tts_text = analyzed["tts_text"]
     sentences = re.split(r'(?<=[.!?])\s+', tts_text, maxsplit=1)
     streamed = False
+    # Detect particle effects from both user input and Mario's response
+    particle = _detect_particle_effect(text) or _detect_particle_effect(response_text)
 
     if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
         try:
@@ -895,7 +926,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if first_audio and rest_audio and len(rest_audio) > 44:
                 await send_response(ws, analyzed["display_text"], first_audio,
                     sound=game_sound, emotion=emotion_system.current,
-                    pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
+                    pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
+                    particle_effect=particle)
                 await ws.send_bytes(rest_audio)
                 streamed = True
             # If either audio failed, fall through to non-streaming path
@@ -911,7 +943,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             response_audio = None
         await send_response(ws, analyzed["display_text"], response_audio,
             sound=game_sound, emotion=emotion_system.current,
-            pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time)
+            pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
+            particle_effect=particle)
 
     # Track response time
     total_time = time.time() - start_time
@@ -1263,7 +1296,8 @@ async def send_thinking(ws: WebSocket, subtitle: str = None):
 
 async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         sound: str = None, emotion: str = None,
-                        pose_hint: str = None, response_time: float = None):
+                        pose_hint: str = None, response_time: float = None,
+                        particle_effect: str = None):
     """Send Mario's response (text + audio + metadata) to the client."""
     try:
         msg = {
@@ -1278,6 +1312,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
             msg["pose_hint"] = pose_hint
         if response_time is not None:
             msg["response_time"] = round(response_time, 1)
+        if particle_effect:
+            msg["particle_effect"] = particle_effect
 
         await ws.send_json(msg)
 
