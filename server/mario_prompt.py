@@ -2412,3 +2412,143 @@ def get_escalating_compliment(exchange_count: int) -> str:
 def reset_escalating_compliment():
     global _compliment_escalation
     _compliment_escalation = 0
+
+# ── Batch 39 ─────────────────────────────────────────────
+
+# Song mode
+SONG_PARODIES = [
+    "Sing a quick 2-line Mario parody of a pop song",
+    "Hum a made-up Mario theme jingle (short)",
+    "Do a quick 2-line rap about plumbing at a party",
+    "Sing a dramatic bathroom ballad (2 lines max)",
+    "Freestyle a short jingle about coins",
+]
+_song_used = False
+
+def maybe_song_mode(exchange_count: int) -> str:
+    global _song_used
+    if _song_used or exchange_count < 6:
+        return ""
+    import random
+    if random.random() < 0.08:
+        _song_used = True
+        return random.choice(SONG_PARODIES)
+    return ""
+
+def reset_song():
+    global _song_used
+    _song_used = False
+
+# Zodiac joke mode
+ZODIAC_JOKES = {
+    "aries": "Aries=Fire Flower, charge first think later",
+    "taurus": "Taurus=stubborn as Thwomp but lovable",
+    "gemini": "Gemini=2-player mode in one person",
+    "cancer": "Cancer=hard shell outside, soft like Yoshi inside",
+    "leo": "Leo=Star Power energy 24/7",
+    "virgo": "Virgo=organizes inventory perfectly",
+    "libra": "Libra=balances on platforms like a pro",
+    "scorpio": "Scorpio=sneaky like a Boo",
+    "sagittarius": "Sagittarius=always jumping to next adventure",
+    "capricorn": "Capricorn=climbs every flagpole",
+    "aquarius": "Aquarius=water level expert",
+    "pisces": "Pisces=Cheep Cheep energy",
+}
+
+def check_zodiac(text: str) -> str:
+    low = text.lower()
+    for sign, joke in ZODIAC_JOKES.items():
+        if sign in low:
+            return f"React to their zodiac: {joke}"
+    if any(w in low for w in ["zodiac", "horoscope", "star sign", "astrology", "what sign"]):
+        return "Ask what their zodiac sign is with Mario flair"
+    return ""
+
+# Callback to previous visitors
+_visitor_count_session = 0
+
+def track_visitor() -> str:
+    global _visitor_count_session
+    _visitor_count_session += 1
+    if _visitor_count_session > 1:
+        return f"Mention visitor #{_visitor_count_session} tonight (no names)"
+    return ""
+
+def reset_visitor_count():
+    pass  # Don't reset between visitors — tracks across session
+
+# Fortune cookie mode
+FORTUNES = [
+    "Your fortune: you will find a coin in unexpected place",
+    "Your fortune: a green pipe leads to your destiny",
+    "Your fortune: beware of turtles bearing gifts",
+    "Your fortune: the princess is in YOUR castle today",
+    "Your fortune: you will power-up before midnight",
+    "Your fortune: a mysterious block awaits above your head",
+]
+_fortune_given = False
+
+def maybe_fortune(exchange_count: int) -> str:
+    global _fortune_given
+    if _fortune_given or exchange_count < 8:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _fortune_given = True
+        return random.choice(FORTUNES)
+    return ""
+
+def reset_fortune():
+    global _fortune_given
+    _fortune_given = False
+
+# Party duration awareness
+_party_start_time = None
+
+def init_party_timer():
+    global _party_start_time
+    import time
+    if _party_start_time is None:
+        _party_start_time = time.time()
+
+def get_party_duration_hint() -> str:
+    global _party_start_time
+    if _party_start_time is None:
+        return ""
+    import time, random
+    if random.random() > 0.06:
+        return ""
+    elapsed_hrs = (time.time() - _party_start_time) / 3600
+    if elapsed_hrs < 1:
+        return f"Party started {int(elapsed_hrs*60)}min ago—still warming up!"
+    elif elapsed_hrs < 3:
+        return f"Party going {elapsed_hrs:.1f}hrs—peak energy!"
+    else:
+        return f"Party going {elapsed_hrs:.1f}hrs—legendary endurance!"
+
+# Emotional support mode
+SAD_WORDS = ["sad", "depressed", "lonely", "upset", "crying", "anxious", "stressed", "worried", "down", "bad day"]
+
+def detect_needs_support(text: str) -> str:
+    low = text.lower()
+    count = sum(1 for w in SAD_WORDS if w in low)
+    if count >= 1:
+        return "Be extra kind & supportive, gentle Mario energy"
+    return ""
+
+# Friendship ceremony (after many exchanges)
+_ceremony_done = False
+
+def maybe_friendship_ceremony(exchange_count: int) -> str:
+    global _ceremony_done
+    if _ceremony_done or exchange_count < 20:
+        return ""
+    import random
+    if random.random() < 0.15:
+        _ceremony_done = True
+        return "Declare official Mario friendship ceremony! They are now honorary citizen of Mushroom Kingdom"
+    return ""
+
+def reset_friendship():
+    global _ceremony_done
+    _ceremony_done = False

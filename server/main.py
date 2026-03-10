@@ -925,6 +925,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if sassy:
             reaction_parts.append(sassy)
 
+        # Zodiac jokes
+        zodiac = mario_prompt.check_zodiac(text)
+        if zodiac:
+            reaction_parts.append(zodiac)
+
+        # Emotional support
+        support = mario_prompt.detect_needs_support(text)
+        if support:
+            reaction_parts.append(support)
+
+        # Party duration
+        party_dur = mario_prompt.get_party_duration_hint()
+        if party_dur:
+            reaction_parts.append(party_dur)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1198,6 +1213,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             esc_comp = mario_prompt.get_escalating_compliment(exchange_count)
             if esc_comp:
                 conv_hint = esc_comp
+
+        # Song mode
+        if not conv_hint:
+            song = mario_prompt.maybe_song_mode(exchange_count)
+            if song:
+                conv_hint = song
+
+        # Fortune cookie
+        if not conv_hint:
+            fortune = mario_prompt.maybe_fortune(exchange_count)
+            if fortune:
+                conv_hint = fortune
+
+        # Friendship ceremony
+        if not conv_hint:
+            ceremony = mario_prompt.maybe_friendship_ceremony(exchange_count)
+            if ceremony:
+                conv_hint = ceremony
 
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
@@ -1487,6 +1520,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_sassy()
         mario_prompt.reset_trivia_challenge()
         mario_prompt.reset_escalating_compliment()
+        mario_prompt.reset_song()
+        mario_prompt.reset_fortune()
+        mario_prompt.reset_friendship()
+        mario_prompt.init_party_timer()
+        mario_prompt.track_visitor()
 
         try:
             # Try to identify by audio
