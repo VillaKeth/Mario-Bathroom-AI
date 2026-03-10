@@ -551,6 +551,9 @@ def analyze_text(text: str) -> dict:
     tts_text = re.sub(r'\*[^*]+\*', '', text).strip()
     tts_text = re.sub(r'\s+', ' ', tts_text).strip()
 
+    # TTS-safe cleanup: collapse repeated characters that cause letter-by-letter speech
+    tts_text = re.sub(r'(.)\1{2,}', r'\1\1', tts_text)
+
     # Find pose hint from actions first (highest priority)
     pose_hint = None
     if actions:

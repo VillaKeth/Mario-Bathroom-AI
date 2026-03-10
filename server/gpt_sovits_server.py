@@ -78,10 +78,27 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         prompt_text = "It's a me Mario"
 
     # Clean text for better GPT-SoVITS synthesis
-    # Remove Mario-style hyphenation that confuses the model
-    clean_text = text.replace("-a ", "a ").replace("-A ", "a ")
-    # Remove special characters that cause garbled output
     import re as _re
+    clean_text = text
+
+    # Collapse repeated characters that cause letter-by-letter pronunciation
+    # "YAAAAYYYY" → "YAAY", "BAAAAAALLS" → "BAALLS", "AHHHAARRRRRGGGGHHH" → "AHHAARRGGHH"
+    clean_text = _re.sub(r'(.)\1{2,}', r'\1\1', clean_text)
+
+    # Normalize ALL CAPS words to title case (GPT-SoVITS spells out caps)
+    def _normalize_caps(m):
+        word = m.group(0)
+        if len(word) >= 3:
+            return word.capitalize()
+        return word
+    clean_text = _re.sub(r'\b[A-Z]{3,}\b', _normalize_caps, clean_text)
+
+    # Remove Mario-style hyphenation that confuses the model
+    # "It's-a noon" → "It's a noon" (preserve the space)
+    clean_text = _re.sub(r"-a\s", " a ", clean_text)
+    clean_text = _re.sub(r"-A\s", " a ", clean_text)
+
+    # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
     clean_text = _re.sub(r'[\U0001F600-\U0001F64F]', '', clean_text)  # Emoticons
     clean_text = _re.sub(r'[\U0001F300-\U0001F5FF]', '', clean_text)  # Misc symbols
@@ -93,15 +110,21 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
     clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
     clean_text = clean_text.replace('—', ', ').replace('–', ', ')  # Em/en dashes → comma
+    # Remove excessive punctuation ("?!?!" → "?!")
+    clean_text = _re.sub(r'([!?])\1+', r'\1', clean_text)
+    clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()  # Collapse whitespace
-    
+
+    if DEBUG_SOVITS:
+        print(f"[sovits] clean_text: '{clean_text[:80]}...'", file=sys.stderr)
+
     req = {
         "text": clean_text,
         "text_lang": "en",
         "ref_audio_path": ref_audio,
         "prompt_text": prompt_text,
         "prompt_lang": "en",
-        "text_split_method": "cut0",
+        "text_split_method": "cut5",
         "speed_factor": speed,
     }
 
