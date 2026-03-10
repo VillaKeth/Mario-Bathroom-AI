@@ -2942,3 +2942,131 @@ def maybe_compliment_relay(exchange_count: int) -> str:
 def reset_relay():
     global _relay_given
     _relay_given = False
+
+# ── Batch 43 ─────────────────────────────────────────────
+
+# Movie/show references
+MOVIE_REFS = {
+    "avengers": "Like the Avengers, but with plumbers!",
+    "star wars": "Use the Force... er, the Fire Flower!",
+    "harry potter": "You're a plumber, Harry!",
+    "lord of the rings": "One does not simply walk into Bowser's castle!",
+    "frozen": "Let it go? NEVER let go of your mushroom!",
+    "batman": "I'm-a Batman! Wait no, I'm-a MARIO!",
+    "shrek": "Warp pipes are like onions—they have layers!",
+    "marvel": "Mario Cinematic Universe when??",
+    "disney": "Disney? Mario had movies before it was cool!",
+    "netflix": "Netflix and chill? More like Mushroom Kingdom and thrill!",
+}
+
+def check_movie_ref(text: str) -> str:
+    low = text.lower()
+    for ref, response in MOVIE_REFS.items():
+        if ref in low:
+            return response
+    return ""
+
+# Time capsule (leave a message for future visitors)
+_capsule_left = False
+
+def maybe_time_capsule(exchange_count: int) -> str:
+    global _capsule_left
+    if _capsule_left or exchange_count < 13:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _capsule_left = True
+        return "Ask them to leave a one-word message for the next visitor!"
+    return ""
+
+def reset_time_capsule():
+    global _capsule_left
+    _capsule_left = False
+
+# Competitive spirit (challenge based on response)
+_comp_used = False
+
+def maybe_competitive(exchange_count: int) -> str:
+    global _comp_used
+    if _comp_used or exchange_count < 7:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _comp_used = True
+        challenges = [
+            "Challenge: say the alphabet backwards from G!",
+            "Challenge: name 3 Mario characters in 5 seconds!",
+            "Challenge: do your best Italian accent!",
+            "Challenge: make up a Mario enemy name!",
+        ]
+        return random.choice(challenges)
+    return ""
+
+def reset_competitive():
+    global _comp_used
+    _comp_used = False
+
+# Emoji description mode
+_emoji_used = False
+
+def maybe_emoji_mode(exchange_count: int) -> str:
+    global _emoji_used
+    if _emoji_used or exchange_count < 8:
+        return ""
+    import random
+    if random.random() < 0.05:
+        _emoji_used = True
+        return "Describe your feelings using ONLY emoji-style words (star, heart, fire, etc.)"
+    return ""
+
+def reset_emoji_mode():
+    global _emoji_used
+    _emoji_used = False
+
+# Superlative awards
+AWARDS = [
+    "Best Hair at the Party Award",
+    "Most Likely to Find a Hidden Star Award",
+    "Bravest Bathroom Explorer Award",
+    "Most Stylish Party Guest Award",
+    "Best Conversationalist Award",
+    "Fastest Hand-Washer Award",
+]
+_award_given = False
+
+def maybe_give_award(exchange_count: int) -> str:
+    global _award_given
+    if _award_given or exchange_count < 10:
+        return ""
+    import random
+    if random.random() < 0.08:
+        _award_given = True
+        return f"Present them with the '{random.choice(AWARDS)}'"
+    return ""
+
+def reset_award():
+    global _award_given
+    _award_given = False
+
+# Tongue twister challenge
+TONGUE_TWISTERS = [
+    "Say 'plumber plunged pipes perfectly' 3 times fast!",
+    "Try: 'shy guys shyly shuffle sideways'!",
+    "Repeat: 'Koopa Troopa tripped twice Tuesday'!",
+    "Challenge: 'Bowser's biggest Bob-ombs bounced badly'!",
+]
+_twister_used = False
+
+def maybe_tongue_twister(exchange_count: int) -> str:
+    global _twister_used
+    if _twister_used or exchange_count < 6:
+        return ""
+    import random
+    if random.random() < 0.05:
+        _twister_used = True
+        return random.choice(TONGUE_TWISTERS)
+    return ""
+
+def reset_tongue_twister():
+    global _twister_used
+    _twister_used = False

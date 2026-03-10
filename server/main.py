@@ -965,6 +965,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if pwd_guess:
             reaction_parts.append(pwd_guess)
 
+        # Movie/show references
+        movie = mario_prompt.check_movie_ref(text)
+        if movie:
+            reaction_parts.append(movie)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1335,6 +1340,36 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if relay:
                 conv_hint = relay
 
+        # Time capsule
+        if not conv_hint:
+            capsule = mario_prompt.maybe_time_capsule(exchange_count)
+            if capsule:
+                conv_hint = capsule
+
+        # Competitive challenge
+        if not conv_hint:
+            comp = mario_prompt.maybe_competitive(exchange_count)
+            if comp:
+                conv_hint = comp
+
+        # Emoji mode
+        if not conv_hint:
+            emoji = mario_prompt.maybe_emoji_mode(exchange_count)
+            if emoji:
+                conv_hint = emoji
+
+        # Award
+        if not conv_hint:
+            award = mario_prompt.maybe_give_award(exchange_count)
+            if award:
+                conv_hint = award
+
+        # Tongue twister
+        if not conv_hint:
+            twister = mario_prompt.maybe_tongue_twister(exchange_count)
+            if twister:
+                conv_hint = twister
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1646,6 +1681,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_power_ranking()
         mario_prompt.reset_password()
         mario_prompt.reset_relay()
+        mario_prompt.reset_time_capsule()
+        mario_prompt.reset_competitive()
+        mario_prompt.reset_emoji_mode()
+        mario_prompt.reset_award()
+        mario_prompt.reset_tongue_twister()
 
         try:
             # Try to identify by audio
