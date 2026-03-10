@@ -857,6 +857,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if dramatic:
             reaction_parts.append(dramatic)
 
+        # Conversation temperature
+        temp_hint = mario_prompt.update_convo_temperature(text)
+        if temp_hint:
+            reaction_parts.append(temp_hint)
+
+        # Achievement check
+        ach_hint = mario_prompt.check_achievements(text, exchange_count)
+        if ach_hint:
+            reaction_parts.append(ach_hint)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -936,6 +946,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             game = mario_prompt.maybe_propose_word_game(exchange_count)
             if game:
                 conv_hint = game
+
+        # Hot take
+        if not conv_hint:
+            take = mario_prompt.maybe_hot_take(exchange_count)
+            if take:
+                conv_hint = take
 
         # Conversation scoring milestone — lowest priority conversation hint
         if not conv_hint:
@@ -1164,6 +1180,9 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["_greeting_in_progress"] = True
         emotion_system.update(event="presence_enter")
         idle_behavior.reset_timer()
+        # Reset per-conversation state in mario_prompt
+        mario_prompt.reset_convo_temperature()
+        mario_prompt.reset_achievements()
 
         try:
             # Try to identify by audio

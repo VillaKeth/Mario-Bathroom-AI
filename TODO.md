@@ -674,6 +674,10 @@
 - [x] Conversation scoring: tracks engagement milestones (questions, laughter, Mario references)
 - [x] Dramatic reaction amplifier: detects surprising/shocking statements (16 trigger words)
 - [x] Reduced conversation history window 12→8 for faster LLM responses on 1.5B model
+- [x] Conversation temperature tracking: heat/chill meter adapts Mario's intensity (12 heat words, 12 chill words)
+- [x] Hot takes mode: 8 spicy Mario universe opinions dropped naturally (5% trigger after 7+ exchanges)
+- [x] Achievement system: 7 unlockable achievements (Comedy Gold, Super Fan, Best Friends, Chatterbox, Curious Cat, Pasta Pal, Regular)
+- [x] Per-conversation state resets (temperature, achievements reset on new visitor)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

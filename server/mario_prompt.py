@@ -809,3 +809,94 @@ def detect_dramatic_moment(user_text: str) -> str:
     if matches == 1:
         return "Something interesting! React with surprise and curiosity!"
     return ""
+
+
+# ============================================================
+# BATCH 23: Conversation temperature, hot takes, achievements
+# ============================================================
+
+# Conversation temperature — tracks how heated/chill the convo is
+_convo_temperature = 50  # 0=ice cold, 50=neutral, 100=on fire
+
+HEAT_WORDS = {"argue", "fight", "hate", "angry", "wrong", "stupid", "disagree", "worst", "terrible", "awful", "rage", "furious"}
+CHILL_WORDS = {"chill", "relax", "calm", "nice", "sweet", "love", "kind", "gentle", "peaceful", "cool", "easy", "mellow"}
+
+def update_convo_temperature(user_text: str) -> str:
+    """Track how heated vs chill the conversation is and return a hint."""
+    global _convo_temperature
+    lower = user_text.lower()
+    heat = sum(1 for w in HEAT_WORDS if w in lower)
+    chill = sum(1 for w in CHILL_WORDS if w in lower)
+    _convo_temperature = max(0, min(100, _convo_temperature + heat * 12 - chill * 10))
+    # Decay toward neutral
+    if _convo_temperature > 55:
+        _convo_temperature -= 3
+    elif _convo_temperature < 45:
+        _convo_temperature += 3
+    if _convo_temperature >= 80:
+        return "Conversation is HEATED! Match their intensity but keep it playful!"
+    if _convo_temperature <= 20:
+        return "Very chill vibes. Be mellow and relaxed."
+    return ""
+
+def reset_convo_temperature():
+    """Reset temperature for new conversation."""
+    global _convo_temperature
+    _convo_temperature = 50
+
+
+# Hot takes — Mario gives bold controversial opinions about the Mario universe
+HOT_TAKES = [
+    "Hot take: Wario is actually smarter than Mario. He owns a COMPANY!",
+    "Hot take: The Mushroom Kingdom has terrible security. ONE turtle keeps kidnapping the princess!",
+    "Hot take: Luigi is the better brother. He can jump higher AND he's taller!",
+    "Hot take: Toad doesn't actually know where the princess is. He just says that!",
+    "Hot take: Bowser is actually a good dad. Have you SEEN how many kids he has?",
+    "Hot take: The coins don't actually buy anything. Mario just LIKES collecting them!",
+    "Hot take: Princess Peach LETS herself get kidnapped for the adventure!",
+    "Hot take: Yoshi is the real hero. Mario just rides on his back and takes credit!",
+]
+
+_hot_take_used = set()
+
+def maybe_hot_take(exchange_count: int) -> str:
+    """Occasionally drop a spicy hot take (5% after 7+ exchanges)."""
+    import random
+    if exchange_count < 7 or random.random() > 0.05:
+        return ""
+    available = [t for i, t in enumerate(HOT_TAKES) if i not in _hot_take_used]
+    if not available:
+        return ""
+    take = random.choice(available)
+    _hot_take_used.add(HOT_TAKES.index(take))
+    return f"Drop this hot take naturally: {take}"
+
+
+# Achievement system — reward fun interactions
+_achievements_earned = set()
+
+ACHIEVEMENTS = {
+    "first_laugh": {"name": "Comedy Gold", "desc": "Made Mario laugh!", "check": lambda t, e: any(w in t.lower() for w in ["haha", "lol", "funny", "joke", "lmao"])},
+    "mario_fan": {"name": "Super Fan", "desc": "Talked about Mario games!", "check": lambda t, e: sum(1 for w in ["mario", "luigi", "bowser", "peach", "mushroom", "yoshi"] if w in t.lower()) >= 2},
+    "long_chat": {"name": "Best Friends", "desc": "Had 10+ exchanges!", "check": lambda t, e: e >= 10},
+    "big_talker": {"name": "Chatterbox", "desc": "Wrote a really long message!", "check": lambda t, e: len(t) > 100},
+    "questioner": {"name": "Curious Cat", "desc": "Asked lots of questions!", "check": lambda t, e: t.count("?") >= 2},
+    "food_lover": {"name": "Pasta Pal", "desc": "Bonded over food!", "check": lambda t, e: any(w in t.lower() for w in ["pizza", "pasta", "food", "eat", "cook", "hungry", "dinner"])},
+    "return_visitor": {"name": "Regular", "desc": "Came back for more!", "check": lambda t, e: False},  # set externally
+}
+
+def check_achievements(user_text: str, exchange_count: int) -> str:
+    """Check if user earned any new achievements."""
+    for aid, ach in ACHIEVEMENTS.items():
+        if aid in _achievements_earned:
+            continue
+        if ach["check"](user_text, exchange_count):
+            _achievements_earned.add(aid)
+            return f"ACHIEVEMENT UNLOCKED: '{ach['name']}' — {ach['desc']} Celebrate this!"
+    return ""
+
+def reset_achievements():
+    """Reset achievements for new conversation (keep return_visitor)."""
+    global _achievements_earned
+    keep = {"return_visitor"} if "return_visitor" in _achievements_earned else set()
+    _achievements_earned = keep
