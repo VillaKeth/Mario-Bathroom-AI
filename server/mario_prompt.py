@@ -2830,3 +2830,115 @@ def maybe_audience_prompt(exchange_count: int) -> str:
 def reset_audience():
     global _audience_used
     _audience_used = False
+
+# ── Batch 42 ─────────────────────────────────────────────
+
+# Reverse psychology mode
+_reverse_used = False
+
+def maybe_reverse_psychology(exchange_count: int) -> str:
+    global _reverse_used
+    if _reverse_used or exchange_count < 9:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _reverse_used = True
+        return "Use reverse psychology—say the OPPOSITE of what you mean for comedic effect"
+    return ""
+
+def reset_reverse_psych():
+    global _reverse_used
+    _reverse_used = False
+
+# Power ranking (rank them against Mario characters)
+POWER_RANKINGS = [
+    "You have the courage of Mario himself!",
+    "You have Luigi energy—underrated but powerful!",
+    "You radiate Yoshi vibes—loyal and lovable!",
+    "You have Toad energy—small but mighty!",
+    "You give Bowser vibes—commanding presence!",
+    "You have Peach energy—graceful and in charge!",
+]
+_power_ranked = False
+
+def maybe_power_ranking(exchange_count: int) -> str:
+    global _power_ranked
+    if _power_ranked or exchange_count < 5:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _power_ranked = True
+        return f"Give them a power ranking: {random.choice(POWER_RANKINGS)}"
+    return ""
+
+def reset_power_ranking():
+    global _power_ranked
+    _power_ranked = False
+
+# Food talk (react to food/drink mentions)
+FOOD_REACTIONS = {
+    "pizza": "PIZZA! Mama mia, that's-a my favorite!",
+    "beer": "Beer? Mario prefers mushroom juice, but respect!",
+    "wine": "Fancy! Princess Peach would approve!",
+    "taco": "Tacos are like power-ups for your taste buds!",
+    "burger": "Burger bigger than a Bob-omb? Impressive!",
+    "coffee": "Coffee = real-life Fire Flower. POWER UP!",
+    "water": "Hydration! Smart like collecting coins!",
+    "snack": "Snacking = strategic mushroom collection!",
+    "cake": "THE CAKE! Princess Peach promised me cake!",
+    "chips": "Chips! Crunchier than a Koopa shell!",
+}
+
+def check_food_talk(text: str) -> str:
+    low = text.lower()
+    for food, reaction in FOOD_REACTIONS.items():
+        if food in low:
+            return reaction
+    return ""
+
+# Secret password (user must guess)
+_password_active = False
+_password_word = ""
+
+def maybe_start_password(exchange_count: int) -> str:
+    global _password_active, _password_word
+    if _password_active or exchange_count < 11:
+        return ""
+    import random
+    if random.random() < 0.05:
+        words = ["mushroom", "wahoo", "fireball", "koopa", "stardust"]
+        _password_word = random.choice(words)
+        _password_active = True
+        return f"Start a secret password game—give hints, the word is '{_password_word}'"
+    return ""
+
+def check_password_guess(text: str) -> str:
+    global _password_active
+    if not _password_active:
+        return ""
+    if _password_word in text.lower():
+        _password_active = False
+        return "They guessed the password! Celebrate wildly!"
+    return ""
+
+def reset_password():
+    global _password_active, _password_word
+    _password_active = False
+    _password_word = ""
+
+# Compliment relay (ask them to pass a compliment to next person)
+_relay_given = False
+
+def maybe_compliment_relay(exchange_count: int) -> str:
+    global _relay_given
+    if _relay_given or exchange_count < 14:
+        return ""
+    import random
+    if random.random() < 0.08:
+        _relay_given = True
+        return "Ask them to pass a compliment to the next bathroom visitor!"
+    return ""
+
+def reset_relay():
+    global _relay_given
+    _relay_given = False

@@ -955,6 +955,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if mirror:
             reaction_parts.append(mirror)
 
+        # Food talk
+        food = mario_prompt.check_food_talk(text)
+        if food:
+            reaction_parts.append(food)
+
+        # Password guess check
+        pwd_guess = mario_prompt.check_password_guess(text)
+        if pwd_guess:
+            reaction_parts.append(pwd_guess)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1301,6 +1311,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if audience:
                 conv_hint = audience
 
+        # Reverse psychology
+        if not conv_hint:
+            rev_psych = mario_prompt.maybe_reverse_psychology(exchange_count)
+            if rev_psych:
+                conv_hint = rev_psych
+
+        # Power ranking
+        if not conv_hint:
+            prank = mario_prompt.maybe_power_ranking(exchange_count)
+            if prank:
+                conv_hint = prank
+
+        # Secret password
+        if not conv_hint:
+            pwd = mario_prompt.maybe_start_password(exchange_count)
+            if pwd:
+                conv_hint = pwd
+
+        # Compliment relay
+        if not conv_hint:
+            relay = mario_prompt.maybe_compliment_relay(exchange_count)
+            if relay:
+                conv_hint = relay
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1608,6 +1642,10 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_role()
         mario_prompt.reset_word_of_day()
         mario_prompt.reset_audience()
+        mario_prompt.reset_reverse_psych()
+        mario_prompt.reset_power_ranking()
+        mario_prompt.reset_password()
+        mario_prompt.reset_relay()
 
         try:
             # Try to identify by audio
