@@ -835,6 +835,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if callback:
                 ctx.append({"role": "system", "content": f"[CALLBACK]: {callback} Reference it naturally!"})
 
+        # Nickname system — after 4+ exchanges, use their nickname
+        if state_current.get("speaker_id"):
+            nickname = mario_prompt.get_or_assign_nickname(
+                state_current["speaker_id"],
+                state_current.get("speaker_name", "friend"),
+                exchange_count)
+            if nickname:
+                ctx.append({"role": "system", "content": f"[NICKNAME]: Call them '{nickname}' sometimes!"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
@@ -880,6 +889,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
+    response_text = mario_prompt.check_opener_variety(response_text)
 
     # Challenge interrupt — after 3+ exchanges, sometimes throw a fun challenge
     exchange_count = len(state_current["conversation_history"]) // 2

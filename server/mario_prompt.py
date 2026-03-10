@@ -273,3 +273,57 @@ def maybe_challenge(exchange_count: int, mood_positive: bool = True) -> str | No
     if random.random() > 0.12:
         return None
     return random.choice(QUICK_CHALLENGES)
+
+
+# --- Nickname System ---
+# Mario gives people fun nicknames after a few exchanges
+
+NICKNAME_PREFIXES = [
+    "Super", "Captain", "The Great", "Little", "Big", "Dr.",
+    "Prince", "Princess", "Commander", "Turbo", "Mighty", "Chef",
+]
+
+NICKNAME_SUFFIXES = [
+    "Star", "Mushroom", "Plumber", "Champion", "Legend", "Boss",
+    "Warrior", "Explorer", "Adventurer", "Hero", "Champ", "Maestro",
+]
+
+_assigned_nicknames = {}  # speaker_id -> nickname
+
+def get_or_assign_nickname(speaker_id: str, speaker_name: str, exchange_count: int) -> str | None:
+    """Assign a fun nickname after 4+ exchanges. Returns None if too early."""
+    import random
+    if exchange_count < 4:
+        return None
+    if speaker_id in _assigned_nicknames:
+        return _assigned_nicknames[speaker_id]
+    prefix = random.choice(NICKNAME_PREFIXES)
+    suffix = random.choice(NICKNAME_SUFFIXES)
+    nickname = f"{prefix} {speaker_name or suffix}"
+    _assigned_nicknames[speaker_id] = nickname
+    return nickname
+
+
+# --- Response Variety ---
+# Track recent response patterns to avoid repetitive structure
+
+_recent_openers = []
+_OPENER_MAX = 8
+
+def check_opener_variety(response: str) -> str:
+    """If response starts with a recently used opener, suggest variety."""
+    import random
+    global _recent_openers
+    opener = response.split('.')[0].split('!')[0].split('?')[0][:30].strip().lower()
+    if opener in _recent_openers:
+        # Add a variety prefix to break the pattern
+        variety_prefixes = [
+            "Well well well!", "Oh oh oh!", "Ay ay ay!",
+            "Mama mia!", "Wahoo!", "Hmm!",
+        ]
+        prefix = random.choice(variety_prefixes)
+        response = prefix + " " + response
+    _recent_openers.append(opener)
+    if len(_recent_openers) > _OPENER_MAX:
+        _recent_openers.pop(0)
+    return response
