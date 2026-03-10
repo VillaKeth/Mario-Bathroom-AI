@@ -852,6 +852,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if excitement:
             reaction_parts.append(excitement)
 
+        # Dramatic moment detection
+        dramatic = mario_prompt.detect_dramatic_moment(text)
+        if dramatic:
+            reaction_parts.append(dramatic)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -926,11 +931,25 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if stall:
                 conv_hint = stall
 
+        # Word game proposal
+        if not conv_hint:
+            game = mario_prompt.maybe_propose_word_game(exchange_count)
+            if game:
+                conv_hint = game
+
+        # Conversation scoring milestone — lowest priority conversation hint
+        if not conv_hint:
+            score_hint = mario_prompt.update_convo_score(text, exchange_count)
+            if score_hint:
+                conv_hint = score_hint
+        else:
+            mario_prompt.update_convo_score(text, exchange_count)  # still track silently
+
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
         # Conversation history — keep window small for fast LLM on 1.5B model
-        hist_window = min(12, len(state_current["conversation_history"]))
+        hist_window = min(8, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)

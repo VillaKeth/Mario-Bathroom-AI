@@ -736,3 +736,76 @@ def detect_emotion_mirror(user_text: str) -> str:
             best_count = len(matches)
             best_match = data["hint"]
     return best_match if best_count > 0 else ""
+
+
+# ─── Batch 22: Word games, conversation scoring, dramatic reactions ───
+
+# Word game — Mario proposes word association or rhyming games
+WORD_GAMES = [
+    "Let's play a word game! I say a word, you say the first thing that pops into your head! Ready? MUSHROOM!",
+    "Quick! What rhymes with 'Mario'? No cheating!",
+    "Word challenge! Name 3 things you'd find in the Mushroom Kingdom — GO!",
+    "Let's play 'Would You Rather' — Mario edition! Would you rather ride Yoshi or fly with a cape?",
+    "Pop quiz! What color is Luigi's hat? Too easy? What color are Wario's shoes?",
+    "I spy with my little eye... something in this bathroom that starts with 'T'!",
+]
+
+_word_game_offered = False
+
+def maybe_propose_word_game(exchange_count: int) -> str:
+    """Occasionally propose a quick word game to break up conversation."""
+    global _word_game_offered
+    if _word_game_offered or exchange_count < 5:
+        return ""
+    import random
+    if random.random() < 0.08:  # 8% chance
+        _word_game_offered = True
+        game = random.choice(WORD_GAMES)
+        return f"Propose this game: '{game}'"
+    return ""
+
+
+# Conversation scoring — track how "fun" the conversation is
+_convo_score = 0
+
+def update_convo_score(user_text: str, exchange_count: int) -> str:
+    """Track conversation engagement and reward fun interactions."""
+    global _convo_score
+    lower = user_text.lower()
+    
+    # Score boosters
+    if "?" in user_text:
+        _convo_score += 2  # Questions are engaging
+    if any(w in lower for w in ["haha", "lol", "funny", "lmao", "joke"]):
+        _convo_score += 3  # Laughter
+    if len(user_text) > 50:
+        _convo_score += 1  # Effort in typing
+    if any(w in lower for w in ["mario", "luigi", "bowser", "peach", "mushroom"]):
+        _convo_score += 2  # Mario references
+    _convo_score += 1  # Base engagement
+    
+    # Give feedback at milestones
+    if _convo_score >= 20 and exchange_count >= 6:
+        _convo_score = 0  # Reset after milestone
+        return "This person is REALLY engaging! Tell them they're one of the best conversations tonight!"
+    if _convo_score >= 10 and exchange_count >= 3:
+        return "Great conversation energy! Keep the vibe going!"
+    return ""
+
+
+# Dramatic reactions — amplify surprising or shocking statements
+DRAMATIC_TRIGGERS = {
+    "never", "impossible", "unbelievable", "no way", "can't believe",
+    "what if", "imagine", "crazy", "insane", "wild", "shocking",
+    "secret", "confession", "truth", "actually", "plot twist",
+}
+
+def detect_dramatic_moment(user_text: str) -> str:
+    """Detect moments that deserve a dramatic Mario reaction."""
+    lower = user_text.lower()
+    matches = sum(1 for trigger in DRAMATIC_TRIGGERS if trigger in lower)
+    if matches >= 2:
+        return "DRAMATIC MOMENT! React with MAXIMUM drama — gasp, clutch your hat, be SHOCKED!"
+    if matches == 1:
+        return "Something interesting! React with surprise and curiosity!"
+    return ""
