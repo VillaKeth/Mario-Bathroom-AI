@@ -74,6 +74,10 @@ LLM_FALLBACKS = [
     "You know what? You're-a cooler than an Ice Flower! And that's-a pretty cool!",
 ]
 
+# Recent response ring buffer for repeat detection
+_recent_responses: list[str] = []
+_RECENT_MAX = 10
+
 
 async def check_ollama():
     """Check if Ollama is running, model is available, and pre-warm it."""
@@ -198,6 +202,18 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
             logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
             return random.choice(LLM_FALLBACKS)
         response_text = _clean_response(response_text)
+
+        # Repeat detection — if response is too similar to recent ones, retry once
+        response_lower = response_text.lower().strip()
+        is_repeat = any(response_lower == r.lower().strip() for r in _recent_responses)
+        if is_repeat and not transcript:  # Only retry for non-user-prompted (idle/greeting)
+            logger.info(f"[DEBUG_LLM] generate_response: repeat detected, using fallback")
+            response_text = random.choice(LLM_FALLBACKS)
+        
+        # Track recent responses
+        _recent_responses.append(response_text)
+        if len(_recent_responses) > _RECENT_MAX:
+            _recent_responses.pop(0)
 
         elapsed = time.time() - start
         if DEBUG_LLM:

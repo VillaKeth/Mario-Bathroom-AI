@@ -821,7 +821,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently
         # These short phrases should be cache hits (instant)
-        thinking_phrases = ["Let me think about that.", "Hmm, let me think!", "Okie dokie, one moment!"]
+        thinking_phrases = [
+            "Let me think about that.", "Hmm, let me think!", "Okie dokie, one moment!",
+            "Oh!", "Hmm!", "Well!", "Ha!", "Wahoo!", "Ooh!",
+        ]
         thinking_text = random.choice(thinking_phrases)
 
         async def _send_thinking_audio():
