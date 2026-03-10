@@ -854,6 +854,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if pacing:
             ctx.append({"role": "system", "content": f"[PACING]: {pacing}"})
 
+        # Running gag detection — build callbacks to repeated words
+        gag_hint = mario_prompt.detect_running_gag(text, exchange_count)
+        if gag_hint:
+            ctx.append({"role": "system", "content": f"[RUNNING GAG]: {gag_hint}"})
+
+        # Conversation stamina — Mario's energy shifts over long chats
+        stamina = mario_prompt.get_stamina_hint(exchange_count)
+        if stamina:
+            ctx.append({"role": "system", "content": f"[STAMINA]: {stamina}"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
@@ -1145,6 +1155,13 @@ async def handle_event(ws: WebSocket, event: dict):
                 ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})
+
+            # Mood-reactive greeting — adapt energy to party phase
+            now = datetime.now()
+            party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0
+            greeting_mood = mario_prompt.get_greeting_mood(now.hour, party_hrs)
+            if greeting_mood:
+                ctx.append({"role": "system", "content": f"[PARTY MOOD]: {greeting_mood}"})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)

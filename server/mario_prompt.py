@@ -421,3 +421,95 @@ def get_pacing_hint(exchange_count: int, user_msg_length: int) -> str:
     if exchange_count > 8:
         return "You're deep in conversation — be casual and brief like texting a friend."
     return ""
+
+
+# ─── Batch 17: Running gags, mood greetings, stamina ───
+
+# Running gag system — Mario picks up on a word/topic and keeps referencing it
+_running_gag = {"word": None, "count": 0, "exchanges_ago": 0}
+
+def detect_running_gag(user_text: str, exchange_count: int) -> str:
+    """Detect repeated words across exchanges and build a running gag."""
+    global _running_gag
+    words = user_text.lower().split()
+    # Count word frequency (skip common words)
+    skip = {"i", "a", "the", "is", "it", "to", "and", "of", "in", "my", "me",
+            "you", "do", "we", "so", "on", "at", "or", "if", "no", "yes", "oh",
+            "um", "uh", "like", "just", "what", "that", "this", "how", "was",
+            "are", "for", "not", "but", "have", "had", "has", "can", "will",
+            "would", "could", "should", "been", "did", "does", "about", "with",
+            "they", "them", "from", "your", "there", "here", "when", "where",
+            "why", "who", "all", "some", "any", "very", "really", "much", "too"}
+    content_words = [w.strip(".,!?'\"") for w in words if len(w) > 2 and w.strip(".,!?'\"") not in skip]
+
+    if _running_gag["word"]:
+        _running_gag["exchanges_ago"] += 1
+        if _running_gag["word"] in content_words:
+            _running_gag["count"] += 1
+            _running_gag["exchanges_ago"] = 0
+            c = _running_gag["count"]
+            w = _running_gag["word"]
+            if c == 2:
+                return f"They said '{w}' AGAIN! Make a playful comment about it!"
+            elif c == 3:
+                return f"'{w}' for the THIRD time! It's becoming a running joke — tease them about it!"
+            elif c >= 4:
+                return f"'{w}' again?! This is YOUR thing now. It's the {w} conversation! Lean into it hard!"
+        elif _running_gag["exchanges_ago"] > 4:
+            _running_gag["word"] = None
+            _running_gag["count"] = 0
+    else:
+        for w in content_words:
+            if content_words.count(w) >= 2:
+                _running_gag["word"] = w
+                _running_gag["count"] = 1
+                _running_gag["exchanges_ago"] = 0
+                return f"They repeated '{w}' — pick up on it casually!"
+    return ""
+
+
+# Mood-reactive greeting styles — based on time of day and party duration
+GREETING_MOODS = {
+    "early_party": "The party just started! Be HYPE and welcoming — first impressions matter!",
+    "peak_party": "Party is in FULL SWING! Maximum energy, crowd hype, be the life of the bathroom!",
+    "late_night": "It's getting LATE! Be chill but still fun — maybe a bit loopy and random.",
+    "winding_down": "Party is winding down. Be warm, reflective, maybe a bit sentimental about the night.",
+    "morning_after": "It's morning! Be surprised and amused that someone is still here. Make it funny.",
+}
+
+def get_greeting_mood(hour: int, party_duration_hours: float) -> str:
+    """Return greeting style hint based on time and party duration."""
+    if party_duration_hours < 1:
+        return GREETING_MOODS["early_party"]
+    elif hour >= 22 or hour < 1:
+        return GREETING_MOODS["peak_party"]
+    elif 1 <= hour < 4:
+        return GREETING_MOODS["late_night"]
+    elif 4 <= hour < 7:
+        return GREETING_MOODS["winding_down"]
+    elif hour >= 7:
+        return GREETING_MOODS["morning_after"]
+    return GREETING_MOODS["peak_party"]
+
+
+# Conversation stamina — Mario's energy shifts over long conversations
+STAMINA_STAGES = {
+    "fresh":   "You're FULL of energy! Be bouncy, excited, maximum Mario!",
+    "warmed":  "You're warmed up and in the groove! Great vibes, natural flow.",
+    "deep":    "Deep conversation mode — you know them now. Be more personal and real.",
+    "tired":   "Getting a liiittle tired! Yawn occasionally, joke about needing a power-up.",
+    "second_wind": "SECOND WIND! You got a Star power-up! Back to MAXIMUM energy!",
+}
+
+def get_stamina_hint(exchange_count: int) -> str:
+    """Return stamina hint based on how long the conversation has been going."""
+    if exchange_count <= 3:
+        return STAMINA_STAGES["fresh"]
+    elif exchange_count <= 7:
+        return STAMINA_STAGES["warmed"]
+    elif exchange_count <= 12:
+        return STAMINA_STAGES["deep"]
+    elif exchange_count <= 16:
+        return STAMINA_STAGES["tired"]
+    else:
+        return STAMINA_STAGES["second_wind"]
