@@ -713,6 +713,27 @@
 - [x] Playful debate mode: 6 fun debate topics with Mario's passionate stances
 - [x] Conversation recap: tracks key moments, responds to "what did we talk about"
 - [x] Meta-commentary: 6 fourth-wall-breaking observations about bathroom conversations
+- [x] Emotional peak tracking with callbacks to strong moments
+- [x] Rapid-fire question mode (3-round quick Q&A bursts)
+- [x] Response pacing tracker (suggests length variety)
+- [x] Time-aware party commentary (midnight/late night/evening observations)
+- [x] Sound effect suggestions (coin/powerup/pipe/1up/fireball/star)
+- [x] Would You Rather game (8 Mario-themed questions)
+- [x] Mario conspiracy theories (7 ridiculous theories)
+- [x] Role reversal (user becomes Mario for a turn)
+- [x] Conversation intensity tracking (0-3 scale with energy matching)
+- [x] Throwback references (retro gaming callbacks on trigger words)
+- [x] Performance optimization: merged 3-tier context into 2 messages max
+- [x] Two Truths and a Lie game (4 trivia sets)
+- [x] Dramatic farewell escalation (4 levels based on convo length)
+- [x] Surprise twist injection (6 unexpected Mario moments)
+- [x] Compliment fishing (Mario seeks validation)
+- [x] Prediction game (playful predictions about the user)
+- [x] Compliment battle mode (3-round escalating compliment contest)
+- [x] Character impression mode (Luigi/Bowser/Toad/Peach/Wario)
+- [x] Secret handshake proposal (4 choreographed styles)
+- [x] Visitor ranking system (Bronze to Diamond based on visit count)
+- [x] Hypothetical questions (5 Mario-themed what-if scenarios)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
