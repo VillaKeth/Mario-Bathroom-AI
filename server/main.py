@@ -163,6 +163,8 @@ state_current = {
     "_last_dj_time": 0.0,  # Timestamp of last DJ announcement (set to now at connect)
     "_last_time_obs": 0.0,  # Timestamp of last time observation
     "_last_timing": {},  # Last response time breakdown (stt/llm/tts/total)
+    "_session_topics": set(),  # Topics discussed in this session (for variety tracking)
+    "_last_idle_action": None,  # What Mario was doing before someone entered
 }
 
 # Dedicated single-thread executor for TTS (prevents GPU contention)
@@ -817,6 +819,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         elif exchange_count >= 4:
             ctx.append({"role": "system", "content": "Getting comfortable. Be playful, ask questions."})
 
+        # Energy escalation — Mario gets more animated over time
+        energy_hint = mario_prompt.get_energy_hint(exchange_count)
+        if energy_hint:
+            ctx.append({"role": "system", "content": f"[ENERGY]: {energy_hint}"})
+
         # Personality intensity amplifier
         personality_mod = emotion_system.get_personality_modifier()
         if personality_mod:
@@ -872,6 +879,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
+    response_text = mario_prompt.maybe_inject_catchphrase(response_text)
 
     # Challenge interrupt — after 3+ exchanges, sometimes throw a fun challenge
     exchange_count = len(state_current["conversation_history"]) // 2
@@ -904,6 +912,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 topics = memory.extract_topics(text)
                 if topics:
                     memory.save_topics(topics, _speaker_id)
+                    state_current["_session_topics"].update(topics)
             except Exception as e:
                 logger.error(f"Background fact extraction failed: {e}")
         asyncio.create_task(_bg_extract())

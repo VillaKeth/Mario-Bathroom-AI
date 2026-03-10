@@ -135,6 +135,45 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
     return messages
 
 
+# --- Conversation Energy Escalation ---
+# Mario gets more animated the longer the conversation goes
+ENERGY_LEVELS = {
+    0: "",  # First few exchanges — normal energy
+    3: "You're getting into the flow! Be more expressive!",
+    6: "The conversation is ROLLING! Be extra animated and enthusiastic!",
+    10: "MAXIMUM ENERGY! You're on fire! Be WILD, LOUD, and absolutely UNHINGED!",
+}
+
+def get_energy_hint(exchange_count: int) -> str:
+    """Get an energy hint based on how many exchanges have happened."""
+    best = ""
+    for threshold, hint in ENERGY_LEVELS.items():
+        if exchange_count >= threshold:
+            best = hint
+    return best
+
+
+# --- Mario Catchphrase Injection ---
+# Random Mario catchphrases/interjections prepended to responses for flavor
+import random
+
+CATCHPHRASES = [
+    "Wahoo!", "Mama mia!", "Let's-a go!", "Oh yeah!", "Magnifico!",
+    "Yippee!", "Okie dokie!", "Here we go!", "Yahoo!", "Bellissimo!",
+    "Oh!", "Ha!", "Fantastico!", "Mamma!", "Wow!",
+]
+
+def maybe_inject_catchphrase(response: str) -> str:
+    """15% chance to prepend a Mario catchphrase if response doesn't already start with one."""
+    if random.random() > 0.15:
+        return response
+    lower_start = response[:20].lower()
+    if any(c.lower() in lower_start for c in CATCHPHRASES):
+        return response
+    phrase = random.choice(CATCHPHRASES)
+    return phrase + " " + response
+
+
 # --- Question-Back System ---
 # Makes Mario ask follow-up questions ~25% of the time for more natural conversation flow
 
