@@ -1514,11 +1514,11 @@ _challenge_type = ""
 _challenge_turns = 0
 
 CHALLENGES = [
-    ("rhyme", "CHALLENGE: You must rhyme your response with their last word!"),
-    ("no_mario", "CHALLENGE: Respond WITHOUT any Mario catchphrases — be subtle!"),
-    ("question_only", "CHALLENGE: Respond ONLY with questions — no statements!"),
-    ("one_word", "CHALLENGE: Use only 5 words or less!"),
-    ("reverse", "CHALLENGE: Disagree with whatever they say — play devil's advocate!"),
+    ("rhyme", "Rhyme with their last word!"),
+    ("no_mario", "No catchphrases — be subtle!"),
+    ("question_only", "Only ask questions!"),
+    ("one_word", "Max 5 words!"),
+    ("reverse", "Disagree playfully!"),
 ]
 
 def maybe_start_challenge(exchange_count: int) -> str:
@@ -1549,14 +1549,14 @@ def reset_challenge():
 
 # --- Expanded Mario Secrets ---
 DEEP_SECRETS = [
-    "Confess you actually LIKE Bowser's castle decor",
-    "Admit you've counted every coin you've ever collected: exactly 847,293",
-    "Reveal that Toad's mushroom head is actually a hat — you've seen underneath",
-    "Confess you once wore Luigi's outfit for a whole week and nobody noticed",
-    "Share that you have a secret pasta recipe that even Peach doesn't know",
-    "Admit you're scared of Boos even outside of haunted houses",
-    "Reveal you once got lost in World 1-1 — your most embarrassing moment",
-    "Confess that the star power music plays in your head randomly",
+    "You LIKE Bowser's castle decor",
+    "You've counted every coin: exactly 847,293",
+    "Toad's mushroom head is a hat — you've seen underneath",
+    "You wore Luigi's outfit for a week and nobody noticed",
+    "You have a secret pasta recipe even Peach doesn't know",
+    "You're scared of Boos outside haunted houses too",
+    "You once got lost in World 1-1",
+    "The star power music plays in your head randomly",
 ]
 
 _deep_secret_idx = 0
@@ -1665,12 +1665,12 @@ _debate_active = False
 _debate_topic = ""
 
 DEBATE_TOPICS = [
-    ("Is pineapple on pizza good?", "YES! Sweet and savory is perfection!"),
-    ("Are cats better than dogs?", "CATS! They're independent like Mario!"),
-    ("Is morning or night better?", "NIGHT! That's when the best parties happen!"),
-    ("Should you dip fries in ice cream?", "ABSOLUTELY! Sweet meets salty = wahoo!"),
-    ("Is water wet?", "Of course! Mario knows — he's been in MANY water levels!"),
-    ("Are hot dogs sandwiches?", "NO WAY! That's like saying a pipe is a tunnel!"),
+    ("Pineapple on pizza?", "YES! Sweet+savory=perfection!"),
+    ("Cats or dogs better?", "CATS! Independent like Mario!"),
+    ("Morning or night?", "NIGHT! Best parties!"),
+    ("Fries in ice cream?", "YES! Sweet meets salty!"),
+    ("Is water wet?", "YES! I've done many water levels!"),
+    ("Hot dogs = sandwiches?", "NO! That's like calling a pipe a tunnel!"),
 ]
 
 def maybe_start_debate(exchange_count: int) -> str:
@@ -1730,12 +1730,12 @@ def reset_recap():
 _meta_used = False
 
 META_COMMENTS = [
-    "Mention that this is the best bathroom conversation you've ever had",
-    "Comment on how weird it is to be a video game character talking in a bathroom",
-    "Wonder aloud if Bowser ever has bathroom parties",
-    "Note that this conversation would make a great level in a Mario game",
-    "Point out that you've been talking longer than most boss fights",
-    "Joke that this bathroom has better dialogue than most movies",
+    "Best bathroom conversation ever!",
+    "Weird being a video game character in a real bathroom",
+    "Does Bowser have bathroom parties?",
+    "This convo would make a great Mario level",
+    "We've talked longer than most boss fights!",
+    "This bathroom has better dialogue than most movies",
 ]
 
 def maybe_meta_comment(exchange_count: int) -> str:
@@ -1857,24 +1857,24 @@ def get_party_time_commentary() -> str:
         return ""
     if hour >= 0 and hour < 3:
         comments = [
-            "It's past midnight! The REAL party people come out now!",
-            "Late night bathroom runs are the best conversations!",
-            "Everyone's getting sleepy but WE'RE still going strong!",
+            "Past midnight! Real party people!",
+            "Late night bathroom convos are the best!",
+            "Everyone's sleepy but WE'RE going strong!",
         ]
     elif hour >= 3 and hour < 6:
         comments = [
-            "It's almost dawn! We've been partying ALL NIGHT!",
-            "The birds are about to start singing — competition!",
+            "Almost dawn! All night party!",
+            "Birds about to sing — competition!",
         ]
     elif hour >= 18 and hour < 21:
         comments = [
-            "Evening bathroom visits — the party's heating up!",
-            "Prime party hours! Who needs the dance floor when you have THIS bathroom?",
+            "Evening! Party's heating up!",
+            "Prime party hours!",
         ]
     elif hour >= 21 and hour < 24:
         comments = [
-            "Late night vibes! The bathroom gets philosophical after 9pm!",
-            "Peak bathroom hour — I've been busy tonight!",
+            "Late night vibes! Bathroom gets philosophical!",
+            "Peak bathroom hour!",
         ]
     else:
         return ""
@@ -1916,14 +1916,14 @@ def suggest_sound_effect(text: str) -> str:
 _wyr_used = False
 
 WYR_QUESTIONS = [
-    "Would you rather have a permanent star power OR be able to fit in any pipe?",
-    "Would you rather eat only mushrooms forever OR only fire flowers?",
-    "Would you rather fight 100 Goomba-sized Bowsers OR 1 Bowser-sized Goomba?",
-    "Would you rather live in the Mushroom Kingdom OR have Mario's jumping ability in real life?",
-    "Would you rather have Yoshi as a pet OR a Lakitu cloud for transportation?",
-    "Would you rather never be able to run OR never be able to jump?",
-    "Would you rather fight Bowser every day OR do World 8-4 backwards?",
-    "Would you rather have Luigi's height OR Mario's mustache permanently?",
+    "permanent star power OR fit in any pipe?",
+    "eat only mushrooms OR only fire flowers forever?",
+    "fight 100 Goomba-sized Bowsers OR 1 Bowser-sized Goomba?",
+    "live in Mushroom Kingdom OR have Mario's jump IRL?",
+    "Yoshi as pet OR Lakitu cloud for travel?",
+    "never run again OR never jump again?",
+    "fight Bowser daily OR do 8-4 backwards?",
+    "Luigi's height OR Mario's mustache permanently?",
 ]
 
 def maybe_would_you_rather(exchange_count: int) -> str:
@@ -1945,13 +1945,13 @@ def reset_wyr():
 _conspiracy_used = False
 
 CONSPIRACIES = [
-    "Whisper that you think Peach LETS Bowser kidnap her for vacation",
-    "Confide that you suspect Toad knows the winning lottery numbers",
-    "Share that you think the coins disappear at the end of each level because Wario steals them",
-    "Suggest that Lakitu is actually filming a reality show about you",
-    "Theorize that all the pipes lead to the same place — a plumber's nightmare",
-    "Hint that you think Bowser only fights you because he's lonely",
-    "Reveal that you think the ? blocks are actually ancient technology",
+    "Peach LETS Bowser kidnap her for vacation",
+    "Toad knows the winning lottery numbers",
+    "Wario steals the coins at end of each level",
+    "Lakitu is filming a reality show about you",
+    "All pipes lead to the same place",
+    "Bowser only fights you because he's lonely",
+    "The ? blocks are ancient technology",
 ]
 
 def maybe_conspiracy(exchange_count: int) -> str:

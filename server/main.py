@@ -920,33 +920,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if throwback:
             reaction_parts.append(throwback)
 
-        if reaction_parts:
-            # Cap at 2 strongest reaction hints
-            ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
-
-        # --- PERSONALITY hints (how to behave) --- priority: medium
+        # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
         # Momentum
         if exchange_count >= 8:
-            personality_parts.append("Old friends now — tease, be familiar")
+            personality_parts.append("Old friends — tease them")
         elif exchange_count >= 4:
-            personality_parts.append("Getting comfortable — be playful")
+            personality_parts.append("Be playful")
 
-        # Energy + stamina (pick one — stamina is more specific)
+        # Stamina
         stamina = mario_prompt.get_stamina_hint(exchange_count)
         if stamina:
             personality_parts.append(stamina)
 
-        # Pacing
-        pacing = mario_prompt.get_pacing_hint(exchange_count, len(text))
-        if pacing:
-            personality_parts.append(pacing)
-
-        # Personality intensity
-        personality_mod = emotion_system.get_personality_modifier()
-        if personality_mod:
-            personality_parts.append(personality_mod)
+        # Track conversation flow (always call)
+        mario_prompt.track_flow(text)
 
         # Nickname
         if state_current.get("speaker_id"):
@@ -954,45 +943,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 state_current["speaker_id"],
                 state_current.get("speaker_name", "friend"),
                 exchange_count)
-            if nickname:
+            if nickname and len(personality_parts) < 2:
                 personality_parts.append(f"Call them '{nickname}'")
-
-        # Personality tag hints
-        traits = mario_prompt.detect_personality_traits(text)
-        if traits:
-            tag_hint = mario_prompt.get_personality_tag_hint(traits)
-            if tag_hint and len(personality_parts) < 2:
-                personality_parts.append(tag_hint)
-
-        # Crowd awareness
-        try:
-            visit_count = party_stats.get_stats().get("total_visits", 0)
-            crowd = mario_prompt.get_crowd_hint(visit_count)
-            if crowd and len(personality_parts) < 2:
-                personality_parts.append(crowd)
-        except Exception:
-            pass
-
-        # Topic expertise
-        expertise = mario_prompt.get_topic_expertise(text)
-        if expertise and len(personality_parts) < 2:
-            personality_parts.append(expertise)
-
-        # Conversation rhythm
-        rhythm = mario_prompt.get_rhythm_hint(exchange_count)
-        if rhythm and len(personality_parts) < 2:
-            personality_parts.append(rhythm)
-
-        # Track conversation flow
-        mario_prompt.track_flow(text)
-        flow = mario_prompt.get_flow_hint()
-        if flow and len(personality_parts) < 2:
-            personality_parts.append(flow)
-
-        # Hype injection
-        hype = mario_prompt.get_hype_injection(exchange_count)
-        if hype and len(personality_parts) < 2:
-            personality_parts.append(hype)
 
         # Nickname evolution
         nick_evo = mario_prompt.evolve_nickname(exchange_count,
@@ -1000,18 +952,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if nick_evo and len(personality_parts) < 2:
             personality_parts.append(nick_evo)
 
-        # Party time commentary
-        party_time = mario_prompt.get_party_time_commentary()
-        if party_time and len(personality_parts) < 2:
-            personality_parts.append(party_time)
+        all_hints = []
+        if reaction_parts:
+            all_hints.extend(reaction_parts[:2])
+        if personality_parts and len(all_hints) < 3:
+            all_hints.extend(personality_parts[:max(1, 3 - len(all_hints))])
 
-        # Pacing variety
-        pacing = mario_prompt.get_pacing_hint()
-        if pacing and len(personality_parts) < 2:
-            personality_parts.append(pacing)
-
-        if personality_parts:
-            ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
+        if all_hints:
+            ctx.append({"role": "system", "content": " | ".join(all_hints[:3])})
 
         # --- CONVERSATION hints (callbacks, stories, secrets) --- priority: low, pick one
         conv_hint = None
