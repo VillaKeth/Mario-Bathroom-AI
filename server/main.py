@@ -867,6 +867,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if ach_hint:
             reaction_parts.append(ach_hint)
 
+        # Bathroom timer teasing
+        if state_current.get("enter_time"):
+            timer_hint = mario_prompt.get_bathroom_timer_hint(
+                state_current["enter_time"], exchange_count)
+            if timer_hint:
+                reaction_parts.append(timer_hint)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -908,8 +915,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         traits = mario_prompt.detect_personality_traits(text)
         if traits:
             tag_hint = mario_prompt.get_personality_tag_hint(traits)
-            if tag_hint and len(personality_parts) < 3:
+            if tag_hint and len(personality_parts) < 2:
                 personality_parts.append(tag_hint)
+
+        # Crowd awareness
+        try:
+            visit_count = party_stats.get_stats().get("total_visits", 0)
+            crowd = mario_prompt.get_crowd_hint(visit_count)
+            if crowd and len(personality_parts) < 2:
+                personality_parts.append(crowd)
+        except Exception:
+            pass
 
         if personality_parts:
             ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})

@@ -686,6 +686,10 @@
 - [x] Reduced num_predict 50→40 tokens, history window 8→6, personality cap 3→2
 - [x] Compacted memory injection (6 items→3, formatted as single line)
 - [x] Shortened late night mode, JUST LEARNED, achievement, dramatic, temperature hints
+- [x] Bathroom timer jokes: teases about how long they've been in there (5 jokes, 20% trigger after 3min)
+- [x] Crowd awareness: references party traffic count in personality hints
+- [x] Voice modulation hints: emotion-to-speed mapping (excited=FAST, sad=SLOW, angry=LOUD)
+- [x] Catchphrase combo system: 8 multi-phrase combos for variety
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

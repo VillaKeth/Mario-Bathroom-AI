@@ -981,3 +981,78 @@ def search_conversation_memory(conversation_history: list, keyword: str) -> str:
     if mentions:
         return f"Earlier in this conversation about '{keyword}': {mentions[0]}"
     return ""
+
+
+# ============================================================
+# BATCH 26: Bathroom timer, crowd awareness, voice modulation hints
+# ============================================================
+
+# Bathroom timer — teasing about how long they've been in here
+TIMER_JOKES = [
+    "You've been here {mins} minutes! Everything okay in there?",
+    "{mins} minutes! That's a new record! Should Mario call for backup?",
+    "It's been {mins} whole minutes! What are you building in there?",
+    "Mario's been waiting {mins} minutes! Even Bowser doesn't take this long!",
+    "{mins} minutes... Mario's starting to worry! Should I send Yoshi?",
+]
+
+def get_bathroom_timer_hint(enter_time: float, exchange_count: int) -> str:
+    """Tease about how long they've been in the bathroom."""
+    import random, time as _time
+    if exchange_count < 3:
+        return ""
+    elapsed = _time.time() - enter_time
+    mins = int(elapsed / 60)
+    if mins < 3:
+        return ""
+    if mins > 15:
+        return f"They've been here {mins} min! Joke about them LIVING here now!"
+    if random.random() > 0.20:  # 20% chance per exchange
+        return ""
+    return random.choice(TIMER_JOKES).format(mins=mins)
+
+
+# Crowd awareness — reference how busy the party has been
+def get_crowd_hint(visit_count: int) -> str:
+    """Generate context about party traffic for Mario's awareness."""
+    if visit_count <= 1:
+        return ""
+    if visit_count >= 20:
+        return f"Party PACKED! {visit_count} visitors tonight!"
+    if visit_count >= 10:
+        return f"Busy night! {visit_count} visitors so far!"
+    if visit_count >= 5:
+        return f"{visit_count} visitors tonight — party's rolling!"
+    return ""
+
+
+# Voice modulation hints — suggest how Mario should sound
+def get_voice_hint(emotion: str, exchange_count: int) -> str:
+    """Suggest voice modulation based on conversation state."""
+    if emotion in ("excited", "joyful", "surprised"):
+        return "FAST"
+    if emotion in ("sad", "tired", "sleepy"):
+        return "SLOW"
+    if emotion in ("angry", "frustrated"):
+        return "LOUD"
+    if exchange_count > 8:
+        return "WARM"
+    return ""
+
+
+# Catchphrase variations — expand Mario's expression vocabulary
+CATCHPHRASE_COMBOS = [
+    "Wahoo! Let's-a go!",
+    "Mama mia! Here we go!",
+    "Okie dokie! Yahoo!",
+    "It's-a me! Magnifico!",
+    "Mamma! Bellissimo!",
+    "Let's-a go! Wahoo!",
+    "Yahoo! Here we go again!",
+    "Fantastico! Let's-a party!",
+]
+
+def get_random_catchphrase_combo() -> str:
+    """Get a random catchphrase combo for variety."""
+    import random
+    return random.choice(CATCHPHRASE_COMBOS)
