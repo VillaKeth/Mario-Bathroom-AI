@@ -15,6 +15,9 @@
 - [x] Comprehensive TTS pronunciation fix: remove ALL hyphens, normalize ALL CAPS with energy boost, clean Unicode/symbols
 - [x] Energy detection: high-caps/exclamation text → +15% rate, +5Hz pitch for emphasis
 - [x] Cleared entire TTS disk cache (693 entries) for fresh GPT-SoVITS regeneration
+- [x] Fixed voice-death bug: freestanding hyphens (" - ") now caught by 3-step removal
+- [x] Added newline/control character stripping (LLM \n output caused garbled speech)
+- [x] Added non-standard word normalization (hmm→hm, bitey→biting, etc.)
 - [x] Queue-based background regeneration (replaces thread-per-request)
 - [x] GPT-SoVITS subprocess auto-restart on crash (up to 3 retries)
 - [x] GPT-SoVITS warmup at startup (eliminates first-call slowdown)
