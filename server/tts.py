@@ -837,16 +837,16 @@ def _start_idle_precache():
     t.start()
 
 
-def synthesize_user(text: str, rate: str = None, pitch: str = None) -> bytes:
+def synthesize_user(text: str, rate: str = None, pitch: str = None, nocache: bool = False) -> bytes:
     """User-priority TTS synthesis. Pauses precache while this runs."""
     _user_tts_waiting.set()
     try:
-        return synthesize(text, rate, pitch)
+        return synthesize(text, rate, pitch, nocache=nocache)
     finally:
         _user_tts_waiting.clear()
 
 
-def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
+def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = False) -> bytes:
     """Convert text to Mario-voiced speech audio.
 
     Pipeline: Cache check → Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
@@ -856,18 +856,19 @@ def synthesize(text: str, rate: str = None, pitch: str = None) -> bytes:
     _pitch = pitch or "+0Hz"
     cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
     global _cache_hits, _cache_misses
-    with _cache_lock:
-        cached = _audio_cache.get(cache_key)
-        if cached is not None:
-            # Move to end of LRU order on cache hit
-            if cache_key in _cache_order:
-                _cache_order.remove(cache_key)
-                _cache_order.append(cache_key)
-            _cache_hits += 1
-            if DEBUG_TTS:
-                hit_rate = _cache_hits / max(1, _cache_hits + _cache_misses) * 100
-                logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...' (rate={hit_rate:.0f}%)")
-            return cached
+    if not nocache:
+        with _cache_lock:
+            cached = _audio_cache.get(cache_key)
+            if cached is not None:
+                # Move to end of LRU order on cache hit
+                if cache_key in _cache_order:
+                    _cache_order.remove(cache_key)
+                    _cache_order.append(cache_key)
+                _cache_hits += 1
+                if DEBUG_TTS:
+                    hit_rate = _cache_hits / max(1, _cache_hits + _cache_misses) * 100
+                    logger.info(f"[DEBUG_TTS] synthesize: CACHE HIT '{text[:40]}...' (rate={hit_rate:.0f}%)")
+                return cached
 
     _cache_misses += 1
 

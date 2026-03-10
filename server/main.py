@@ -455,7 +455,7 @@ async def admin_announce(request_body: dict = {}):
 _tts_semaphore = asyncio.Semaphore(1)  # Only 1 TTS request at a time
 
 @app.get("/tts")
-async def tts_endpoint(text: str = ""):
+async def tts_endpoint(text: str = "", nocache: bool = False):
     """Generate TTS audio for a given text and return WAV file."""
     if not text or len(text) > 300:
         return {"status": "error", "message": "Text required (max 300 chars)"}
@@ -463,7 +463,7 @@ async def tts_endpoint(text: str = ""):
         loop = asyncio.get_event_loop()
         try:
             audio_bytes = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize_user(text)
+                _tts_executor, lambda: tts.synthesize_user(text, nocache=nocache)
             )
             if not audio_bytes:
                 return {"status": "error", "message": "TTS synthesis failed"}

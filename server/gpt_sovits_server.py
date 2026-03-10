@@ -109,20 +109,31 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     _sfx_pattern = r'\b(?:wahoo+|whoosh|splish|splash|boom|boing|brr+|shh+|pfft+|mwah+|ka[\s\-]*ching|ching|whomp|swoosh|zing|thud|clang|bonk|woo+|tick[\s\-]*tock)\b'
     clean_text = _re.sub(_sfx_pattern, '', clean_text, flags=_re.IGNORECASE)
 
-    # Remove filler words that GPT-SoVITS cannot pronounce (hmm, umm, uhh, etc.)
-    _filler_pattern = r'\b(?:hmm+|umm+|uhh+|ahh+|ohh+|hm+|uh|um|er+m*|mhm+)\b'
-    clean_text = _re.sub(_filler_pattern, '', clean_text, flags=_re.IGNORECASE)
+    # Normalize filler words to simple pronounceable forms (keep character, fix length)
+    clean_text = _re.sub(r'\bhm+\b', 'Hm', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bumm*\b', 'Um', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\buhh*\b', 'Uh', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bahh+\b', 'Ah', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bohh+\b', 'Oh', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\ber+m*\b', 'Um', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bmhm+\b', 'Mm hm', clean_text, flags=_re.IGNORECASE)
 
     # Strip leading punctuation/whitespace left after word removal
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
 
     # Replace non-standard words with pronounceable alternatives
+    # Bowser → Bowzer phonetic (original spelling garbles in short context)
     clean_text = _re.sub(r'\bbowser\b', 'Bowzer', clean_text, flags=_re.IGNORECASE)
-    # Goomba/Koopa: keep original spelling (phonetic "Goombah" tested worse)
+    # Goomba → Gumba (simpler phonetic)
+    clean_text = _re.sub(r'\bgoomba\b', 'Gumba', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bokie\b', 'okey', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bdokie\b', 'dokey', clean_text, flags=_re.IGNORECASE)
+    # "mine cart" → "minecart" (two words garbles as "my god")
+    clean_text = _re.sub(r'\bmine\s+cart\b', 'minecart', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
+    # Convert repeated "da" interjections → remove (sounds like SFX, always garbles)
+    clean_text = _re.sub(r'\bda(?:\s+da)+\b', '', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bnoo+\b', 'no', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byaa+y+\b', 'yay', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bsoo+\b', 'so', clean_text, flags=_re.IGNORECASE)
@@ -173,11 +184,11 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'-+', '', clean_text)
 
     # Interjection phonetics — must run AFTER hyphen removal & char collapse
-    # "Ha He!" → "Hah hey!", "Ha ha ha" → "Hah hah hah", "Da da da" → "Dah dah dah"
+    # "Ha He!" → "Hah hey!" (only for the "ha he" combo which is a Mario catchphrase)
     clean_text = _re.sub(r'\bha\s+he\b', 'hah hey', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bha(?:\s+ha)+\b', lambda m: ' '.join(['hah'] * len(m.group().split())), clean_text, flags=_re.IGNORECASE)
+    # Don't convert "ha ha ha" to "hah hah hah" — the repeated 'hah' garbles
+    # Instead just normalize trailing 'ha' before punctuation to 'hah'
     clean_text = _re.sub(r'\bha\b(?=[!.,?])', 'hah', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bda(?:\s+da)+\b', lambda m: ' '.join(['dah'] * len(m.group().split())), clean_text, flags=_re.IGNORECASE)
 
     # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
@@ -216,12 +227,29 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
     # Remove excessive dots (shouldn't occur after ellipsis→comma conversion, but safety)
     clean_text = _re.sub(r'\.{3,}', ', ', clean_text)
+    # Convert mid-sentence periods to commas (prevents TTS sentence fragmentation)
+    # "Line one. Line two. Line three." → "Line one, Line two, Line three."
+    # Only convert periods followed by space+uppercase (sentence boundaries mid-text)
+    # Keep final period
+    clean_text = _re.sub(r'\.\s+(?=[A-Z])', ', ', clean_text)
     # Clean up multiple commas/spaces from substitutions
     clean_text = _re.sub(r',\s*,', ',', clean_text)
     # Strip leading/trailing punctuation left from removals
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
     clean_text = _re.sub(r'[\s,]+$', '', clean_text)
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
+
+    # Pad very short phrases — GPT-SoVITS garbles text with < 5 words
+    _words = clean_text.split()
+    if len(_words) >= 1 and len(_words) <= 4 and len(clean_text) < 25:
+        # Use "Well, " for 1-2 word phrases (need more context)
+        # Use "Oh, " for 3-4 word phrases
+        if len(_words) <= 2:
+            clean_text = "Well, " + clean_text[0].lower() + clean_text[1:]
+        else:
+            clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
+        if DEBUG_SOVITS:
+            print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
 
     # Ensure first character is capitalized after all removals
     if clean_text and clean_text[0].islower():

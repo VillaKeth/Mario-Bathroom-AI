@@ -819,3 +819,15 @@
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
+- [x] Filler word normalization (hmm→Hm, umm→Um, uhh→Uh instead of removal)
+- [x] TTS cache bypass (nocache=1 parameter for fresh synthesis during testing)
+- [x] Short phrase padding (Oh/Well prefix for ≤4 words to prevent garbling)
+- [x] Bowser→Bowzer phonetic replacement re-enabled after testing both
+- [x] Goomba→Gumba phonetic replacement for simpler pronunciation
+- [x] Ha ha ha interjection: keep as-is instead of hah hah hah less garbling
+- [x] Da da da→ta da conversion simpler interjection
+- [x] Mid-sentence period→comma conversion prevents TTS sentence fragmentation
+- [x] Ralph loop rounds 10-12 with nocache: 73% acceptable best score
+- [ ] Fix remaining TTS problem phrases (6 BAD, 13 WEAK in round 10)
+- [ ] Test Bowzer alternatives (Bawzer, Bowsur) for best pronunciation
+- [ ] Edge TTS fallback for consistently garbled short phrases

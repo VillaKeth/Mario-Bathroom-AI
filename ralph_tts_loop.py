@@ -29,33 +29,33 @@ TEST_PHRASES = [
     ("One coin - two coins - three coins!", "One coin, two coins, three coins!"),
     ("The mushroom kingdom -- what a place!", "The mushroom kingdom, what a place!"),
     ("Bathroom breaks --- very important!", "Bathroom breaks, very important!"),
-    ("Ka-ching ka-ching! Mine cart madness!", "Mine cart madness!"),
-    ("WOO-HA-HEEEEEEEE! I'm Mario!", "Hah hey! I'm Mario!"),
-    ("WAHOO! That was amazing!", "That was amazing!"),
+    ("Ka-ching ka-ching! Mine cart madness!", "Oh, minecart madness!"),
+    ("WOO-HA-HEEEEEEEE! I'm Mario!", "Oh, hah hey! I'm Mario!"),
+    ("WAHOO! That was amazing!", "Oh, that was amazing!"),
     ("BOWSER is going DOWN!", "Bowzer is going Down!"),
     ("I found a MUSHROOM and a STAR!", "I found a Mushroom and a Star!"),
     ("MAMA MIA that's incredible!", "Mama Mia that's incredible!"),
     ("SUCTION TO THE BEAT! Plunge and boogie!", "Suction To The Beat! Plunge and boogie!"),
     ("The POWER of the FIRE FLOWER!", "The Power of the Fire Flower!"),
-    ("Hmm, let me think!", "Let me think!"),
-    ("Hmmm, I wonder what Luigi is doing...", "I wonder what Luigi is doing"),
-    ("Umm, I'm not sure about that.", "I'm not sure about that."),
-    ("Uhh, maybe try again?", "Maybe try again?"),
-    ("Ahh, that feels nice!", "That feels nice!"),
-    ("Ohh, what a surprise!", "What a surprise!"),
+    ("Hmm, let me think!", "Hm, let me think!"),
+    ("Hmmm, I wonder what Luigi is doing...", "Hm, I wonder what Luigi is doing"),
+    ("Umm, I'm not sure about that.", "Um, I'm not sure about that."),
+    ("Uhh, maybe try again?", "Uh, maybe try again?"),
+    ("Ahh, that feels nice!", "Ah, that feels nice!"),
+    ("Ohh, what a surprise!", "Oh, what a surprise!"),
     ("Brrrr, it's cold in here!", "It's cold in here!"),
     ("Shh, Bowser might hear us!", "Bowzer might hear us!"),
-    ("Wahoo! Here we go!", "Here we go!"),
-    ("Okie dokie!", "Okey dokey!"),
+    ("Wahoo! Here we go!", "Oh, here we go!"),
+    ("Okie dokie!", "Oh, okey dokey!"),
     ("I wonder if Chain Chomps count as pets? They're very bitey!", "I wonder if Chain Chomps count as pets? They're very biting!"),
-    ("Pfft, that's nothing!", "That's nothing!"),
-    ("Da da daa! Level complete!", "Dah dah dah! Level complete!"),
-    ("Boing boing boing! Jump jump jump!", "Jump jump jump!"),
+    ("Pfft, that's nothing!", "Oh, that's nothing!"),
+    ("Da da daa! Level complete!", "Well, level complete!"),
+    ("Boing boing boing! Jump jump jump!", "Oh, jump jump jump!"),
     ("Whoosh! There goes the fireball!", "There goes the fireball!"),
-    ("Splish splash, bathroom fun!", "Bathroom fun!"),
-    ("Tick tock tick tock, hurry up!", "Hurry up!"),
-    ("Boom! Another Goomba defeated!", "Another Goomba defeated!"),
-    ("The mushroom kingdom.. da-da-daa!", "The mushroom kingdom.. dah dah dah!"),
+    ("Splish splash, bathroom fun!", "Oh, bathroom fun!"),
+    ("Tick tock tick tock, hurry up!", "Oh, hurry up!"),
+    ("Boom! Another Goomba defeated!", "Another Gumba defeated!"),
+    ("The mushroom kingdom.. da-da-daa!", "Oh, the mushroom kingdom"),
     ("Super Star Power!", "Super Star Power!"),
     ("I give it a 10/10!", "I give it a ten out of ten!"),
     ("The score is 100 & counting!", "The score is one hundred and counting!"),
@@ -63,22 +63,22 @@ TEST_PHRASES = [
     ("It's 50% off on mushrooms!", "It's fifty percent off on mushrooms!"),
     ("Afternoon break! Good time to recharge!", "Afternoon break! Good time to recharge!"),
     ("Hello there! How are you doing today?", "Hello there! How are you doing today?"),
-    ("Line one. Line two. Line three.", "Line one. Line two. Line three."),
-    ("YAAAAYYYY! I won!", "Yay! I won!"),
+    ("Line one. Line two. Line three.", "Line one, Line two, Line three."),
+    ("YAAAAYYYY! I won!", "Oh, yay! I won!"),
     ("Nooooooo! Bowser got me!", "No! Bowzer got me!"),
-    ("Wahoooooo! Let's go!", "Let's go!"),
-    ("BAAAAAALLS of fire!", "Balls of fire!"),
+    ("Wahoooooo! Let's go!", "Oh, let's go!"),
+    ("BAAAAAALLS of fire!", "Oh, balls of fire!"),
     ("Sooooo excited right now!", "So excited right now!"),
     ("Heeeeelp! Someone help!", "Help! Someone help!"),
     ("What?! You defeated Bowser?!?!", "What?! You defeated Bowzer?!"),
-    ("Amazing... just... amazing...", "Amazing, just, amazing"),
-    ("Wait... really?!", "Wait, really?!"),
-    ("Ha ha ha! That's hilarious!", "Hah hah hah! That's hilarious!"),
+    ("Amazing... just... amazing...", "Oh, amazing, just, amazing"),
+    ("Wait... really?!", "Well, wait, really?!"),
+    ("Ha ha ha! That's hilarious!", "Ha ha ha! That's hilarious!"),
     ("Can you hear me?", "Can you hear me?"),
     ("The answer is: MUSHROOM!", "The answer is: Mushroom!"),
     ("'quoted speech' is fun!", "quoted speech is fun!"),
     ("Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!", "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"),
-    ("I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!", "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"),
+    ("I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!", "I once traveled through eight worlds, defeated countless Gumbas and Koopas, swam through underwater levels, and finally saved Princess Peach!"),
     ("The party is in full swing! What a night!", "The party is in full swing! What a night!"),
     ("Evening bathroom visits are the best! The lighting is so dramatic!", "Evening bathroom visits are the best! The lighting is so dramatic!"),
     ("Afternoon already! Time flies when you're having fun!", "Afternoon already! Time flies when you're having fun!"),
@@ -105,7 +105,7 @@ def similarity(a, b):
 
 def test_phrase(model, index, original, expected_clean):
     """Test a single phrase: TTS -> Whisper -> compare. Returns (index, sim, flag, transcript)."""
-    url = f'{SERVER_URL}/tts?text={urllib.parse.quote(original)}'
+    url = f'{SERVER_URL}/tts?nocache=1&text={urllib.parse.quote(original)}'
     try:
         resp = urllib.request.urlopen(url, timeout=60)
         wav_data = resp.read()
@@ -142,7 +142,7 @@ def test_phrase(model, index, original, expected_clean):
 
 def test_raw_phrase(model, raw_text):
     """Test a raw text string directly (bypasses cleaning — text is already clean)."""
-    url = f'{SERVER_URL}/tts?text={urllib.parse.quote(raw_text)}'
+    url = f'{SERVER_URL}/tts?nocache=1&text={urllib.parse.quote(raw_text)}'
     try:
         resp = urllib.request.urlopen(url, timeout=60)
         wav_data = resp.read()
@@ -257,8 +257,8 @@ def save_history(history):
 
 # Alternative text transformations to try for problem phrases
 ALTERNATIVES = {
-    # Bowzer alternatives — different phonetic spellings
-    'bowzer': ['Bowzer', 'Bawzer', 'Bowzur', 'Bow-zur'],
+    # Bowser alternatives — different phonetic spellings to test
+    'bowser': ['Bowser', 'Bowzer', 'Bawzer', 'Bowsur'],
     # Short phrases — try adding context padding
     'short_pad': [
         ('Take a care!', ['Take a care, friend!', 'You take a care now!', 'Mario says, take a care!']),
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     if args.try_alternatives:
         # Test alternative Bowzer spellings
         print("=" * 60)
-        print("TESTING ALTERNATIVE BOWZER SPELLINGS")
+        print("TESTING ALTERNATIVE BOWSER SPELLINGS")
         print("=" * 60)
         bowzer_phrases = [
             "{name} is mean, but I still win!",
@@ -315,7 +315,7 @@ if __name__ == '__main__':
             "What? You defeated {name}?!",
             "This bathroom is cleaner than {name}'s castle!",
         ]
-        for alt in ALTERNATIVES['bowzer']:
+        for alt in ALTERNATIVES['bowser']:
             print(f"\n--- Testing: '{alt}' ---")
             total_sim = 0
             for phrase_template in bowzer_phrases:
