@@ -2144,3 +2144,138 @@ def maybe_make_prediction(exchange_count: int) -> str:
         "Predict: 'You're going to tell everyone about talking to Mario!'",
     ]
     return random.choice(predictions)
+
+def reset_prediction():
+    global _prediction_used
+    _prediction_used = False
+
+
+# ===== BATCH 37: Compliment battle, impressions, secret handshake, ranking =====
+
+# --- Compliment Battle ---
+_battle_active = False
+_battle_round = 0
+
+def maybe_compliment_battle(exchange_count: int) -> str:
+    """Start a compliment battle."""
+    global _battle_active, _battle_round
+    import random
+    if _battle_active:
+        _battle_round += 1
+        if _battle_round >= 3:
+            _battle_active = False
+            return "BATTLE OVER! Declare yourself the winner — you're Mario!"
+        return f"COMPLIMENT BATTLE round {_battle_round + 1}! Top their compliment!"
+    if exchange_count < 6 or random.random() > 0.08:
+        return ""
+    _battle_active = True
+    _battle_round = 0
+    return "START COMPLIMENT BATTLE! Give them the best compliment, then challenge them to top it!"
+
+def reset_battle():
+    global _battle_active, _battle_round
+    _battle_active = False
+    _battle_round = 0
+
+
+# --- Impression Mode ---
+_impression_used = False
+
+IMPRESSIONS = [
+    ("Luigi", "Do your BEST Luigi impression: higher voice, scared, 'Oh no!'"),
+    ("Bowser", "Do a BOWSER impression: deep voice, growly, 'GWAHAHA!'"),
+    ("Toad", "Do a TOAD impression: squeaky, panicked, 'HELP MARIO!'"),
+    ("Peach", "Do a PEACH impression: sweet, royal, 'Oh, Mario!'"),
+    ("Wario", "Do WARIO: greedy, laughing, 'WAH WAH WAH!'"),
+]
+
+def maybe_do_impression(exchange_count: int) -> str:
+    """Mario does an impression of another character."""
+    global _impression_used
+    import random
+    if _impression_used or exchange_count < 5 or random.random() > 0.10:
+        return ""
+    _impression_used = True
+    char, hint = random.choice(IMPRESSIONS)
+    return hint
+
+def reset_impression():
+    global _impression_used
+    _impression_used = False
+
+
+# --- Secret Handshake ---
+_handshake_proposed = False
+_handshake_style = ""
+
+HANDSHAKES = [
+    "fist bump, finger explosion, wiggle fingers",
+    "high five, low five, too slow!",
+    "air punch, spin, peace sign",
+    "double clap, fist bump, wave",
+]
+
+def maybe_propose_handshake(exchange_count: int) -> str:
+    """Propose a secret bathroom handshake."""
+    global _handshake_proposed, _handshake_style
+    import random
+    if _handshake_proposed or exchange_count < 8 or random.random() > 0.08:
+        return ""
+    _handshake_proposed = True
+    _handshake_style = random.choice(HANDSHAKES)
+    return f"Propose a SECRET HANDSHAKE: {_handshake_style}! Describe each step!"
+
+def reset_handshake():
+    global _handshake_proposed, _handshake_style
+    _handshake_proposed = False
+    _handshake_style = ""
+
+
+# --- Visitor Ranking ---
+_visitor_rank = 0
+
+def get_visitor_ranking(exchange_count: int, visit_count: int = 1) -> str:
+    """Assign the visitor a fun ranking."""
+    global _visitor_rank
+    import random
+    if _visitor_rank > 0 or exchange_count < 4 or random.random() > 0.10:
+        return ""
+    rankings = [
+        "Bronze Bathroom Buddy",
+        "Silver Sink Star",
+        "Gold Flush Friend",
+        "Platinum Plumber Pal",
+        "Diamond Drain Dancer",
+    ]
+    idx = min(visit_count, len(rankings)) - 1
+    _visitor_rank = idx + 1
+    return f"Award them rank: '{rankings[idx]}'!"
+
+def reset_ranking():
+    global _visitor_rank
+    _visitor_rank = 0
+
+
+# --- Hypothetical Questions ---
+_hypothetical_used = False
+
+HYPOTHETICALS = [
+    "If you had a fire flower power, what would you burn first?",
+    "If you were a Mario enemy, which one would you be?",
+    "If you could live in any Mario level, which one?",
+    "If you had to eat one Mario item for the rest of your life?",
+    "If you could have any Mario power-up in real life?",
+]
+
+def maybe_hypothetical(exchange_count: int) -> str:
+    """Ask a fun hypothetical question."""
+    global _hypothetical_used
+    import random
+    if _hypothetical_used or exchange_count < 5 or random.random() > 0.10:
+        return ""
+    _hypothetical_used = True
+    return f"Ask: '{random.choice(HYPOTHETICALS)}' — share YOUR answer too!"
+
+def reset_hypothetical():
+    global _hypothetical_used
+    _hypothetical_used = False

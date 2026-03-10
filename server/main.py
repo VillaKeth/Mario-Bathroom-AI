@@ -1136,6 +1136,40 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if prediction:
                 conv_hint = prediction
 
+        # Compliment battle
+        if not conv_hint:
+            battle = mario_prompt.maybe_compliment_battle(exchange_count)
+            if battle:
+                conv_hint = battle
+
+        # Impression mode
+        if not conv_hint:
+            impression = mario_prompt.maybe_do_impression(exchange_count)
+            if impression:
+                conv_hint = impression
+
+        # Secret handshake
+        if not conv_hint:
+            handshake = mario_prompt.maybe_propose_handshake(exchange_count)
+            if handshake:
+                conv_hint = handshake
+
+        # Visitor ranking
+        if not conv_hint:
+            try:
+                vc = party_stats.get_stats().get("total_visits", 1)
+            except Exception:
+                vc = 1
+            ranking = mario_prompt.get_visitor_ranking(exchange_count, vc)
+            if ranking:
+                conv_hint = ranking
+
+        # Hypothetical question
+        if not conv_hint:
+            hypo = mario_prompt.maybe_hypothetical(exchange_count)
+            if hypo:
+                conv_hint = hypo
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1414,6 +1448,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_ttl()
         mario_prompt.reset_twist()
         mario_prompt.reset_fish()
+        mario_prompt.reset_battle()
+        mario_prompt.reset_impression()
+        mario_prompt.reset_handshake()
+        mario_prompt.reset_ranking()
+        mario_prompt.reset_hypothetical()
 
         try:
             # Try to identify by audio
