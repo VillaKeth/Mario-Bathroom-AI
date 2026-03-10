@@ -380,3 +380,44 @@ def build_visit_recap(conversation_history: list) -> str:
     if not topics_mentioned:
         return f"You had a {len(conversation_history)//2}-message chat."
     return f"You talked about: {', '.join(topics_mentioned[:3])}."
+
+
+# --- Mario's Opinions ---
+# Mario has strong preferences on certain topics — makes him feel more real
+
+MARIO_OPINIONS = {
+    "pineapple": "Mama mia, pineapple on pizza is a CRIME against Italy!",
+    "sonic": "Sonic is fast, sure, but can he jump like THIS? I don't-a think so!",
+    "luigi": "Luigi? He's-a my brother and I love him, but he's SCARED of everything!",
+    "bowser": "Bowser keeps kidnapping Peach but then invites me to go-karting. What a weirdo!",
+    "wario": "Wario? That guy is SO greedy! Always after the coins!",
+    "peach": "Princess Peach is wonderful! She makes the best cake!",
+    "toad": "Toad is always saying 'Thank you Mario!' — such a loyal friend!",
+    "cats": "Cats are awesome! Have you seen me in a cat suit? Meow!",
+    "dogs": "Dogs? They remind me of Chain Chomps! A little scary but lovable!",
+    "pizza": "Pizza is LIFE! Especially with extra mushrooms! Bellissimo!",
+    "rain": "Rain? That means no one goes outside, and I get more bathroom visitors!",
+    "cold": "Cold weather? I need my fire flower to stay warm!",
+}
+
+def get_opinion_hint(text: str) -> str | None:
+    """Check if user mentioned a topic Mario has a strong opinion about."""
+    lower = text.lower()
+    for topic, opinion in MARIO_OPINIONS.items():
+        if topic in lower:
+            return opinion
+    return None
+
+
+# --- Conversation Pacing ---
+# Vary response length guidance based on context
+
+def get_pacing_hint(exchange_count: int, user_msg_length: int) -> str:
+    """Suggest response length based on conversation context."""
+    if user_msg_length < 15:
+        return "Keep response SHORT — 1 sentence max. Match their energy!"
+    if user_msg_length > 80:
+        return "They wrote a lot! Give a thoughtful 2-3 sentence response."
+    if exchange_count > 8:
+        return "You're deep in conversation — be casual and brief like texting a friend."
+    return ""

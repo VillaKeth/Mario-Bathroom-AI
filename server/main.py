@@ -844,6 +844,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if nickname:
                 ctx.append({"role": "system", "content": f"[NICKNAME]: Call them '{nickname}' sometimes!"})
 
+        # Mario's opinions — strong reactions to specific topics
+        opinion = mario_prompt.get_opinion_hint(text)
+        if opinion:
+            ctx.append({"role": "system", "content": f"[OPINION]: {opinion}"})
+
+        # Conversation pacing — vary response length based on context
+        pacing = mario_prompt.get_pacing_hint(exchange_count, len(text))
+        if pacing:
+            ctx.append({"role": "system", "content": f"[PACING]: {pacing}"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:

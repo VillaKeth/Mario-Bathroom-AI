@@ -655,6 +655,8 @@
 - [x] Response opener variety: detects and breaks repeated sentence patterns
 - [x] Mario trivia system: 12 fun game facts, 8% trigger after 5+ exchanges
 - [x] Conversation recap for personalized goodbyes (topic summary on exit)
+- [x] Mario opinions system: 12 topic→opinion mappings for strong reactions (Bowser, pizza, Luigi, etc.)
+- [x] Conversation pacing: adapts response length guidance based on user message length + exchange count
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
