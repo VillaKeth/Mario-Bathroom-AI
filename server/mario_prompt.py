@@ -3070,3 +3070,116 @@ def maybe_tongue_twister(exchange_count: int) -> str:
 def reset_tongue_twister():
     global _twister_used
     _twister_used = False
+
+# ── Batch 44 ─────────────────────────────────────────────
+
+# Exit poll (ask a quick survey question before they leave)
+EXIT_POLL_QUESTIONS = [
+    "Quick poll: best Mario game ever? 1=SMB3, 2=SM64, 3=Galaxy, 4=Odyssey",
+    "Quick poll: best power-up? 1=Star, 2=Fire Flower, 3=Cape, 4=Cat Suit",
+    "Quick poll: party rating tonight? 1-5 stars!",
+    "Quick poll: best Mario character? 1=Mario, 2=Luigi, 3=Yoshi, 4=Toad",
+]
+
+def get_exit_poll() -> str:
+    import random
+    return random.choice(EXIT_POLL_QUESTIONS)
+
+# Music genre reaction
+MUSIC_REACTIONS = {
+    "rap": "Rap? Mario's flow is FIRE! Drop a beat!",
+    "rock": "Rock? Mario ROCKS harder than a Thwomp!",
+    "pop": "Pop! Like popping question blocks!",
+    "jazz": "Jazz! Smooth like sliding down a flagpole!",
+    "country": "Country? Yee-haw, partner! Mushroom ranch!",
+    "edm": "EDM! WUB WUB like a Bob-omb bass drop!",
+    "hip hop": "Hip hop? More like HIP JUMP!",
+    "classical": "Classical! Like the World 1-1 theme!",
+    "metal": "Metal! Heavy as a Chain Chomp!",
+    "reggae": "Reggae? Island vibes like Delfino Plaza!",
+}
+
+def check_music_talk(text: str) -> str:
+    low = text.lower()
+    for genre, reaction in MUSIC_REACTIONS.items():
+        if genre in low:
+            return reaction
+    if any(w in low for w in ["music", "song", "playlist", "dj", "dance"]):
+        return "Ask what music they like—Mario has opinions!"
+    return ""
+
+# Pet talk
+PET_REACTIONS = {
+    "dog": "Dogs! Loyal like Yoshi! Good boy energy!",
+    "cat": "Cats! Independent like a Boo—ignore you then pounce!",
+    "fish": "Fish! Cheep Cheep's cousin! Blub blub!",
+    "bird": "Birds! Like Para-Troopas but cuter!",
+    "hamster": "Hamsters! Tiny and fast like a Goomba on espresso!",
+    "rabbit": "Rabbits! Hoppy like Mario himself!",
+}
+
+def check_pet_talk(text: str) -> str:
+    low = text.lower()
+    for pet, reaction in PET_REACTIONS.items():
+        if pet in low:
+            return reaction
+    return ""
+
+# Weather small talk (react to weather mentions)
+def check_weather(text: str) -> str:
+    low = text.lower()
+    if any(w in low for w in ["rain", "raining", "storm"]):
+        return "Rain=water level IRL. Grab a Frog Suit!"
+    if any(w in low for w in ["hot", "heat", "sunny", "sun"]):
+        return "Hot? Like Lethal Lava Land! Stay hydrated!"
+    if any(w in low for w in ["cold", "freezing", "snow"]):
+        return "Cold? Like Cool Cool Mountain! Penguin time!"
+    if any(w in low for w in ["wind", "windy"]):
+        return "Windy? Like those Gusty Garden Galaxy gusts!"
+    return ""
+
+# Superhero alter ego
+_alter_ego_given = False
+
+def maybe_alter_ego(exchange_count: int) -> str:
+    global _alter_ego_given
+    if _alter_ego_given or exchange_count < 11:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _alter_ego_given = True
+        egos = [
+            "Assign them a superhero alter ego: Captain Coin Collector!",
+            "Assign them alter ego: The Mushroom Avenger!",
+            "Assign them alter ego: Star Power Sentinel!",
+            "Assign them alter ego: The Pipe Phantom!",
+        ]
+        return random.choice(egos)
+    return ""
+
+def reset_alter_ego():
+    global _alter_ego_given
+    _alter_ego_given = False
+
+# Secret handshake evolution (builds across conversation)
+_handshake_step = 0
+
+def evolve_handshake(exchange_count: int) -> str:
+    global _handshake_step
+    if exchange_count < 15 or _handshake_step >= 3:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _handshake_step += 1
+        steps = [
+            "Add a fist bump to your secret handshake!",
+            "Now add a spin move to the handshake!",
+            "Final step: end with a dramatic 'WAHOO!'",
+        ]
+        if _handshake_step <= len(steps):
+            return steps[_handshake_step - 1]
+    return ""
+
+def reset_handshake_evolution():
+    global _handshake_step
+    _handshake_step = 0

@@ -970,6 +970,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if movie:
             reaction_parts.append(movie)
 
+        # Music genre reaction
+        music = mario_prompt.check_music_talk(text)
+        if music:
+            reaction_parts.append(music)
+
+        # Pet talk
+        pet = mario_prompt.check_pet_talk(text)
+        if pet:
+            reaction_parts.append(pet)
+
+        # Weather talk
+        weather = mario_prompt.check_weather(text)
+        if weather:
+            reaction_parts.append(weather)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1370,6 +1385,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if twister:
                 conv_hint = twister
 
+        # Alter ego
+        if not conv_hint:
+            ego = mario_prompt.maybe_alter_ego(exchange_count)
+            if ego:
+                conv_hint = ego
+
+        # Handshake evolution
+        if not conv_hint:
+            hse = mario_prompt.evolve_handshake(exchange_count)
+            if hse:
+                conv_hint = hse
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1686,6 +1713,8 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_emoji_mode()
         mario_prompt.reset_award()
         mario_prompt.reset_tongue_twister()
+        mario_prompt.reset_alter_ego()
+        mario_prompt.reset_handshake_evolution()
 
         try:
             # Try to identify by audio
@@ -1844,7 +1873,8 @@ async def handle_event(ws: WebSocket, event: dict):
                 topics = state_current.get("_session_topics", set())
                 goodbye = mario_prompt.get_dynamic_goodbye(exchange_count, topics)
                 farewell_drama = mario_prompt.get_farewell_drama(exchange_count)
-                ctx.append({"role": "system", "content": f"{farewell_drama} | {goodbye}"})
+                exit_poll = mario_prompt.get_exit_poll()
+                ctx.append({"role": "system", "content": f"{farewell_drama} | {goodbye} | {exit_poll}"})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
