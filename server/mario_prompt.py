@@ -1908,3 +1908,125 @@ def suggest_sound_effect(text: str) -> str:
             }
             return templates.get(effect, "")
     return ""
+
+
+# ===== BATCH 34: Would You Rather, conspiracies, role reversal, memory tags =====
+
+# --- Would You Rather ---
+_wyr_used = False
+
+WYR_QUESTIONS = [
+    "Would you rather have a permanent star power OR be able to fit in any pipe?",
+    "Would you rather eat only mushrooms forever OR only fire flowers?",
+    "Would you rather fight 100 Goomba-sized Bowsers OR 1 Bowser-sized Goomba?",
+    "Would you rather live in the Mushroom Kingdom OR have Mario's jumping ability in real life?",
+    "Would you rather have Yoshi as a pet OR a Lakitu cloud for transportation?",
+    "Would you rather never be able to run OR never be able to jump?",
+    "Would you rather fight Bowser every day OR do World 8-4 backwards?",
+    "Would you rather have Luigi's height OR Mario's mustache permanently?",
+]
+
+def maybe_would_you_rather(exchange_count: int) -> str:
+    """Propose a Would You Rather question."""
+    global _wyr_used
+    import random
+    if _wyr_used or exchange_count < 5 or random.random() > 0.10:
+        return ""
+    _wyr_used = True
+    q = random.choice(WYR_QUESTIONS)
+    return f"ASK: {q} — then share YOUR answer!"
+
+def reset_wyr():
+    global _wyr_used
+    _wyr_used = False
+
+
+# --- Mario Conspiracy Theories ---
+_conspiracy_used = False
+
+CONSPIRACIES = [
+    "Whisper that you think Peach LETS Bowser kidnap her for vacation",
+    "Confide that you suspect Toad knows the winning lottery numbers",
+    "Share that you think the coins disappear at the end of each level because Wario steals them",
+    "Suggest that Lakitu is actually filming a reality show about you",
+    "Theorize that all the pipes lead to the same place — a plumber's nightmare",
+    "Hint that you think Bowser only fights you because he's lonely",
+    "Reveal that you think the ? blocks are actually ancient technology",
+]
+
+def maybe_conspiracy(exchange_count: int) -> str:
+    """Share a ridiculous Mario conspiracy theory."""
+    global _conspiracy_used
+    import random
+    if _conspiracy_used or exchange_count < 8 or random.random() > 0.12:
+        return ""
+    _conspiracy_used = True
+    return f"CONSPIRACY: {random.choice(CONSPIRACIES)}"
+
+def reset_conspiracy():
+    global _conspiracy_used
+    _conspiracy_used = False
+
+
+# --- Role Reversal ---
+_role_reversal_used = False
+
+def maybe_role_reversal(exchange_count: int) -> str:
+    """Propose switching roles — user becomes Mario."""
+    global _role_reversal_used
+    import random
+    if _role_reversal_used or exchange_count < 10 or random.random() > 0.08:
+        return ""
+    _role_reversal_used = True
+    return "ROLE SWAP! Ask them: 'If YOU were Mario, what would you do first?' Then judge their answer!"
+
+def reset_role_reversal():
+    global _role_reversal_used
+    _role_reversal_used = False
+
+
+# --- Conversation Intensity Spikes ---
+_intensity_level = 0  # 0=calm, 1=engaged, 2=intense, 3=peak
+
+def update_intensity(text: str) -> str:
+    """Track conversation intensity and suggest energy adjustments."""
+    global _intensity_level
+    low = text.lower()
+    # Intensity markers
+    caps_ratio = sum(1 for c in text if c.isupper()) / max(len(text), 1)
+    excl_count = text.count("!")
+    word_count = len(text.split())
+    
+    if caps_ratio > 0.5 or excl_count >= 3:
+        _intensity_level = min(3, _intensity_level + 1)
+    elif word_count <= 3:
+        _intensity_level = max(0, _intensity_level - 1)
+    
+    if _intensity_level >= 3:
+        return "PEAK INTENSITY! Match their HUGE energy!"
+    elif _intensity_level == 0 and word_count <= 2:
+        return "They're quiet — be gentle, don't overwhelm"
+    return ""
+
+def reset_intensity():
+    global _intensity_level
+    _intensity_level = 0
+
+
+# --- Throwback References ---
+THROWBACK_TRIGGERS = {
+    "old": "Speaking of old things, remember the original Donkey Kong? THAT was old!",
+    "classic": "Classic like World 1-1! Nothing beats the original!",
+    "retro": "Retro? Mario IS retro! We started in 1985!",
+    "vintage": "Vintage like my overalls! Never going out of style!",
+    "remember": "My memory is better than a save file!",
+    "back in the day": "Back in the day I only had 2 directions to move!",
+}
+
+def check_throwback(text: str) -> str:
+    """Reference retro gaming when user mentions old/classic things."""
+    low = text.lower()
+    for trigger, response_hint in THROWBACK_TRIGGERS.items():
+        if trigger in low:
+            return response_hint
+    return ""

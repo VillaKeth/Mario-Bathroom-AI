@@ -910,6 +910,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if sfx:
             reaction_parts.append(sfx)
 
+        # Intensity tracking
+        intensity = mario_prompt.update_intensity(text)
+        if intensity:
+            reaction_parts.append(intensity)
+
+        # Throwback references
+        throwback = mario_prompt.check_throwback(text)
+        if throwback:
+            reaction_parts.append(throwback)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -1135,6 +1145,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             rapid = mario_prompt.maybe_start_rapid_fire(exchange_count)
             if rapid:
                 conv_hint = rapid
+
+        # Would You Rather
+        if not conv_hint:
+            wyr = mario_prompt.maybe_would_you_rather(exchange_count)
+            if wyr:
+                conv_hint = wyr
+
+        # Mario conspiracy theory
+        if not conv_hint:
+            conspiracy = mario_prompt.maybe_conspiracy(exchange_count)
+            if conspiracy:
+                conv_hint = conspiracy
+
+        # Role reversal
+        if not conv_hint:
+            reversal = mario_prompt.maybe_role_reversal(exchange_count)
+            if reversal:
+                conv_hint = reversal
 
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
@@ -1407,6 +1435,10 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_emotional_memory()
         mario_prompt.reset_rapid_fire()
         mario_prompt.reset_pacing()
+        mario_prompt.reset_wyr()
+        mario_prompt.reset_conspiracy()
+        mario_prompt.reset_role_reversal()
+        mario_prompt.reset_intensity()
 
         try:
             # Try to identify by audio
