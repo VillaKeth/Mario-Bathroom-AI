@@ -1342,3 +1342,165 @@ def reset_flow():
     """Reset flow state."""
     global _flow_pattern
     _flow_pattern = []
+
+
+# ===== BATCH 30: Mood contagion, inside jokes, response variety =====
+
+# --- Mood Contagion ---
+_mario_mood = 50  # 0=sad, 50=neutral, 100=ecstatic
+
+MOOD_WORDS_UP = ["happy", "love", "great", "awesome", "amazing", "fun", "hilarious",
+                  "best", "fantastic", "beautiful", "wonderful", "excellent", "wow"]
+MOOD_WORDS_DOWN = ["sad", "boring", "hate", "terrible", "worst", "ugly", "depressing",
+                    "annoying", "angry", "bad", "awful", "tired", "ugh"]
+
+def update_mario_mood(text: str):
+    """Shift Mario's mood toward the user's emotional tone."""
+    global _mario_mood
+    low = text.lower()
+    up_count = sum(1 for w in MOOD_WORDS_UP if w in low)
+    down_count = sum(1 for w in MOOD_WORDS_DOWN if w in low)
+    shift = (up_count - down_count) * 8
+    # Also factor exclamation marks as energy
+    shift += min(low.count("!"), 3) * 2
+    _mario_mood = max(0, min(100, _mario_mood + shift))
+    # Decay toward neutral
+    if _mario_mood > 55:
+        _mario_mood -= 2
+    elif _mario_mood < 45:
+        _mario_mood += 2
+
+def get_mood_hint() -> str:
+    """Return mood-appropriate hint."""
+    if _mario_mood >= 80:
+        return "You're OVERJOYED! Be extra enthusiastic and silly!"
+    elif _mario_mood >= 65:
+        return "You're in a great mood! Be upbeat!"
+    elif _mario_mood <= 20:
+        return "You're feeling down — be gentle and encouraging"
+    elif _mario_mood <= 35:
+        return "You're a bit subdued — match their quieter energy"
+    return ""
+
+def reset_mood():
+    global _mario_mood
+    _mario_mood = 50
+
+
+# --- Inside Jokes ---
+_inside_jokes = []  # list of (trigger_word, joke_phrase) tuples
+_inside_joke_count = 0
+
+def detect_inside_joke_opportunity(text: str, mario_response: str) -> bool:
+    """After a response, check if something funny happened that could become a recurring joke."""
+    global _inside_joke_count
+    if _inside_joke_count >= 3:
+        return False
+    low_text = text.lower()
+    low_resp = mario_response.lower()
+    # Look for laugh-worthy moments: if response has "haha" or "mama mia" AND user mentioned something specific
+    funny_markers = ["haha", "mama mia", "wahoo", "ooh", "lol"]
+    if any(m in low_resp for m in funny_markers):
+        # Extract a potential trigger word from user text (nouns/topics)
+        words = [w for w in low_text.split() if len(w) > 4 and w.isalpha()]
+        if words:
+            trigger = words[0]
+            # Don't duplicate
+            if not any(t == trigger for t, _ in _inside_jokes):
+                snippet = mario_response[:40].strip()
+                _inside_jokes.append((trigger, snippet))
+                _inside_joke_count += 1
+                return True
+    return False
+
+def check_inside_joke(text: str) -> str:
+    """Check if user text triggers a previously established inside joke."""
+    low = text.lower()
+    for trigger, joke in _inside_jokes:
+        if trigger in low:
+            return f"CALLBACK! Last time '{trigger}' came up you said: '{joke}' — reference it!"
+    return ""
+
+def reset_inside_jokes():
+    global _inside_jokes, _inside_joke_count
+    _inside_jokes = []
+    _inside_joke_count = 0
+
+
+# --- Response Variety Scoring ---
+_recent_openers = []  # track last 5 response openers
+
+OPENER_PATTERNS = {
+    "wahoo": ["wahoo", "wah"],
+    "mama_mia": ["mama mia", "mamma mia"],
+    "hey": ["hey", "heya"],
+    "oh": ["oh!", "ooh", "oh my"],
+    "ha": ["haha", "ha!", "hehe"],
+    "well": ["well,", "well!"],
+    "you": ["you ", "you're", "you know"],
+}
+
+def score_variety(response: str) -> str:
+    """Track response opener variety and suggest alternatives if repetitive."""
+    global _recent_openers
+    low = response.lower()[:20]
+    opener = "other"
+    for key, patterns in OPENER_PATTERNS.items():
+        if any(low.startswith(p) for p in patterns):
+            opener = key
+            break
+    _recent_openers.append(opener)
+    if len(_recent_openers) > 5:
+        _recent_openers.pop(0)
+    # Check for repetition
+    if len(_recent_openers) >= 3:
+        last3 = _recent_openers[-3:]
+        if last3[0] == last3[1] == last3[2]:
+            alternatives = [k for k in OPENER_PATTERNS if k != opener]
+            if alternatives:
+                alt = alternatives[0]
+                return f"VARIETY! Don't start with '{opener}' again — try '{alt}' style opening"
+    return ""
+
+def reset_variety():
+    global _recent_openers
+    _recent_openers = []
+
+
+# --- Conversation Chapter Detection ---
+_current_chapter = ""
+_chapter_exchange = 0
+
+CHAPTER_KEYWORDS = {
+    "food": ["eat", "food", "pizza", "pasta", "hungry", "cook", "restaurant", "drink"],
+    "gaming": ["game", "play", "nintendo", "xbox", "ps5", "controller", "level", "boss"],
+    "music": ["song", "music", "band", "concert", "sing", "dance", "dj", "playlist"],
+    "life": ["work", "job", "school", "college", "family", "relationship", "move"],
+    "party": ["party", "drunk", "shots", "beer", "dance", "vibe", "people", "crowd"],
+    "bathroom": ["toilet", "bathroom", "pee", "wash", "mirror", "sink", "flush"],
+}
+
+def detect_chapter(text: str) -> str:
+    """Detect topic shift and announce chapter transitions."""
+    global _current_chapter, _chapter_exchange
+    low = text.lower()
+    scores = {}
+    for chapter, keywords in CHAPTER_KEYWORDS.items():
+        scores[chapter] = sum(1 for k in keywords if k in low)
+    best = max(scores, key=scores.get) if scores else ""
+    if scores.get(best, 0) == 0:
+        _chapter_exchange += 1
+        return ""
+    if best != _current_chapter and _current_chapter:
+        old = _current_chapter
+        _current_chapter = best
+        _chapter_exchange = 0
+        return f"Topic shifted from {old} to {best}! Smoothly transition!"
+    _current_chapter = best
+    _chapter_exchange += 1
+    return ""
+
+def reset_chapter():
+    global _current_chapter, _chapter_exchange
+    _current_chapter = ""
+    _chapter_exchange = 0

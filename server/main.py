@@ -879,6 +879,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if energy:
             reaction_parts.append(energy)
 
+        # Mood contagion
+        mario_prompt.update_mario_mood(text)
+        mood = mario_prompt.get_mood_hint()
+        if mood:
+            reaction_parts.append(mood)
+
+        # Inside joke callback
+        joke_cb = mario_prompt.check_inside_joke(text)
+        if joke_cb:
+            reaction_parts.append(joke_cb)
+
+        # Chapter detection
+        chapter = mario_prompt.detect_chapter(text)
+        if chapter:
+            reaction_parts.append(chapter)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -1106,6 +1122,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Mario trivia — occasional fun fact drops
     response_text = mario_prompt.maybe_add_trivia(response_text, exchange_count)
 
+    # Track inside joke opportunities
+    mario_prompt.detect_inside_joke_opportunity(text, response_text)
+
+    # Response variety scoring — track and warn if repetitive
+    variety_hint = mario_prompt.score_variety(response_text)
+    # (variety_hint is logged but not injected — it affects next response via _recent_openers)
+
     analyzed = analyze_text(response_text)
     # Use reaction suggestion to enhance pose if none detected
     if not analyzed.get("pose_hint"):
@@ -1282,6 +1305,10 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_compliment()
         mario_prompt.reset_rhythm()
         mario_prompt.reset_flow()
+        mario_prompt.reset_mood()
+        mario_prompt.reset_inside_jokes()
+        mario_prompt.reset_variety()
+        mario_prompt.reset_chapter()
 
         try:
             # Try to identify by audio
