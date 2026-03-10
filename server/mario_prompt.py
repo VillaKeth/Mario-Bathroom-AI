@@ -1248,3 +1248,97 @@ def reset_compliment():
     """Reset compliment state."""
     global _compliment_given
     _compliment_given = False
+
+
+# ============================================================
+# BATCH 29: Topic expertise, conversation rhythm, user energy matching
+# ============================================================
+
+# Topic expertise — Mario knows more about some things than others
+TOPIC_EXPERTISE = {
+    "plumbing": {"level": "expert", "hint": "You're THE expert here! Show off!"},
+    "pipes": {"level": "expert", "hint": "Pipes are your specialty!"},
+    "mushrooms": {"level": "expert", "hint": "Mushroom expert! Share fun facts!"},
+    "adventure": {"level": "expert", "hint": "Adventure is your LIFE!"},
+    "food": {"level": "high", "hint": "Foodie Mario! Get passionate!"},
+    "pizza": {"level": "high", "hint": "Pizza connoisseur!"},
+    "pasta": {"level": "high", "hint": "Pasta perfection!"},
+    "music": {"level": "medium", "hint": "You like music — hum a tune!"},
+    "sports": {"level": "medium", "hint": "Athletic but prefer adventures!"},
+    "science": {"level": "low", "hint": "Not your thing — ask THEM to explain!"},
+    "math": {"level": "low", "hint": "Math? That's Toad's department!"},
+    "politics": {"level": "none", "hint": "Change subject to something fun!"},
+}
+
+def get_topic_expertise(user_text: str) -> str:
+    """Check if Mario has expertise on the discussed topic."""
+    lower = user_text.lower()
+    for topic, info in TOPIC_EXPERTISE.items():
+        if topic in lower:
+            return info["hint"]
+    return ""
+
+
+# Conversation rhythm — alternate between long and short responses
+_last_response_long = False
+
+def get_rhythm_hint(exchange_count: int) -> str:
+    """Suggest response length for natural conversation rhythm."""
+    global _last_response_long
+    if exchange_count < 2:
+        return ""
+    if _last_response_long:
+        _last_response_long = False
+        return "Keep it SHORT this time — 1 sentence!"
+    _last_response_long = True
+    return ""
+
+def reset_rhythm():
+    """Reset rhythm state."""
+    global _last_response_long
+    _last_response_long = False
+
+
+# User energy matching — detect how much energy the user is putting in
+def detect_user_energy(user_text: str) -> str:
+    """Detect user's energy level from their message style."""
+    # High energy indicators
+    exclamation_count = user_text.count("!")
+    caps_ratio = sum(1 for c in user_text if c.isupper()) / max(len(user_text), 1)
+    has_emojis = any(ord(c) > 127 for c in user_text)
+
+    if exclamation_count >= 2 or caps_ratio > 0.5 or has_emojis:
+        return "HIGH energy! Match their excitement!"
+    if len(user_text) < 10 and "." not in user_text:
+        return "Low energy. Be gently encouraging."
+    return ""
+
+
+# Conversation flow tracker — detect conversation patterns
+_flow_pattern = []  # tracks message types: "q" for question, "s" for statement
+
+def track_flow(user_text: str):
+    """Track conversation flow pattern."""
+    if "?" in user_text:
+        _flow_pattern.append("q")
+    else:
+        _flow_pattern.append("s")
+    if len(_flow_pattern) > 6:
+        _flow_pattern.pop(0)
+
+def get_flow_hint() -> str:
+    """Suggest flow-based behavior."""
+    if len(_flow_pattern) < 3:
+        return ""
+    # If all questions, prompt Mario to ask back
+    if all(p == "q" for p in _flow_pattern[-3:]):
+        return "They keep asking! Ask THEM something instead!"
+    # If all statements, prompt Mario to ask a question
+    if all(p == "s" for p in _flow_pattern[-3:]):
+        return "Ask them a question to keep things flowing!"
+    return ""
+
+def reset_flow():
+    """Reset flow state."""
+    global _flow_pattern
+    _flow_pattern = []

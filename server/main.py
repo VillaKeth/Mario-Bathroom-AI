@@ -874,6 +874,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if timer_hint:
                 reaction_parts.append(timer_hint)
 
+        # User energy matching
+        energy = mario_prompt.detect_user_energy(text)
+        if energy:
+            reaction_parts.append(energy)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -926,6 +931,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 personality_parts.append(crowd)
         except Exception:
             pass
+
+        # Topic expertise
+        expertise = mario_prompt.get_topic_expertise(text)
+        if expertise and len(personality_parts) < 2:
+            personality_parts.append(expertise)
+
+        # Conversation rhythm
+        rhythm = mario_prompt.get_rhythm_hint(exchange_count)
+        if rhythm and len(personality_parts) < 2:
+            personality_parts.append(rhythm)
+
+        # Track conversation flow
+        mario_prompt.track_flow(text)
+        flow = mario_prompt.get_flow_hint()
+        if flow and len(personality_parts) < 2:
+            personality_parts.append(flow)
 
         if personality_parts:
             ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
@@ -1259,6 +1280,8 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_quiz()
         mario_prompt.reset_bookmarks()
         mario_prompt.reset_compliment()
+        mario_prompt.reset_rhythm()
+        mario_prompt.reset_flow()
 
         try:
             # Try to identify by audio
