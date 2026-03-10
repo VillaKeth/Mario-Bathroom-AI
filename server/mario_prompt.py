@@ -582,3 +582,76 @@ def build_callback_hint(conversation_history: list, exchange_count: int) -> str:
         snippet = early_msg[:60].strip()
         return f"Earlier they said: '{snippet}' — casually reference or callback to this!"
     return ""
+
+
+# ─── Batch 19: Insult comebacks, topic switching, excitement amplifier ───
+
+# Insult comeback — Mario claps back playfully when teased
+INSULT_WORDS = {
+    "ugly", "dumb", "stupid", "lame", "boring", "suck", "sucks", "terrible",
+    "worst", "hate", "loser", "trash", "bad", "annoying", "cringe", "mid",
+    "overrated", "washed", "basic", "corny",
+}
+
+MARIO_COMEBACKS = [
+    "Hey! I've been saving princesses since before you were born!",
+    "Mama mia, that's-a harsh! Good thing I have extra lives!",
+    "You wound me! But like a mushroom, I'll grow back even bigger!",
+    "I've been burned by Bowser's fire — your words don't hurt me!",
+    "Oh yeah? Well at least I can jump REALLY high! Can you?",
+    "That's-a rude! I'm telling Peach on you!",
+]
+
+def detect_insult(user_text: str) -> str:
+    """Detect if user is being mean and return a comeback hint."""
+    words = set(user_text.lower().split())
+    has_you = "you" in words or "mario" in words or "you're" in words or "your" in words
+    matches = words & INSULT_WORDS
+    if matches and has_you:
+        import random
+        comeback = random.choice(MARIO_COMEBACKS)
+        return f"They're teasing you! Clap back playfully: '{comeback}'"
+    if len(matches) >= 2:
+        return "They're being negative — stay positive and turn it around with humor!"
+    return ""
+
+
+# Topic switching — detect when conversation has stalled on one topic
+_topic_exchange_count = {"topic": None, "count": 0}
+
+def detect_topic_stall(user_text: str, exchange_count: int) -> str:
+    """Detect if conversation is stalling on the same topic."""
+    global _topic_exchange_count
+    # Simple topic detection — look for repeated key nouns
+    words = user_text.lower().split()
+    content = [w.strip(".,!?'\"") for w in words if len(w) > 4]
+    
+    if content:
+        main_word = max(set(content), key=content.count) if content else None
+        if main_word == _topic_exchange_count["topic"]:
+            _topic_exchange_count["count"] += 1
+        else:
+            _topic_exchange_count["topic"] = main_word
+            _topic_exchange_count["count"] = 1
+    
+    if _topic_exchange_count["count"] >= 4:
+        _topic_exchange_count["count"] = 0
+        return "The conversation has been on the same topic for a while! Pivot to something NEW and unexpected!"
+    return ""
+
+
+# Excitement amplifier — Mario gets progressively more excited about things they both like
+EXCITEMENT_TRIGGERS = {
+    "games", "gaming", "nintendo", "mario", "adventure", "mushroom", "kingdom",
+    "pasta", "pizza", "food", "party", "dance", "music", "fun",
+}
+
+def get_excitement_boost(user_text: str, exchange_count: int) -> str:
+    """Boost Mario's excitement when conversation hits topics he loves."""
+    words = set(user_text.lower().split())
+    matches = words & EXCITEMENT_TRIGGERS
+    if len(matches) >= 2:
+        return "MULTIPLE things you love mentioned! Go CRAZY with excitement! WAHOO!"
+    if matches and exchange_count > 3:
+        return f"They mentioned {matches.pop()} — you LOVE that! Show genuine excitement!"
+    return ""

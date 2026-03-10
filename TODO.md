@@ -663,6 +663,9 @@
 - [x] Compliment detector: Mario reacts with joy when praised
 - [x] Story mode: 8 mini adventure stories injected as LLM context hints (6% trigger after 6+ exchanges)
 - [x] Conversation callbacks: references earlier conversation topics (10% trigger after 5+ exchanges)
+- [x] Insult comeback system: Mario claps back playfully when teased (20 insult words, 6 comebacks)
+- [x] Topic stall detection: detects when conversation stalls on one topic and prompts pivot
+- [x] Excitement amplifier: Mario gets extra hype when shared interests are mentioned
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

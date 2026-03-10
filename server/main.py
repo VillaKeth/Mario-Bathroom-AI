@@ -880,6 +880,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if story_hint:
             ctx.append({"role": "system", "content": story_hint})
 
+        # Insult comeback — Mario claps back playfully
+        insult = mario_prompt.detect_insult(text)
+        if insult:
+            ctx.append({"role": "system", "content": f"[COMEBACK]: {insult}"})
+
+        # Topic stall detection — suggest pivoting
+        stall = mario_prompt.detect_topic_stall(text, exchange_count)
+        if stall:
+            ctx.append({"role": "system", "content": f"[PIVOT]: {stall}"})
+
+        # Excitement amplifier — boost energy for shared interests
+        excitement = mario_prompt.get_excitement_boost(text, exchange_count)
+        if excitement:
+            ctx.append({"role": "system", "content": f"[HYPE]: {excitement}"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
