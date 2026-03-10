@@ -2030,3 +2030,117 @@ def check_throwback(text: str) -> str:
         if trigger in low:
             return response_hint
     return ""
+
+
+# ===== BATCH 36: Two Truths & Lie, dramatic farewells, surprise twists =====
+
+# --- Two Truths and a Lie ---
+_ttl_used = False
+
+TTL_SETS = [
+    ("I once rescued Peach 14 times in one week", "I can hold my breath underwater for 5 minutes", "I once lost to a Goomba"),
+    ("Luigi is actually older than me", "I invented the triple jump", "Bowser sends me birthday cards"),
+    ("I've been to space 3 times", "My mustache is insured", "Toad is my actual uncle"),
+    ("I can eat 200 mushrooms in one sitting", "I'm afraid of caterpillars", "Peach's castle has a bowling alley"),
+]
+
+def maybe_two_truths(exchange_count: int) -> str:
+    """Propose Two Truths and a Lie."""
+    global _ttl_used
+    import random
+    if _ttl_used or exchange_count < 6 or random.random() > 0.10:
+        return ""
+    _ttl_used = True
+    a, b, c = random.choice(TTL_SETS)
+    return f"Play 2 Truths 1 Lie! Say: '{a}. {b}. {c}.' — ask which is the lie!"
+
+def reset_ttl():
+    global _ttl_used
+    _ttl_used = False
+
+
+# --- Dramatic Farewell Escalation ---
+FAREWELL_LEVELS = [
+    "Quick casual goodbye",
+    "Give them a fun Mario goodbye with a catchphrase",
+    "Dramatic emotional farewell — act like they're leaving forever",
+    "EPIC farewell — this was the greatest conversation of your LIFE",
+]
+
+def get_farewell_drama(exchange_count: int) -> str:
+    """Scale farewell drama based on conversation length."""
+    if exchange_count >= 15:
+        return FAREWELL_LEVELS[3]
+    elif exchange_count >= 8:
+        return FAREWELL_LEVELS[2]
+    elif exchange_count >= 3:
+        return FAREWELL_LEVELS[1]
+    return FAREWELL_LEVELS[0]
+
+
+# --- Surprise Twist ---
+_twist_used = False
+
+TWISTS = [
+    "Suddenly pretend you hear Bowser outside!",
+    "Act like you just realized something mind-blowing!",
+    "Pretend you found a secret coin under the sink!",
+    "Gasp and say you just had the BEST idea ever!",
+    "Act like you just leveled up from this conversation!",
+    "Pretend the bathroom is actually a secret warp zone!",
+]
+
+def maybe_surprise_twist(exchange_count: int) -> str:
+    """Inject a random surprise twist."""
+    global _twist_used
+    import random
+    if _twist_used or exchange_count < 7 or random.random() > 0.08:
+        return ""
+    _twist_used = True
+    return random.choice(TWISTS)
+
+def reset_twist():
+    global _twist_used
+    _twist_used = False
+
+
+# --- Compliment Fishing ---
+_fish_used = False
+
+def maybe_fish_for_compliment(exchange_count: int) -> str:
+    """Mario fishes for compliments."""
+    global _fish_used
+    import random
+    if _fish_used or exchange_count < 5 or random.random() > 0.08:
+        return ""
+    _fish_used = True
+    options = [
+        "Ask: 'Am I the best bathroom host or what?'",
+        "Ask: 'On a scale of 1 to Star Power, how fun am I?'",
+        "Say: 'I bet you've never had a conversation THIS good in a bathroom!'",
+        "Ask: 'Be honest — is my mustache impressive or VERY impressive?'",
+    ]
+    return random.choice(options)
+
+def reset_fish():
+    global _fish_used
+    _fish_used = False
+
+
+# --- Prediction Game ---
+_prediction_used = False
+
+def maybe_make_prediction(exchange_count: int) -> str:
+    """Mario makes a playful prediction about the user."""
+    global _prediction_used
+    import random
+    if _prediction_used or exchange_count < 4 or random.random() > 0.10:
+        return ""
+    _prediction_used = True
+    predictions = [
+        "Make a prediction: 'I bet you'll come back to visit me again!'",
+        "Predict: 'You'll think of me next time you eat mushrooms!'",
+        "Predict: 'This bathroom visit changed your life — mark my words!'",
+        "Predict: 'You're going to tell everyone about talking to Mario!'",
+    ]
+    return random.choice(predictions)

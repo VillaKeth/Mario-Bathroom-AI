@@ -1112,6 +1112,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if reversal:
                 conv_hint = reversal
 
+        # Two Truths and a Lie
+        if not conv_hint:
+            ttl = mario_prompt.maybe_two_truths(exchange_count)
+            if ttl:
+                conv_hint = ttl
+
+        # Surprise twist
+        if not conv_hint:
+            twist = mario_prompt.maybe_surprise_twist(exchange_count)
+            if twist:
+                conv_hint = twist
+
+        # Compliment fishing
+        if not conv_hint:
+            fish = mario_prompt.maybe_fish_for_compliment(exchange_count)
+            if fish:
+                conv_hint = fish
+
+        # Prediction
+        if not conv_hint:
+            prediction = mario_prompt.maybe_make_prediction(exchange_count)
+            if prediction:
+                conv_hint = prediction
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1387,6 +1411,9 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_conspiracy()
         mario_prompt.reset_role_reversal()
         mario_prompt.reset_intensity()
+        mario_prompt.reset_ttl()
+        mario_prompt.reset_twist()
+        mario_prompt.reset_fish()
 
         try:
             # Try to identify by audio
@@ -1544,7 +1571,8 @@ async def handle_event(ws: WebSocket, event: dict):
                 # Dynamic goodbye based on conversation topics
                 topics = state_current.get("_session_topics", set())
                 goodbye = mario_prompt.get_dynamic_goodbye(exchange_count, topics)
-                ctx.append({"role": "system", "content": f"Say goodbye like: {goodbye}"})
+                farewell_drama = mario_prompt.get_farewell_drama(exchange_count)
+                ctx.append({"role": "system", "content": f"{farewell_drama} | {goodbye}"})
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
