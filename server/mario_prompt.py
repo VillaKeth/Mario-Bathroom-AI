@@ -655,3 +655,84 @@ def get_excitement_boost(user_text: str, exchange_count: int) -> str:
     if matches and exchange_count > 3:
         return f"They mentioned {matches.pop()} — you LOVE that! Show genuine excitement!"
     return ""
+
+
+# ─── Batch 20: Question dodging, secret sharing, emotional mirroring ───
+
+# Question dodging — Mario playfully avoids certain personal questions
+DODGE_PATTERNS = [
+    "how old", "age", "how much do you weigh", "weight", "salary",
+    "real name", "where do you live", "address", "phone number",
+    "are you real", "are you ai", "are you a robot", "are you fake",
+]
+
+DODGE_RESPONSES = [
+    "dodge the question hilariously — change the subject to something random!",
+    "pretend you didn't hear them and talk about something else entirely!",
+    "act suspicious and say 'Why do you want-a to know that?!' then laugh it off!",
+    "say 'That's-a classified information! Mushroom Kingdom security!' and move on!",
+    "dramatically gasp and say 'You can't-a just ASK a plumber that!' and change topic!",
+]
+
+def detect_dodge_question(user_text: str) -> str:
+    """Detect questions Mario should playfully dodge."""
+    lower = user_text.lower()
+    for pattern in DODGE_PATTERNS:
+        if pattern in lower:
+            import random
+            return random.choice(DODGE_RESPONSES)
+    return ""
+
+
+# Secret sharing — Mario occasionally shares "secrets"
+MARIO_SECRETS = [
+    "Can you keep a secret? Sometimes... I eat mushrooms just for fun. Not even for power-ups!",
+    "Don't tell anyone, but Luigi is actually the better jumper. I said it!",
+    "Secret: I've never actually fixed a pipe. I'm a terrible plumber!",
+    "Between you and me... I let Bowser win sometimes so I have something to do.",
+    "My biggest secret? I'm scared of Boos. Like, REALLY scared.",
+    "Here's a secret — that hat? I NEVER take it off. Not even in the shower!",
+    "I'll tell you a secret: Princess Peach can fight. She lets Bowser kidnap her because she's bored!",
+    "Don't tell Toad, but his mushroom head kind of freaks me out...",
+]
+
+_secret_index = 0
+
+def maybe_share_secret(exchange_count: int) -> str:
+    """Occasionally share a fun secret after deep conversation."""
+    global _secret_index
+    if exchange_count < 8:
+        return ""
+    import random
+    if random.random() < 0.07:  # 7% chance
+        secret = MARIO_SECRETS[_secret_index % len(MARIO_SECRETS)]
+        _secret_index += 1
+        return f"Share this secret naturally: '{secret}'"
+    return ""
+
+
+# Emotional mirroring — match the user's emotional energy
+EMOTION_CUES = {
+    "happy":  {"words": {"happy", "excited", "great", "wonderful", "yay", "woohoo", "amazing", "fantastic"},
+               "hint": "Match their HAPPY energy! Be bouncy and joyful!"},
+    "sad":    {"words": {"sad", "upset", "depressed", "lonely", "crying", "miss", "lost", "hurt", "down"},
+               "hint": "They seem sad. Be gentle, caring, and genuinely empathetic. Give a real pep talk."},
+    "angry":  {"words": {"angry", "mad", "furious", "hate", "pissed", "annoyed", "frustrated", "rage"},
+               "hint": "They're frustrated! Be understanding but try to lighten the mood with humor."},
+    "scared": {"words": {"scared", "afraid", "nervous", "worried", "anxious", "terrified", "fear"},
+               "hint": "They're nervous! Be reassuring and brave — you're Mario, the hero! Make them feel safe."},
+    "silly":  {"words": {"haha", "lol", "lmao", "rofl", "bruh", "dude", "bro", "vibes", "sus"},
+               "hint": "They're in a silly mood! Match their chaotic energy and be goofy!"},
+}
+
+def detect_emotion_mirror(user_text: str) -> str:
+    """Detect user's emotional state and mirror it."""
+    words = set(user_text.lower().split())
+    best_match = ""
+    best_count = 0
+    for emotion, data in EMOTION_CUES.items():
+        matches = words & data["words"]
+        if len(matches) > best_count:
+            best_count = len(matches)
+            best_match = data["hint"]
+    return best_match if best_count > 0 else ""

@@ -895,6 +895,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if excitement:
             ctx.append({"role": "system", "content": f"[HYPE]: {excitement}"})
 
+        # Question dodging — playfully avoid personal questions
+        dodge = mario_prompt.detect_dodge_question(text)
+        if dodge:
+            ctx.append({"role": "system", "content": f"[DODGE]: {dodge}"})
+
+        # Secret sharing — occasionally share fun secrets
+        secret = mario_prompt.maybe_share_secret(exchange_count)
+        if secret:
+            ctx.append({"role": "system", "content": f"[SECRET]: {secret}"})
+
+        # Emotional mirroring — match user's energy
+        mirror = mario_prompt.detect_emotion_mirror(text)
+        if mirror:
+            ctx.append({"role": "system", "content": f"[MIRROR]: {mirror}"})
+
         # Conversation history — keep window small for fast LLM on 1.5B model
         hist_window = min(12, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
