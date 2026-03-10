@@ -648,6 +648,13 @@
 - [x] Challenge interrupt system: 12 fun party challenges, 12% trigger after 3+ exchanges
 - [x] Keyword particle effects: 28 keywords → 8 visual effects (stars, hearts, fire, coins, etc.)
 - [x] send_response() extended with particle_effect field for client-side visuals
+- [x] Conversation energy escalation: Mario gets more animated after 3/6/10+ exchanges
+- [x] Mario catchphrase randomizer: 15% chance to prepend iconic catchphrases
+- [x] Session topic tracking in _session_topics set
+- [x] Nickname system: Mario assigns fun nicknames after 4+ exchanges
+- [x] Response opener variety: detects and breaks repeated sentence patterns
+- [x] Mario trivia system: 12 fun game facts, 8% trigger after 5+ exchanges
+- [x] Conversation recap for personalized goodbyes (topic summary on exit)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
