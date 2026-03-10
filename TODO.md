@@ -645,6 +645,9 @@
 - [x] Fact acknowledgment: Mario acknowledges newly learned facts in real-time
 - [x] Repeat detection: ring buffer prevents duplicate responses
 - [x] Expanded thinking fillers from 3 to 9 phrases
+- [x] Challenge interrupt system: 12 fun party challenges, 12% trigger after 3+ exchanges
+- [x] Keyword particle effects: 28 keywords → 8 visual effects (stars, hearts, fire, coins, etc.)
+- [x] send_response() extended with particle_effect field for client-side visuals
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
