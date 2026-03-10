@@ -2552,3 +2552,145 @@ def maybe_friendship_ceremony(exchange_count: int) -> str:
 def reset_friendship():
     global _ceremony_done
     _ceremony_done = False
+
+# ── Batch 40 ─────────────────────────────────────────────
+
+# Rate my joke scoring
+_joke_scores = []
+
+def maybe_rate_joke(text: str) -> str:
+    low = text.lower()
+    if any(w in low for w in ["rate", "score", "funny", "good joke", "bad joke"]):
+        if _joke_scores:
+            avg = sum(_joke_scores) / len(_joke_scores)
+            return f"Your joke rating avg: {avg:.0f}/10. React accordingly!"
+        return "Rate your own joke 1-10 with Mario flair"
+    return ""
+
+def track_joke_score(text: str):
+    import re
+    low = text.lower()
+    m = re.search(r'(\d+)\s*/\s*10', low)
+    if m:
+        _joke_scores.append(min(10, max(0, int(m.group(1)))))
+
+def reset_joke_scores():
+    global _joke_scores
+    _joke_scores = []
+
+# Character voice switch (one response as Luigi/Toad)
+CHARACTER_VOICES = [
+    ("Luigi", "Respond as Luigi (nervous, overshadowed, 'oh no!')"),
+    ("Toad", "Respond as Toad (high-pitched, excited, 'WAHH!')"),
+    ("Bowser", "Respond as Bowser (gruff, dramatic, 'BWAHAHA!')"),
+    ("Peach", "Respond as Peach (polite, regal, 'oh my!')"),
+    ("Wario", "Respond as Wario (greedy, rude, 'WAH!')"),
+]
+_voice_switch_used = False
+
+def maybe_voice_switch(exchange_count: int) -> str:
+    global _voice_switch_used
+    if _voice_switch_used or exchange_count < 10:
+        return ""
+    import random
+    if random.random() < 0.07:
+        _voice_switch_used = True
+        name, hint = random.choice(CHARACTER_VOICES)
+        return f"Switch to {name} voice for this response! {hint}"
+    return ""
+
+def reset_voice_switch():
+    global _voice_switch_used
+    _voice_switch_used = False
+
+# Dare mode
+DARES = [
+    "Dare them to make a funny face at the mirror",
+    "Dare them to sing one line of a song",
+    "Dare them to do their best Mario impression",
+    "Dare them to tell the next person a joke",
+    "Dare them to speak in an accent for 30 seconds",
+]
+_dare_given = False
+
+def maybe_dare(exchange_count: int) -> str:
+    global _dare_given
+    if _dare_given or exchange_count < 7:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _dare_given = True
+        return random.choice(DARES)
+    return ""
+
+def reset_dare():
+    global _dare_given
+    _dare_given = False
+
+# Bathroom tips
+BATHROOM_TIPS = [
+    "Pro tip: always check for toilet paper BEFORE sitting",
+    "Mario tip: wash your hands like you just touched a Poison Mushroom",
+    "Life hack: the middle stall is statistically cleanest",
+    "Hot take: paper towels > hand dryers, fight me",
+    "Remember: if the lock is broken, SING LOUDLY",
+]
+_tip_given = False
+
+def maybe_bathroom_tip(exchange_count: int) -> str:
+    global _tip_given
+    if _tip_given or exchange_count < 5:
+        return ""
+    import random
+    if random.random() < 0.06:
+        _tip_given = True
+        return random.choice(BATHROOM_TIPS)
+    return ""
+
+def reset_bathroom_tip():
+    global _tip_given
+    _tip_given = False
+
+# Question chain (ask 3 related questions)
+_question_chain_active = False
+_question_chain_count = 0
+
+def maybe_question_chain(exchange_count: int) -> str:
+    global _question_chain_active, _question_chain_count
+    if _question_chain_active:
+        _question_chain_count += 1
+        if _question_chain_count >= 3:
+            _question_chain_active = False
+            return "Last question in chain—wrap up with a fun conclusion!"
+        return "Continue the question chain—ask a follow-up!"
+    if exchange_count < 6:
+        return ""
+    import random
+    if random.random() < 0.05:
+        _question_chain_active = True
+        _question_chain_count = 0
+        return "Start a 3-question chain: ask something fun about them!"
+    return ""
+
+def reset_question_chain():
+    global _question_chain_active, _question_chain_count
+    _question_chain_active = False
+    _question_chain_count = 0
+
+# Catchphrase counter (track how many times Mario says key phrases)
+_catchphrase_count = 0
+
+def track_catchphrase(response_text: str):
+    global _catchphrase_count
+    low = response_text.lower()
+    phrases = ["wahoo", "mama mia", "let's-a go", "okey dokey", "it's-a me"]
+    _catchphrase_count += sum(1 for p in phrases if p in low)
+
+def get_catchphrase_milestone() -> str:
+    if _catchphrase_count > 0 and _catchphrase_count % 10 == 0:
+        return f"Milestone: said {_catchphrase_count} catchphrases tonight!"
+    return ""
+
+def reset_catchphrase_count():
+    global _catchphrase_count
+    _catchphrase_count = 0

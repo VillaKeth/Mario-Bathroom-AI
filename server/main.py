@@ -935,10 +935,20 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if support:
             reaction_parts.append(support)
 
+        # Joke rating
+        joke_rate = mario_prompt.maybe_rate_joke(text)
+        if joke_rate:
+            reaction_parts.append(joke_rate)
+
         # Party duration
         party_dur = mario_prompt.get_party_duration_hint()
         if party_dur:
             reaction_parts.append(party_dur)
+
+        # Catchphrase milestone
+        catch_mile = mario_prompt.get_catchphrase_milestone()
+        if catch_mile:
+            reaction_parts.append(catch_mile)
 
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
@@ -1232,6 +1242,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if ceremony:
                 conv_hint = ceremony
 
+        # Voice switch
+        if not conv_hint:
+            vswitch = mario_prompt.maybe_voice_switch(exchange_count)
+            if vswitch:
+                conv_hint = vswitch
+
+        # Dare mode
+        if not conv_hint:
+            dare = mario_prompt.maybe_dare(exchange_count)
+            if dare:
+                conv_hint = dare
+
+        # Bathroom tip
+        if not conv_hint:
+            btip = mario_prompt.maybe_bathroom_tip(exchange_count)
+            if btip:
+                conv_hint = btip
+
+        # Question chain
+        if not conv_hint:
+            qchain = mario_prompt.maybe_question_chain(exchange_count)
+            if qchain:
+                conv_hint = qchain
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1311,7 +1345,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     # Response variety scoring
     variety_hint = mario_prompt.score_variety(response_text)
-    # (variety_hint is logged but not injected — it affects next response via _recent_openers)
+
+    # Track joke scores and catchphrases
+    mario_prompt.track_joke_score(text)
+    mario_prompt.track_catchphrase(response_text)
 
     analyzed = analyze_text(response_text)
     # Use reaction suggestion to enhance pose if none detected
@@ -1525,6 +1562,12 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_friendship()
         mario_prompt.init_party_timer()
         mario_prompt.track_visitor()
+        mario_prompt.reset_voice_switch()
+        mario_prompt.reset_dare()
+        mario_prompt.reset_bathroom_tip()
+        mario_prompt.reset_question_chain()
+        mario_prompt.reset_joke_scores()
+        mario_prompt.reset_catchphrase_count()
 
         try:
             # Try to identify by audio
