@@ -23,6 +23,8 @@ import time
 import threading
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 from contextlib import asynccontextmanager
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -219,6 +221,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Mario AI Server", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/health")
@@ -447,6 +450,40 @@ async def admin_announce(request_body: dict = {}):
         return {"status": "error", "message": "Text required (max 200 chars)"}
     state_current["_pending_announcement"] = text
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
+
+
+_tts_semaphore = asyncio.Semaphore(1)  # Only 1 TTS request at a time
+
+@app.get("/tts")
+async def tts_endpoint(text: str = ""):
+    """Generate TTS audio for a given text and return WAV file."""
+    if not text or len(text) > 300:
+        return {"status": "error", "message": "Text required (max 300 chars)"}
+    async with _tts_semaphore:
+        loop = asyncio.get_event_loop()
+        try:
+            audio_bytes = await loop.run_in_executor(
+                _tts_executor, lambda: tts.synthesize_user(text)
+            )
+            if not audio_bytes:
+                return {"status": "error", "message": "TTS synthesis failed"}
+            import tempfile
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+            tmp.write(audio_bytes)
+            tmp.close()
+            return FileResponse(tmp.name, media_type="audio/wav", filename="mario_tts.wav")
+        except Exception as e:
+            logger.error(f"TTS endpoint error: {e}")
+            return {"status": "error", "message": str(e)}
+
+
+@app.get("/tts_test")
+async def tts_test_page():
+    """Serve the TTS test suite HTML page."""
+    test_page = os.path.join(os.path.dirname(__file__), "..", "tts_test.html")
+    if os.path.exists(test_page):
+        return FileResponse(test_page, media_type="text/html")
+    return HTMLResponse("<h1>tts_test.html not found</h1>", status_code=404)
 
 
 @app.websocket("/ws")

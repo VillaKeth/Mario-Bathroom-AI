@@ -83,23 +83,41 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
 
     # Strip control characters (newlines, tabs, carriage returns cause garbled output)
     clean_text = clean_text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    # Also strip literal escape sequences that might come from LLM output
+    clean_text = clean_text.replace('\\n', ' ').replace('\\r', ' ').replace('\\t', ' ')
 
-    # Replace non-standard words that GPT-SoVITS mispronounces
-    clean_text = _re.sub(r'\bhmm+\b', 'hm', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bumm+\b', 'um', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\buhh+\b', 'uh', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bahh+\b', 'ah', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bohh+\b', 'oh', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text)  # non-standard → standard
+    # Remove stage directions / action markers like "(whispers)" "(laughs)" etc.
+    clean_text = _re.sub(r'\([^)]*\)', '', clean_text)
+
+    # Remove sound effects / onomatopoeia that GPT-SoVITS cannot pronounce
+    _sfx_pattern = r'\b(?:wahoo+|whoosh|splish|splash|boom|boing|brr+|shh+|pfft+|mwah+|ka[\s\-]*ching|ching|whomp|swoosh|zing|thud|clang|bonk|woo+|tick[\s\-]*tock)\b'
+    clean_text = _re.sub(_sfx_pattern, '', clean_text, flags=_re.IGNORECASE)
+
+    # Remove filler words that GPT-SoVITS cannot pronounce (hmm, umm, uhh, etc.)
+    _filler_pattern = r'\b(?:hmm+|umm+|uhh+|ahh+|ohh+|hm+|uh|um|er+m*|mhm+)\b'
+    clean_text = _re.sub(_filler_pattern, '', clean_text, flags=_re.IGNORECASE)
+
+    # Strip leading punctuation/whitespace left after word removal
+    clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
+
+    # Replace non-standard words with pronounceable alternatives
+    clean_text = _re.sub(r'\bbowser\b', 'Bowzer', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bokie\b', 'okey', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bdokie\b', 'dokey', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bbrrr+\b', 'brrr', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bshh+\b', 'shh', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bpfft+\b', 'pfft', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bmwah+\b', 'mwah', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bnoo+\b', 'no', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\byaa+y+\b', 'yay', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bsoo+\b', 'so', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bhee+lp\b', 'help', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\byippee+\b', 'yippee', clean_text, flags=_re.IGNORECASE)
+    # Number fractions: "10/10" → "10 out of 10"
+    clean_text = _re.sub(r'(\d+)\s*/\s*(\d+)', r'\1 out of \2', clean_text)
 
-    # Collapse repeated characters that cause letter-by-letter pronunciation
-    # "YAAAAYYYY" → "YAAY", "BAAAAAALLS" → "BAALLS", "AHHHAARRRRRGGGGHHH" → "AHHAARRGGHH"
-    clean_text = _re.sub(r'(.)\1{2,}', r'\1\1', clean_text)
+    # Collapse repeated characters — vowels to 1, consonants to 2
+    # "BAAAAAALLS" → "BALLS", "YAAAAY" → "YAY", "BRRRR" → "BRR"
+    clean_text = _re.sub(r'([aeiouAEIOU])\1{2,}', r'\1', clean_text)
+    clean_text = _re.sub(r'([^aeiouAEIOU\s\W])\1{2,}', r'\1\1', clean_text)
 
     # Normalize ALL CAPS to lowercase (GPT-SoVITS spells out capital letters)
     # Preserve first-letter caps for natural sentence flow
@@ -155,7 +173,21 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'\.{4,}', '...', clean_text)
     # Clean up multiple commas/spaces from substitutions
     clean_text = _re.sub(r',\s*,', ',', clean_text)
+    # Strip leading/trailing punctuation left from removals
+    clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
+    clean_text = _re.sub(r'[\s,]+$', '', clean_text)
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
+
+    # Ensure first character is capitalized after all removals
+    if clean_text and clean_text[0].islower():
+        clean_text = clean_text[0].upper() + clean_text[1:]
+
+    # If text was entirely sound effects/filler, return silence
+    if not clean_text or len(clean_text.strip()) == 0:
+        if DEBUG_SOVITS:
+            print(f"[sovits] ORIGINAL: '{text[:100]}' → EMPTY after cleaning, returning silence", file=sys.stderr)
+        import numpy as np
+        return np.zeros(16000, dtype=np.float32), 32000
 
     if DEBUG_SOVITS:
         if clean_text != text:

@@ -60,6 +60,20 @@
 - [x] Fix register_speaker TTS unprotected (added try/except + text-only fallback)
 - [x] Fix speaker embedding shape validation (skip mismatched dimensions)
 - [x] Add client echo duration comment (48000 = 24kHz × 2 bytes)
+- [x] Built web TTS test suite (75 phrases, 11 categories, play/rate/export)
+- [x] Added CORS + /tts REST endpoint + /tts_test HTML serving
+- [x] Fix sfx removal leaving leading punctuation ("Wahoo! Go!" → "Go!")
+- [x] Fix "Bowser" pronunciation (→ "Bowzer" phonetic replacement)
+- [x] Fix ALL CAPS "BOWSER" not matching word replacement (added IGNORECASE)
+- [x] Fix repeat collapse leaving "BAALLS" (vowels→1, consonants→2)
+- [x] Fix "10/10" → "10 out of 10" spoken form
+- [x] Fix "(whispers)" stage directions removal
+- [x] Fix "ka-ching" not matching sfx pattern (added hyphen support)
+- [x] Fix "tick tock" not being removed (added to sfx pattern)
+- [x] Added first-letter capitalization after all text cleaning
+- [x] Added empty-text guard (all-sfx text returns silence, not crash)
+- [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
+- [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
 
 
 ## ✅ Completed

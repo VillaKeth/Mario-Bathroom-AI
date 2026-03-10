@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario TTS Test Suite</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+        h1 { text-align: center; color: #e63946; margin-bottom: 5px; font-size: 28px; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
+        .controls { text-align: center; margin-bottom: 20px; }
+        .controls button { padding: 8px 16px; margin: 0 5px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-play-all { background: #2d6a4f; color: white; }
+        .btn-stop { background: #e63946; color: white; }
+        .btn-clear { background: #555; color: white; }
+        .category { margin-bottom: 30px; }
+        .category h2 { color: #f4a261; border-bottom: 2px solid #f4a261; padding-bottom: 5px; margin-bottom: 10px; font-size: 18px; }
+        .phrase-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; background: #16213e; transition: background 0.2s; }
+        .phrase-row:hover { background: #1a2744; }
+        .phrase-num { color: #666; font-size: 12px; min-width: 25px; }
+        .phrase-text { flex: 1; font-size: 14px; font-family: 'Consolas', monospace; }
+        .phrase-clean { color: #888; font-size: 12px; font-style: italic; display: none; }
+        .btn-play { background: #2d6a4f; color: white; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 13px; min-width: 60px; }
+        .btn-play:hover { background: #40916c; }
+        .btn-play:disabled { background: #555; cursor: wait; }
+        .btn-good { background: transparent; border: 2px solid #2d6a4f; color: #2d6a4f; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        .btn-good.active { background: #2d6a4f; color: white; }
+        .btn-bad { background: transparent; border: 2px solid #e63946; color: #e63946; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        .btn-bad.active { background: #e63946; color: white; }
+        .status { font-size: 12px; color: #666; min-width: 80px; text-align: right; }
+        .status.loading { color: #f4a261; }
+        .status.playing { color: #2d6a4f; }
+        .status.error { color: #e63946; }
+        .summary { text-align: center; margin-top: 20px; padding: 15px; background: #16213e; border-radius: 10px; }
+        .summary span { margin: 0 15px; font-size: 16px; }
+        .good-count { color: #2d6a4f; }
+        .bad-count { color: #e63946; }
+        .notes-input { background: #0f1626; border: 1px solid #333; color: #eee; padding: 4px 8px; border-radius: 4px; font-size: 12px; width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>🍄 Mario TTS Test Suite</h1>
+    <p class="subtitle">Click Play on each phrase to test GPT-SoVITS pronunciation. Mark ✓ or ✗ for each.</p>
+
+    <div class="controls">
+        <button class="btn-play-all" onclick="playAll()">▶ Play All (Sequential)</button>
+        <button class="btn-stop" onclick="stopAll()">⏹ Stop</button>
+        <button class="btn-clear" onclick="clearRatings()">🔄 Clear Ratings</button>
+        <button class="btn-clear" onclick="exportResults()" style="background:#264653">📋 Export Results</button>
+    </div>
+
+    <div id="test-container"></div>
+
+    <div class="summary" id="summary">
+        <span class="good-count">✓ Good: <strong id="good-count">0</strong></span>
+        <span class="bad-count">✗ Bad: <strong id="bad-count">0</strong></span>
+        <span style="color:#888">Untested: <strong id="untested-count">0</strong></span>
+    </div>
+
+    <script>
+const SERVER = "http://localhost:8765";
+
+const TEST_PHRASES = {
+    "Hyphens (Compound Words)": [
+        "It's-a me, Mario!",
+        "Let's-a go!",
+        "What's-a going on?",
+        "That's-a funny!",
+        "Nice to meet-a you!",
+        "Take-a care!",
+        "This-a soap dispenser is very modern!",
+        "Not like-a my castle pipes!",
+        "Time flies-a when you're having fun!",
+        "Good-a time to recharge!",
+    ],
+    "Hyphens (Freestanding / Dashes)": [
+        "The party is great - everyone is having fun!",
+        "Bowser is mean - but I still win!",
+        "One coin - two coins - three coins!",
+        "The mushroom kingdom -- what a place!",
+        "Bathroom breaks --- very important!",
+        "Ka-ching ka-ching! Mine cart madness!",
+        "WOO-HA-HEEEEEEEE! I'm Mario!",
+    ],
+    "ALL CAPS Words": [
+        "WAHOO! That was amazing!",
+        "BOWSER is going DOWN!",
+        "I found a MUSHROOM and a STAR!",
+        "MAMA MIA that's incredible!",
+        "SUCTION TO THE BEAT! Plunge and boogie!",
+        "The POWER of the FIRE FLOWER!",
+    ],
+    "Non-Standard Words": [
+        "Hmm, let me think!",
+        "Hmmm, I wonder what Luigi is doing...",
+        "Umm, I'm not sure about that.",
+        "Uhh, maybe try again?",
+        "Ahh, that feels nice!",
+        "Ohh, what a surprise!",
+        "Brrrr, it's cold in here!",
+        "Shh, Bowser might hear us!",
+        "Wahoo! Here we go!",
+        "Okie dokie!",
+        "I wonder if Chain Chomps count as pets? They're very bitey!",
+        "Pfft, that's nothing!",
+    ],
+    "Sound Effects / Onomatopoeia": [
+        "Da da daa! Level complete!",
+        "Boing boing boing! Jump jump jump!",
+        "Whoosh! There goes the fireball!",
+        "Splish splash, bathroom fun!",
+        "Tick tock tick tock, hurry up!",
+        "Boom! Another Goomba defeated!",
+    ],
+    "Special Characters / Symbols": [
+        "♪ The mushroom kingdom.. da-da-daa! ♪",
+        "★ Super Star Power! ★",
+        "I give it a 10/10!",
+        "The score is 100 & counting!",
+        "Email me at mario@mushroom.kingdom",
+        "It's 50% off on mushrooms!",
+    ],
+    "Newlines / Control Characters": [
+        "Afternoon break! Good time to recharge!",
+        "Hello there! How are you doing today?",
+        "Line one. Line two. Line three.",
+    ],
+    "Repeated Characters": [
+        "YAAAAYYYY! I won!",
+        "Nooooooo! Bowser got me!",
+        "Wahoooooo! Let's go!",
+        "BAAAAAALLS of fire!",
+        "Sooooo excited right now!",
+        "Heeeeelp! Someone help!",
+    ],
+    "Punctuation Edge Cases": [
+        "What?! You defeated Bowser?!?!",
+        "Amazing... just... amazing...",
+        "Wait... really?!",
+        "Ha ha ha! That's hilarious!",
+        "(whispers) Can you hear me?",
+        "The answer is: MUSHROOM!",
+        "'quoted speech' is fun!",
+    ],
+    "Long Sentences (Truncation Test)": [
+        "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+        "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+    ],
+    "Idle Monologue Samples": [
+        "The party is in full swing! What a night!",
+        "Evening bathroom visits are the best! The lighting is so dramatic!",
+        "Afternoon already! Time flies when you're having fun!",
+        "I bet Toad would appreciate this tile pattern. Very mushroom-like!",
+        "This bathroom is cleaner than Bowser's castle!",
+        "Did you know? In Super Mario 64, I can do over 20 different types of jumps!",
+        "I wonder what Luigi is doing right now...",
+        "Mama mia, the acoustics in here are perfect for singing!",
+    ],
+};
+
+let currentAudio = null;
+let playAllQueue = [];
+let ratings = {};
+let phraseIndex = 0;
+
+function buildUI() {
+    const container = document.getElementById("test-container");
+    let globalIdx = 0;
+    for (const [category, phrases] of Object.entries(TEST_PHRASES)) {
+        const catDiv = document.createElement("div");
+        catDiv.className = "category";
+        catDiv.innerHTML = `<h2>${category}</h2>`;
+        for (const phrase of phrases) {
+            globalIdx++;
+            const id = `phrase-${globalIdx}`;
+            const row = document.createElement("div");
+            row.className = "phrase-row";
+            row.id = id;
+            row.innerHTML = `
+                <span class="phrase-num">${globalIdx}</span>
+                <span class="phrase-text">${escapeHtml(phrase)}</span>
+                <button class="btn-play" onclick="playPhrase('${id}', ${JSON.stringify(phrase)})">▶ Play</button>
+                <button class="btn-good" onclick="rate('${id}', 'good')" title="Sounds good">✓</button>
+                <button class="btn-bad" onclick="rate('${id}', 'bad')" title="Sounds bad">✗</button>
+                <input class="notes-input" placeholder="Notes..." id="${id}-notes">
+                <span class="status" id="${id}-status"></span>
+            `;
+            catDiv.appendChild(row);
+        }
+        container.appendChild(catDiv);
+    }
+    updateSummary();
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+               .replace(/\n/g, '<span style="color:#e63946;font-weight:bold">\\n</span>')
+               .replace(/\t/g, '<span style="color:#e63946;font-weight:bold">\\t</span>');
+}
+
+async function playPhrase(id, text) {
+    const btn = document.querySelector(`#${id} .btn-play`);
+    const status = document.getElementById(`${id}-status`);
+
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+    btn.disabled = true;
+    btn.textContent = "⏳";
+    status.textContent = "Loading...";
+    status.className = "status loading";
+
+    try {
+        const url = `${SERVER}/tts?text=${encodeURIComponent(text)}`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.message || "Server error");
+        }
+        const blob = await resp.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        currentAudio = new Audio(audioUrl);
+        currentAudio.onplay = () => { status.textContent = "Playing..."; status.className = "status playing"; };
+        currentAudio.onended = () => {
+            status.textContent = `${currentAudio.duration.toFixed(1)}s ✓`;
+            status.className = "status";
+            btn.disabled = false;
+            btn.textContent = "▶ Play";
+            if (playAllQueue.length > 0) {
+                const next = playAllQueue.shift();
+                setTimeout(() => next(), 500);
+            }
+        };
+        currentAudio.onerror = () => { status.textContent = "Audio error"; status.className = "status error"; btn.disabled = false; btn.textContent = "▶ Play"; };
+        currentAudio.play();
+    } catch (e) {
+        status.textContent = e.message;
+        status.className = "status error";
+        btn.disabled = false;
+        btn.textContent = "▶ Play";
+    }
+}
+
+function rate(id, rating) {
+    ratings[id] = rating;
+    const goodBtn = document.querySelector(`#${id} .btn-good`);
+    const badBtn = document.querySelector(`#${id} .btn-bad`);
+    goodBtn.classList.toggle("active", rating === "good");
+    badBtn.classList.toggle("active", rating === "bad");
+    updateSummary();
+}
+
+function updateSummary() {
+    const total = document.querySelectorAll(".phrase-row").length;
+    const good = Object.values(ratings).filter(r => r === "good").length;
+    const bad = Object.values(ratings).filter(r => r === "bad").length;
+    document.getElementById("good-count").textContent = good;
+    document.getElementById("bad-count").textContent = bad;
+    document.getElementById("untested-count").textContent = total - good - bad;
+}
+
+function playAll() {
+    playAllQueue = [];
+    document.querySelectorAll(".phrase-row").forEach(row => {
+        const id = row.id;
+        const text = row.querySelector(".phrase-text").textContent;
+        playAllQueue.push(() => playPhrase(id, text));
+    });
+    if (playAllQueue.length > 0) {
+        const first = playAllQueue.shift();
+        first();
+    }
+}
+
+function stopAll() {
+    playAllQueue = [];
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    document.querySelectorAll(".btn-play").forEach(btn => { btn.disabled = false; btn.textContent = "▶ Play"; });
+}
+
+function clearRatings() {
+    ratings = {};
+    document.querySelectorAll(".btn-good, .btn-bad").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".notes-input").forEach(input => input.value = "");
+    updateSummary();
+}
+
+function exportResults() {
+    let lines = ["# Mario TTS Test Results\n"];
+    document.querySelectorAll(".phrase-row").forEach(row => {
+        const id = row.id;
+        const text = row.querySelector(".phrase-text").textContent;
+        const notes = document.getElementById(`${id}-notes`).value;
+        const r = ratings[id] || "untested";
+        const icon = r === "good" ? "✓" : r === "bad" ? "✗" : "?";
+        lines.push(`${icon} | ${text} | ${notes}`);
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "tts_test_results.txt";
+    a.click();
+}
+
+buildUI();
+    </script>
+</body>
+</html>
