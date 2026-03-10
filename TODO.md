@@ -12,6 +12,9 @@
 - [x] Hybrid TTS mode: Edge+RVC instant response + GPT-SoVITS background upgrade
 - [x] Fixed GPT-SoVITS garbled audio (cut0 no-split + hyphen cleaning)
 - [x] Fixed TTS letter-by-letter bug: collapse repeated chars, normalize caps, fix hyphenation, use cut5 split
+- [x] Comprehensive TTS pronunciation fix: remove ALL hyphens, normalize ALL CAPS with energy boost, clean Unicode/symbols
+- [x] Energy detection: high-caps/exclamation text → +15% rate, +5Hz pitch for emphasis
+- [x] Cleared entire TTS disk cache (693 entries) for fresh GPT-SoVITS regeneration
 - [x] Queue-based background regeneration (replaces thread-per-request)
 - [x] GPT-SoVITS subprocess auto-restart on crash (up to 3 retries)
 - [x] GPT-SoVITS warmup at startup (eliminates first-call slowdown)
