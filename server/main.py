@@ -895,6 +895,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if chapter:
             reaction_parts.append(chapter)
 
+        # Conversation depth
+        depth = mario_prompt.update_depth(text)
+        if depth:
+            reaction_parts.append(depth)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -963,6 +968,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         flow = mario_prompt.get_flow_hint()
         if flow and len(personality_parts) < 2:
             personality_parts.append(flow)
+
+        # Hype injection
+        hype = mario_prompt.get_hype_injection(exchange_count)
+        if hype and len(personality_parts) < 2:
+            personality_parts.append(hype)
 
         if personality_parts:
             ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
@@ -1058,6 +1068,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             comp = mario_prompt.maybe_give_compliment(exchange_count)
             if comp:
                 conv_hint = comp
+
+        # Challenge mode
+        if not conv_hint:
+            challenge = mario_prompt.maybe_start_challenge(exchange_count)
+            if challenge:
+                conv_hint = challenge
+
+        # Deep secret
+        if not conv_hint:
+            deep = mario_prompt.get_deep_secret(exchange_count)
+            if deep:
+                conv_hint = deep
 
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
@@ -1309,6 +1331,9 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_inside_jokes()
         mario_prompt.reset_variety()
         mario_prompt.reset_chapter()
+        mario_prompt.reset_challenge()
+        mario_prompt.reset_deep_secrets()
+        mario_prompt.reset_depth()
 
         try:
             # Try to identify by audio

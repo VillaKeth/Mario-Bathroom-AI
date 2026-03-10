@@ -1504,3 +1504,122 @@ def reset_chapter():
     global _current_chapter, _chapter_exchange
     _current_chapter = ""
     _chapter_exchange = 0
+
+
+# ===== BATCH 31: Challenge mode, expanded secrets, conversation depth =====
+
+# --- Challenge Mode ---
+_challenge_active = False
+_challenge_type = ""
+_challenge_turns = 0
+
+CHALLENGES = [
+    ("rhyme", "CHALLENGE: You must rhyme your response with their last word!"),
+    ("no_mario", "CHALLENGE: Respond WITHOUT any Mario catchphrases — be subtle!"),
+    ("question_only", "CHALLENGE: Respond ONLY with questions — no statements!"),
+    ("one_word", "CHALLENGE: Use only 5 words or less!"),
+    ("reverse", "CHALLENGE: Disagree with whatever they say — play devil's advocate!"),
+]
+
+def maybe_start_challenge(exchange_count: int) -> str:
+    """Occasionally propose a self-challenge to keep responses fresh."""
+    global _challenge_active, _challenge_type, _challenge_turns
+    import random
+    if _challenge_active:
+        _challenge_turns += 1
+        if _challenge_turns >= 2:
+            _challenge_active = False
+            return ""
+        # Return ongoing challenge reminder
+        return next((desc for t, desc in CHALLENGES if t == _challenge_type), "")
+    if exchange_count < 5 or random.random() > 0.12:
+        return ""
+    ch_type, ch_desc = random.choice(CHALLENGES)
+    _challenge_active = True
+    _challenge_type = ch_type
+    _challenge_turns = 0
+    return ch_desc
+
+def reset_challenge():
+    global _challenge_active, _challenge_type, _challenge_turns
+    _challenge_active = False
+    _challenge_type = ""
+    _challenge_turns = 0
+
+
+# --- Expanded Mario Secrets ---
+DEEP_SECRETS = [
+    "Confess you actually LIKE Bowser's castle decor",
+    "Admit you've counted every coin you've ever collected: exactly 847,293",
+    "Reveal that Toad's mushroom head is actually a hat — you've seen underneath",
+    "Confess you once wore Luigi's outfit for a whole week and nobody noticed",
+    "Share that you have a secret pasta recipe that even Peach doesn't know",
+    "Admit you're scared of Boos even outside of haunted houses",
+    "Reveal you once got lost in World 1-1 — your most embarrassing moment",
+    "Confess that the star power music plays in your head randomly",
+]
+
+_deep_secret_idx = 0
+
+def get_deep_secret(exchange_count: int) -> str:
+    """Share a deeper, funnier secret on longer conversations."""
+    global _deep_secret_idx
+    import random
+    if exchange_count < 10 or random.random() > 0.15:
+        return ""
+    if _deep_secret_idx >= len(DEEP_SECRETS):
+        return ""
+    secret = DEEP_SECRETS[_deep_secret_idx]
+    _deep_secret_idx += 1
+    return f"DEEP SECRET: {secret}"
+
+def reset_deep_secrets():
+    global _deep_secret_idx
+    _deep_secret_idx = 0
+
+
+# --- Conversation Depth Tracking ---
+_depth_score = 0  # 0=shallow, tracks how personal/deep the convo gets
+
+DEPTH_WORDS = {
+    "shallow": ["lol", "cool", "nice", "ok", "yeah", "sure", "idk", "bruh"],
+    "medium": ["think", "feel", "remember", "believe", "wonder", "wish"],
+    "deep": ["life", "meaning", "dream", "fear", "love", "regret", "purpose",
+             "honest", "soul", "heart", "scared", "hope", "truth"],
+}
+
+def update_depth(text: str) -> str:
+    """Track conversation depth and adapt Mario's tone."""
+    global _depth_score
+    low = text.lower()
+    shallow = sum(1 for w in DEPTH_WORDS["shallow"] if w in low.split())
+    medium = sum(1 for w in DEPTH_WORDS["medium"] if w in low)
+    deep = sum(1 for w in DEPTH_WORDS["deep"] if w in low)
+    _depth_score += (deep * 3 + medium * 1 - shallow * 1)
+    _depth_score = max(0, min(30, _depth_score))
+    if _depth_score >= 15:
+        return "They're being vulnerable — be genuine and heartfelt, less silly"
+    elif _depth_score >= 8:
+        return "Getting deeper — balance humor with sincerity"
+    return ""
+
+def reset_depth():
+    global _depth_score
+    _depth_score = 0
+
+
+# --- Hype Generator ---
+HYPE_PHRASES = [
+    "LET'S-A GOOO!", "WAHOOOO!", "YIPPEE!", "HERE WE GO!",
+    "POWER STAR TIME!", "SUPER MARIO TIME!", "MAMMA MIA!",
+]
+
+def get_hype_injection(exchange_count: int) -> str:
+    """Occasionally inject pure hype energy."""
+    import random
+    if exchange_count < 3 or random.random() > 0.08:
+        return ""
+    return f"End with: {random.choice(HYPE_PHRASES)}"
+
+def reset_hype():
+    pass  # Stateless
