@@ -697,6 +697,22 @@
 - [x] Reaction suggestions: maps user mood to Mario poses (laugh/shock/love/think/cry/anger)
 - [x] Compliment generator: 7 genuine compliments (10% trigger after 5+ exchanges, one per visit)
 - [x] Pose enhancement: reaction-based pose fallback when no other pose detected
+- [x] Topic expertise system: 12 topics with expertise levels (expert/high/medium/low/none)
+- [x] Conversation rhythm tracker: alternates long/short responses for natural flow
+- [x] User energy detection: matches Mario's energy to user's (caps, exclamations, emojis)
+- [x] Flow pattern tracking: detects question/statement patterns, suggests flow changes
+- [x] Mood contagion: Mario's mood (0-100) shifts toward user's emotional tone
+- [x] Inside joke detection: identifies funny moments and calls them back (max 3 per visit)
+- [x] Response opener variety: tracks and penalizes repetitive response starts
+- [x] Conversation chapter detection: 6 topic categories with smooth transition hints
+- [x] Self-challenge mode: 5 types (rhyme, no-mario, questions-only, 5-words, reverse)
+- [x] Deep secrets expansion: 8 deeper/funnier Mario confessions for long conversations
+- [x] Conversation depth tracking: adapts tone from silly to sincere based on depth
+- [x] Hype phrase injection: occasional energy bursts (LET'S-A GOOO! etc.)
+- [x] Nickname evolution: 4-stage system (stranger→acquaintance→buddy→bestie)
+- [x] Playful debate mode: 6 fun debate topics with Mario's passionate stances
+- [x] Conversation recap: tracks key moments, responds to "what did we talk about"
+- [x] Meta-commentary: 6 fourth-wall-breaking observations about bathroom conversations
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites

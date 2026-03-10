@@ -1750,3 +1750,161 @@ def maybe_meta_comment(exchange_count: int) -> str:
 def reset_meta():
     global _meta_used
     _meta_used = False
+
+
+# ===== BATCH 33: Emotional memory, rapid-fire, pacing, party awareness =====
+
+# --- Emotional Memory ---
+_emotional_peaks = []  # (emotion, topic_snippet) tuples
+
+def track_emotional_peak(text: str, emotion: str):
+    """Track moments of strong emotion for later callback."""
+    if len(_emotional_peaks) >= 4:
+        return
+    if emotion in ("excited", "happy", "angry", "sad", "surprised"):
+        snippet = text[:30].strip()
+        _emotional_peaks.append((emotion, snippet))
+
+def get_emotional_callback() -> str:
+    """Reference a past emotional peak."""
+    import random
+    if not _emotional_peaks or random.random() > 0.15:
+        return ""
+    emotion, snippet = random.choice(_emotional_peaks)
+    templates = {
+        "excited": f"Remember when you got excited about '{snippet}'? That energy!",
+        "happy": f"You were so happy about '{snippet}' — love that!",
+        "angry": f"Still fired up about '{snippet}'? Mama mia!",
+        "sad": f"Hope you're feeling better since '{snippet}'",
+        "surprised": f"Your face when you mentioned '{snippet}' — priceless!",
+    }
+    return templates.get(emotion, "")
+
+def reset_emotional_memory():
+    global _emotional_peaks
+    _emotional_peaks = []
+
+
+# --- Rapid-Fire Mode ---
+_rapid_fire_active = False
+_rapid_fire_count = 0
+
+RAPID_FIRE_QUESTIONS = [
+    "Cats or dogs?", "Pizza or pasta?", "Morning or night?",
+    "Beach or mountains?", "Sweet or savory?", "Mario or Luigi?",
+    "Books or movies?", "Summer or winter?", "Coffee or tea?",
+    "Call or text?", "Stars or mushrooms?", "Pipes or bridges?",
+]
+
+def maybe_start_rapid_fire(exchange_count: int) -> str:
+    """Start a rapid-fire round of quick questions."""
+    global _rapid_fire_active, _rapid_fire_count
+    import random
+    if _rapid_fire_active:
+        _rapid_fire_count += 1
+        if _rapid_fire_count >= 3:
+            _rapid_fire_active = False
+            return "RAPID FIRE OVER! Comment on their answers — what did you learn?"
+        q = RAPID_FIRE_QUESTIONS[min(_rapid_fire_count + 1, len(RAPID_FIRE_QUESTIONS) - 1)]
+        return f"RAPID FIRE #{_rapid_fire_count + 1}: React fast, then ask: {q}"
+    if exchange_count < 8 or random.random() > 0.08:
+        return ""
+    _rapid_fire_active = True
+    _rapid_fire_count = 0
+    q = random.choice(RAPID_FIRE_QUESTIONS[:6])
+    return f"START RAPID FIRE! Quick questions! Ask: {q}"
+
+def reset_rapid_fire():
+    global _rapid_fire_active, _rapid_fire_count
+    _rapid_fire_active = False
+    _rapid_fire_count = 0
+
+
+# --- Conversation Pacing ---
+_response_lengths = []  # track response lengths for pacing variety
+
+def track_pacing(response: str):
+    """Track response lengths for variety."""
+    _response_lengths.append(len(response))
+    if len(_response_lengths) > 6:
+        _response_lengths.pop(0)
+
+def get_pacing_hint() -> str:
+    """Suggest pacing change if responses are too uniform."""
+    if len(_response_lengths) < 3:
+        return ""
+    avg = sum(_response_lengths) / len(_response_lengths)
+    last = _response_lengths[-1]
+    # All similar length — suggest variety
+    if all(abs(l - avg) < 15 for l in _response_lengths[-3:]):
+        if avg > 60:
+            return "Go SHORT this time — punchy one-liner!"
+        else:
+            return "Go a bit LONGER — tell a mini story!"
+    return ""
+
+def reset_pacing():
+    global _response_lengths
+    _response_lengths = []
+
+
+# --- Time-Aware Party Commentary ---
+def get_party_time_commentary() -> str:
+    """Make time-specific party observations."""
+    import random
+    hour = datetime.now().hour
+    if random.random() > 0.10:
+        return ""
+    if hour >= 0 and hour < 3:
+        comments = [
+            "It's past midnight! The REAL party people come out now!",
+            "Late night bathroom runs are the best conversations!",
+            "Everyone's getting sleepy but WE'RE still going strong!",
+        ]
+    elif hour >= 3 and hour < 6:
+        comments = [
+            "It's almost dawn! We've been partying ALL NIGHT!",
+            "The birds are about to start singing — competition!",
+        ]
+    elif hour >= 18 and hour < 21:
+        comments = [
+            "Evening bathroom visits — the party's heating up!",
+            "Prime party hours! Who needs the dance floor when you have THIS bathroom?",
+        ]
+    elif hour >= 21 and hour < 24:
+        comments = [
+            "Late night vibes! The bathroom gets philosophical after 9pm!",
+            "Peak bathroom hour — I've been busy tonight!",
+        ]
+    else:
+        return ""
+    return random.choice(comments)
+
+# --- Sound Effect Suggestions ---
+SOUND_EFFECTS = {
+    "coin": ["money", "cash", "rich", "dollar", "expensive", "buy"],
+    "powerup": ["strong", "powerful", "amazing", "incredible", "superhero", "invincible"],
+    "pipe": ["travel", "go", "leave", "move", "teleport", "transport"],
+    "1up": ["life", "alive", "survive", "health", "lucky", "extra"],
+    "fireball": ["fire", "hot", "burn", "flame", "spicy", "heat"],
+    "star": ["star", "shine", "sparkle", "glow", "bright", "brilliant"],
+}
+
+def suggest_sound_effect(text: str) -> str:
+    """Suggest a Mario sound effect reference based on keywords."""
+    import random
+    if random.random() > 0.12:
+        return ""
+    low = text.lower()
+    for effect, keywords in SOUND_EFFECTS.items():
+        if any(k in low for k in keywords):
+            templates = {
+                "coin": "Make a 'cha-ching!' coin sound!",
+                "powerup": "Do the power-up sound: 'da-na-na-NA!'",
+                "pipe": "Make a pipe whoosh sound!",
+                "1up": "Celebrate with a '1-UP!' sound!",
+                "fireball": "Throw an imaginary fireball: 'pow pow!'",
+                "star": "Sing the star theme: 'do do do do-do-DO!'",
+            }
+            return templates.get(effect, "")
+    return ""

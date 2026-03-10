@@ -900,6 +900,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if depth:
             reaction_parts.append(depth)
 
+        # Emotional callback
+        emo_cb = mario_prompt.get_emotional_callback()
+        if emo_cb:
+            reaction_parts.append(emo_cb)
+
+        # Sound effect suggestion
+        sfx = mario_prompt.suggest_sound_effect(text)
+        if sfx:
+            reaction_parts.append(sfx)
+
         if reaction_parts:
             # Cap at 2 strongest reaction hints
             ctx.append({"role": "system", "content": " | ".join(reaction_parts[:2])})
@@ -979,6 +989,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             state_current.get("speaker_name", ""))
         if nick_evo and len(personality_parts) < 2:
             personality_parts.append(nick_evo)
+
+        # Party time commentary
+        party_time = mario_prompt.get_party_time_commentary()
+        if party_time and len(personality_parts) < 2:
+            personality_parts.append(party_time)
+
+        # Pacing variety
+        pacing = mario_prompt.get_pacing_hint()
+        if pacing and len(personality_parts) < 2:
+            personality_parts.append(pacing)
 
         if personality_parts:
             ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
@@ -1110,6 +1130,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if meta:
                 conv_hint = meta
 
+        # Rapid-fire mode
+        if not conv_hint:
+            rapid = mario_prompt.maybe_start_rapid_fire(exchange_count)
+            if rapid:
+                conv_hint = rapid
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1178,6 +1204,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     # Track key conversation moments for recap
     mario_prompt.track_key_moment(text, response_text, exchange_count)
+
+    # Track emotional peaks
+    analyzed_emotion = analyze_text(text)
+    if analyzed_emotion.get("emotion"):
+        mario_prompt.track_emotional_peak(text, analyzed_emotion["emotion"])
+
+    # Track pacing
+    mario_prompt.track_pacing(response_text)
 
     # Response variety scoring
     variety_hint = mario_prompt.score_variety(response_text)
@@ -1370,6 +1404,9 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_debate()
         mario_prompt.reset_recap()
         mario_prompt.reset_meta()
+        mario_prompt.reset_emotional_memory()
+        mario_prompt.reset_rapid_fire()
+        mario_prompt.reset_pacing()
 
         try:
             # Try to identify by audio
