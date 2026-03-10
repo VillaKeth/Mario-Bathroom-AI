@@ -2279,3 +2279,136 @@ def maybe_hypothetical(exchange_count: int) -> str:
 def reset_hypothetical():
     global _hypothetical_used
     _hypothetical_used = False
+
+
+# ===== BATCH 38: Accent mode, story from user, sassy meter, character trivia =====
+
+# --- Accent Mode ---
+_accent_used = False
+
+ACCENT_MODES = [
+    "Talk like a PIRATE Mario: 'Arrr-a! Shiver me mushrooms!'",
+    "Talk like a BRITISH Mario: 'Jolly good, old chap-a!'",
+    "Talk like a COWBOY Mario: 'Yeehaw-a! Round up them Goombas!'",
+    "Talk like a SURFER Mario: 'Gnarly wave-a, dude! Cowabunga!'",
+    "Talk like a RAPPER Mario: 'Yo yo yo, it's-a me, dropping beats!'",
+    "Talk like a SHAKESPEARE Mario: 'To stomp or not to stomp-a!'",
+]
+
+def maybe_accent_mode(exchange_count: int) -> str:
+    """Temporarily switch to a fun accent."""
+    global _accent_used
+    import random
+    if _accent_used or exchange_count < 6 or random.random() > 0.08:
+        return ""
+    _accent_used = True
+    return random.choice(ACCENT_MODES)
+
+def reset_accent():
+    global _accent_used
+    _accent_used = False
+
+
+# --- Story From User ---
+_story_request_used = False
+
+STORY_PROMPTS = [
+    "Ask them to tell YOU a story! React dramatically!",
+    "Ask: 'What's the craziest thing that happened to you today?'",
+    "Ask: 'Tell me your BEST party story — I'll rate it!'",
+    "Ask: 'What's the funniest thing you've ever seen?' React BIG!",
+]
+
+def maybe_request_story(exchange_count: int) -> str:
+    """Ask the user to tell Mario a story."""
+    global _story_request_used
+    import random
+    if _story_request_used or exchange_count < 5 or random.random() > 0.10:
+        return ""
+    _story_request_used = True
+    return random.choice(STORY_PROMPTS)
+
+def reset_story_request():
+    global _story_request_used
+    _story_request_used = False
+
+
+# --- Sassy Meter ---
+_sassy_level = 0  # 0-10 scale
+
+def update_sassy_meter(text: str) -> str:
+    """Track sassiness level based on user teasing."""
+    global _sassy_level
+    low = text.lower()
+    tease_words = ["haha", "lol", "roast", "burn", "savage", "rekt", "owned", "gotcha"]
+    nice_words = ["sweet", "kind", "nice", "thank", "love", "appreciate"]
+    _sassy_level += sum(1 for w in tease_words if w in low) * 2
+    _sassy_level -= sum(1 for w in nice_words if w in low)
+    _sassy_level = max(0, min(10, _sassy_level))
+    if _sassy_level >= 7:
+        return "MAXIMUM SASS! They want roasts — deliver!"
+    elif _sassy_level >= 4:
+        return "Getting sassy — tease them more!"
+    return ""
+
+def reset_sassy():
+    global _sassy_level
+    _sassy_level = 0
+
+
+# --- Character Trivia Challenge ---
+_trivia_challenge_used = False
+
+CHARACTER_TRIVIA = [
+    ("Who is Mario's twin brother?", "Luigi"),
+    ("What is Princess Peach's kingdom called?", "Mushroom Kingdom"),
+    ("What's the name of Mario's dinosaur friend?", "Yoshi"),
+    ("Who keeps kidnapping Princess Peach?", "Bowser"),
+    ("What does Mario collect that makes him grow?", "Super Mushroom"),
+    ("What color is Luigi's hat?", "Green"),
+    ("What's the name of the ghost enemies?", "Boos"),
+    ("What power-up lets Mario throw fireballs?", "Fire Flower"),
+]
+
+def maybe_trivia_challenge(exchange_count: int) -> str:
+    """Quick trivia question about Mario characters."""
+    global _trivia_challenge_used
+    import random
+    if _trivia_challenge_used or exchange_count < 4 or random.random() > 0.10:
+        return ""
+    _trivia_challenge_used = True
+    q, a = random.choice(CHARACTER_TRIVIA)
+    return f"TRIVIA TIME! Ask: '{q}' (answer: {a}) — react to their answer!"
+
+def reset_trivia_challenge():
+    global _trivia_challenge_used
+    _trivia_challenge_used = False
+
+
+# --- Compliment Escalation ---
+_compliment_escalation = 0
+
+ESCALATING_COMPLIMENTS = [
+    "You're cool!",
+    "You're really fun to talk to!",
+    "You might be my favorite person tonight!",
+    "I officially declare you an honorary citizen of the Mushroom Kingdom!",
+    "You're getting your own star on the Mario Walk of Fame!",
+]
+
+def get_escalating_compliment(exchange_count: int) -> str:
+    """Give progressively bigger compliments as convo goes on."""
+    global _compliment_escalation
+    import random
+    thresholds = [3, 6, 10, 15, 20]
+    if _compliment_escalation >= len(thresholds):
+        return ""
+    if exchange_count >= thresholds[_compliment_escalation] and random.random() < 0.20:
+        comp = ESCALATING_COMPLIMENTS[_compliment_escalation]
+        _compliment_escalation += 1
+        return f"Say: '{comp}'"
+    return ""
+
+def reset_escalating_compliment():
+    global _compliment_escalation
+    _compliment_escalation = 0

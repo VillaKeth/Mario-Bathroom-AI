@@ -920,6 +920,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if throwback:
             reaction_parts.append(throwback)
 
+        # Sassy meter
+        sassy = mario_prompt.update_sassy_meter(text)
+        if sassy:
+            reaction_parts.append(sassy)
+
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
 
@@ -1169,6 +1174,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             hypo = mario_prompt.maybe_hypothetical(exchange_count)
             if hypo:
                 conv_hint = hypo
+
+        # Accent mode
+        if not conv_hint:
+            accent = mario_prompt.maybe_accent_mode(exchange_count)
+            if accent:
+                conv_hint = accent
+
+        # Story from user
+        if not conv_hint:
+            story_req = mario_prompt.maybe_request_story(exchange_count)
+            if story_req:
+                conv_hint = story_req
+
+        # Character trivia challenge
+        if not conv_hint:
+            trivia_ch = mario_prompt.maybe_trivia_challenge(exchange_count)
+            if trivia_ch:
+                conv_hint = trivia_ch
+
+        # Escalating compliment
+        if not conv_hint:
+            esc_comp = mario_prompt.get_escalating_compliment(exchange_count)
+            if esc_comp:
+                conv_hint = esc_comp
 
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
@@ -1453,6 +1482,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_handshake()
         mario_prompt.reset_ranking()
         mario_prompt.reset_hypothetical()
+        mario_prompt.reset_accent()
+        mario_prompt.reset_story_request()
+        mario_prompt.reset_sassy()
+        mario_prompt.reset_trivia_challenge()
+        mario_prompt.reset_escalating_compliment()
 
         try:
             # Try to identify by audio
