@@ -633,9 +633,12 @@
 - [x] Added contextual idle behavior (get_contextual_idle riffs on recent conversation topics)
 - [x] Contextual idle covers 8 topic categories (food, music, work, games, pets, drinks, love, generic)
 - [x] Integration test 3/3 passing with improved conversation quality
+- [x] Added dynamic LLM temperature (humor→0.95, questions→0.75, emotional→0.70)
+- [x] Added sentiment tracking (rolling 10-message mood average, conversation energy)
+- [x] Fixed deadlock in emotions.py (get_prompt_addition calling locked method)
+- [x] Optimized context for qwen2:1.5b (shorter hints, 12-msg window, compact memory injection)
+- [x] Reduced num_predict 60→50 for faster responses (8-17s vs 22-28s)
 - [ ] Upgrade LLM model from qwen2:1.5b to 7B+ for better personality depth
 - [ ] Add per-user personality tagging (saves "likes puns", "is sarcastic")
 - [ ] Add topic threading (detect when user circles back to earlier topic)
-- [ ] Add sentiment tracking (rolling 5-message mood average)
-- [ ] Add dynamic temperature (higher for jokes, lower for facts)
 - [ ] Sprite system total overhaul with accurate AI-generated Mario sprites
