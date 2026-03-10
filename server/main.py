@@ -974,11 +974,28 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if hype and len(personality_parts) < 2:
             personality_parts.append(hype)
 
+        # Nickname evolution
+        nick_evo = mario_prompt.evolve_nickname(exchange_count,
+            state_current.get("speaker_name", ""))
+        if nick_evo and len(personality_parts) < 2:
+            personality_parts.append(nick_evo)
+
         if personality_parts:
             ctx.append({"role": "system", "content": " | ".join(personality_parts[:2])})
 
         # --- CONVERSATION hints (callbacks, stories, secrets) --- priority: low, pick one
         conv_hint = None
+
+        # Debate response check (highest priority if debate is active)
+        debate_resp = mario_prompt.check_debate_response(text)
+        if debate_resp:
+            conv_hint = debate_resp
+
+        # Recap request
+        if not conv_hint:
+            recap = mario_prompt.get_recap_hint(text)
+            if recap:
+                conv_hint = recap
 
         # Memory callback from past visits
         if not conv_hint and state_current.get("speaker_id"):
@@ -1081,6 +1098,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if deep:
                 conv_hint = deep
 
+        # Debate start
+        if not conv_hint:
+            debate = mario_prompt.maybe_start_debate(exchange_count)
+            if debate:
+                conv_hint = debate
+
+        # Meta-commentary
+        if not conv_hint:
+            meta = mario_prompt.maybe_meta_comment(exchange_count)
+            if meta:
+                conv_hint = meta
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
@@ -1147,7 +1176,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Track inside joke opportunities
     mario_prompt.detect_inside_joke_opportunity(text, response_text)
 
-    # Response variety scoring — track and warn if repetitive
+    # Track key conversation moments for recap
+    mario_prompt.track_key_moment(text, response_text, exchange_count)
+
+    # Response variety scoring
     variety_hint = mario_prompt.score_variety(response_text)
     # (variety_hint is logged but not injected — it affects next response via _recent_openers)
 
@@ -1334,6 +1366,10 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_challenge()
         mario_prompt.reset_deep_secrets()
         mario_prompt.reset_depth()
+        mario_prompt.reset_nickname_evolution()
+        mario_prompt.reset_debate()
+        mario_prompt.reset_recap()
+        mario_prompt.reset_meta()
 
         try:
             # Try to identify by audio

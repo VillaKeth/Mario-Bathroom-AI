@@ -1623,3 +1623,130 @@ def get_hype_injection(exchange_count: int) -> str:
 
 def reset_hype():
     pass  # Stateless
+
+
+# ===== BATCH 32: Nickname evolution, debate mode, recap, meta-commentary =====
+
+# --- Nickname Evolution ---
+_nickname_stage = 0  # 0=stranger, 1=acquaintance, 2=buddy, 3=bestie
+_given_nickname = ""
+
+NICKNAME_STAGES = {
+    0: [],  # No nickname yet
+    1: ["pal", "buddy", "amico", "friend-a"],
+    2: ["my guy", "party star", "bathroom buddy", "comrade"],
+    3: ["bestie", "legend", "my favorite human", "honorary plumber"],
+}
+
+def evolve_nickname(exchange_count: int, name: str = "") -> str:
+    """Evolve nickname based on conversation length."""
+    global _nickname_stage, _given_nickname
+    import random
+    old_stage = _nickname_stage
+    if exchange_count >= 15:
+        _nickname_stage = 3
+    elif exchange_count >= 8:
+        _nickname_stage = 2
+    elif exchange_count >= 3:
+        _nickname_stage = 1
+    if _nickname_stage > old_stage and NICKNAME_STAGES[_nickname_stage]:
+        _given_nickname = random.choice(NICKNAME_STAGES[_nickname_stage])
+        return f"Call them '{_given_nickname}' — you've upgraded their status!"
+    return ""
+
+def reset_nickname_evolution():
+    global _nickname_stage, _given_nickname
+    _nickname_stage = 0
+    _given_nickname = ""
+
+
+# --- Debate Mode ---
+_debate_active = False
+_debate_topic = ""
+
+DEBATE_TOPICS = [
+    ("Is pineapple on pizza good?", "YES! Sweet and savory is perfection!"),
+    ("Are cats better than dogs?", "CATS! They're independent like Mario!"),
+    ("Is morning or night better?", "NIGHT! That's when the best parties happen!"),
+    ("Should you dip fries in ice cream?", "ABSOLUTELY! Sweet meets salty = wahoo!"),
+    ("Is water wet?", "Of course! Mario knows — he's been in MANY water levels!"),
+    ("Are hot dogs sandwiches?", "NO WAY! That's like saying a pipe is a tunnel!"),
+]
+
+def maybe_start_debate(exchange_count: int) -> str:
+    """Occasionally start a playful debate."""
+    global _debate_active, _debate_topic
+    import random
+    if _debate_active or exchange_count < 6 or random.random() > 0.10:
+        return ""
+    topic, stance = random.choice(DEBATE_TOPICS)
+    _debate_active = True
+    _debate_topic = topic
+    return f"START A DEBATE! Ask: '{topic}' — your stance: {stance}"
+
+def check_debate_response(text: str) -> str:
+    """If debate is active, encourage Mario to defend his position."""
+    global _debate_active
+    if not _debate_active:
+        return ""
+    _debate_active = False
+    return "They responded to your debate! Defend your position passionately but playfully!"
+
+def reset_debate():
+    global _debate_active, _debate_topic
+    _debate_active = False
+    _debate_topic = ""
+
+
+# --- Conversation Recap ---
+_key_moments = []  # Track notable conversation moments
+
+def track_key_moment(text: str, response: str, exchange_count: int):
+    """Track memorable moments for later recap."""
+    if len(_key_moments) >= 5:
+        return
+    # Track moments where exclamation or laughter happened
+    if "!" in text and len(text) > 15:
+        _key_moments.append(text[:40])
+    elif any(w in response.lower() for w in ["haha", "mama mia", "wahoo"]):
+        _key_moments.append(f"Mario laughed about: {text[:30]}")
+
+def get_recap_hint(text: str) -> str:
+    """If user asks for recap, provide conversation highlights."""
+    low = text.lower()
+    if not any(w in low for w in ["recap", "summary", "what did we talk", "what we talked"]):
+        return ""
+    if not _key_moments:
+        return "They want a recap but you've just been vibing! Summarize the fun!"
+    moments = "; ".join(_key_moments[:3])
+    return f"RECAP! Highlights: {moments}"
+
+def reset_recap():
+    global _key_moments
+    _key_moments = []
+
+
+# --- Meta-Commentary ---
+_meta_used = False
+
+META_COMMENTS = [
+    "Mention that this is the best bathroom conversation you've ever had",
+    "Comment on how weird it is to be a video game character talking in a bathroom",
+    "Wonder aloud if Bowser ever has bathroom parties",
+    "Note that this conversation would make a great level in a Mario game",
+    "Point out that you've been talking longer than most boss fights",
+    "Joke that this bathroom has better dialogue than most movies",
+]
+
+def maybe_meta_comment(exchange_count: int) -> str:
+    """Occasionally break the fourth wall with meta-commentary."""
+    global _meta_used
+    import random
+    if _meta_used or exchange_count < 7 or random.random() > 0.12:
+        return ""
+    _meta_used = True
+    return f"META: {random.choice(META_COMMENTS)}"
+
+def reset_meta():
+    global _meta_used
+    _meta_used = False
