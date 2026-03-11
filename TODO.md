@@ -84,11 +84,17 @@
 - [x] Fixed ellipsis garbling ("..." → comma pause) — massive improvement (#58: 17% → 100%)
 - [x] Added interjection phonetics ("Ha He" → "Hah hey", "Ha ha ha" → "Hah hah hah", "Da da da" → "Dah dah dah")
 - [x] Completed 3 ralph loop rounds: R1=71%, R3=63% (GPT-SoVITS has ~10% non-deterministic variation)
+- [x] Fixed double-dot (..) handling in cleaning pipeline (was only catching ...)
+- [x] Added trailing orphan punctuation cleanup (, ! ? at end of text)
+- [x] Fixed CUDA OOM: resemblyzer VoiceEncoder forced to CPU
+- [x] All 73 expected texts verified to match actual cleaning output (0 mismatches)
+- [x] Completed 39 ralph loop rounds: R39=71% (new best tied with R1), R32=70%, avg ~67%
 - [ ] Fix short-phrase TTS garbling (pad 2-3 word phrases with context for GPT-SoVITS)
 - [ ] Fix "Bowzer" still mispronounced in some contexts (#31, #52)
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
 - [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
 - [ ] Consider Edge TTS fallback for very short phrases (<4 words)
+- [ ] Target >75% average acceptable score across ralph loop rounds
 
 
 ## ✅ Completed
@@ -831,3 +837,12 @@
 - [ ] Fix remaining TTS problem phrases (6 BAD, 13 WEAK in round 10)
 - [ ] Test Bowzer alternatives (Bawzer, Bowsur) for best pronunciation
 - [ ] Edge TTS fallback for consistently garbled short phrases
+- [x] Synthesis retry mechanism (3 attempts, keeps longest audio)
+- [x] Min expected duration: word_count * 0.15s catches garbled short outputs
+- [x] Changed Hm→Hmm filler normalization (fixes #24 producing numbers)
+- [x] Added yay+ vowel collapse (Yayy→yay for consistent pronunciation)
+- [x] Reverted okee dokee experiment (worse than okey dokey)
+- [x] Ralph loop round 32: 70% acceptable new best score
+- [ ] Fix consistently BAD phrases: #31 Bowzer, #33 okey dokey, #39 bathroom fun
+- [ ] Consider Edge TTS fallback for unfixable short phrases
+- [ ] Clean up idle_behavior.py source phrases to prevent cleaning issues
