@@ -1,0 +1,297 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+============================================================
+ROUND 35 (loop 1/3)
+============================================================
+   1. + [92%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. + [91%] GOOD  | What's a going on?
+   4. ~ [89%] OK    | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. ~ [82%] OK    | Take a care!
+   7. ! [67%] WEAK  "This a soap dispenser is very modern!" -> "This is so expensive. He's very modern. He ha"
+   8. ~ [80%] OK    | Not like a my castle pipes!
+   9. + [97%] GOOD  | Time flies a when you're having fun!
+  10. ! [56%] WEAK  "Good a time to recharge!" -> "Attentive charge."
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. X [22%] BAD   "Bowzer is mean, but I still win!" -> "Ah! Wait!"
+  13. ! [64%] WEAK  "One coin, two coins, three coins!" -> "One coin, coins, coins!"
+  14. ! [55%] WEAK  "The mushroom kingdom, what a place!" -> "Hey! What the place?"
+  15. ~ [82%] OK    | Bathroom breaks, very important!
+  16. ! [71%] WEAK  "Oh, minecart madness!" -> "My car's madness!"
+  17. ~ [77%] OK    | Oh, hah hey! I'm Mario!
+  18. X [9%] BAD   "Oh, that was amazing!" -> "Yeah."
+  19. ! [71%] WEAK  "Bowzer is going Down!" -> "Aussie on R is going down!"
+  20. ~ [82%] OK    | I found a Mushroom and a Star!
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. ~ [79%] OK    | Suction To The Beat! Plunge and boogie!
+  23. + [100%] GOOD  | The Power of the Fire Flower!
+  24. X [48%] BAD   "Hmm, let me think!" -> "Hey! Hey! Thank you!"
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. ~ [84%] OK    | Uh, maybe try again?
+  28. ! [72%] WEAK  "Ah, that feels nice!" -> "Ah, that thing is nice!"
+  29. + [100%] GOOD  | Oh, what a surprise!
+  30. + [100%] GOOD  | It's cold in here!
+  31. ~ [76%] OK    | Bowzer might hear us!
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ! [54%] WEAK  "Oh, okey dokey!" -> "Well, hey Doki!"
+  34. + [93%] GOOD  | I wonder if Chain Chomps count as pets? They're very bi
+  35. ~ [81%] OK    | Oh, that's nothing!
+  36. ! [67%] WEAK  "Well, level complete!" -> "Apple Complete!"
+  37. + [90%] GOOD  | Oh, jump jump jump!
+  38. ! [59%] WEAK  "There goes the fireball!" -> "It's close to fireball!"
+  39. + [90%] GOOD  | Oh, bathroom fun!
+  40. ! [60%] WEAK  "Oh, hurry up!" -> "but hurry"
+  41. ! [67%] WEAK  "Another Gumba defeated!" -> "another zombie aided"
+  42. ~ [80%] OK    | Oh, the mushroom kingdom
+  43. + [100%] GOOD  | Super Star Power!
+  44. ~ [80%] OK    | I give it a ten out of ten!
+  45. ~ [79%] OK    | The score is one hundred and counting!
+  46. + [90%] GOOD  | Email me at mario at mushroom.kingdom
+  47. ! [74%] WEAK  "It's fifty percent off on mushrooms!" -> "It's 50% off on mushrooms!"
+  48. ! [56%] WEAK  "Afternoon break! Good time to recharge!" -> "That's the name of the time to recharge!"
+  49. + [97%] GOOD  | Hello there! How are you doing today?
+  50. ! [57%] WEAK  "Line one, Line two, Line three." -> "Line 1. Line. Line 3."
+  51. ! [64%] WEAK  "Oh, yay! I won!" -> "Yeah! I won!"
+  52. ! [71%] WEAK  "No! Bowzer got me!" -> "No! See, I got me!"
+  53. ~ [78%] OK    | Oh, let's go!
+  54. ! [65%] WEAK  "Oh, balls of fire!" -> "That was a fire!"
+  55. + [100%] GOOD  | So excited right now!
+  56. + [100%] GOOD  | Help! Someone help!
+  57. ! [72%] WEAK  "What?! You defeated Bowzer?!" -> "You defeated both the R."
+  58. + [93%] GOOD  | Oh, amazing, just, amazing
+  59. X [21%] BAD   "Well, wait, really?!" -> "Hey! Oi! Oi, Ely!"
+  60. X [15%] BAD   "Ha ha ha! That's hilarious!" -> "It's"
+  61. + [100%] GOOD  | Can you hear me?
+  62. + [96%] GOOD  | The answer is: Mushroom!
+  63. ! [57%] WEAK  "quoted speech is fun!" -> "Corp big speeches upon!"
+  64. + [99%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ! [74%] WEAK  "I once traveled through eight worlds, defeate" -> "I won't travel through eight worlds. This hea"
+  66. + [100%] GOOD  | The party is in full swing! What a night!
+  67. + [97%] GOOD  | Evening bathroom visits are the best! The lighting is s
+  68. ~ [80%] OK    | Afternoon already! Time flies when you're having fun!
+  69. ~ [83%] OK    | I bet Toad would appreciate this tile pattern. Very mus
+  70. ~ [81%] OK    | This bathroom is cleaner than Bowzer's castle!
+  71. ~ [87%] OK    | Did you know? In Super Mario sixty four, I can do over 
+  72. + [100%] GOOD  | I wonder what Luigi is doing right now
+  73. ! [63%] WEAK  "Mama mia, the acoustics in here are perfect f" -> "Mamamia, did you like the perfect for singing"
+
+  Score: 26 GOOD, 20 OK, 22 WEAK, 5 BAD / 73 total
+  Quality: 63.0% acceptable (GOOD+OK)
+
+  Problem phrases (27):
+    #7: [67%] "This a soap dispenser is very modern!" -> "This is so expensive. He's very modern. "
+    #10: [56%] "Good a time to recharge!" -> "Attentive charge."
+    #12: [22%] "Bowzer is mean, but I still win!" -> "Ah! Wait!"
+    #13: [64%] "One coin, two coins, three coins!" -> "One coin, coins, coins!"
+    #14: [55%] "The mushroom kingdom, what a place!" -> "Hey! What the place?"
+    #16: [71%] "Oh, minecart madness!" -> "My car's madness!"
+    #18: [9%] "Oh, that was amazing!" -> "Yeah."
+    #19: [71%] "Bowzer is going Down!" -> "Aussie on R is going down!"
+    #24: [48%] "Hmm, let me think!" -> "Hey! Hey! Thank you!"
+    #28: [72%] "Ah, that feels nice!" -> "Ah, that thing is nice!"
+    #33: [54%] "Oh, okey dokey!" -> "Well, hey Doki!"
+    #36: [67%] "Well, level complete!" -> "Apple Complete!"
+    #38: [59%] "There goes the fireball!" -> "It's close to fireball!"
+    #40: [60%] "Oh, hurry up!" -> "but hurry"
+    #41: [67%] "Another Gumba defeated!" -> "another zombie aided"
+    #47: [74%] "It's fifty percent off on mushrooms!" -> "It's 50% off on mushrooms!"
+    #48: [56%] "Afternoon break! Good time to recharge!" -> "That's the name of the time to recharge!"
+    #50: [57%] "Line one, Line two, Line three." -> "Line 1. Line. Line 3."
+    #51: [64%] "Oh, yay! I won!" -> "Yeah! I won!"
+    #52: [71%] "No! Bowzer got me!" -> "No! See, I got me!"
+    #54: [65%] "Oh, balls of fire!" -> "That was a fire!"
+    #57: [72%] "What?! You defeated Bowzer?!" -> "You defeated both the R."
+    #59: [21%] "Well, wait, really?!" -> "Hey! Oi! Oi, Ely!"
+    #60: [15%] "Ha ha ha! That's hilarious!" -> "It's"
+    #63: [57%] "quoted speech is fun!" -> "Corp big speeches upon!"
+    #65: [74%] "I once traveled through eight worlds, de" -> "I won't travel through eight worlds. Thi"
+    #73: [63%] "Mama mia, the acoustics in here are perf" -> "Mamamia, did you like the perfect for si"
+
+  Next round will test 47 phrases with sim < 90%
+============================================================
+ROUND 36 (loop 2/3)
+============================================================
+   2. ! [62%] WEAK  "Let's a go!" -> "Let's..."
+   4. ~ [83%] OK    | That's a funny!
+   6. X [0%] BAD   "Take a care!" -> "I-I-I-I-I-I-I-I-I"
+   7. + [92%] GOOD  | This a soap dispenser is very modern!
+   8. + [94%] GOOD  | Not like a my castle pipes!
+  10. ! [71%] WEAK  "Good a time to recharge!" -> "Good, I'll turn to a charge."
+  12. ! [74%] WEAK  "Bowzer is mean, but I still win!" -> "Hey, all is mean. I still win."
+  13. ! [64%] WEAK  "One coin, two coins, three coins!" -> "One coin, coins, coins!"
+  14. ~ [86%] OK    | The mushroom kingdom, what a place!
+  15. + [92%] GOOD  | Bathroom breaks, very important!
+  16. ! [53%] WEAK  "Oh, minecart madness!" -> "My cold madness!"
+  17. ! [67%] WEAK  "Oh, hah hey! I'm Mario!" -> "Hi! Hi, Mario!"
+  18. + [91%] GOOD  | Oh, that was amazing!
+  19. ! [72%] WEAK  "Bowzer is going Down!" -> "Wow see all this going down"
+  20. ~ [82%] OK    | I found a Mushroom and a Star!
+  22. ! [71%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the beat, Panjum Puki."
+  24. + [100%] GOOD  | Hmm, let me think!
+  27. + [94%] GOOD  | Uh, maybe try again?
+  28. + [94%] GOOD  | Ah, that feels nice!
+  31. X [18%] BAD   "Bowzer might hear us!" -> "I'll see you on my terrace."
+  32. ~ [87%] OK    | Oh, here we go!
+  33. X [37%] BAD   "Oh, okey dokey!" -> "Okay, thank you."
+  35. ~ [90%] OK    | Oh, that's nothing!
+  36. ~ [89%] OK    | Well, level complete!
+  38. ~ [81%] OK    | There goes the fireball!
+  40. X [20%] BAD   "Oh, hurry up!" -> "Thank you."
+  41. ~ [79%] OK    | Another Gumba defeated!
+  42. ~ [77%] OK    | Oh, the mushroom kingdom
+  44. ~ [80%] OK    | I give it a ten out of ten!
+  45. ! [66%] WEAK  "The score is one hundred and counting!" -> "This score is 100 in the counting."
+  47. ! [64%] WEAK  "It's fifty percent off on mushrooms!" -> "60% off on mushrooms"
+  48. ~ [85%] OK    | Afternoon break! Good time to recharge!
+  50. + [92%] GOOD  | Line one, Line two, Line three.
+  51. X [30%] BAD   "Oh, yay! I won!" -> "Yeah! Hey!"
+  52. ! [69%] WEAK  "No! Bowzer got me!" -> "No! See, you're got me!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. X [40%] BAD   "Oh, balls of fire!" -> "Pause the fire!"
+  57. ~ [83%] OK    | What?! You defeated Bowzer?!
+  59. X [35%] BAD   "Well, wait, really?!" -> "What? Police! Freeze!"
+  60. ~ [79%] OK    | Ha ha ha! That's hilarious!
+  63. ~ [76%] OK    | quoted speech is fun!
+  65. ! [66%] WEAK  "I once traveled through eight worlds, defeate" -> "I want to travel to eight worlds, defeated co"
+  68. ~ [86%] OK    | Afternoon already! Time flies when you're having fun!
+  69. ~ [79%] OK    | I bet Toad would appreciate this tile pattern. Very mus
+  70. ~ [79%] OK    | This bathroom is cleaner than Bowzer's castle!
+  71. ! [56%] WEAK  "Did you know? In Super Mario sixty four, I ca" -> "Did you know? In Super Mario 64. Come on!"
+  73. + [99%] GOOD  | Mama mia, the acoustics in here are perfect for singing
+
+  Score: 9 GOOD, 18 OK, 13 WEAK, 7 BAD / 47 total
+  Quality: 57.4% acceptable (GOOD+OK)
+
+  Problem phrases (20):
+    #2: [62%] "Let's a go!" -> "Let's..."
+    #6: [0%] "Take a care!" -> "I-I-I-I-I-I-I-I-I"
+    #10: [71%] "Good a time to recharge!" -> "Good, I'll turn to a charge."
+    #12: [74%] "Bowzer is mean, but I still win!" -> "Hey, all is mean. I still win."
+    #13: [64%] "One coin, two coins, three coins!" -> "One coin, coins, coins!"
+    #16: [53%] "Oh, minecart madness!" -> "My cold madness!"
+    #17: [67%] "Oh, hah hey! I'm Mario!" -> "Hi! Hi, Mario!"
+    #19: [72%] "Bowzer is going Down!" -> "Wow see all this going down"
+    #22: [71%] "Suction To The Beat! Plunge and boogie!" -> "Section to the beat, Panjum Puki."
+    #31: [18%] "Bowzer might hear us!" -> "I'll see you on my terrace."
+    #33: [37%] "Oh, okey dokey!" -> "Okay, thank you."
+    #40: [20%] "Oh, hurry up!" -> "Thank you."
+    #45: [66%] "The score is one hundred and counting!" -> "This score is 100 in the counting."
+    #47: [64%] "It's fifty percent off on mushrooms!" -> "60% off on mushrooms"
+    #51: [30%] "Oh, yay! I won!" -> "Yeah! Hey!"
+    #52: [69%] "No! Bowzer got me!" -> "No! See, you're got me!"
+    #54: [40%] "Oh, balls of fire!" -> "Pause the fire!"
+    #59: [35%] "Well, wait, really?!" -> "What? Police! Freeze!"
+    #65: [66%] "I once traveled through eight worlds, de" -> "I want to travel to eight worlds, defeat"
+    #71: [56%] "Did you know? In Super Mario sixty four," -> "Did you know? In Super Mario 64. Come on"
+
+  Next round will test 38 phrases with sim < 90%
+============================================================
+ROUND 37 (loop 3/3)
+============================================================
+   2. ~ [88%] OK    | Let's a go!
+   4. + [100%] GOOD  | That's a funny!
+   6. + [100%] GOOD  | Take a care!
+  10. ~ [87%] OK    | Good a time to recharge!
+  12. ! [73%] WEAK  "Bowzer is mean, but I still win!" -> "Oh, see, all is mean. I still win!"
+  13. + [93%] GOOD  | One coin, two coins, three coins!
+  14. + [100%] GOOD  | The mushroom kingdom, what a place!
+  16. X [43%] BAD   "Oh, minecart madness!" -> "Wham! Mine!"
+  17. ~ [77%] OK    | Oh, hah hey! I'm Mario!
+  19. ! [68%] WEAK  "Bowzer is going Down!" -> "Fauzi, y'all is going down!"
+  20. ! [74%] WEAK  "I found a Mushroom and a Star!" -> "I found the mushroom in the stock."
+  22. ! [73%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Soction to the beat, PUNCH IN THE BIRE!"
+  31. X [36%] BAD   "Bowzer might hear us!" -> "That was me! I'm making us!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. X [29%] BAD   "Oh, okey dokey!" -> "Sit down"
+  35. ~ [82%] OK    | Oh, that's nothing!
+  36. ~ [85%] OK    | Well, level complete!
+  38. ~ [81%] OK    | There goes the fireball!
+  40. ~ [84%] OK    | Oh, hurry up!
+  41. ~ [78%] OK    | Another Gumba defeated!
+  42. ~ [77%] OK    | Oh, the mushroom kingdom
+  44. ! [74%] WEAK  "I give it a ten out of ten!" -> "I'll give you the tin out of tin!"
+  45. ! [55%] WEAK  "The score is one hundred and counting!" -> "This call is 100 counting."
+  47. ! [74%] WEAK  "It's fifty percent off on mushrooms!" -> "It's 50% off on mushrooms."
+  48. + [100%] GOOD  | Afternoon break! Good time to recharge!
+  51. X [12%] BAD   "Oh, yay! I won!" -> "Yeah!"
+  52. X [36%] BAD   "No! Bowzer got me!" -> "No! Hey!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. X [45%] BAD   "Oh, balls of fire!" -> "Paul just fired."
+  57. ~ [82%] OK    | What?! You defeated Bowzer?!
+  59. ~ [85%] OK    | Well, wait, really?!
+  60. ~ [77%] OK    | Ha ha ha! That's hilarious!
+  63. ~ [86%] OK    | quoted speech is fun!
+  65. ! [69%] WEAK  "I once traveled through eight worlds, defeate" -> "I won't travel through eight worlds, defeated"
+  68. + [96%] GOOD  | Afternoon already! Time flies when you're having fun!
+  69. ~ [80%] OK    | I bet Toad would appreciate this tile pattern. Very mus
+  70. ~ [85%] OK    | This bathroom is cleaner than Bowzer's castle!
+  71. ~ [87%] OK    | Did you know? In Super Mario sixty four, I can do over 
+
+  Score: 6 GOOD, 18 OK, 8 WEAK, 6 BAD / 38 total
+  Quality: 63.2% acceptable (GOOD+OK)
+
+  Problem phrases (14):
+    #12: [73%] "Bowzer is mean, but I still win!" -> "Oh, see, all is mean. I still win!"
+    #16: [43%] "Oh, minecart madness!" -> "Wham! Mine!"
+    #19: [68%] "Bowzer is going Down!" -> "Fauzi, y'all is going down!"
+    #20: [74%] "I found a Mushroom and a Star!" -> "I found the mushroom in the stock."
+    #22: [73%] "Suction To The Beat! Plunge and boogie!" -> "Soction to the beat, PUNCH IN THE BIRE!"
+    #31: [36%] "Bowzer might hear us!" -> "That was me! I'm making us!"
+    #33: [29%] "Oh, okey dokey!" -> "Sit down"
+    #44: [74%] "I give it a ten out of ten!" -> "I'll give you the tin out of tin!"
+    #45: [55%] "The score is one hundred and counting!" -> "This call is 100 counting."
+    #47: [74%] "It's fifty percent off on mushrooms!" -> "It's 50% off on mushrooms."
+    #51: [12%] "Oh, yay! I won!" -> "Yeah!"
+    #52: [36%] "No! Bowzer got me!" -> "No! Hey!"
+    #54: [45%] "Oh, balls of fire!" -> "Paul just fired."
+    #65: [69%] "I once traveled through eight worlds, de" -> "I won't travel through eight worlds, def"
+
+============================================================
+FINAL SUMMARY
+============================================================
+  Rounds completed: 37
+  Latest: 6 GOOD, 18 OK, 8 WEAK, 6 BAD
+
+  Progress:
+    Round 1: 71% acceptable (32G+20O / 73)
+    Round 2: 63% acceptable (33G+13O / 73)
+    Round 3: 63% acceptable (33G+13O / 73)
+    Round 4: 66% acceptable (35G+13O / 73)
+    Round 5: 34% acceptable (0G+13O / 38)
+    Round 6: 37% acceptable (0G+14O / 38)
+    Round 7: 34% acceptable (0G+13O / 38)
+    Round 8: 34% acceptable (0G+13O / 38)
+    Round 9: 66% acceptable (28G+20O / 73)
+    Round 10: 60% acceptable (7G+20O / 45)
+    Round 11: 58% acceptable (9G+13O / 38)
+    Round 12: 48% acceptable (0G+14O / 29)
+    Round 13: 48% acceptable (2G+12O / 29)
+    Round 14: 52% acceptable (0G+14O / 27)
+    Round 15: 37% acceptable (0G+10O / 27)
+    Round 16: 44% acceptable (0G+12O / 27)
+    Round 17: 56% acceptable (1G+14O / 27)
+    Round 18: 50% acceptable (1G+12O / 26)
+    Round 19: 60% acceptable (24G+20O / 73)
+    Round 20: 51% acceptable (8G+17O / 49)
+    Round 21: 46% acceptable (5G+14O / 41)
+    Round 22: 67% acceptable (24G+25O / 73)
+    Round 23: 63% acceptable (12G+19O / 49)
+    Round 24: 43% acceptable (4G+12O / 37)
+    Round 25: 68% acceptable (28G+22O / 73)
+    Round 26: 44% acceptable (7G+13O / 45)
+    Round 27: 61% acceptable (4G+19O / 38)
+    Round 28: 50% acceptable (3G+14O / 34)
+    Round 29: 39% acceptable (2G+10O / 31)
+    Round 30: 63% acceptable (23G+23O / 73)
+    Round 31: 64% acceptable (11G+21O / 50)
+    Round 32: 70% acceptable (27G+24O / 73)
+    Round 33: 48% acceptable (4G+18O / 46)
+    Round 34: 50% acceptable (4G+17O / 42)
+    Round 35: 63% acceptable (26G+20O / 73)
+    Round 36: 57% acceptable (9G+18O / 47)
+    Round 37: 63% acceptable (6G+18O / 38)

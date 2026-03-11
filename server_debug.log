@@ -1,0 +1,241 @@
+C:\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.0.1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+2026-03-11 10:27:50,554 [mario-server] Loaded config from C:\Users\Vketh\Desktop\Mario_AI\config.json
+2026-03-11 10:27:50,558 [party_stats] [DEBUG_STATS] Restored party_start_time (running 46.8h)
+INFO:     Started server process [21748]
+INFO:     Waiting for application startup.
+2026-03-11 10:27:50,687 [mario-server] === Mario AI Server Starting ===
+2026-03-11 10:27:50,687 [mario-server] Loading speech-to-text model...
+2026-03-11 10:27:50,687 [stt] [DEBUG_STT] init_model: START size=base device=auto
+2026-03-11 10:27:50,703 [stt] [DEBUG_STT] init_model: using device=cuda compute_type=float16
+2026-03-11 10:27:51,719 [stt] [DEBUG_STT] init_model: Requested float16 compute type, but the target device or backend do not support efficient float16 computation., falling back to cpu/int8
+2026-03-11 10:27:52,236 [stt] [DEBUG_STT] init_model: loaded on cpu with int8
+2026-03-11 10:27:52,236 [mario-server] Loading TTS engine...
+2026-03-11 10:27:52,236 [tts] [DEBUG_TTS] init_tts: START
+2026-03-11 10:27:52,342 [tts] [DEBUG_TTS] disk cache: loaded 178 entries from C:\Users\Vketh\Desktop\Mario_AI\server\data\tts_cache
+2026-03-11 10:27:52,342 [tts] [DEBUG_TTS] init_tts: FAST_MODE — using Edge TTS base (skipping XTTS)
+2026-03-11 10:27:52,484 [tts] [DEBUG_TTS] init_tts: Edge TTS available
+2026-03-11 10:27:52,484 [tts] [DEBUG_TTS] init_tts: RVC model not found, skipping voice conversion
+2026-03-11 10:27:52,484 [tts] [DEBUG_TTS] init_tts: TTS_MODE=sovits, launching GPT-SoVITS subprocess...
+2026-03-11 10:27:52,484 [tts] [DEBUG_TTS] sovits: starting GPT-SoVITS subprocess...
+2026-03-11 10:27:52,651 [tts] [DEBUG_TTS] sovits: Initializing GPT-SoVITS pipeline...
+2026-03-11 10:28:06,292 [tts] [DEBUG_TTS] sovits: ready in 13.8s
+2026-03-11 10:28:06,292 [tts] [DEBUG_TTS] [sovits] SHORT PHRASE PADDED: 'Well, hello!'
+2026-03-11 10:28:06,292 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Hello!'
+2026-03-11 10:28:06,292 [tts] [DEBUG_TTS] [sovits] clean_text: 'Well, hello!'
+2026-03-11 10:28:14,776 [tts] [DEBUG_TTS] sovits: generated 1.9s audio in 8.5s
+2026-03-11 10:28:14,776 [tts] [DEBUG_TTS] sovits: warmup done in 8.5s
+2026-03-11 10:28:14,776 [tts] [DEBUG_TTS] init_tts: END (mode=sovits, fast=True, xtts=False, rvc=False, sovits=True)
+2026-03-11 10:28:14,776 [mario-server] Loading speaker identification...
+2026-03-11 10:28:14,776 [speaker_id] [DEBUG_SPEAKER] init_speaker_id: START
+2026-03-11 10:28:14,808 [speaker_id] [DEBUG_SPEAKER] init_speaker_id: END
+2026-03-11 10:28:14,808 [mario-server] Initializing memory system...
+2026-03-11 10:28:14,808 [memory] [DEBUG_MEMORY] init_memory: START
+2026-03-11 10:28:14,808 [memory] [DEBUG_MEMORY] init_memory: END
+2026-03-11 10:28:14,808 [mario-server] Checking Ollama connection...
+2026-03-11 10:28:14,808 [llm] [DEBUG_LLM] check_ollama: START
+2026-03-11 10:28:15,692 [httpx] HTTP Request: GET http://localhost:11434/api/tags "HTTP/1.1 200 OK"
+2026-03-11 10:28:15,692 [llm] [DEBUG_LLM] check_ollama: available models = ['qwen2:0.5b', 'qwen2:1.5b', 'llama3:latest', 'llava-llama3:latest']
+2026-03-11 10:28:15,692 [llm] [DEBUG_LLM] check_ollama: warming up model...
+2026-03-11 10:28:17,612 [httpx] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-03-11 10:28:17,612 [llm] [DEBUG_LLM] check_ollama: model warmed in 1.9s
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] precache: warming 51 phrases with Edge+RVC...
+2026-03-11 10:28:17,613 [mario-server] Pre-caching common Mario phrases in background...
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'It's-a me, Mario!...' (rate=100%)
+2026-03-11 10:28:17,613 [mario-server] === Mario AI Server Ready! Let's-a go! ===
+INFO:     Application startup complete.
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Hello there!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Welcome, welcome!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Hey, nice to see you!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Good to see you again!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Nice to meet-a you!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Wahoo!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Mama mia!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Oh no!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Wow, that's-a amazing!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Ha ha ha!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'That's-a funny!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Oh yeah!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Yippee!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Super!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Fantastic!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Correct!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Wrong!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Let's play!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Let's-a go!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'You got it!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Try again!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Great job!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Your turn!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'See you later!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Bye bye!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Until next time!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Take-a care!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'See you soon, friend!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Goodbye!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Don't forget to wash-a your hands!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Wash those hands, it's-a important!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Clean hands, happy Mario!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Scrub-a scrub-a, nice and clean!...' (rate=100%)
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] synthesize: START text='Time to wash-a your hands!...' mode=sovits
+2026-03-11 10:28:17,613 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Time to wash-a your hands!'
+INFO:     Uvicorn running on http://0.0.0.0:8765 (Press CTRL+C to quit)
+2026-03-11 10:28:17,618 [tts] [DEBUG_TTS] [sovits] clean_text: 'Time to wash a your hands!'
+2026-03-11 10:28:20,028 [tts] [DEBUG_TTS] sovits: generated 2.0s audio in 2.4s
+2026-03-11 10:28:20,028 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=2.4s
+2026-03-11 10:28:20,028 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Okie dokie!...' (rate=97%)
+2026-03-11 10:28:20,028 [tts] [DEBUG_TTS] synthesize: START text='Here we go!...' mode=sovits
+2026-03-11 10:28:20,028 [tts] [DEBUG_TTS] [sovits] clean_text: 'Here we go!'
+2026-03-11 10:28:21,058 [tts] [DEBUG_TTS] sovits: generated 1.1s audio in 1.0s
+2026-03-11 10:28:21,059 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=1.0s
+2026-03-11 10:28:21,063 [tts] [DEBUG_TTS] synthesize: START text='Yes!...' mode=sovits
+2026-03-11 10:28:21,064 [tts] [DEBUG_TTS] [sovits] SHORT PHRASE PADDED: 'Well, yes!'
+2026-03-11 10:28:21,064 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Yes!'
+2026-03-11 10:28:21,064 [tts] [DEBUG_TTS] [sovits] clean_text: 'Well, yes!'
+2026-03-11 10:28:22,579 [tts] [DEBUG_TTS] sovits: generated 1.9s audio in 1.5s
+2026-03-11 10:28:22,580 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=1.5s
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'No way!...' (rate=92%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Of course!...' (rate=92%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'I don't-a know about that....' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Tell me more!...' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'What do you think?...' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'That's-a good question!...' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Let me think about that....' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'You're-a welcome!...' (rate=93%)
+2026-03-11 10:28:22,583 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Thank you so much!...' (rate=94%)
+2026-03-11 10:28:22,584 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'I'm-a ready!...' (rate=94%)
+2026-03-11 10:28:22,584 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'One more time!...' (rate=94%)
+2026-03-11 10:28:22,584 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Hmm, let me think!...' (rate=94%)
+2026-03-11 10:28:22,584 [tts] [DEBUG_TTS] synthesize: CACHE HIT 'Okie dokie, one moment!...' (rate=94%)
+2026-03-11 10:28:22,584 [tts] [DEBUG_TTS] precache: Edge+RVC done in 5.0s (181 cached)
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=speech/singing
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=['inspects the pipes under the sink'], pose=neutral/looking_up
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=negative/sad
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=['taps on a pipe'], pose=movement/pointing
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=speech/singing
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=['looks at self in mirror'], pose=neutral/looking_left
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/determined
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=speech/singing
+2026-03-11 10:28:32,586 [pose_analyzer] [DEBUG_POSE] analyze: actions=['counts the tiles on the floor'], pose=neutral/idle
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/surprised
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=['stretches'], pose=movement/flexing
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/idle_wink
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=action/eating_mushroom
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=speech/singing
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=['checks behind shower curtain'], pose=neutral/looking_left
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=action/offering
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/love
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=['practices jumping'], pose=movement/jumping
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/excited_jump
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=['examines the faucet'], pose=neutral/looking_up
+2026-03-11 10:28:32,588 [pose_analyzer] [DEBUG_POSE] analyze: actions=['knocks'], pose=movement/pointing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['shadow boxes'], pose=movement/flexing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['flexes'], pose=movement/flexing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['adjusts hat in mirror'], pose=neutral/looking_left
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=movement/pointing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['does a little dance'], pose=movement/dancing_1
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/excited_jump
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=movement/pointing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['hums the underwater level theme'], pose=speech/singing
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_up
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['checks his mustache in the mirror'], pose=neutral/looking_left
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/idle
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=['spins around'], pose=movement/dancing_1
+2026-03-11 10:28:32,589 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/love
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['sniffs'], pose=thinking/surprised
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['pokes head out door'], pose=neutral/idle
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/curious
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['checks watch'], pose=neutral/looking_left
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['air guitars'], pose=movement/dancing_1
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/idle
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['does push-ups'], pose=negative/face_palm
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/excited_jump
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['pretends to be a statue', 'moves'], pose=neutral/idle
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/surprised
+2026-03-11 10:28:32,590 [pose_analyzer] [DEBUG_POSE] analyze: actions=['polishes shoes'], pose=neutral/looking_left
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/happy
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/curious
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=['pretends to answer phone'], pose=positive/love
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/excited_jump
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=movement/pointing
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=['tries to see behind mirror'], pose=neutral/looking_left
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/curious
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=movement/pointing
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=['hums elevator music'], pose=speech/singing
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=['adjusts plumbing under sink'], pose=neutral/looking_left
+2026-03-11 10:28:32,591 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,592 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,592 [pose_analyzer] [DEBUG_POSE] analyze: actions=['peeks out window'], pose=neutral/looking_left
+2026-03-11 10:28:32,592 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/mischievous
+2026-03-11 10:28:32,592 [pose_analyzer] [DEBUG_POSE] analyze: actions=['reads shampoo bottle'], pose=thinking/curious
+2026-03-11 10:28:32,592 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=action/eating_mushroom
+2026-03-11 10:28:32,593 [pose_analyzer] [DEBUG_POSE] analyze: actions=['sniffs air freshener'], pose=neutral/idle
+2026-03-11 10:28:32,593 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:32,593 [pose_analyzer] [DEBUG_POSE] analyze: actions=['practices Mario voice'], pose=movement/flexing
+2026-03-11 10:28:32,593 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/curious
+2026-03-11 10:28:32,593 [tts] [DEBUG_TTS] synthesize: START text='The tiles in here form-a a perfect grid. Like a Ma...' mode=sovits
+2026-03-11 10:28:32,593 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'The tiles in here form-a a perfect grid. Like a Mario level! Where are the coins?'
+2026-03-11 10:28:32,593 [tts] [DEBUG_TTS] [sovits] clean_text: 'The tiles in here form a a perfect grid, Like a Mario level! Where are the coins?'
+2026-03-11 10:28:37,815 [tts] [DEBUG_TTS] sovits: generated 7.2s audio in 5.2s
+2026-03-11 10:28:37,815 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=5.2s
+2026-03-11 10:28:39,822 [pose_analyzer] [DEBUG_POSE] analyze: actions=['looks up'], pose=neutral/looking_left
+2026-03-11 10:28:39,822 [tts] [DEBUG_TTS] synthesize: START text='I wonder if there's-a a secret in the ceiling.. pr...' mode=sovits
+2026-03-11 10:28:39,822 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'I wonder if there's-a a secret in the ceiling.. probably not. Probably.'
+2026-03-11 10:28:39,822 [tts] [DEBUG_TTS] [sovits] clean_text: 'I wonder if there's a a secret in the ceiling, probably not, Probably.'
+2026-03-11 10:28:43,661 [tts] [DEBUG_TTS] sovits: generated 4.7s audio in 3.8s
+2026-03-11 10:28:43,666 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=3.8s
+2026-03-11 10:28:45,671 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:28:45,671 [tts] [DEBUG_TTS] synthesize: START text='Did you know bathrooms are the most important room...' mode=sovits
+2026-03-11 10:28:45,671 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Did you know bathrooms are the most important rooms? It's true! Trust me, I'm-a plumber!'
+2026-03-11 10:28:45,671 [tts] [DEBUG_TTS] [sovits] clean_text: 'Did you know bathrooms are the most important rooms? It's true! Trust me, I'm a plumber!'
+2026-03-11 10:28:51,951 [tts] [DEBUG_TTS] sovits: generated 7.6s audio in 6.3s
+2026-03-11 10:28:51,951 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=6.3s
+2026-03-11 10:28:53,970 [pose_analyzer] [DEBUG_POSE] analyze: actions=['hums the Star theme'], pose=speech/singing
+2026-03-11 10:28:53,970 [tts] [DEBUG_TTS] synthesize: START text='Da da da da da da DA! Feeling invincible!...' mode=sovits
+2026-03-11 10:28:53,970 [tts] [DEBUG_TTS] [sovits] SHORT PHRASE PADDED: 'Well, feeling invincible!'
+2026-03-11 10:28:53,970 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Da da da da da da DA! Feeling invincible!'
+2026-03-11 10:28:53,970 [tts] [DEBUG_TTS] [sovits] clean_text: 'Well, feeling invincible!'
+2026-03-11 10:28:56,808 [tts] [DEBUG_TTS] sovits: generated 3.0s audio in 2.8s
+2026-03-11 10:28:56,808 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=2.8s
+2026-03-11 10:28:58,814 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=positive/excited_jump
+2026-03-11 10:28:58,814 [tts] [DEBUG_TTS] synthesize: START text='This towel is-a folded like a swan! Fancy party!...' mode=sovits
+2026-03-11 10:28:58,814 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'This towel is-a folded like a swan! Fancy party!'
+2026-03-11 10:28:58,814 [tts] [DEBUG_TTS] [sovits] clean_text: 'This towel is a folded like a swan! Fancy party!'
+2026-03-11 10:29:03,556 [tts] [DEBUG_TTS] sovits: generated 5.4s audio in 4.7s
+2026-03-11 10:29:03,557 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=4.7s
+2026-03-11 10:29:05,562 [pose_analyzer] [DEBUG_POSE] analyze: actions=['counts fingers'], pose=positive/excited_jump
+2026-03-11 10:29:05,562 [tts] [DEBUG_TTS] synthesize: START text='One adventure, two adventure, three.. I've lost co...' mode=sovits
+2026-03-11 10:29:05,562 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'One adventure, two adventure, three.. I've lost count!'
+2026-03-11 10:29:05,562 [tts] [DEBUG_TTS] [sovits] clean_text: 'One adventure, two adventure, three, I've lost count!'
+2026-03-11 10:29:09,823 [tts] [DEBUG_TTS] sovits: generated 5.0s audio in 4.3s
+2026-03-11 10:29:09,823 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=4.3s
+2026-03-11 10:29:11,833 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=neutral/looking_left
+2026-03-11 10:29:11,833 [tts] [DEBUG_TTS] synthesize: START text='You know what this bathroom needs? More pipes! And...' mode=sovits
+2026-03-11 10:29:11,833 [tts] [DEBUG_TTS] [sovits] clean_text: 'You know what this bathroom needs? More pipes! And maybe a flagpole.'
+2026-03-11 10:29:18,035 [tts] [DEBUG_TTS] sovits: generated 6.7s audio in 6.2s
+2026-03-11 10:29:18,035 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=6.2s
+2026-03-11 10:29:20,044 [pose_analyzer] [DEBUG_POSE] analyze: actions=['adjusts hat'], pose=neutral/looking_left
+2026-03-11 10:29:20,044 [tts] [DEBUG_TTS] synthesize: START text='Still fits perfectly after 40 years! Quality craft...' mode=sovits
+2026-03-11 10:29:20,044 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'Still fits perfectly after 40 years! Quality craftsmanship!'
+2026-03-11 10:29:20,044 [tts] [DEBUG_TTS] [sovits] clean_text: 'Still fits perfectly after forty years! Quality craftsmanship!'
+2026-03-11 10:29:25,217 [tts] [DEBUG_TTS] sovits: generated 6.2s audio in 5.2s
+2026-03-11 10:29:25,219 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=5.2s
+2026-03-11 10:29:27,225 [pose_analyzer] [DEBUG_POSE] analyze: actions=['listens'], pose=speech/listening
+2026-03-11 10:29:27,225 [tts] [DEBUG_TTS] synthesize: START text='The drain in this sink makes-a a funny sound! Almo...' mode=sovits
+2026-03-11 10:29:27,225 [tts] [DEBUG_TTS] [sovits] ORIGINAL: 'The drain in this sink makes-a a funny sound! Almost musical!'
+2026-03-11 10:29:27,225 [tts] [DEBUG_TTS] [sovits] clean_text: 'The drain in this sink makes a a funny sound! Almost musical!'
+2026-03-11 10:29:33,218 [tts] [DEBUG_TTS] sovits: generated 5.9s audio in 6.0s
+2026-03-11 10:29:33,218 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=6.0s
+2026-03-11 10:29:35,226 [pose_analyzer] [DEBUG_POSE] analyze: actions=[], pose=thinking/thinking
+2026-03-11 10:29:35,226 [tts] [DEBUG_TTS] synthesize: START text='\u266a Splish splash, I was taking a bath! \u266a ..Well, no...' mode=sovits
+2026-03-11 10:29:35,227 [tts] [DEBUG_TTS] [sovits] ORIGINAL: '\u266a Splish splash, I was taking a bath! \u266a ..Well, not me, but someone might!'
+2026-03-11 10:29:35,227 [tts] [DEBUG_TTS] [sovits] clean_text: 'I was taking a bath! , Well, not me, but someone might!'
+2026-03-11 10:29:38,664 [tts] [DEBUG_TTS] sovits: generated 4.8s audio in 3.4s
+2026-03-11 10:29:38,666 [tts] [DEBUG_TTS] synthesize: END (GPT-SoVITS) total=3.4s
+2026-03-11 10:29:38,668 [tts] [DEBUG_TTS] idle_precache: 10 generated, 67 skipped (77/222)
+2026-03-11 10:29:40,674 [pose_analyzer] [DEBUG_POSE] analyze: actions=['stares at toilet'], pose=neutral/looking_right
+2026-03-11 10:29:40,674 [tts] [DEBUG_TTS] synthesize: START text='You know, back in the Mushroom Kingdom, these are ...' mode=sovits
+2026-03-11 10:29:40,674 [tts] [DEBUG_TTS] [sovits] clean_text: 'You know, back in the Mushroom Kingdom, these are warp pipes!'

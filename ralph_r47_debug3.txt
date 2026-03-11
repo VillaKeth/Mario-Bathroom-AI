@@ -1,0 +1,148 @@
+Loading Whisper model (base)...
+C:\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.0.1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 47 (loop 1/10)
+============================================================
+   1. + [100%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. + [91%] GOOD  | What's a going on?
+   4. + [100%] GOOD  | That's a funny!
+   5. + [95%] GOOD  | Nice to meet a you!
+   6. ! [56%] WEAK  "Oh, take a care!" -> "Take a kill!"
+   7. + [94%] GOOD  | This a soap dispenser is very modern!
+   8. ! [64%] WEAK  "Not like a my castle pipes!" -> "Not like my cats will bite you."
+   9. ~ [87%] OK    | Time flies a when you're having fun!
+  10. + [95%] GOOD  | Good a time to recharge!
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. ! [66%] WEAK  "Bowzer is mean, but I still win!" -> "He ought to mean. I still win!"
+  13. + [95%] GOOD  | One coin, two coins, three coins!
+  14. ! [72%] WEAK  "The mushroom kingdom, what a place!" -> "Imagine Kingdom! What a place!"
+  15. ! [75%] WEAK  "Bathroom breaks, very important!" -> "Pattern Blades. Very important."
+  16. ! [65%] WEAK  "Oh, minecart madness!" -> "My cult madness."
+  17. ~ [81%] OK    | Hah hey! I'm Mario!
+  18. + [100%] GOOD  | That was amazing!
+  19. X [0%] BAD   "Bowzer is going Down!" -> "P."
+  20. X [24%] BAD   "I found a Mushroom and a Star!" -> "I did-"
+      [skipping mid-round restart, relying on self-healing]
+  21. + [98%] GOOD  | Mama Mia that's incredible!
+  22. ! [72%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the beat. Anger and the ball beat."
+  23. ! [70%] WEAK  "The Power of the Fire Flower!" -> "The power, the power, the power!"
+  24. + [100%] GOOD  | Hmm, let me think!
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. ! [62%] WEAK  "Uh, maybe try again?" -> "maybe try them"
+  28. + [91%] GOOD  | Ah, that feels nice!
+  29. ! [74%] WEAK  "Oh, what a surprise!" -> "What is the surprise?"
+  30. X [40%] BAD   "It's cold in here!" -> "Itch!"
+  31. X [45%] BAD   "Bowzer might hear us!" -> "Let's eat your mightiness!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ~ [87%] OK    | Oh, okey dokey!
+  34. ~ [88%] OK    | I wonder if Chain Chomps count as pets? They're very bi
+  35. ~ [90%] OK    | Oh, that's nothing!
+  36. ! [59%] WEAK  "Oh, level complete!" -> "You're welcome, please."
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  38. + [100%] GOOD  | There goes the fireball!
+  39. X [43%] BAD   "Oh, bathroom fun!" -> "A trombone!"
+  40. X [44%] BAD   "Oh, hurry up!" -> "Oh, yeah!"
+      [skipping mid-round restart, relying on self-healing]
+  41. ! [58%] WEAK  "Another Gumba defeated!" -> "Another comby edged seeded."
+  42. + [95%] GOOD  | The mushroom kingdom
+  43. + [91%] GOOD  | Oh, super Star Power!
+  44. + [92%] GOOD  | I give it a ten out of ten!
+  45. ! [72%] WEAK  "The score is one hundred and counting!" -> "Score is 100 in accounting."
+  46. ! [61%] WEAK  "Email me at mario at mushroom.kingdom" -> "You may have met Mario at my room."
+  47. + [98%] GOOD  | It's fifty percent off on mushrooms!
+  48. ~ [79%] OK    | Afternoon break! Good time to recharge!
+  49. ~ [76%] OK    | Hello there! How are you doing today?
+  50. + [95%] GOOD  | Line one, Line two, Line three.
+  51. ! [64%] WEAK  "Oh, yay! I won!" -> "Yeah! I won!"
+  52. X [33%] BAD   "Oh, no! Bowzer got me!" -> "No! No!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [69%] WEAK  "Oh, balls of fire!" -> "Oh, it's a fire!"
+  55. + [100%] GOOD  | So excited right now!
+  56. ~ [80%] OK    | Help! Someone help!
+  57. ~ [77%] OK    | What?! You defeated Bowzer?!
+  58. + [100%] GOOD  | Amazing, just, amazing
+  59. ~ [88%] OK    | Oh, wait, really?!
+  60. ! [62%] WEAK  "Ha ha hah! That's hilarious!" -> "Let's hilarious!"
+      [skipping mid-round restart, relying on self-healing]
+  61. + [91%] GOOD  | Oh, can you hear me?
+  62. + [98%] GOOD  | The answer is: Mushroom!
+  63. X [0%] BAD   "Quoted speech is fun!" -> ""
+  64. + [99%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ! [71%] WEAK  "I once traveled through eight worlds, defeate" -> "I want to travel through 8 worlds, defeat the"
+  66. + [96%] GOOD  | The party is in full swing! What a night!
+  67. + [95%] GOOD  | Evening bathroom visits are the best! The lighting is s
+  68. + [94%] GOOD  | Afternoon already! Time flies when you're having fun!
+  69. ~ [80%] OK    | I bet Toad would appreciate this tile pattern, Very mus
+  70. + [98%] GOOD  | This bathroom is cleaner than Bowzer's castle!
+  71. + [98%] GOOD  | Did you know? In Super Mario sixty four, I can do over 
+  72. + [100%] GOOD  | I wonder what Luigi is doing right now
+  73. ~ [77%] OK    | Mama mia, the acoustics in here are perfect for singing
+
+  Score: 31 GOOD, 16 OK, 18 WEAK, 8 BAD / 73 total
+  Quality: 64.4% acceptable (GOOD+OK)
+
+  Problem phrases (26):
+    #6: [56%] "Oh, take a care!" -> "Take a kill!"
+    #8: [64%] "Not like a my castle pipes!" -> "Not like my cats will bite you."
+    #12: [66%] "Bowzer is mean, but I still win!" -> "He ought to mean. I still win!"
+    #14: [72%] "The mushroom kingdom, what a place!" -> "Imagine Kingdom! What a place!"
+    #15: [75%] "Bathroom breaks, very important!" -> "Pattern Blades. Very important."
+    #16: [65%] "Oh, minecart madness!" -> "My cult madness."
+    #19: [0%] "Bowzer is going Down!" -> "P."
+    #20: [24%] "I found a Mushroom and a Star!" -> "I did-"
+    #22: [72%] "Suction To The Beat! Plunge and boogie!" -> "Section to the beat. Anger and the ball "
+    #23: [70%] "The Power of the Fire Flower!" -> "The power, the power, the power!"
+    #27: [62%] "Uh, maybe try again?" -> "maybe try them"
+    #29: [74%] "Oh, what a surprise!" -> "What is the surprise?"
+    #30: [40%] "It's cold in here!" -> "Itch!"
+    #31: [45%] "Bowzer might hear us!" -> "Let's eat your mightiness!"
+    #36: [59%] "Oh, level complete!" -> "You're welcome, please."
+    #39: [43%] "Oh, bathroom fun!" -> "A trombone!"
+    #40: [44%] "Oh, hurry up!" -> "Oh, yeah!"
+    #41: [58%] "Another Gumba defeated!" -> "Another comby edged seeded."
+    #45: [72%] "The score is one hundred and counting!" -> "Score is 100 in accounting."
+    #46: [61%] "Email me at mario at mushroom.kingdom" -> "You may have met Mario at my room."
+    #51: [64%] "Oh, yay! I won!" -> "Yeah! I won!"
+    #52: [33%] "Oh, no! Bowzer got me!" -> "No! No!"
+    #54: [69%] "Oh, balls of fire!" -> "Oh, it's a fire!"
+    #60: [62%] "Ha ha hah! That's hilarious!" -> "Let's hilarious!"
+    #63: [0%] "Quoted speech is fun!" -> ""
+    #65: [71%] "I once traveled through eight worlds, de" -> "I want to travel through 8 worlds, defea"
+
+  Next round will test 42 phrases with sim < 90%
+============================================================
+ROUND 48 (loop 2/10)
+============================================================
+  [Fresh server restart between rounds...]
+      [killed PID 34464]
+      [killed PID 35120]
+      [killed PID 37572]
+  [Server restarted OK]
+   2. ~ [88%] OK    | Let's a go!
+   6. X [8%] BAD   "Oh, take a care!" -> "Des- Des- Des- Des- Des- Des- De- Des- De- De"
+   8. + [94%] GOOD  | Not like a my castle pipes!
+   9. + [97%] GOOD  | Time flies a when you're having fun!
+  12. ! [73%] WEAK  "Bowzer is mean, but I still win!" -> "Yes! But I still win!"
+  14. + [100%] GOOD  | The mushroom kingdom, what a place!
+  15. ! [59%] WEAK  "Bathroom breaks, very important!" -> "That room breaks from the ta-ta-ta-ta-ta-ta-t"
+  16. ! [71%] WEAK  "Oh, minecart madness!" -> "Mine caught the madness!"
+  17. ~ [76%] OK    | Hah hey! I'm Mario!
+  19. ~ [75%] OK    | Bowzer is going Down!
+  20. ~ [88%] OK    | I found a Mushroom and a Star!
+  22. ! [67%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the bed, hand-gained booby."
+  23. + [100%] GOOD  | The Power of the Fire Flower!
+  27. + [91%] GOOD  | Uh, maybe try again?
+  29. + [91%] GOOD  | Oh, what a surprise!
+  30. + [100%] GOOD  | It's cold in here!
+  31. ~ [77%] OK    | Bowzer might hear us!
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ! [55%] WEAK  "Oh, okey dokey!" -> "okey, okey"

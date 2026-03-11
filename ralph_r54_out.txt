@@ -1,0 +1,80 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 54 (loop 1/1)
+============================================================
+   1. + [100%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. + [93%] GOOD  | What's a going on?
+   4. ~ [83%] OK    | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. ~ [75%] OK    | Oh, take a care!
+   7. ! [62%] WEAK  "This a soap dispenser is very modern!" -> "This is so pistensual, he's a very man-earned"
+   8. ~ [81%] OK    | Not like a my castle pipes!
+   9. ~ [79%] OK    | Time flies a when you're having fun!
+  10. ~ [81%] OK    | Good a time to recharge!
+  11. + [94%] GOOD  | The party is great, everyone is having fun!
+  12. ! [64%] WEAK  "Bowzer is mean, but I still win!" -> "Hey, I'm just mean. I still mean."
+  13. + [95%] GOOD  | One coin, two coins, three coins!
+  14. + [92%] GOOD  | The mushroom kingdom, what a place!
+  15. + [98%] GOOD  | Bathroom breaks, very important!
+  16. ! [59%] WEAK  "Oh, minecart madness!" -> "My Code Madness"
+  17. ~ [86%] OK    | Hah hey! I'm Mario!
+  18. + [100%] GOOD  | That was amazing!
+  19. ! [73%] WEAK  "Bowzer is going Down!" -> "Hey, all is going down!"
+  20. ~ [87%] OK    | I found a Mushroom and a Star!
+      [skipping mid-round restart, relying on self-healing]
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. + [90%] GOOD  | Suction To The Beat! Plunge and boogie!
+  23. ~ [79%] OK    | The Power of the Fire Flower!
+  24. ! [58%] WEAK  "Hmm, let me think!" -> "Let me sing her."
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. ! [52%] WEAK  "Uh, maybe try again?" -> "Baby, try that!"
+  28. ! [73%] WEAK  "Ah, that feels nice!" -> "That is nice!"
+  29. + [91%] GOOD  | Oh, what a surprise!
+  30. ! [52%] WEAK  "It's cold in here!" -> "It's... COVID-19!"
+  31. X [31%] BAD   "Bowzer might hear us!" -> "Bows are my killers."
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ! [73%] WEAK  "Oh, okey dokey!" -> "Okey-no-key!"
+  34. ~ [88%] OK    | I wonder if Chain Chomps count as pets? They're very bi
+  35. ! [55%] WEAK  "Oh, that's nothing!" -> "That's a nutty!"
+  36. ~ [75%] OK    | Oh, level complete!
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  38. ! [65%] WEAK  "There goes the fireball!" -> "Arbor's a fireball!"
+  39. ~ [76%] OK    | Oh, bathroom fun!
+  40. ~ [84%] OK    | Oh, hurry up!
+      [skipping mid-round restart, relying on self-healing]
+  41. ! [74%] WEAK  "Another Gumba defeated!" -> "Another conviet defeated!"
+  42. + [100%] GOOD  | The mushroom kingdom
+  43. + [91%] GOOD  | Oh, super Star Power!
+  44. ! [67%] WEAK  "I give it a ten out of ten!" -> "I did it! I turned out to ten!"
+  45. ! [68%] WEAK  "The score is one hundred and counting!" -> "Score is 100 counting."
+  46. ! [59%] WEAK  "Email me at mario at mushroom.kingdom" -> "He may outmail the admiral at my room. Kingdo"
+  47. ~ [85%] OK    | It's fifty percent off on mushrooms!
+  48. ~ [82%] OK    | Afternoon break! Good time to recharge!
+  49. ! [58%] WEAK  "Hello there! How are you doing today?" -> "You're doing today!"
+  50. ~ [79%] OK    | Line one, Line two, Line three.
+  51. ! [64%] WEAK  "Oh, yay! I won!" -> "Yeah, I won!"
+  52. ! [74%] WEAK  "Oh, no! Bowzer got me!" -> "No! Bozie, you got me!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [69%] WEAK  "Oh, balls of fire!" -> "Oh, it's a fire!"
+  55. + [100%] GOOD  | So excited right now!
+  56. ~ [79%] OK    | Help! Someone help!
+  57. ~ [88%] OK    | What?! You defeated Bowzer?!
+  58. X [15%] BAD   "Amazing, just, amazing" -> "I said! Chios! I said!"
+  59. X [21%] BAD   "Oh, wait, really?!" -> "One, two, three."
+  60. ~ [79%] OK    | Ha ha hah! That's hilarious!
+      [skipping mid-round restart, relying on self-healing]
+  61. + [91%] GOOD  | Oh, can you hear me?
+  62. + [96%] GOOD  | The answer is: Mushroom!
+  63. ! [55%] WEAK  "Quoted speech is fun!" -> "Oh, it's a beach, it's a fun!"
+  64. + [99%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ~ [75%] OK    | I once traveled through eight worlds, defeated countles
+  66. + [100%] GOOD  | The party is in full swing! What a night!
+  67. + [96%] GOOD  | Evening bathroom visits are the best! The lighting is s

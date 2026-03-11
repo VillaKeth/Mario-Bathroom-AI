@@ -1,0 +1,25 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 62 (loop 1/1)
+============================================================
+   1. + [92%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. + [93%] GOOD  | What's a going on?
+   4. ~ [83%] OK    | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. ~ [88%] OK    | Oh, take a care!
+   7. ! [71%] WEAK  "This a soap dispenser is very modern!" -> "This is so dispensal, it's a remodeling!"
+   8. + [91%] GOOD  | Not like a my castle pipes!
+   9. + [96%] GOOD  | Time flies a when you're having fun!
+  10. + [95%] GOOD  | Good a time to recharge!
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. ! [59%] WEAK  "Bowzer is mean, but I still win!" -> "Fauzi, all is mean, is mean, I still mean!"
+  13. ! [68%] WEAK  "One coin, two coins, three coins!" -> "One coin, coins, pay!"
+  14. + [94%] GOOD  | The mushroom kingdom, what a place!
+  15. + [100%] GOOD  | Bathroom breaks, very important!

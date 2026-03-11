@@ -1,0 +1,377 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 58 (loop 1/5)
+============================================================
+   1. + [92%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. ~ [86%] OK    | What's a going on?
+   4. + [100%] GOOD  | That's a funny!
+   5. + [95%] GOOD  | Nice to meet a you!
+   6. X [22%] BAD   "Oh, take a care!" -> "Peek-eek-eek-eek!"
+   7. ~ [85%] OK    | This a soap dispenser is very modern!
+   8. ~ [79%] OK    | Not like a my castle pipes!
+   9. ~ [76%] OK    | Time flies a when you're having fun!
+  10. + [95%] GOOD  | Good a time to recharge!
+  11. + [94%] GOOD  | The party is great, everyone is having fun!
+  12. ~ [85%] OK    | Bowzer is mean, but I still win!
+  13. + [95%] GOOD  | One coin, two coins, three coins!
+  14. X [49%] BAD   "The mushroom kingdom, what a place!" -> "Here! A place!"
+  15. ! [64%] WEAK  "Bathroom breaks, very important!" -> "Very important!"
+  16. ! [56%] WEAK  "Oh, minecart madness!" -> "My card made this."
+  17. ~ [76%] OK    | Hah hey! I'm Mario!
+  18. + [100%] GOOD  | That was amazing!
+  19. X [9%] BAD   "Bowzer is going Down!" -> "Hey!"
+  20. ~ [88%] OK    | I found a Mushroom and a Star!
+      [skipping mid-round restart, relying on self-healing]
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. ! [73%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the beneath. Punch in the bookie."
+  23. ~ [81%] OK    | The Power of the Fire Flower!
+  24. ~ [88%] OK    | Hmm, let me think!
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. + [91%] GOOD  | Uh, maybe try again?
+  28. X [29%] BAD   "Ah, that feels nice!" -> "I'll see you soon!"
+  29. + [91%] GOOD  | Oh, what a surprise!
+  30. + [100%] GOOD  | It's cold in here!
+  31. X [46%] BAD   "Bowzer might hear us!" -> "See, you're my heroes!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. X [25%] BAD   "Oh, okey dokey!" -> "Oop!"
+  34. ~ [76%] OK    | I wonder if Chain Chomps count as pets? They're very bi
+  35. X [48%] BAD   "Oh, that's nothing!" -> "That's..."
+  36. + [90%] GOOD  | Oh, level complete!
+  37. X [29%] BAD   "Oh, jump jump jump!" -> "TUN TUN TUN"
+  38. ! [64%] WEAK  "There goes the fireball!" -> "Dick! Oh, it's the fireball!"
+  39. X [17%] BAD   "Oh, bathroom fun!" -> "Petrumpan!"
+  40. X [44%] BAD   "Oh, hurry up!" -> "Oh yeah!"
+      [skipping mid-round restart, relying on self-healing]
+  41. + [93%] GOOD  | Another Gumba defeated!
+  42. + [100%] GOOD  | The mushroom kingdom
+  43. + [91%] GOOD  | Oh, super Star Power!
+  44. ! [70%] WEAK  "I give it a ten out of ten!" -> "You give it a time out of time!"
+  45. ! [64%] WEAK  "The score is one hundred and counting!" -> "Goal is 100 and counting."
+  46. ! [67%] WEAK  "Email me at mario at mushroom.kingdom" -> "It made me at Mario at my room, uh..."
+  47. + [91%] GOOD  | It's fifty percent off on mushrooms!
+  48. ~ [81%] OK    | Afternoon break! Good time to recharge!
+  49. X [46%] BAD   "Hello there! How are you doing today?" -> "Who? You do it?"
+  50. + [100%] GOOD  | Line one, Line two, Line three.
+  51. ~ [86%] OK    | Oh, yay! I won!
+  52. X [37%] BAD   "Oh, no! Bowzer got me!" -> "No! I'll see you at that meeting!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [69%] WEAK  "Oh, balls of fire!" -> "Oh, it's a fire!"
+  55. + [100%] GOOD  | So excited right now!
+  56. ! [69%] WEAK  "Help! Someone help!" -> "Huh? Someone else?"
+  57. ~ [83%] OK    | What?! You defeated Bowzer?!
+  58. ~ [76%] OK    | Amazing, just, amazing
+  59. ~ [88%] OK    | Oh, wait, really?!
+  60. ~ [76%] OK    | Ha ha hah! That's hilarious!
+      [skipping mid-round restart, relying on self-healing]
+  61. + [91%] GOOD  | Oh, can you hear me?
+  62. + [96%] GOOD  | The answer is: Mushroom!
+  63. ! [55%] WEAK  "Quoted speech is fun!" -> "Oh, it's a beach, it's a fun!"
+  64. + [99%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ! [71%] WEAK  "I once traveled through eight worlds, defeate" -> "I once traveled through eight worlds. This is"
+  66. + [94%] GOOD  | The party is in full swing! What a night!
+  67. + [100%] GOOD  | Evening bathroom visits are the best! The lighting is s
+  68. ~ [82%] OK    | Afternoon already! Time flies when you're having fun!
+  69. + [91%] GOOD  | I bet Toad would appreciate this tile pattern, Very mus
+  70. ! [73%] WEAK  "This bathroom is cleaner than Bowzer's castle" -> "This bathroom is clean and a dose of ice casu"
+  71. + [98%] GOOD  | Did you know? In Super Mario sixty four, I can do over 
+  72. + [100%] GOOD  | I wonder what Luigi is doing right now
+  73. + [95%] GOOD  | Mama mia, the acoustics in here are perfect for singing
+
+  Score: 29 GOOD, 20 OK, 12 WEAK, 12 BAD / 73 total
+  Quality: 67.1% acceptable (GOOD+OK)
+
+  Problem phrases (24):
+    #6: [22%] "Oh, take a care!" -> "Peek-eek-eek-eek!"
+    #14: [49%] "The mushroom kingdom, what a place!" -> "Here! A place!"
+    #15: [64%] "Bathroom breaks, very important!" -> "Very important!"
+    #16: [56%] "Oh, minecart madness!" -> "My card made this."
+    #19: [9%] "Bowzer is going Down!" -> "Hey!"
+    #22: [73%] "Suction To The Beat! Plunge and boogie!" -> "Section to the beneath. Punch in the boo"
+    #28: [29%] "Ah, that feels nice!" -> "I'll see you soon!"
+    #31: [46%] "Bowzer might hear us!" -> "See, you're my heroes!"
+    #33: [25%] "Oh, okey dokey!" -> "Oop!"
+    #35: [48%] "Oh, that's nothing!" -> "That's..."
+    #37: [29%] "Oh, jump jump jump!" -> "TUN TUN TUN"
+    #38: [64%] "There goes the fireball!" -> "Dick! Oh, it's the fireball!"
+    #39: [17%] "Oh, bathroom fun!" -> "Petrumpan!"
+    #40: [44%] "Oh, hurry up!" -> "Oh yeah!"
+    #44: [70%] "I give it a ten out of ten!" -> "You give it a time out of time!"
+    #45: [64%] "The score is one hundred and counting!" -> "Goal is 100 and counting."
+    #46: [67%] "Email me at mario at mushroom.kingdom" -> "It made me at Mario at my room, uh..."
+    #49: [46%] "Hello there! How are you doing today?" -> "Who? You do it?"
+    #52: [37%] "Oh, no! Bowzer got me!" -> "No! I'll see you at that meeting!"
+    #54: [69%] "Oh, balls of fire!" -> "Oh, it's a fire!"
+    #56: [69%] "Help! Someone help!" -> "Huh? Someone else?"
+    #63: [55%] "Quoted speech is fun!" -> "Oh, it's a beach, it's a fun!"
+    #65: [71%] "I once traveled through eight worlds, de" -> "I once traveled through eight worlds. Th"
+    #70: [73%] "This bathroom is cleaner than Bowzer's c" -> "This bathroom is clean and a dose of ice"
+
+  Next round will test 44 phrases with sim < 90%
+============================================================
+ROUND 59 (loop 2/5)
+============================================================
+  [Fresh server restart between rounds...]
+      [_restart_server: my_pid=41232, ppid=29444]
+      [tasklist output: "python.exe","37540","Console","1","926,556 K"
+"python.exe","41020","Console","1","6,788 K"
+"python.exe","24308","Console","1","2,233,600 K"
+"python.exe","41232","Console","1","677,336 K"]
+      [killed PID 37540]
+      [killed PID 41020]
+      [killed PID 24308]
+      [SKIPPED my own PID 41232]
+  [Server restarted OK]
+   2. ~ [88%] OK    | Let's a go!
+   3. + [93%] GOOD  | What's a going on?
+   6. ~ [88%] OK    | Oh, take a care!
+   7. + [91%] GOOD  | This a soap dispenser is very modern!
+   8. ~ [85%] OK    | Not like a my castle pipes!
+   9. + [97%] GOOD  | Time flies a when you're having fun!
+  12. ! [74%] WEAK  "Bowzer is mean, but I still win!" -> "See, it's me, you know, but I still win!"
+  14. ~ [78%] OK    | The mushroom kingdom, what a place!
+  15. ! [75%] WEAK  "Bathroom breaks, very important!" -> "Pattern bridge! Very important!"
+  16. ! [55%] WEAK  "Oh, minecart madness!" -> "My God, madness!"
+  17. ~ [86%] OK    | Hah hey! I'm Mario!
+  19. ~ [82%] OK    | Bowzer is going Down!
+  20. ~ [83%] OK    | I found a Mushroom and a Star!
+  22. ~ [85%] OK    | Suction To The Beat! Plunge and boogie!
+  23. + [100%] GOOD  | The Power of the Fire Flower!
+  24. ~ [86%] OK    | Hmm, let me think!
+  28. + [91%] GOOD  | Ah, that feels nice!
+  31. X [49%] BAD   "Bowzer might hear us!" -> "You are my heroes!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. X [20%] BAD   "Oh, okey dokey!" -> "Watch it! Watch it!"
+      [skipping mid-round restart, relying on self-healing]
+  34. + [91%] GOOD  | I wonder if Chain Chomps count as pets? They're very bi
+  35. ~ [90%] OK    | Oh, that's nothing!
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  38. + [100%] GOOD  | There goes the fireball!
+  39. ! [74%] WEAK  "Oh, bathroom fun!" -> "Bad room fun!"
+  40. X [44%] BAD   "Oh, hurry up!" -> "Oh yeah!"
+  44. + [98%] GOOD  | I give it a ten out of ten!
+  45. ! [68%] WEAK  "The score is one hundred and counting!" -> "Score is 100 counting!"
+  46. + [92%] GOOD  | Email me at mario at mushroom.kingdom
+  48. ! [53%] WEAK  "Afternoon break! Good time to recharge!" -> "I don't plan to recharge."
+  49. ~ [83%] OK    | Hello there! How are you doing today?
+  51. ! [61%] WEAK  "Oh, yay! I won!" -> "Here! I won't!"
+  52. ! [51%] WEAK  "Oh, no! Bowzer got me!" -> "No! Hey! Attack me!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [64%] WEAK  "Oh, balls of fire!" -> "all the fire"
+  56. + [100%] GOOD  | Help! Someone help!
+  57. + [92%] GOOD  | What?! You defeated Bowzer?!
+  58. ~ [85%] OK    | Amazing, just, amazing
+  59. ~ [88%] OK    | Oh, wait, really?!
+  60. ~ [82%] OK    | Ha ha hah! That's hilarious!
+      [skipping mid-round restart, relying on self-healing]
+  63. ~ [79%] OK    | Quoted speech is fun!
+  65. ! [74%] WEAK  "I once traveled through eight worlds, defeate" -> "Unstraveled to eight worlds, defeated countle"
+  68. ! [72%] WEAK  "Afternoon already! Time flies when you're hav" -> "I've been known already! When you're having f"
+  70. ~ [78%] OK    | This bathroom is cleaner than Bowzer's castle!
+
+  Score: 11 GOOD, 19 OK, 11 WEAK, 3 BAD / 44 total
+  Quality: 68.2% acceptable (GOOD+OK)
+
+  Problem phrases (14):
+    #12: [74%] "Bowzer is mean, but I still win!" -> "See, it's me, you know, but I still win!"
+    #15: [75%] "Bathroom breaks, very important!" -> "Pattern bridge! Very important!"
+    #16: [55%] "Oh, minecart madness!" -> "My God, madness!"
+    #31: [49%] "Bowzer might hear us!" -> "You are my heroes!"
+    #33: [20%] "Oh, okey dokey!" -> "Watch it! Watch it!"
+    #39: [74%] "Oh, bathroom fun!" -> "Bad room fun!"
+    #40: [44%] "Oh, hurry up!" -> "Oh yeah!"
+    #45: [68%] "The score is one hundred and counting!" -> "Score is 100 counting!"
+    #48: [53%] "Afternoon break! Good time to recharge!" -> "I don't plan to recharge."
+    #51: [61%] "Oh, yay! I won!" -> "Here! I won't!"
+    #52: [51%] "Oh, no! Bowzer got me!" -> "No! Hey! Attack me!"
+    #54: [64%] "Oh, balls of fire!" -> "all the fire"
+    #65: [74%] "I once traveled through eight worlds, de" -> "Unstraveled to eight worlds, defeated co"
+    #68: [72%] "Afternoon already! Time flies when you'r" -> "I've been known already! When you're hav"
+
+  Next round will test 33 phrases with sim < 90%
+============================================================
+ROUND 60 (loop 3/5)
+============================================================
+  [Fresh server restart between rounds...]
+      [_restart_server: my_pid=41232, ppid=29444]
+      [tasklist output: "python.exe","41232","Console","1","678,472 K"
+"python.exe","39332","Console","1","950,916 K"
+"python.exe","38692","Console","1","6,844 K"
+"python.exe","37712","Console","1","2,281,800 K"]
+      [SKIPPED my own PID 41232]
+      [killed PID 39332]
+      [killed PID 38692]
+      [killed PID 37712]
+  [Server restarted OK]
+   2. ~ [88%] OK    | Let's a go!
+   6. X [11%] BAD   "Oh, take a care!" -> "T-t-t-t-t!"
+   8. + [96%] GOOD  | Not like a my castle pipes!
+  12. ! [62%] WEAK  "Bowzer is mean, but I still win!" -> "Eee, at its minimum. I STILL MING!"
+  14. + [100%] GOOD  | The mushroom kingdom, what a place!
+  15. ! [71%] WEAK  "Bathroom breaks, very important!" -> "Hey! Very important!"
+  16. ! [65%] WEAK  "Oh, minecart madness!" -> "My coat madness."
+  17. ! [67%] WEAK  "Hah hey! I'm Mario!" -> "I'm... I'm Mario!"
+  19. ! [73%] WEAK  "Bowzer is going Down!" -> "He already is going down."
+  20. ~ [88%] OK    | I found a Mushroom and a Star!
+  22. ~ [88%] OK    | Suction To The Beat! Plunge and boogie!
+  24. ~ [86%] OK    | Hmm, let me think!
+  31. X [20%] BAD   "Bowzer might hear us!" -> "See you on my pierce!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ~ [87%] OK    | Oh, okey dokey!
+  35. ! [74%] WEAK  "Oh, that's nothing!" -> "It's nothing!"
+  37. ! [58%] WEAK  "Oh, jump jump jump!" -> "Chum, chum, chum!"
+  39. X [35%] BAD   "Oh, bathroom fun!" -> "Adrumpan!"
+  40. X [14%] BAD   "Oh, hurry up!" -> "Bye!"
+  45. ~ [75%] OK    | The score is one hundred and counting!
+      [skipping mid-round restart, relying on self-healing]
+  48. ! [60%] WEAK  "Afternoon break! Good time to recharge!" -> "Time to recharge!"
+  49. X [44%] BAD   "Hello there! How are you doing today?" -> "You, you don't do that!"
+  51. ~ [86%] OK    | Oh, yay! I won!
+  52. X [33%] BAD   "Oh, no! Bowzer got me!" -> "No! That was..."
+  53. ~ [82%] OK    | Oh, let's go!
+  54. X [42%] BAD   "Oh, balls of fire!" -> "Don't use the fire!"
+  58. + [100%] GOOD  | Amazing, just, amazing
+  59. X [41%] BAD   "Oh, wait, really?!" -> "Wait, hold it, hold it."
+  60. X [2%] BAD   "Ha ha hah! That's hilarious!" -> "Ha ha ha ha ha ha ha ha ha ha ha ha ha ha ha "
+  63. ~ [81%] OK    | Quoted speech is fun!
+  65. ! [59%] WEAK  "I once traveled through eight worlds, defeate" -> "I have one strap up to 8 burros. TTTC Countle"
+  68. ~ [81%] OK    | Afternoon already! Time flies when you're having fun!
+  70. ~ [76%] OK    | This bathroom is cleaner than Bowzer's castle!
+
+  Score: 3 GOOD, 12 OK, 9 WEAK, 9 BAD / 33 total
+  Quality: 45.5% acceptable (GOOD+OK)
+
+  Problem phrases (18):
+    #6: [11%] "Oh, take a care!" -> "T-t-t-t-t!"
+    #12: [62%] "Bowzer is mean, but I still win!" -> "Eee, at its minimum. I STILL MING!"
+    #15: [71%] "Bathroom breaks, very important!" -> "Hey! Very important!"
+    #16: [65%] "Oh, minecart madness!" -> "My coat madness."
+    #17: [67%] "Hah hey! I'm Mario!" -> "I'm... I'm Mario!"
+    #19: [73%] "Bowzer is going Down!" -> "He already is going down."
+    #31: [20%] "Bowzer might hear us!" -> "See you on my pierce!"
+    #35: [74%] "Oh, that's nothing!" -> "It's nothing!"
+    #37: [58%] "Oh, jump jump jump!" -> "Chum, chum, chum!"
+    #39: [35%] "Oh, bathroom fun!" -> "Adrumpan!"
+    #40: [14%] "Oh, hurry up!" -> "Bye!"
+    #48: [60%] "Afternoon break! Good time to recharge!" -> "Time to recharge!"
+    #49: [44%] "Hello there! How are you doing today?" -> "You, you don't do that!"
+    #52: [33%] "Oh, no! Bowzer got me!" -> "No! That was..."
+    #54: [42%] "Oh, balls of fire!" -> "Don't use the fire!"
+    #59: [41%] "Oh, wait, really?!" -> "Wait, hold it, hold it."
+    #60: [2%] "Ha ha hah! That's hilarious!" -> "Ha ha ha ha ha ha ha ha ha ha ha ha ha h"
+    #65: [59%] "I once traveled through eight worlds, de" -> "I have one strap up to 8 burros. TTTC Co"
+
+  Next round will test 30 phrases with sim < 90%
+============================================================
+ROUND 61 (loop 4/5)
+============================================================
+  [Fresh server restart between rounds...]
+      [_restart_server: my_pid=41232, ppid=29444]
+      [tasklist output: "python.exe","41232","Console","1","681,260 K"
+"python.exe","28096","Console","1","950,592 K"
+"python.exe","35072","Console","1","6,844 K"
+"python.exe","42204","Console","1","2,264,788 K"]
+      [SKIPPED my own PID 41232]
+      [killed PID 28096]
+      [killed PID 35072]
+      [killed PID 42204]
+  [Server restarted OK]
+   2. ~ [88%] OK    | Let's a go!
+   6. X [40%] BAD   "Oh, take a care!" -> "Ta-ta-ta!"
+  12. ! [67%] WEAK  "Bowzer is mean, but I still win!" -> "He always means. I still win."
+  15. ~ [79%] OK    | Bathroom breaks, very important!
+  16. ! [67%] WEAK  "Oh, minecart madness!" -> "My cut madness!"
+  17. ~ [88%] OK    | Hah hey! I'm Mario!
+  19. ! [73%] WEAK  "Bowzer is going Down!" -> "He! How? He's going down!"
+  20. ~ [88%] OK    | I found a Mushroom and a Star!
+  22. ! [72%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the beat. Pension body."
+  24. + [100%] GOOD  | Hmm, let me think!
+  31. X [30%] BAD   "Bowzer might hear us!" -> "Boussie!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ~ [82%] OK    | Oh, okey dokey!
+  35. ~ [84%] OK    | Oh, that's nothing!
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  39. X [38%] BAD   "Oh, bathroom fun!" -> "I don't find!"
+  40. X [27%] BAD   "Oh, hurry up!" -> "Are you out?"
+  45. ! [71%] WEAK  "The score is one hundred and counting!" -> "score is 100 in counting"
+  48. + [96%] GOOD  | Afternoon break! Good time to recharge!
+  49. ! [56%] WEAK  "Hello there! How are you doing today?" -> "Yeah, you don't today."
+      [skipping mid-round restart, relying on self-healing]
+  51. ~ [86%] OK    | Oh, yay! I won!
+  52. X [49%] BAD   "Oh, no! Bowzer got me!" -> "No! See ya, aren't me!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [69%] WEAK  "Oh, balls of fire!" -> "Oh, it's a fire!"
+  59. ~ [88%] OK    | Oh, wait, really?!
+  60. ! [53%] WEAK  "Ha ha hah! That's hilarious!" -> "Yeah, that's it."
+  63. ! [50%] WEAK  "Quoted speech is fun!" -> "It's big, she's fun!"
+  65. ! [66%] WEAK  "I once traveled through eight worlds, defeate" -> "I won't travel through eight worlds. DC did c"
+  68. ~ [86%] OK    | Afternoon already! Time flies when you're having fun!
+  70. ~ [84%] OK    | This bathroom is cleaner than Bowzer's castle!
+
+  Score: 2 GOOD, 13 OK, 10 WEAK, 5 BAD / 30 total
+  Quality: 50.0% acceptable (GOOD+OK)
+
+  Problem phrases (15):
+    #6: [40%] "Oh, take a care!" -> "Ta-ta-ta!"
+    #12: [67%] "Bowzer is mean, but I still win!" -> "He always means. I still win."
+    #16: [67%] "Oh, minecart madness!" -> "My cut madness!"
+    #19: [73%] "Bowzer is going Down!" -> "He! How? He's going down!"
+    #22: [72%] "Suction To The Beat! Plunge and boogie!" -> "Section to the beat. Pension body."
+    #31: [30%] "Bowzer might hear us!" -> "Boussie!"
+    #39: [38%] "Oh, bathroom fun!" -> "I don't find!"
+    #40: [27%] "Oh, hurry up!" -> "Are you out?"
+    #45: [71%] "The score is one hundred and counting!" -> "score is 100 in counting"
+    #49: [56%] "Hello there! How are you doing today?" -> "Yeah, you don't today."
+    #52: [49%] "Oh, no! Bowzer got me!" -> "No! See ya, aren't me!"
+    #54: [69%] "Oh, balls of fire!" -> "Oh, it's a fire!"
+    #60: [53%] "Ha ha hah! That's hilarious!" -> "Yeah, that's it."
+    #63: [50%] "Quoted speech is fun!" -> "It's big, she's fun!"
+    #65: [66%] "I once traveled through eight worlds, de" -> "I won't travel through eight worlds. DC "
+
+  Next round will test 28 phrases with sim < 90%
+============================================================
+ROUND 62 (loop 5/5)
+============================================================
+  [Fresh server restart between rounds...]
+      [_restart_server: my_pid=41232, ppid=29444]
+      [tasklist output: "python.exe","41232","Console","1","680,888 K"
+"python.exe","25156","Console","1","950,716 K"
+"python.exe","13484","Console","1","6,844 K"
+"python.exe","30336","Console","1","2,207,648 K"]
+      [SKIPPED my own PID 41232]
+      [killed PID 25156]
+      [killed PID 13484]
+      [killed PID 30336]
+  [Server restarted OK]
+   2. ~ [88%] OK    | Let's a go!
+   6. X [36%] BAD   "Oh, take a care!" -> "Ta-ta-ta-na!"
+  12. ! [57%] WEAK  "Bowzer is mean, but I still win!" -> "That was the other's mean. I'm still man!"
+  15. ! [72%] WEAK  "Bathroom breaks, very important!" -> "That's very important."
+  16. ! [67%] WEAK  "Oh, minecart madness!" -> "My cut, madness!"
+  17. ! [67%] WEAK  "Hah hey! I'm Mario!" -> "I'm Mario!"
+  19. ~ [80%] OK    | Bowzer is going Down!
+  20. ~ [88%] OK    | I found a Mushroom and a Star!
+  22. ~ [80%] OK    | Suction To The Beat! Plunge and boogie!
+  31. X [9%] BAD   "Bowzer might hear us!" -> "Who?"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ~ [87%] OK    | Oh, okey dokey!
+  35. ~ [90%] OK    | Oh, that's nothing!
+  37. + [90%] GOOD  | Oh, jump jump jump!
+  39. ~ [79%] OK    | Oh, bathroom fun!
+  40. X [44%] BAD   "Oh, hurry up!" -> "Oh yeah!"
+  45. ! [67%] WEAK  "The score is one hundred and counting!" -> "This hole is 100 in counting."
+  49. + [94%] GOOD  | Hello there! How are you doing today?
+  51. ! [61%] WEAK  "Oh, yay! I won!" -> "Yeah, I won't!"
+  52. ! [63%] WEAK  "Oh, no! Bowzer got me!" -> "No! Yes! You're got me!"
+      [skipping mid-round restart, relying on self-healing]
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [52%] WEAK  "Oh, balls of fire!" -> "Bowser Fire"
+  59. ! [59%] WEAK  "Oh, wait, really?!" -> "Really? Really?"
+  60. ~ [75%] OK    | Ha ha hah! That's hilarious!

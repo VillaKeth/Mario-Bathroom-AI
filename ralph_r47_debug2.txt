@@ -1,0 +1,40 @@
+Loading Whisper model (base)...
+C:\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.0.1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 47 (loop 1/10)
+============================================================
+   1. + [100%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. + [93%] GOOD  | What's a going on?
+   4. ~ [89%] OK    | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. X [11%] BAD   "Oh, take a care!" -> "Good."
+   7. ~ [87%] OK    | This a soap dispenser is very modern!
+   8. ~ [81%] OK    | Not like a my castle pipes!
+   9. ~ [81%] OK    | Time flies a when you're having fun!
+  10. + [95%] GOOD  | Good a time to recharge!
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. ~ [88%] OK    | Bowzer is mean, but I still win!
+  13. X [40%] BAD   "One coin, two coins, three coins!" -> "One coin! Whaaat!"
+  14. + [94%] GOOD  | The mushroom kingdom, what a place!
+  15. ! [71%] WEAK  "Bathroom breaks, very important!" -> "Hey! Very important!"
+  16. ! [67%] WEAK  "Oh, minecart madness!" -> "My cut madness!"
+  17. ! [67%] WEAK  "Hah hey! I'm Mario!" -> "I'm Mario!"
+  18. + [100%] GOOD  | That was amazing!
+  19. X [9%] BAD   "Bowzer is going Down!" -> "BAM!"
+  20. + [100%] GOOD  | I found a Mushroom and a Star!
+      [requesting subprocess restart...]
+      [mid-round subprocess restart OK, waiting 5s...]
+      [resuming after restart]
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. ! [57%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section to the B."
+  23. + [100%] GOOD  | The Power of the Fire Flower!
+  24. ! [62%] WEAK  "Hmm, let me think!" -> "Hmm? Me too!"
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing

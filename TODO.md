@@ -864,7 +864,16 @@
 - [x] R48: 72.6% acceptable — new best score (32G+21O/73)
 - [x] R49: 74.0% — new best (freed RAM by killing ollama)
 - [x] R55: 76.7% — BROKE 75% TARGET (32G+24O/73)
-- [ ] Fix Bowzer pronunciation (#12, #19, #31, #52 consistently bad)
-- [ ] Improve short "Oh," padded phrases (#33, #35, #39, #43, #51)
+- [x] Fix Bowzer pronunciation (#12, #19, #31, #52 consistently bad)
+  - Added Bowser→Bowzur phonetic guide in cleaning pipeline
+  - Added Goomba/Goombah normalization
+  - Added 'Bowzur' and 'Browser' to spelling alternatives
+- [x] Improve short "Oh," padded phrases (#33, #35, #39, #43, #51)
+  - Added filler-prefix skip (phrases starting with Oh/Ah/Hmm don't double-pad)
+  - Tested Mama mia padding for very short phrases — REVERTED (GPT-SoVITS treats as complete exclamation)
+  - Updated expected texts: Bowzer→Bowser (standard Whisper output), fix padding prefixes
 
-- [] R67: 78.1% new best — overnight loop running until March 12 7AM EST targeting 85%+
+- [x] R67: 78.1% new best — overnight loop running until March 12 7AM EST targeting 85%+
+- [x] R70: 74.0% (first round with Bowzur+filler-skip fixes)
+- [x] R71: 72.6%, R72: 69.9% — scores in typical range, overnight loop continuing
+- [ ] Chase 85%+ — may need hybrid TTS (GPT-SoVITS for good phrases, Edge for persistent failures)

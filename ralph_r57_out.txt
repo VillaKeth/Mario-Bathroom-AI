@@ -1,0 +1,178 @@
+Loading Whisper model (base)...
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 56 (loop 1/1)
+============================================================
+   1. + [92%] GOOD  | It's a me, Mario!
+   2. ~ [88%] OK    | Let's a go!
+   3. ~ [88%] OK    | What's a going on?
+   4. + [100%] GOOD  | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. ! [72%] WEAK  "Oh, take a care!" -> "Take a tear!"
+   7. + [94%] GOOD  | This a soap dispenser is very modern!
+   8. + [94%] GOOD  | Not like a my castle pipes!
+   9. + [91%] GOOD  | Time flies a when you're having fun!
+  10. ! [57%] WEAK  "Good a time to recharge!" -> "Good luck to the church!"
+  11. + [100%] GOOD  | The party is great, everyone is having fun!
+  12. ! [60%] WEAK  "Bowzer is mean, but I still win!" -> "Fauzi, he always means I still win!"
+  13. + [95%] GOOD  | One coin, two coins, three coins!
+  14. + [94%] GOOD  | The mushroom kingdom, what a place!
+  15. ! [64%] WEAK  "Bathroom breaks, very important!" -> "Very important!"
+  16. ! [55%] WEAK  "Oh, minecart madness!" -> "My God, madness!"
+  17. ~ [86%] OK    | Hah hey! I'm Mario!
+  18. ~ [87%] OK    | That was amazing!
+  19. ~ [77%] OK    | Bowzer is going Down!
+  20. + [100%] GOOD  | I found a Mushroom and a Star!
+      [skipping mid-round restart, relying on self-healing]
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. ! [74%] WEAK  "Suction To The Beat! Plunge and boogie!" -> "Section could have been plunge in the boogie."
+  23. + [100%] GOOD  | The Power of the Fire Flower!
+  24. + [91%] GOOD  | Hmm, let me think!
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. + [91%] GOOD  | Uh, maybe try again?
+  28. ! [61%] WEAK  "Ah, that feels nice!" -> "That thing is nice!"
+  29. ! [57%] WEAK  "Oh, what a surprise!" -> "What is the price?"
+  30. + [100%] GOOD  | It's cold in here!
+  31. X [17%] BAD   "Bowzer might hear us!" -> "Hey!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ! [70%] WEAK  "Oh, okey dokey!" -> "Okie dokie!"
+  34. X [48%] BAD   "I wonder if Chain Chomps count as pets? They'" -> "I wanted to change all of the countess pets. "
+  35. ~ [90%] OK    | Oh, that's nothing!
+  36. + [90%] GOOD  | Oh, level complete!
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  38. ~ [81%] OK    | There goes the fireball!
+  39. ! [54%] WEAK  "Oh, bathroom fun!" -> "That's a fun"
+  40. ~ [84%] OK    | Oh, hurry up!
+      [skipping mid-round restart, relying on self-healing]
+  41. ! [68%] WEAK  "Another Gumba defeated!" -> "Another Bambi head is seated."
+  42. ! [68%] WEAK  "The mushroom kingdom" -> "They measure the kingdom!"
+  43. + [91%] GOOD  | Oh, super Star Power!
+  44. ~ [77%] OK    | I give it a ten out of ten!
+  45. ! [67%] WEAK  "The score is one hundred and counting!" -> "So cool, it's 100 and counting!"
+  46. ~ [77%] OK    | Email me at mario at mushroom.kingdom
+  47. + [90%] GOOD  | It's fifty percent off on mushrooms!
+  48. + [96%] GOOD  | Afternoon break! Good time to recharge!
+  49. + [100%] GOOD  | Hello there! How are you doing today?
+  50. + [100%] GOOD  | Line one, Line two, Line three.
+  51. ! [64%] WEAK  "Oh, yay! I won!" -> "Yeah! I won!"
+  52. ! [56%] WEAK  "Oh, no! Bowzer got me!" -> "No! Oh, see, you got me!"
+  53. ~ [82%] OK    | Oh, let's go!
+  54. ! [65%] WEAK  "Oh, balls of fire!" -> "How was it fire?"
+  55. + [100%] GOOD  | So excited right now!
+  56. ~ [80%] OK    | Help! Someone help!
+  57. ~ [87%] OK    | What?! You defeated Bowzer?!
+  58. ! [70%] WEAK  "Amazing, just, amazing" -> "Amazing! Josh! Haha!"
+  59. ~ [88%] OK    | Oh, wait, really?!
+  60. ~ [75%] OK    | Ha ha hah! That's hilarious!
+      [skipping mid-round restart, relying on self-healing]
+  61. + [91%] GOOD  | Oh, can you hear me?
+  62. + [96%] GOOD  | The answer is: Mushroom!
+  63. ! [57%] WEAK  "Quoted speech is fun!" -> "Coat, it's beach, it's fun!"
+  64. + [95%] GOOD  | Welcome to the most amazing bathroom party in the entir
+  65. ! [72%] WEAK  "I once traveled through eight worlds, defeate" -> "I want to travel through 8 morals, defeated c"
+  66. ! [58%] WEAK  "The party is in full swing! What a night!" -> "Hey! What a night!"
+  67. + [96%] GOOD  | Evening bathroom visits are the best! The lighting is s
+  68. ~ [86%] OK    | Afternoon already! Time flies when you're having fun!
+  69. + [91%] GOOD  | I bet Toad would appreciate this tile pattern, Very mus
+  70. ~ [81%] OK    | This bathroom is cleaner than Bowzer's castle!
+  71. + [97%] GOOD  | Did you know? In Super Mario sixty four, I can do over 
+  72. ~ [88%] OK    | I wonder what Luigi is doing right now
+  73. X [46%] BAD   "Mama mia, the acoustics in here are perfect f" -> "Mamiya! I... Kustek senhira! A palpete por se"
+
+  Score: 30 GOOD, 20 OK, 20 WEAK, 3 BAD / 73 total
+  Quality: 68.5% acceptable (GOOD+OK)
+
+  Problem phrases (23):
+    #6: [72%] "Oh, take a care!" -> "Take a tear!"
+    #10: [57%] "Good a time to recharge!" -> "Good luck to the church!"
+    #12: [60%] "Bowzer is mean, but I still win!" -> "Fauzi, he always means I still win!"
+    #15: [64%] "Bathroom breaks, very important!" -> "Very important!"
+    #16: [55%] "Oh, minecart madness!" -> "My God, madness!"
+    #22: [74%] "Suction To The Beat! Plunge and boogie!" -> "Section could have been plunge in the bo"
+    #28: [61%] "Ah, that feels nice!" -> "That thing is nice!"
+    #29: [57%] "Oh, what a surprise!" -> "What is the price?"
+    #31: [17%] "Bowzer might hear us!" -> "Hey!"
+    #33: [70%] "Oh, okey dokey!" -> "Okie dokie!"
+    #34: [48%] "I wonder if Chain Chomps count as pets? " -> "I wanted to change all of the countess p"
+    #39: [54%] "Oh, bathroom fun!" -> "That's a fun"
+    #41: [68%] "Another Gumba defeated!" -> "Another Bambi head is seated."
+    #42: [68%] "The mushroom kingdom" -> "They measure the kingdom!"
+    #45: [67%] "The score is one hundred and counting!" -> "So cool, it's 100 and counting!"
+    #51: [64%] "Oh, yay! I won!" -> "Yeah! I won!"
+    #52: [56%] "Oh, no! Bowzer got me!" -> "No! Oh, see, you got me!"
+    #54: [65%] "Oh, balls of fire!" -> "How was it fire?"
+    #58: [70%] "Amazing, just, amazing" -> "Amazing! Josh! Haha!"
+    #63: [57%] "Quoted speech is fun!" -> "Coat, it's beach, it's fun!"
+    #65: [72%] "I once traveled through eight worlds, de" -> "I want to travel through 8 morals, defea"
+    #66: [58%] "The party is in full swing! What a night" -> "Hey! What a night!"
+    #73: [46%] "Mama mia, the acoustics in here are perf" -> "Mamiya! I... Kustek senhira! A palpete p"
+
+============================================================
+FINAL SUMMARY
+============================================================
+  Rounds completed: 56
+  Latest: 30 GOOD, 20 OK, 20 WEAK, 3 BAD
+
+  Progress:
+    Round 1: 71% acceptable (32G+20O / 73)
+    Round 2: 63% acceptable (33G+13O / 73)
+    Round 3: 63% acceptable (33G+13O / 73)
+    Round 4: 66% acceptable (35G+13O / 73)
+    Round 5: 34% acceptable (0G+13O / 38)
+    Round 6: 37% acceptable (0G+14O / 38)
+    Round 7: 34% acceptable (0G+13O / 38)
+    Round 8: 34% acceptable (0G+13O / 38)
+    Round 9: 66% acceptable (28G+20O / 73)
+    Round 10: 60% acceptable (7G+20O / 45)
+    Round 11: 58% acceptable (9G+13O / 38)
+    Round 12: 48% acceptable (0G+14O / 29)
+    Round 13: 48% acceptable (2G+12O / 29)
+    Round 14: 52% acceptable (0G+14O / 27)
+    Round 15: 37% acceptable (0G+10O / 27)
+    Round 16: 44% acceptable (0G+12O / 27)
+    Round 17: 56% acceptable (1G+14O / 27)
+    Round 18: 50% acceptable (1G+12O / 26)
+    Round 19: 60% acceptable (24G+20O / 73)
+    Round 20: 51% acceptable (8G+17O / 49)
+    Round 21: 46% acceptable (5G+14O / 41)
+    Round 22: 67% acceptable (24G+25O / 73)
+    Round 23: 63% acceptable (12G+19O / 49)
+    Round 24: 43% acceptable (4G+12O / 37)
+    Round 25: 68% acceptable (28G+22O / 73)
+    Round 26: 44% acceptable (7G+13O / 45)
+    Round 27: 61% acceptable (4G+19O / 38)
+    Round 28: 50% acceptable (3G+14O / 34)
+    Round 29: 39% acceptable (2G+10O / 31)
+    Round 30: 63% acceptable (23G+23O / 73)
+    Round 31: 64% acceptable (11G+21O / 50)
+    Round 32: 70% acceptable (27G+24O / 73)
+    Round 33: 48% acceptable (4G+18O / 46)
+    Round 34: 50% acceptable (4G+17O / 42)
+    Round 35: 63% acceptable (26G+20O / 73)
+    Round 36: 57% acceptable (9G+18O / 47)
+    Round 37: 63% acceptable (6G+18O / 38)
+    Round 38: 70% acceptable (39G+12O / 73)
+    Round 39: 71% acceptable (29G+23O / 73)
+    Round 40: 60% acceptable (23G+21O / 73)
+    Round 41: 26% acceptable (7G+12O / 73)
+    Round 42: 67% acceptable (29G+20O / 73)
+    Round 43: 68% acceptable (32G+18O / 73)
+    Round 44: 56% acceptable (8G+15O / 41)
+    Round 45: 48% acceptable (5G+11O / 33)
+    Round 46: 60% acceptable (24G+20O / 73)
+    Round 47: 64% acceptable (31G+16O / 73)
+    Round 48: 73% acceptable (32G+21O / 73)
+    Round 49: 74% acceptable (30G+24O / 73)
+    Round 50: 70% acceptable (33G+18O / 73)
+    Round 51: 70% acceptable (27G+24O / 73)
+    Round 52: 63% acceptable (28G+18O / 73)
+    Round 53: 73% acceptable (26G+27O / 73)
+    Round 54: 68% acceptable (37G+13O / 73)
+    Round 55: 77% acceptable (32G+24O / 73)
+    Round 56: 68% acceptable (30G+20O / 73)

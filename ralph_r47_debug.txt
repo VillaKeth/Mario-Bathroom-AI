@@ -1,0 +1,54 @@
+Loading Whisper model (base)...
+C:\.pyenv\pyenv-win\versions\3.11.9\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.0.1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+Model loaded.
+
+Server OK at http://localhost:8765
+
+Idle precache PAUSED for testing
+
+============================================================
+ROUND 47 (loop 1/10)
+============================================================
+   1. + [100%] GOOD  | It's a me, Mario!
+   2. X [15%] BAD   "Let's a go!" -> "Oops!"
+   3. ~ [86%] OK    | What's a going on?
+   4. + [100%] GOOD  | That's a funny!
+   5. + [94%] GOOD  | Nice to meet a you!
+   6. X [20%] BAD   "Oh, take a care!" -> "Hey! Oh!"
+   7. ~ [88%] OK    | This a soap dispenser is very modern!
+   8. ~ [75%] OK    | Not like a my castle pipes!
+   9. + [97%] GOOD  | Time flies a when you're having fun!
+  10. + [95%] GOOD  | Good a time to recharge!
+  11. + [92%] GOOD  | The party is great, everyone is having fun!
+  12. ! [66%] WEAK  "Bowzer is mean, but I still win!" -> "Fauciki, all is mean! I still win!"
+  13. + [95%] GOOD  | One coin, two coins, three coins!
+  14. ~ [84%] OK    | The mushroom kingdom, what a place!
+  15. ! [71%] WEAK  "Bathroom breaks, very important!" -> "It's very important."
+  16. ! [53%] WEAK  "Oh, minecart madness!" -> "My cold madness."
+  17. ~ [86%] OK    | Hah hey! I'm Mario!
+  18. + [100%] GOOD  | That was amazing!
+  19. X [17%] BAD   "Bowzer is going Down!" -> "Bye!"
+  20. ~ [87%] OK    | I found a Mushroom and a Star!
+      [mid-round subprocess restart]
+  21. + [100%] GOOD  | Mama Mia that's incredible!
+  22. X [29%] BAD   "Suction To The Beat! Plunge and boogie!" -> "Section 2-2-2"
+  23. ! [67%] WEAK  "The Power of the Fire Flower!" -> "Eat power of the power of the power!"
+  24. + [100%] GOOD  | Hmm, let me think!
+  25. + [93%] GOOD  | Hmm, I wonder what Luigi is doing
+  26. + [94%] GOOD  | Um, I'm not sure about that.
+  27. + [91%] GOOD  | Uh, maybe try again?
+  28. + [91%] GOOD  | Ah, that feels nice!
+  29. ~ [80%] OK    | Oh, what a surprise!
+  30. + [100%] GOOD  | It's cold in here!
+  31. X [26%] BAD   "Bowzer might hear us!" -> "You are my keyrest!"
+  32. ~ [87%] OK    | Oh, here we go!
+  33. ~ [82%] OK    | Oh, okey dokey!
+  34. ~ [89%] OK    | I wonder if Chain Chomps count as pets? They're very bi
+  35. ~ [84%] OK    | Oh, that's nothing!
+  36. + [90%] GOOD  | Oh, level complete!
+  37. ~ [83%] OK    | Oh, jump jump jump!
+  38. ~ [76%] OK    | There goes the fireball!
+  39. ~ [79%] OK    | Oh, bathroom fun!
+  40. ~ [84%] OK    | Oh, hurry up!
+      [mid-round subprocess restart]

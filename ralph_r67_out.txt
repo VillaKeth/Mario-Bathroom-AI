@@ -1,0 +1,4 @@
+Loading Whisper model (base)...
+Model loaded.
+
+ERROR: Server not responding at http://localhost:8765
