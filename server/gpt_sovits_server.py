@@ -15,6 +15,7 @@ import sys
 import json
 import time
 import tempfile
+import gc
 import numpy as np
 
 DEBUG_SOVITS = True
@@ -397,13 +398,21 @@ def main():
         except Exception as e:
             elapsed = time.time() - t0
             err_msg = f"{type(e).__name__}: {e}"
-            # Log to stderr for debugging
             print(f"[sovits-subprocess] ERROR: {err_msg}", file=sys.stderr, flush=True)
             print(json.dumps({
                 "status": "error",
                 "error": err_msg,
                 "elapsed": round(elapsed, 3),
             }), flush=True)
+        finally:
+            # Free GPU memory after each synthesis to prevent VRAM leak / OOM
+            gc.collect()
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

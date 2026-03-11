@@ -111,6 +111,7 @@ _GPU_IDLE_THRESHOLD = 3.0  # Seconds of idle before bg worker can use GPU
 _precache_done = threading.Event()  # Set when precache completes
 _precache_active = False  # True while precache is synthesizing
 _user_tts_waiting = threading.Event()  # Set when a user TTS call is waiting for RVC lock
+_idle_precache_paused = threading.Event()  # Set to pause idle precache (e.g. during testing)
 
 # GPT-SoVITS venv python path
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
@@ -462,6 +463,27 @@ def _start_sovits_subprocess():
         return False
 
 
+def _restart_sovits_subprocess():
+    """Kill and restart the GPT-SoVITS subprocess to free GPU memory."""
+    global _sovits_process, _sovits_available, _sovits_restart_count
+    with _sovits_lock:
+        if _sovits_process is not None:
+            try:
+                _sovits_process.kill()
+                _sovits_process.wait(timeout=10)
+            except Exception:
+                pass
+            _sovits_process = None
+            _sovits_available = False
+        _sovits_restart_count = 0
+    logger.info("[DEBUG_TTS] sovits: subprocess killed, waiting for GPU memory release...")
+    time.sleep(5)  # Let GPU driver fully reclaim VRAM
+    if _start_sovits_subprocess():
+        logger.info("[DEBUG_TTS] sovits: subprocess restarted OK")
+    else:
+        raise RuntimeError("Failed to restart GPT-SoVITS subprocess")
+
+
 def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
     """Send text to GPT-SoVITS subprocess and get WAV bytes back.
     
@@ -796,6 +818,13 @@ def _start_idle_precache():
             if _user_tts_waiting.is_set():
                 while _user_tts_waiting.is_set():
                     time.sleep(0.3)
+
+            # Pause if idle precache is paused (e.g. during testing)
+            if _idle_precache_paused.is_set():
+                logger.info("[DEBUG_TTS] idle_precache: PAUSED")
+                while _idle_precache_paused.is_set():
+                    time.sleep(1.0)
+                logger.info("[DEBUG_TTS] idle_precache: RESUMED")
 
             # Check if already cached
             from pose_analyzer import analyze_text

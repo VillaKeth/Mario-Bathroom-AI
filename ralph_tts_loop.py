@@ -10,6 +10,56 @@ MARIO_AI_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVER_DIR = os.path.join(MARIO_AI_DIR, "server")
 CACHE_DIR = os.path.join(SERVER_DIR, "data", "tts_cache")
 RESULTS_FILE = os.path.join(MARIO_AI_DIR, "ralph_tts_results.json")
+SERVER_PYTHON = r"C:\.pyenv\pyenv-win\versions\3.11.9\python.exe"
+
+
+def _server_healthy():
+    """Quick health check — returns True if server is responding."""
+    try:
+        urllib.request.urlopen(f"{SERVER_URL}/health", timeout=5)
+        return True
+    except Exception:
+        return False
+
+
+def _restart_server():
+    """Kill server Python processes, restart server, wait for health, pause idle precache.
+    Note: avoids killing THIS process (ralph loop) by targeting specific PIDs.
+    """
+    my_pid = os.getpid()
+    # Find all python processes except this one
+    try:
+        result = subprocess.run(
+            'wmic process where "name=\'python.exe\'" get processid /value',
+            shell=True, capture_output=True, text=True, timeout=10
+        )
+        for line in result.stdout.strip().split('\n'):
+            line = line.strip()
+            if line.startswith('ProcessId='):
+                pid = int(line.split('=')[1])
+                if pid != my_pid:
+                    subprocess.run(f"taskkill /F /PID {pid}",
+                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        # Fallback — kill all python except self
+        pass
+    time.sleep(4)
+    # Start server in background
+    subprocess.Popen(
+        f'cmd /c "cd /d {MARIO_AI_DIR} && {SERVER_PYTHON} server/main.py > server_startup.log 2>&1"',
+        shell=True, creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    # Wait for health
+    for _ in range(40):  # up to 200s
+        time.sleep(5)
+        if _server_healthy():
+            # Immediately pause idle precache
+            try:
+                urllib.request.urlopen(f"{SERVER_URL}/pause_idle?pause=true", timeout=5)
+            except Exception:
+                pass
+            return True
+    return False
 
 # All test phrases: (input_text, expected_clean_text)
 # expected_clean is what should come out AFTER the cleaning pipeline
@@ -205,13 +255,48 @@ def clear_tts_cache():
 
 
 def run_full_test(model, phrase_indices=None):
-    """Run TTS verification on specified phrases (or all if None)."""
+    """Run TTS verification on specified phrases (or all if None).
+    Self-healing: auto-restarts server on crash and retries failed items.
+    """
     results = {}
     phrases = TEST_PHRASES if phrase_indices is None else [(TEST_PHRASES[i-1]) for i in phrase_indices]
     indices = phrase_indices if phrase_indices else list(range(1, len(TEST_PHRASES)+1))
 
+    items_since_restart = 0
     for idx, (orig, exp) in zip(indices, phrases):
+        # Proactive subprocess restart every 20 items to prevent VRAM leak
+        if items_since_restart >= 20:
+            try:
+                urllib.request.urlopen(f"{SERVER_URL}/restart_sovits", timeout=60)
+                print("      [mid-round subprocess restart]")
+                time.sleep(3)
+                items_since_restart = 0
+            except Exception:
+                # Server might be dead — full restart
+                print("      [server dead — full restart]")
+                if _restart_server():
+                    print("      [server restarted OK]")
+                    items_since_restart = 0
+                else:
+                    print("      [FATAL: server restart failed]")
+                    break
+
         result = test_phrase(model, idx, orig, exp)
+
+        # Self-healing: if GEN_ERROR, server likely crashed — restart and retry
+        if result[2] == 'GEN_ERROR':
+            print(f"      [GEN_ERROR on #{idx}, restarting server...]")
+            if _restart_server():
+                print("      [server restarted, retrying...]")
+                items_since_restart = 0
+                result = test_phrase(model, idx, orig, exp)
+                if result[2] == 'GEN_ERROR':
+                    print(f"      [still failing after restart, skipping]")
+            else:
+                print(f"      [FATAL: server restart failed]")
+                break
+
+        items_since_restart += 1
         results[idx] = {
             'sim': result[1],
             'flag': result[2],
@@ -293,6 +378,13 @@ if __name__ == '__main__':
         sys.exit(1)
     print(f"Server OK at {SERVER_URL}\n")
 
+    # Pause idle precache to prevent OOM during testing
+    try:
+        urllib.request.urlopen(f"{SERVER_URL}/pause_idle?pause=true", timeout=5)
+        print("Idle precache PAUSED for testing\n")
+    except Exception as e:
+        print(f"  [Warning: could not pause idle precache: {e}]")
+
     history = load_history()
 
     if args.raw:
@@ -359,6 +451,15 @@ if __name__ == '__main__':
         print(f"ROUND {round_id} (loop {round_num}/{args.rounds})")
         print(f"{'='*60}")
 
+        # Fresh server restart between rounds (after the first) to avoid VRAM accumulation
+        if round_num > 1:
+            print("  [Fresh server restart between rounds...]")
+            if _restart_server():
+                print("  [Server restarted OK]")
+            else:
+                print("  [FATAL: Server restart failed, aborting]")
+                break
+
         results = run_full_test(model, test_indices)
         good, ok, weak, bad = summarize_results(results)
 
@@ -412,3 +513,9 @@ if __name__ == '__main__':
         for r in history['rounds']:
             pct = (r['good'] + r['ok']) / r['tested'] * 100 if r['tested'] > 0 else 0
             print(f"    Round {r['round']}: {pct:.0f}% acceptable ({r['good']}G+{r['ok']}O / {r['tested']})")
+
+    # Resume idle precache
+    try:
+        urllib.request.urlopen(f"{SERVER_URL}/pause_idle?pause=false", timeout=5)
+    except Exception:
+        pass

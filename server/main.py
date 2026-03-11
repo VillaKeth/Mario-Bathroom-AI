@@ -486,6 +486,27 @@ async def tts_test_page():
     return HTMLResponse("<h1>tts_test.html not found</h1>", status_code=404)
 
 
+@app.get("/pause_idle")
+async def pause_idle(pause: bool = True):
+    """Pause or resume idle precache. Use during TTS testing to prevent OOM."""
+    if pause:
+        tts._idle_precache_paused.set()
+        return {"status": "ok", "idle_precache": "paused"}
+    else:
+        tts._idle_precache_paused.clear()
+        return {"status": "ok", "idle_precache": "resumed"}
+
+
+@app.get("/restart_sovits")
+async def restart_sovits():
+    """Restart the GPT-SoVITS subprocess to free GPU memory."""
+    try:
+        tts._restart_sovits_subprocess()
+        return {"status": "ok", "msg": "GPT-SoVITS subprocess restarted"}
+    except Exception as e:
+        return {"status": "error", "msg": str(e)}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
