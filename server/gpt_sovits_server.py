@@ -111,6 +111,11 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\ber+m*\b', 'Um', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bmhm+\b', 'Mm hm', clean_text, flags=_re.IGNORECASE)
 
+    # Pronunciation guides for words GPT-SoVITS garbles
+    clean_text = _re.sub(r'\bBowser\b', 'Bowzur', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bGoombah?\b', 'Goomba', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bGumba\b', 'Goomba', clean_text, flags=_re.IGNORECASE)
+
     # Strip leading punctuation/whitespace left after word removal
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
 
@@ -242,10 +247,21 @@ def clean_text_for_tts(text):
     _words = clean_text.split()
     _char_len = len(clean_text)
     if len(_words) >= 1 and _char_len < 19:
-        # Very short: use "Oh," prefix (more natural for Mario than "Well,")
-        clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
-        if DEBUG_SOVITS:
-            print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
+        # Skip padding if phrase already starts with a filler/intro word
+        _lower = clean_text.lower()
+        _already_has_intro = any(_lower.startswith(p) for p in [
+            'oh,', 'oh ', 'ah,', 'ah ', 'hmm,', 'hmm ', 'um,', 'um ',
+            'uh,', 'uh ', 'mama mia', 'ha ', 'hah', 'hey,', 'hey ',
+        ])
+        if not _already_has_intro:
+            if _char_len < 15:
+                # Very short: use longer "Mama mia," padding
+                clean_text = "Mama mia, " + clean_text[0].lower() + clean_text[1:]
+            else:
+                # Medium-short (15-24 chars): use "Oh," prefix
+                clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
+            if DEBUG_SOVITS:
+                print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
 
     # Ensure first character is capitalized after all removals
     if clean_text and clean_text[0].islower():
