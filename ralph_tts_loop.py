@@ -4,6 +4,14 @@ Tests phrases with GPT-SoVITS TTS + Whisper transcription, tracks progress acros
 """
 import urllib.request, urllib.parse, tempfile, os, sys, time, re, json, subprocess, signal
 import difflib
+import traceback
+
+# Catch ALL unhandled exceptions and print them
+def _crash_handler(exc_type, exc_value, exc_tb):
+    print(f"\n!!! UNHANDLED CRASH: {exc_type.__name__}: {exc_value}", flush=True)
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+sys.excepthook = _crash_handler
 
 SERVER_URL = "http://localhost:8765"
 MARIO_AI_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,22 +35,31 @@ def _restart_server():
     Note: avoids killing THIS process (ralph loop) by targeting specific PIDs.
     """
     my_pid = os.getpid()
-    # Find all python processes except this one
+    my_ppid = os.getppid()
+    safe_pids = {my_pid, my_ppid}
+    print(f"      [_restart_server: my_pid={my_pid}, ppid={my_ppid}]", flush=True)
+    # Find all python processes except this one using tasklist (works on all Windows)
     try:
         result = subprocess.run(
-            'wmic process where "name=\'python.exe\'" get processid /value',
+            'tasklist /FI "IMAGENAME eq python.exe" /FO CSV /NH',
             shell=True, capture_output=True, text=True, timeout=10
         )
+        print(f"      [tasklist output: {result.stdout.strip()[:200]}]", flush=True)
         for line in result.stdout.strip().split('\n'):
             line = line.strip()
-            if line.startswith('ProcessId='):
-                pid = int(line.split('=')[1])
-                if pid != my_pid:
-                    subprocess.run(f"taskkill /F /PID {pid}",
-                                   shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        # Fallback — kill all python except self
-        pass
+            if line and line.startswith('"python.exe"'):
+                # CSV format: "python.exe","PID","Session Name","Session#","Mem Usage"
+                parts = line.split(',')
+                if len(parts) >= 2:
+                    pid = int(parts[1].strip('"'))
+                    if pid not in safe_pids:
+                        subprocess.run(f"taskkill /F /PID {pid}",
+                                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        print(f"      [killed PID {pid}]", flush=True)
+                    else:
+                        print(f"      [SKIPPED my own PID {pid}]", flush=True)
+    except Exception as e:
+        print(f"      [kill error: {e}]")
     time.sleep(4)
     # Start server in background
     subprocess.Popen(
@@ -69,7 +86,7 @@ TEST_PHRASES = [
     ("What's-a going on?", "What's a going on?"),
     ("That's-a funny!", "That's a funny!"),
     ("Nice to meet-a you!", "Nice to meet a you!"),
-    ("Take-a care!", "Take a care!"),
+    ("Take-a care!", "Oh, take a care!"),
     ("This-a soap dispenser is very modern!", "This a soap dispenser is very modern!"),
     ("Not like-a my castle pipes!", "Not like a my castle pipes!"),
     ("Time flies-a when you're having fun!", "Time flies a when you're having fun!"),
@@ -79,7 +96,7 @@ TEST_PHRASES = [
     ("One coin - two coins - three coins!", "One coin, two coins, three coins!"),
     ("The mushroom kingdom -- what a place!", "The mushroom kingdom, what a place!"),
     ("Bathroom breaks --- very important!", "Bathroom breaks, very important!"),
-    ("Ka-ching ka-ching! Mine cart madness!", "Well, minecart madness!"),
+    ("Ka-ching ka-ching! Mine cart madness!", "Oh, minecart madness!"),
     ("WOO-HA-HEEEEEEEE! I'm Mario!", "Hah hey! I'm Mario!"),
     ("WAHOO! That was amazing!", "That was amazing!"),
     ("BOWSER is going DOWN!", "Bowzer is going Down!"),
@@ -95,18 +112,18 @@ TEST_PHRASES = [
     ("Ohh, what a surprise!", "Oh, what a surprise!"),
     ("Brrrr, it's cold in here!", "It's cold in here!"),
     ("Shh, Bowser might hear us!", "Bowzer might hear us!"),
-    ("Wahoo! Here we go!", "Here we go!"),
-    ("Okie dokie!", "Well, okey dokey!"),
+    ("Wahoo! Here we go!", "Oh, here we go!"),
+    ("Okie dokie!", "Oh, okey dokey!"),
     ("I wonder if Chain Chomps count as pets? They're very bitey!", "I wonder if Chain Chomps count as pets? They're very biting!"),
-    ("Pfft, that's nothing!", "Well, that's nothing!"),
-    ("Da da daa! Level complete!", "Well, level complete!"),
-    ("Boing boing boing! Jump jump jump!", "Jump jump jump!"),
+    ("Pfft, that's nothing!", "Oh, that's nothing!"),
+    ("Da da daa! Level complete!", "Oh, level complete!"),
+    ("Boing boing boing! Jump jump jump!", "Oh, jump jump jump!"),
     ("Whoosh! There goes the fireball!", "There goes the fireball!"),
-    ("Splish splash, bathroom fun!", "Well, bathroom fun!"),
-    ("Tick tock tick tock, hurry up!", "Well, hurry up!"),
+    ("Splish splash, bathroom fun!", "Oh, bathroom fun!"),
+    ("Tick tock tick tock, hurry up!", "Oh, hurry up!"),
     ("Boom! Another Goomba defeated!", "Another Gumba defeated!"),
     ("The mushroom kingdom.. da-da-daa!", "The mushroom kingdom"),
-    ("Super Star Power!", "Super Star Power!"),
+    ("Super Star Power!", "Oh, super Star Power!"),
     ("I give it a 10/10!", "I give it a ten out of ten!"),
     ("The score is 100 & counting!", "The score is one hundred and counting!"),
     ("Email me at mario@mushroom.kingdom", "Email me at mario at mushroom.kingdom"),
@@ -114,17 +131,17 @@ TEST_PHRASES = [
     ("Afternoon break! Good time to recharge!", "Afternoon break! Good time to recharge!"),
     ("Hello there! How are you doing today?", "Hello there! How are you doing today?"),
     ("Line one. Line two. Line three.", "Line one, Line two, Line three."),
-    ("YAAAAYYYY! I won!", "Yay! I won!"),
-    ("Nooooooo! Bowser got me!", "No! Bowzer got me!"),
-    ("Wahoooooo! Let's go!", "Well, let's go!"),
-    ("BAAAAAALLS of fire!", "Balls of fire!"),
+    ("YAAAAYYYY! I won!", "Oh, yay! I won!"),
+    ("Nooooooo! Bowser got me!", "Oh, no! Bowzer got me!"),
+    ("Wahoooooo! Let's go!", "Oh, let's go!"),
+    ("BAAAAAALLS of fire!", "Oh, balls of fire!"),
     ("Sooooo excited right now!", "So excited right now!"),
     ("Heeeeelp! Someone help!", "Help! Someone help!"),
     ("What?! You defeated Bowser?!?!", "What?! You defeated Bowzer?!"),
     ("Amazing... just... amazing...", "Amazing, just, amazing"),
-    ("Wait... really?!", "Well, wait, really?!"),
+    ("Wait... really?!", "Oh, wait, really?!"),
     ("Ha ha ha! That's hilarious!", "Ha ha hah! That's hilarious!"),
-    ("Can you hear me?", "Can you hear me?"),
+    ("Can you hear me?", "Oh, can you hear me?"),
     ("The answer is: MUSHROOM!", "The answer is: Mushroom!"),
     ("'quoted speech' is fun!", "Quoted speech is fun!"),
     ("Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!", "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"),
@@ -141,9 +158,23 @@ TEST_PHRASES = [
 
 
 def clean_for_compare(text):
-    """Normalize text for comparison."""
+    """Normalize text for comparison — handles number/word equivalence."""
     t = text.lower().strip()
-    t = re.sub(r'[^a-z0-9\s]', '', t)
+    t = re.sub(r'[^a-z0-9\s%]', '', t)
+    # Normalize number words → digits for fair comparison (Whisper writes digits)
+    _num_map = {
+        'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+        'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+        'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
+        'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
+        'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'thirty': '30',
+        'forty': '40', 'fifty': '50', 'sixty': '60', 'seventy': '70',
+        'eighty': '80', 'ninety': '90', 'one hundred': '100',
+        'two hundred': '200', 'three hundred': '300',
+    }
+    for word, digit in _num_map.items():
+        t = t.replace(word, digit)
+    t = t.replace('percent', '%')
     t = re.sub(r'\s+', ' ', t).strip()
     return t
 
@@ -264,52 +295,51 @@ def run_full_test(model, phrase_indices=None):
 
     items_since_restart = 0
     for idx, (orig, exp) in zip(indices, phrases):
-        # Proactive subprocess restart every 20 items to prevent VRAM leak
-        if items_since_restart >= 20:
-            try:
-                urllib.request.urlopen(f"{SERVER_URL}/restart_sovits", timeout=60)
-                print("      [mid-round subprocess restart]")
-                time.sleep(3)
+        try:
+            # Proactive subprocess restart disabled — causes ralph process death
+            # Relying on self-healing (full server restart on GEN_ERROR) instead
+            if items_since_restart >= 20:
+                print("      [skipping mid-round restart, relying on self-healing]", flush=True)
                 items_since_restart = 0
-            except Exception:
-                # Server might be dead — full restart
-                print("      [server dead — full restart]")
+
+            result = test_phrase(model, idx, orig, exp)
+
+            # Self-healing: if GEN_ERROR, server likely crashed — restart and retry
+            if result[2] == 'GEN_ERROR':
+                print(f"      [GEN_ERROR on #{idx}, restarting server...]")
                 if _restart_server():
-                    print("      [server restarted OK]")
+                    print("      [server restarted, retrying...]")
                     items_since_restart = 0
+                    result = test_phrase(model, idx, orig, exp)
+                    if result[2] == 'GEN_ERROR':
+                        print(f"      [still failing after restart, skipping]")
                 else:
-                    print("      [FATAL: server restart failed]")
+                    print(f"      [FATAL: server restart failed]")
                     break
 
-        result = test_phrase(model, idx, orig, exp)
-
-        # Self-healing: if GEN_ERROR, server likely crashed — restart and retry
-        if result[2] == 'GEN_ERROR':
-            print(f"      [GEN_ERROR on #{idx}, restarting server...]")
-            if _restart_server():
-                print("      [server restarted, retrying...]")
-                items_since_restart = 0
-                result = test_phrase(model, idx, orig, exp)
-                if result[2] == 'GEN_ERROR':
-                    print(f"      [still failing after restart, skipping]")
+            items_since_restart += 1
+            results[idx] = {
+                'sim': result[1],
+                'flag': result[2],
+                'transcript': result[3],
+                'expected': exp,
+                'original': orig,
+            }
+            icon = {'GOOD': '+', 'OK': '~', 'WEAK': '!', 'BAD': 'X'}.get(result[2], '?')
+            if result[2] in ('BAD', 'WEAK'):
+                print(f'  {idx:2d}. {icon} [{result[1]:.0%}] {result[2]:5s} "{exp[:45]}" -> "{result[3][:45]}"')
             else:
-                print(f"      [FATAL: server restart failed]")
-                break
-
-        items_since_restart += 1
-        results[idx] = {
-            'sim': result[1],
-            'flag': result[2],
-            'transcript': result[3],
-            'expected': exp,
-            'original': orig,
-        }
-        icon = {'GOOD': '+', 'OK': '~', 'WEAK': '!', 'BAD': 'X'}.get(result[2], '?')
-        if result[2] in ('BAD', 'WEAK'):
-            print(f'  {idx:2d}. {icon} [{result[1]:.0%}] {result[2]:5s} "{exp[:45]}" -> "{result[3][:45]}"')
-        else:
-            print(f'  {idx:2d}. {icon} [{result[1]:.0%}] {result[2]:5s} | {exp[:55]}')
-        time.sleep(0.05)
+                print(f'  {idx:2d}. {icon} [{result[1]:.0%}] {result[2]:5s} | {exp[:55]}')
+            time.sleep(0.05)
+        except Exception as e:
+            print(f"  {idx:2d}. ? [0%] ERROR  | Unhandled: {e}")
+            results[idx] = {
+                'sim': 0.0,
+                'flag': 'GEN_ERROR',
+                'transcript': f'UNHANDLED: {e}',
+                'expected': exp,
+                'original': orig,
+            }
 
     return results
 
@@ -460,7 +490,16 @@ if __name__ == '__main__':
                 print("  [FATAL: Server restart failed, aborting]")
                 break
 
-        results = run_full_test(model, test_indices)
+        try:
+            results = run_full_test(model, test_indices)
+        except Exception as e:
+            print(f"\n  [CRASH in run_full_test: {e}]")
+            print(f"  [Attempting server restart and continuing...]")
+            _restart_server()
+            continue
+        if not results:
+            print("  [No results — skipping round]")
+            continue
         good, ok, weak, bad = summarize_results(results)
 
         # Save round

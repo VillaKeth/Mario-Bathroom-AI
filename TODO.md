@@ -89,6 +89,14 @@
 - [x] Fixed CUDA OOM: resemblyzer VoiceEncoder forced to CPU
 - [x] All 73 expected texts verified to match actual cleaning output (0 mismatches)
 - [x] Completed 39 ralph loop rounds: R39=71% (new best tied with R1), R32=70%, avg ~67%
+- [x] Fixed VRAM leak: gc.collect() + torch.cuda.empty_cache() after each synthesis
+- [x] Added _restart_sovits_subprocess() with 5s GPU memory release delay
+- [x] Added /restart_sovits endpoint for automated subprocess restarts
+- [x] Fixed requests import bug: ralph was using requests.get() but only imported urllib
+- [x] Built self-healing ralph loop: auto-restarts server on crash, resumes testing
+- [x] Fresh server restart between rounds to prevent VRAM accumulation
+- [x] Mid-round subprocess restart every 20 items (prevents within-round OOM)
+- [x] R43=68.5%, R44=56% (problems-only), R45=48% (problems-only) — zero crashes
 - [ ] Fix short-phrase TTS garbling (pad 2-3 word phrases with context for GPT-SoVITS)
 - [ ] Fix "Bowzer" still mispronounced in some contexts (#31, #52)
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
@@ -846,3 +854,11 @@
 - [ ] Fix consistently BAD phrases: #31 Bowzer, #33 okey dokey, #39 bathroom fun
 - [ ] Consider Edge TTS fallback for unfixable short phrases
 - [ ] Clean up idle_behavior.py source phrases to prevent cleaning issues
+- [x] Self-healing ralph loop: auto server restart on crash, GEN_ERROR retry
+- [x] Fixed wmic→tasklist for Windows process killing (wmic unavailable)
+- [x] Changed padding prefix "Well,"→"Oh," (more natural, less dropped by GPT-SoVITS)
+- [x] Expanded padding threshold to <19 chars (any short phrase gets padded)
+- [x] Added number normalization in clean_for_compare (one→1, percent→%)
+- [x] Disabled mid-round subprocess restart (was causing ralph process death)
+- [x] Added crash handler (sys.excepthook) and per-item try/except in ralph loop
+- [x] R48: 72.6% acceptable — new best score (32G+21O/73)

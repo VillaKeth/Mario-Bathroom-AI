@@ -238,11 +238,12 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'[\s,]+$', '', clean_text)
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
 
-    # Pad very short phrases — GPT-SoVITS garbles text with < 3 words
+    # Pad very short phrases — GPT-SoVITS garbles text with few words
     _words = clean_text.split()
-    if len(_words) >= 1 and len(_words) <= 2 and len(clean_text) < 20:
-        # Use "Well, " for very short phrases (1-2 words)
-        clean_text = "Well, " + clean_text[0].lower() + clean_text[1:]
+    _char_len = len(clean_text)
+    if len(_words) >= 1 and _char_len < 19:
+        # Very short: use "Oh," prefix (more natural for Mario than "Well,")
+        clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
         if DEBUG_SOVITS:
             print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
 
