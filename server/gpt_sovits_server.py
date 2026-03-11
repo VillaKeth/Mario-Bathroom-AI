@@ -254,12 +254,7 @@ def clean_text_for_tts(text):
             'uh,', 'uh ', 'mama mia', 'ha ', 'hah', 'hey,', 'hey ',
         ])
         if not _already_has_intro:
-            if _char_len < 15:
-                # Very short: use longer "Mama mia," padding
-                clean_text = "Mama mia, " + clean_text[0].lower() + clean_text[1:]
-            else:
-                # Medium-short (15-24 chars): use "Oh," prefix
-                clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
+            clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
             if DEBUG_SOVITS:
                 print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
 
