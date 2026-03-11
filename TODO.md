@@ -862,3 +862,7 @@
 - [x] Disabled mid-round subprocess restart (was causing ralph process death)
 - [x] Added crash handler (sys.excepthook) and per-item try/except in ralph loop
 - [x] R48: 72.6% acceptable — new best score (32G+21O/73)
+- [x] R49: 74.0% — new best (freed RAM by killing ollama)
+- [x] R55: 76.7% — BROKE 75% TARGET (32G+24O/73)
+- [ ] Fix Bowzer pronunciation (#12, #19, #31, #52 consistently bad)
+- [ ] Improve short "Oh," padded phrases (#33, #35, #39, #43, #51)
