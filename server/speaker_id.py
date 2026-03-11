@@ -41,7 +41,7 @@ def init_speaker_id():
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] init_speaker_id: START")
 
-    _encoder = VoiceEncoder()
+    _encoder = VoiceEncoder("cpu")
 
     # Initialize database
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

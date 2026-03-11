@@ -84,16 +84,8 @@ def init_pipeline():
     return pipeline
 
 
-def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
-    """Generate audio from text using GPT-SoVITS pipeline."""
-    import soundfile as sf
-
-    if ref_audio is None:
-        ref_audio = DEFAULT_REF_AUDIO
-    if prompt_text is None:
-        prompt_text = "It's a me Mario"
-
-    # Clean text for better GPT-SoVITS synthesis
+def clean_text_for_tts(text):
+    """Clean and normalize text for GPT-SoVITS synthesis."""
     import re as _re
     clean_text = text
 
@@ -125,15 +117,12 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     # Bowser → Bowzer phonetic (original spelling garbles in short context)
     clean_text = _re.sub(r'\bbowser\b', 'Bowzer', clean_text, flags=_re.IGNORECASE)
     # Goomba → Gumba (simpler phonetic)
-    clean_text = _re.sub(r'\bgoomba\b', 'Gumba', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bgoomba(s?)\b', r'Gumba\1', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bokie\b', 'okey', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bdokie\b', 'dokey', clean_text, flags=_re.IGNORECASE)
     # "mine cart" → "minecart" (two words garbles as "my god")
     clean_text = _re.sub(r'\bmine\s+cart\b', 'minecart', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
-    # Convert repeated "da" interjections → remove (sounds like SFX, always garbles)
-    clean_text = _re.sub(r'\bda(?:\s+da)+\b', '', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bnoo+\b', 'no', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byaa+y+\b', 'yay', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byay+\b', 'yay', clean_text, flags=_re.IGNORECASE)
@@ -191,6 +180,12 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     # Instead just normalize trailing 'ha' before punctuation to 'hah'
     clean_text = _re.sub(r'\bha\b(?=[!.,?])', 'hah', clean_text, flags=_re.IGNORECASE)
 
+    # Handle "da" interjections AFTER hyphen removal (da-da-daa → da da daa → removed)
+    clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bda(?:\s+da)+\b', '', clean_text, flags=_re.IGNORECASE)
+    # Also remove standalone "da" at end of sentence (leftovers)
+    clean_text = _re.sub(r'\bda\b\s*([!.,?])', r'\1', clean_text, flags=_re.IGNORECASE)
+
     # Remove special characters that cause garbled output
     clean_text = _re.sub(r'[♪♫🎵🎶🎤🎸🎹🎺🎻🎷🥁🎭🎪]', '', clean_text)  # Music/performance emojis
     clean_text = _re.sub(r'[\U0001F600-\U0001F64F]', '', clean_text)  # Emoticons
@@ -216,7 +211,7 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = clean_text.replace('\\', ' ')  # Backslashes → space
     clean_text = clean_text.replace('_', ' ')  # Underscores → space
     clean_text = clean_text.replace('…', ', ')  # Smart ellipsis → comma pause
-    clean_text = clean_text.replace('...', ', ')  # Ellipsis → comma pause (TTS garbles dots)
+    clean_text = _re.sub(r'\.{2,}', ', ', clean_text)  # Multi-dots → comma pause (TTS garbles dots)
     clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
     clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
     clean_text = clean_text.replace('"', '')  # Remove remaining quotes (TTS reads them)
@@ -226,8 +221,8 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     # Remove excessive punctuation ("?!?!" → "?!")
     clean_text = _re.sub(r'([!?])\1+', r'\1', clean_text)
     clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
-    # Remove excessive dots (shouldn't occur after ellipsis→comma conversion, but safety)
-    clean_text = _re.sub(r'\.{3,}', ', ', clean_text)
+    # Remove any remaining multi-dots (safety net after earlier dot normalization)
+    clean_text = _re.sub(r'\.{2,}', ', ', clean_text)
     # Convert mid-sentence periods to commas (prevents TTS sentence fragmentation)
     # "Line one. Line two. Line three." → "Line one, Line two, Line three."
     # Only convert periods followed by space+uppercase (sentence boundaries mid-text)
@@ -237,24 +232,36 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r',\s*,', ',', clean_text)
     # Strip leading/trailing punctuation left from removals
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
+    # Remove trailing orphan punctuation (e.g. ", !" left after content removal)
+    clean_text = _re.sub(r',\s*[!?.]+\s*$', '', clean_text)
     clean_text = _re.sub(r'[\s,]+$', '', clean_text)
     clean_text = _re.sub(r'\s+', ' ', clean_text).strip()
 
-    # Pad very short phrases — GPT-SoVITS garbles text with < 5 words
+    # Pad very short phrases — GPT-SoVITS garbles text with < 3 words
     _words = clean_text.split()
-    if len(_words) >= 1 and len(_words) <= 4 and len(clean_text) < 25:
-        # Use "Well, " for 1-2 word phrases (need more context)
-        # Use "Oh, " for 3-4 word phrases
-        if len(_words) <= 2:
-            clean_text = "Well, " + clean_text[0].lower() + clean_text[1:]
-        else:
-            clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
+    if len(_words) >= 1 and len(_words) <= 2 and len(clean_text) < 20:
+        # Use "Well, " for very short phrases (1-2 words)
+        clean_text = "Well, " + clean_text[0].lower() + clean_text[1:]
         if DEBUG_SOVITS:
             print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
 
     # Ensure first character is capitalized after all removals
     if clean_text and clean_text[0].islower():
         clean_text = clean_text[0].upper() + clean_text[1:]
+
+    return clean_text
+
+
+def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
+    """Generate audio from text using GPT-SoVITS pipeline."""
+    import soundfile as sf
+
+    if ref_audio is None:
+        ref_audio = DEFAULT_REF_AUDIO
+    if prompt_text is None:
+        prompt_text = "It's a me Mario"
+
+    clean_text = clean_text_for_tts(text)
 
     # If text was entirely sound effects/filler, return a short silence file
     if not clean_text or len(clean_text.strip()) == 0:
