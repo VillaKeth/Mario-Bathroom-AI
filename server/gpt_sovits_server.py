@@ -110,7 +110,7 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(_sfx_pattern, '', clean_text, flags=_re.IGNORECASE)
 
     # Normalize filler words to simple pronounceable forms (keep character, fix length)
-    clean_text = _re.sub(r'\bhm+\b', 'Hm', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bhm+\b', 'Hmm', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bumm*\b', 'Um', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\buhh*\b', 'Uh', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bahh+\b', 'Ah', clean_text, flags=_re.IGNORECASE)
@@ -136,6 +136,7 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
     clean_text = _re.sub(r'\bda(?:\s+da)+\b', '', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bnoo+\b', 'no', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byaa+y+\b', 'yay', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\byay+\b', 'yay', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bsoo+\b', 'so', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bhee+lp\b', 'help', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byippee+\b', 'yippee', clean_text, flags=_re.IGNORECASE)
@@ -282,26 +283,55 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
 
     # Suppress stdout during inference (GPT-SoVITS prints progress bars)
     _real_stdout = sys.stdout
-    sys.stdout = sys.stderr
-    try:
-        chunks = []
-        sr = 32000
-        for sr_chunk, audio_chunk in pipeline.run(req):
-            sr = sr_chunk
-            chunks.append(audio_chunk)
-    finally:
-        sys.stdout = _real_stdout
+    
+    # Retry mechanism: short/garbled outputs tend to be very brief
+    # Estimate minimum expected duration based on word count (~0.15s per word)
+    _word_count = len(clean_text.split())
+    _min_expected_duration = max(0.25, _word_count * 0.15)
+    _best_audio = None
+    _best_duration = 0
+    _best_sr = 32000
+    _max_attempts = 3
+    
+    for _attempt in range(_max_attempts):
+        sys.stdout = sys.stderr
+        try:
+            chunks = []
+            sr = 32000
+            for sr_chunk, audio_chunk in pipeline.run(req):
+                sr = sr_chunk
+                chunks.append(audio_chunk)
+        finally:
+            sys.stdout = _real_stdout
+        
+        if not chunks:
+            if _attempt < _max_attempts - 1:
+                if DEBUG_SOVITS:
+                    print(f"[sovits] RETRY {_attempt+1}: no audio chunks", file=sys.stderr)
+                continue
+            raise RuntimeError("GPT-SoVITS produced no audio chunks after retries")
+        
+        audio = np.concatenate(chunks)
+        duration = len(audio) / sr
+        
+        if duration > _best_duration:
+            _best_audio = audio
+            _best_duration = duration
+            _best_sr = sr
+        
+        if duration >= _min_expected_duration:
+            break
+        
+        if DEBUG_SOVITS:
+            print(f"[sovits] RETRY {_attempt+1}: audio too short ({duration:.2f}s < {_min_expected_duration:.2f}s)", file=sys.stderr)
 
-    if not chunks:
-        raise RuntimeError("GPT-SoVITS produced no audio chunks")
-
-    full_audio = np.concatenate(chunks)
+    full_audio = _best_audio
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     output_path = os.path.join(OUTPUT_DIR, f"sovits_{int(time.time()*1000)}.wav")
-    sf.write(output_path, full_audio, sr)
+    sf.write(output_path, full_audio, _best_sr)
 
-    duration = len(full_audio) / sr
+    duration = len(full_audio) / _best_sr
     return output_path, duration
 
 
