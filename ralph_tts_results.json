@@ -92989,6 +92989,2616 @@
           "original": "Mama mia, the acoustics in here are perfect for singing!"
         }
       }
+    },
+    {
+      "round": 194,
+      "timestamp": "2026-03-12 04:43:04",
+      "tested": 73,
+      "good": 33,
+      "ok": 19,
+      "weak": 16,
+      "bad": 5,
+      "results": {
+        "1": {
+          "sim": 0.9230769230769231,
+          "flag": "GOOD",
+          "transcript": "It's me, Mario!",
+          "expected": "It's a me, Mario!",
+          "original": "It's-a me, Mario!"
+        },
+        "2": {
+          "sim": 0.7368421052631579,
+          "flag": "WEAK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's a go!",
+          "original": "Let's-a go!"
+        },
+        "3": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "What's it going on?",
+          "expected": "What's a going on?",
+          "original": "What's-a going on?"
+        },
+        "4": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "That's so funny!",
+          "expected": "Oh, that's a funny!",
+          "original": "That's-a funny!"
+        },
+        "5": {
+          "sim": 0.36363636363636365,
+          "flag": "BAD",
+          "transcript": "Nice!",
+          "expected": "Nice to meet a you!",
+          "original": "Nice to meet-a you!"
+        },
+        "6": {
+          "sim": 0.2857142857142857,
+          "flag": "BAD",
+          "transcript": "Ta-da-kyo!",
+          "expected": "Oh, take a care!",
+          "original": "Take-a care!"
+        },
+        "7": {
+          "sim": 0.8717948717948718,
+          "flag": "OK",
+          "transcript": "This is a soft dispenser, it's a very modern...",
+          "expected": "This a soap dispenser is very modern!",
+          "original": "This-a soap dispenser is very modern!"
+        },
+        "8": {
+          "sim": 0.96,
+          "flag": "GOOD",
+          "transcript": "Not like my castle pipes.",
+          "expected": "Not like a my castle pipes!",
+          "original": "Not like-a my castle pipes!"
+        },
+        "9": {
+          "sim": 0.9696969696969697,
+          "flag": "GOOD",
+          "transcript": "Time flies when you're having fun.",
+          "expected": "Time flies a when you're having fun!",
+          "original": "Time flies-a when you're having fun!"
+        },
+        "10": {
+          "sim": 0.9545454545454546,
+          "flag": "GOOD",
+          "transcript": "Good time to recharge.",
+          "expected": "Good a time to recharge!",
+          "original": "Good-a time to recharge!"
+        },
+        "11": {
+          "sim": 0.975,
+          "flag": "GOOD",
+          "transcript": "The party is a great, everyone is having fun!",
+          "expected": "The party is great, everyone is having fun!",
+          "original": "The party is great - everyone is having fun!"
+        },
+        "12": {
+          "sim": 0.6557377049180327,
+          "flag": "WEAK",
+          "transcript": "Mouse, you are sweet! I still win!",
+          "expected": "Bowser is mean, but I still win!",
+          "original": "Bowser is mean - but I still win!"
+        },
+        "13": {
+          "sim": 0.5909090909090909,
+          "flag": "WEAK",
+          "transcript": "Cooing! Cooing! Three Cooing!",
+          "expected": "One coin, two coins, three coins!",
+          "original": "One coin - two coins - three coins!"
+        },
+        "14": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The mushroom kingdom! What a place!",
+          "expected": "The mushroom kingdom, what a place!",
+          "original": "The mushroom kingdom -- what a place!"
+        },
+        "15": {
+          "sim": 0.9152542372881356,
+          "flag": "GOOD",
+          "transcript": "bedroom breaks. Very important.",
+          "expected": "Bathroom breaks, very important!",
+          "original": "Bathroom breaks --- very important!"
+        },
+        "16": {
+          "sim": 0.7058823529411765,
+          "flag": "WEAK",
+          "transcript": "My card madness!",
+          "expected": "Oh, minecart madness!",
+          "original": "Ka-ching ka-ching! Mine cart madness!"
+        },
+        "17": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Hey! I'm Mario!",
+          "expected": "Hah hey! I'm Mario!",
+          "original": "WOO-HA-HEEEEEEEE! I'm Mario!"
+        },
+        "18": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "That was amazing!",
+          "expected": "That was amazing!",
+          "original": "WAHOO! That was amazing!"
+        },
+        "19": {
+          "sim": 0.6046511627906976,
+          "flag": "WEAK",
+          "transcript": "You are just going down.",
+          "expected": "Bowser is going Down!",
+          "original": "BOWSER is going DOWN!"
+        },
+        "20": {
+          "sim": 0.8813559322033898,
+          "flag": "OK",
+          "transcript": "I found a mushroom in the star!",
+          "expected": "I found a Mushroom and a Star!",
+          "original": "I found a MUSHROOM and a STAR!"
+        },
+        "21": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, that's incredible.",
+          "expected": "Mama Mia that's incredible!",
+          "original": "MAMA MIA that's incredible!"
+        },
+        "22": {
+          "sim": 0.72,
+          "flag": "WEAK",
+          "transcript": "Section to the beat. Punch in the booby.",
+          "expected": "Suction To The Beat! Plunge and boogie!",
+          "original": "SUCTION TO THE BEAT! Plunge and boogie!"
+        },
+        "23": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The power of the fire flower!",
+          "expected": "The Power of the Fire Flower!",
+          "original": "The POWER of the FIRE FLOWER!"
+        },
+        "24": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Let me think!",
+          "expected": "Hmm, let me think!",
+          "original": "Hmm, let me think!"
+        },
+        "25": {
+          "sim": 0.7868852459016393,
+          "flag": "OK",
+          "transcript": "I wonder what the VG is doing!",
+          "expected": "Hmm, I wonder what Luigi is doing",
+          "original": "Hmmm, I wonder what Luigi is doing..."
+        },
+        "26": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "I'm not sure about that.",
+          "expected": "Um, I'm not sure about that.",
+          "original": "Umm, I'm not sure about that."
+        },
+        "27": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Maybe try again!",
+          "expected": "Uh, maybe try again?",
+          "original": "Uhh, maybe try again?"
+        },
+        "28": {
+          "sim": 0.6,
+          "flag": "WEAK",
+          "transcript": "But he's nice!",
+          "expected": "Ah, that feels nice!",
+          "original": "Ahh, that feels nice!"
+        },
+        "29": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "What a surprise!",
+          "expected": "Oh, what a surprise!",
+          "original": "Ohh, what a surprise!"
+        },
+        "30": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's cold in here!",
+          "expected": "It's cold in here!",
+          "original": "Brrrr, it's cold in here!"
+        },
+        "31": {
+          "sim": 0.6938775510204082,
+          "flag": "WEAK",
+          "transcript": "Belle, see you, I might hear us!",
+          "expected": "Bowser might hear us!",
+          "original": "Shh, Bowser might hear us!"
+        },
+        "32": {
+          "sim": 0.8695652173913043,
+          "flag": "OK",
+          "transcript": "Here we go!",
+          "expected": "Oh, here we go!",
+          "original": "Wahoo! Here we go!"
+        },
+        "33": {
+          "sim": 0.45454545454545453,
+          "flag": "BAD",
+          "transcript": "Okay, okay",
+          "expected": "Oh, okey dokey!",
+          "original": "Okie dokie!"
+        },
+        "34": {
+          "sim": 0.9473684210526315,
+          "flag": "GOOD",
+          "transcript": "I wonder if change homes count as pets? They're very biting!",
+          "expected": "I wonder if Chain Chomps count as pets? They're very biting!",
+          "original": "I wonder if Chain Chomps count as pets? They're very bitey!"
+        },
+        "35": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's nothing.",
+          "expected": "Oh, that's nothing!",
+          "original": "Pfft, that's nothing!"
+        },
+        "36": {
+          "sim": 0.9032258064516129,
+          "flag": "GOOD",
+          "transcript": "level complete.",
+          "expected": "Oh, level complete!",
+          "original": "Da da daa! Level complete!"
+        },
+        "37": {
+          "sim": 0.8333333333333334,
+          "flag": "OK",
+          "transcript": "Jump, jump, jump, jump!",
+          "expected": "Oh, jump jump jump!",
+          "original": "Boing boing boing! Jump jump jump!"
+        },
+        "38": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "There goes the fireball!",
+          "expected": "There goes the fireball!",
+          "original": "Whoosh! There goes the fireball!"
+        },
+        "39": {
+          "sim": 0.64,
+          "flag": "WEAK",
+          "transcript": "Patron fun!",
+          "expected": "Oh, bathroom fun!",
+          "original": "Splish splash, bathroom fun!"
+        },
+        "40": {
+          "sim": 0.4444444444444444,
+          "flag": "BAD",
+          "transcript": "Oh yeah!",
+          "expected": "Oh, hurry up!",
+          "original": "Tick tock tick tock, hurry up!"
+        },
+        "41": {
+          "sim": 0.7391304347826086,
+          "flag": "WEAK",
+          "transcript": "Another unbehaved-feated",
+          "expected": "Another Goomba defeated!",
+          "original": "Boom! Another Goomba defeated!"
+        },
+        "42": {
+          "sim": 0.85,
+          "flag": "OK",
+          "transcript": "and mushroom kingdom.",
+          "expected": "The mushroom kingdom",
+          "original": "The mushroom kingdom.. da-da-daa!"
+        },
+        "43": {
+          "sim": 0.9142857142857143,
+          "flag": "GOOD",
+          "transcript": "Super Star Power!",
+          "expected": "Oh, super Star Power!",
+          "original": "Super Star Power!"
+        },
+        "44": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I give it a 10 out of 10.",
+          "expected": "I give it a ten out of ten!",
+          "original": "I give it a 10/10!"
+        },
+        "45": {
+          "sim": 0.8059701492537313,
+          "flag": "OK",
+          "transcript": "The score is 100 then accounting.",
+          "expected": "The score is one hundred and counting!",
+          "original": "The score is 100 & counting!"
+        },
+        "46": {
+          "sim": 0.9166666666666666,
+          "flag": "GOOD",
+          "transcript": "e-mail me at Mario at my room, Kingdom!",
+          "expected": "Email me at mario at mushroom.kingdom",
+          "original": "Email me at mario@mushroom.kingdom"
+        },
+        "47": {
+          "sim": 0.9056603773584906,
+          "flag": "GOOD",
+          "transcript": "It's 50% off on the mushrooms.",
+          "expected": "It's fifty percent off on mushrooms!",
+          "original": "It's 50% off on mushrooms!"
+        },
+        "48": {
+          "sim": 0.8947368421052632,
+          "flag": "OK",
+          "transcript": "Afternoon, Blake! Good time to be charged!",
+          "expected": "Afternoon break! Good time to recharge!",
+          "original": "Afternoon break! Good time to recharge!"
+        },
+        "49": {
+          "sim": 0.84375,
+          "flag": "OK",
+          "transcript": "Hello there! You're doing today!",
+          "expected": "Hello there! How are you doing today?",
+          "original": "Hello there! How are you doing today?"
+        },
+        "50": {
+          "sim": 0.7878787878787878,
+          "flag": "OK",
+          "transcript": "Line 1, line 3.",
+          "expected": "Line one, Line two, Line three.",
+          "original": "Line one. Line two. Line three."
+        },
+        "51": {
+          "sim": 0.13333333333333333,
+          "flag": "BAD",
+          "transcript": "You",
+          "expected": "Oh, yay! I won!",
+          "original": "YAAAAYYYY! I won!"
+        },
+        "52": {
+          "sim": 0.65,
+          "flag": "WEAK",
+          "transcript": "No! See you are got me!",
+          "expected": "Oh, no! Bowser got me!",
+          "original": "Nooooooo! Bowser got me!"
+        },
+        "53": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's go!",
+          "original": "Wahoooooo! Let's go!"
+        },
+        "54": {
+          "sim": 0.5454545454545454,
+          "flag": "WEAK",
+          "transcript": "Where is the fire?",
+          "expected": "Oh, balls of fire!",
+          "original": "BAAAAAALLS of fire!"
+        },
+        "55": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "So excited right now.",
+          "expected": "So excited right now!",
+          "original": "Sooooo excited right now!"
+        },
+        "56": {
+          "sim": 0.5833333333333334,
+          "flag": "WEAK",
+          "transcript": "Someone who?",
+          "expected": "Help! Someone help!",
+          "original": "Heeeeelp! Someone help!"
+        },
+        "57": {
+          "sim": 0.7307692307692307,
+          "flag": "WEAK",
+          "transcript": "What? You defeat the Tao Siwa?",
+          "expected": "What?! You defeated Bowser?!",
+          "original": "What?! You defeated Bowser?!?!"
+        },
+        "58": {
+          "sim": 0.9230769230769231,
+          "flag": "GOOD",
+          "transcript": "Amazing! Just! Hazing!",
+          "expected": "Amazing, just, amazing",
+          "original": "Amazing... just... amazing..."
+        },
+        "59": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "Wait, really?",
+          "expected": "Oh, wait, really?!",
+          "original": "Wait... really?!"
+        },
+        "60": {
+          "sim": 0.7272727272727273,
+          "flag": "WEAK",
+          "transcript": "Mmm, that's hilarious.",
+          "expected": "Ha ha hah! That's hilarious!",
+          "original": "Ha ha ha! That's hilarious!"
+        },
+        "61": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Can you hear me?",
+          "expected": "Oh, can you hear me?",
+          "original": "Can you hear me?"
+        },
+        "62": {
+          "sim": 0.9565217391304348,
+          "flag": "GOOD",
+          "transcript": "The answer is a mushroom.",
+          "expected": "The answer is: Mushroom!",
+          "original": "The answer is: MUSHROOM!"
+        },
+        "63": {
+          "sim": 0.7619047619047619,
+          "flag": "OK",
+          "transcript": "Cooper speech is a fun!",
+          "expected": "Quoted speech is fun!",
+          "original": "'quoted speech' is fun!"
+        },
+        "64": {
+          "sim": 0.9874476987447699,
+          "flag": "GOOD",
+          "transcript": "Welcome to the most amazing bathroom party in the entire mushroom kingdom where everyone is having the time of their life.",
+          "expected": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+          "original": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"
+        },
+        "65": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "I want to travel through 8 worlds. If you did, countless gummy A has in the cool baths, swam through underwater levels.",
+          "expected": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+          "original": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"
+        },
+        "66": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is in full swing! What a night!",
+          "expected": "The party is in full swing! What a night!",
+          "original": "The party is in full swing! What a night!"
+        },
+        "67": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Evening bathroom visits are the best. The lighting is so dramatic.",
+          "expected": "Evening bathroom visits are the best! The lighting is so dramatic!",
+          "original": "Evening bathroom visits are the best! The lighting is so dramatic!"
+        },
+        "68": {
+          "sim": 0.7804878048780488,
+          "flag": "OK",
+          "transcript": "Time flies when you're having fun!",
+          "expected": "Afternoon already! Time flies when you're having fun!",
+          "original": "Afternoon already! Time flies when you're having fun!"
+        },
+        "69": {
+          "sim": 0.9448818897637795,
+          "flag": "GOOD",
+          "transcript": "I bet Todd would appreciate his style pattern, very mushroom-like.",
+          "expected": "I bet Toad would appreciate this tile pattern, Very mushroom like!",
+          "original": "I bet Toad would appreciate this tile pattern. Very mushroom-like!"
+        },
+        "70": {
+          "sim": 0.8444444444444444,
+          "flag": "OK",
+          "transcript": "This bedroom is cleaner than Baozhi UR's castle.",
+          "expected": "This bathroom is cleaner than Bowser's castle!",
+          "original": "This bathroom is cleaner than Bowser's castle!"
+        },
+        "71": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "Did you know? In Super Mario 64, I can do over 20 different types of jumps.",
+          "expected": "Did you know? In Super Mario sixty four, I can do over twenty different types of jumps!",
+          "original": "Did you know? In Super Mario 64, I can do over 20 different types of jumps!"
+        },
+        "72": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing right now.",
+          "expected": "I wonder what Luigi is doing right now",
+          "original": "I wonder what Luigi is doing right now..."
+        },
+        "73": {
+          "sim": 0.9230769230769231,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, the acoustics in Iraq perfect for singing.",
+          "expected": "Mama mia, the acoustics in here are perfect for singing!",
+          "original": "Mama mia, the acoustics in here are perfect for singing!"
+        }
+      }
+    },
+    {
+      "round": 195,
+      "timestamp": "2026-03-12 04:48:22",
+      "tested": 73,
+      "good": 25,
+      "ok": 21,
+      "weak": 23,
+      "bad": 4,
+      "results": {
+        "1": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's a me! Mario!",
+          "expected": "It's a me, Mario!",
+          "original": "It's-a me, Mario!"
+        },
+        "2": {
+          "sim": 0.5217391304347826,
+          "flag": "WEAK",
+          "transcript": "That's it! Oh!",
+          "expected": "Oh, let's a go!",
+          "original": "Let's-a go!"
+        },
+        "3": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "What's going on?",
+          "expected": "What's a going on?",
+          "original": "What's-a going on?"
+        },
+        "4": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's a funny.",
+          "expected": "Oh, that's a funny!",
+          "original": "That's-a funny!"
+        },
+        "5": {
+          "sim": 0.9473684210526315,
+          "flag": "GOOD",
+          "transcript": "Nice to meet, are you?",
+          "expected": "Nice to meet a you!",
+          "original": "Nice to meet-a you!"
+        },
+        "6": {
+          "sim": 0.5833333333333334,
+          "flag": "WEAK",
+          "transcript": "Take a kid!",
+          "expected": "Oh, take a care!",
+          "original": "Take-a care!"
+        },
+        "7": {
+          "sim": 0.7948717948717948,
+          "flag": "OK",
+          "transcript": "This is so dispenser. Is it very mad or not?",
+          "expected": "This a soap dispenser is very modern!",
+          "original": "This-a soap dispenser is very modern!"
+        },
+        "8": {
+          "sim": 0.8070175438596491,
+          "flag": "OK",
+          "transcript": "Nah, not like on my casual pipes!",
+          "expected": "Not like a my castle pipes!",
+          "original": "Not like-a my castle pipes!"
+        },
+        "9": {
+          "sim": 0.7419354838709677,
+          "flag": "WEAK",
+          "transcript": "Here's the one you're having fun!",
+          "expected": "Time flies a when you're having fun!",
+          "original": "Time flies-a when you're having fun!"
+        },
+        "10": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "Go to time to recharge.",
+          "expected": "Good a time to recharge!",
+          "original": "Good-a time to recharge!"
+        },
+        "11": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is great! Everyone is having fun!",
+          "expected": "The party is great, everyone is having fun!",
+          "original": "The party is great - everyone is having fun!"
+        },
+        "12": {
+          "sim": 0.5172413793103449,
+          "flag": "WEAK",
+          "transcript": "See? What are you still doing?",
+          "expected": "Bowser is mean, but I still win!",
+          "original": "Bowser is mean - but I still win!"
+        },
+        "13": {
+          "sim": 0.5581395348837209,
+          "flag": "WEAK",
+          "transcript": "What a coin! Coins... Hey!",
+          "expected": "One coin, two coins, three coins!",
+          "original": "One coin - two coins - three coins!"
+        },
+        "14": {
+          "sim": 0.9411764705882353,
+          "flag": "GOOD",
+          "transcript": "The mushroom kingdom, what the place?",
+          "expected": "The mushroom kingdom, what a place!",
+          "original": "The mushroom kingdom -- what a place!"
+        },
+        "15": {
+          "sim": 0.6530612244897959,
+          "flag": "WEAK",
+          "transcript": "Very, very important.",
+          "expected": "Bathroom breaks, very important!",
+          "original": "Bathroom breaks --- very important!"
+        },
+        "16": {
+          "sim": 0.14814814814814814,
+          "flag": "BAD",
+          "transcript": "My couch!",
+          "expected": "Oh, minecart madness!",
+          "original": "Ka-ching ka-ching! Mine cart madness!"
+        },
+        "17": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "I'm Mario!",
+          "expected": "Hah hey! I'm Mario!",
+          "original": "WOO-HA-HEEEEEEEE! I'm Mario!"
+        },
+        "18": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "That was amazing!",
+          "expected": "That was amazing!",
+          "original": "WAHOO! That was amazing!"
+        },
+        "19": {
+          "sim": 0.17391304347826086,
+          "flag": "BAD",
+          "transcript": "See?",
+          "expected": "Bowser is going Down!",
+          "original": "BOWSER is going DOWN!"
+        },
+        "20": {
+          "sim": 0.819672131147541,
+          "flag": "OK",
+          "transcript": "I found the mushroom in the star!",
+          "expected": "I found a Mushroom and a Star!",
+          "original": "I found a MUSHROOM and a STAR!"
+        },
+        "21": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, that's incredible.",
+          "expected": "Mama Mia that's incredible!",
+          "original": "MAMA MIA that's incredible!"
+        },
+        "22": {
+          "sim": 0.8611111111111112,
+          "flag": "OK",
+          "transcript": "suction to the beak hand and boogie",
+          "expected": "Suction To The Beat! Plunge and boogie!",
+          "original": "SUCTION TO THE BEAT! Plunge and boogie!"
+        },
+        "23": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The power of the fire flower!",
+          "expected": "The Power of the Fire Flower!",
+          "original": "The POWER of the FIRE FLOWER!"
+        },
+        "24": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Let me think!",
+          "expected": "Hmm, let me think!",
+          "original": "Hmm, let me think!"
+        },
+        "25": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing.",
+          "expected": "Hmm, I wonder what Luigi is doing",
+          "original": "Hmmm, I wonder what Luigi is doing..."
+        },
+        "26": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "I'm not sure about that",
+          "expected": "Um, I'm not sure about that.",
+          "original": "Umm, I'm not sure about that."
+        },
+        "27": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Maybe try again.",
+          "expected": "Uh, maybe try again?",
+          "original": "Uhh, maybe try again?"
+        },
+        "28": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "That feels nice!",
+          "expected": "Ah, that feels nice!",
+          "original": "Ahh, that feels nice!"
+        },
+        "29": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "What a surprise!",
+          "expected": "Oh, what a surprise!",
+          "original": "Ohh, what a surprise!"
+        },
+        "30": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's cold in here.",
+          "expected": "It's cold in here!",
+          "original": "Brrrr, it's cold in here!"
+        },
+        "31": {
+          "sim": 0.17391304347826086,
+          "flag": "BAD",
+          "transcript": "Hey!",
+          "expected": "Bowser might hear us!",
+          "original": "Shh, Bowser might hear us!"
+        },
+        "32": {
+          "sim": 0.8695652173913043,
+          "flag": "OK",
+          "transcript": "Here we go!",
+          "expected": "Oh, here we go!",
+          "original": "Wahoo! Here we go!"
+        },
+        "33": {
+          "sim": 0.6956521739130435,
+          "flag": "WEAK",
+          "transcript": "Okie dokie!",
+          "expected": "Oh, okey dokey!",
+          "original": "Okie dokie!"
+        },
+        "34": {
+          "sim": 0.8869565217391304,
+          "flag": "OK",
+          "transcript": "I wonder if change homes count as a pets. They're very bitty.",
+          "expected": "I wonder if Chain Chomps count as pets? They're very biting!",
+          "original": "I wonder if Chain Chomps count as pets? They're very bitey!"
+        },
+        "35": {
+          "sim": 0.6206896551724138,
+          "flag": "WEAK",
+          "transcript": "I did nothing.",
+          "expected": "Oh, that's nothing!",
+          "original": "Pfft, that's nothing!"
+        },
+        "36": {
+          "sim": 0.9032258064516129,
+          "flag": "GOOD",
+          "transcript": "Level complete!",
+          "expected": "Oh, level complete!",
+          "original": "Da da daa! Level complete!"
+        },
+        "37": {
+          "sim": 0.8333333333333334,
+          "flag": "OK",
+          "transcript": "Jump, jump, jump, jump!",
+          "expected": "Oh, jump jump jump!",
+          "original": "Boing boing boing! Jump jump jump!"
+        },
+        "38": {
+          "sim": 0.9777777777777777,
+          "flag": "GOOD",
+          "transcript": "Here goes the fireball!",
+          "expected": "There goes the fireball!",
+          "original": "Whoosh! There goes the fireball!"
+        },
+        "39": {
+          "sim": 0.6923076923076923,
+          "flag": "WEAK",
+          "transcript": "Bedroom fun!",
+          "expected": "Oh, bathroom fun!",
+          "original": "Splish splash, bathroom fun!"
+        },
+        "40": {
+          "sim": 0.625,
+          "flag": "WEAK",
+          "transcript": "Hurry!",
+          "expected": "Oh, hurry up!",
+          "original": "Tick tock tick tock, hurry up!"
+        },
+        "41": {
+          "sim": 0.6296296296296297,
+          "flag": "WEAK",
+          "transcript": "Another gumbie ate a thing dead!",
+          "expected": "Another Goomba defeated!",
+          "original": "Boom! Another Goomba defeated!"
+        },
+        "42": {
+          "sim": 0.6222222222222222,
+          "flag": "WEAK",
+          "transcript": "The mushroom came the mum.",
+          "expected": "The mushroom kingdom",
+          "original": "The mushroom kingdom.. da-da-daa!"
+        },
+        "43": {
+          "sim": 0.9142857142857143,
+          "flag": "GOOD",
+          "transcript": "Super Star Power!",
+          "expected": "Oh, super Star Power!",
+          "original": "Super Star Power!"
+        },
+        "44": {
+          "sim": 0.8979591836734694,
+          "flag": "OK",
+          "transcript": "I've given it 10 out of 10.",
+          "expected": "I give it a ten out of ten!",
+          "original": "I give it a 10/10!"
+        },
+        "45": {
+          "sim": 0.6875,
+          "flag": "WEAK",
+          "transcript": "This call is 100 and counting.",
+          "expected": "The score is one hundred and counting!",
+          "original": "The score is 100 & counting!"
+        },
+        "46": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Naomi at Mario at Mushroom. Kingdom!",
+          "expected": "Email me at mario at mushroom.kingdom",
+          "original": "Email me at mario@mushroom.kingdom"
+        },
+        "47": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "It's 50% off on mushrooms.",
+          "expected": "It's fifty percent off on mushrooms!",
+          "original": "It's 50% off on mushrooms!"
+        },
+        "48": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "After non-black, time to recharge.",
+          "expected": "Afternoon break! Good time to recharge!",
+          "original": "Afternoon break! Good time to recharge!"
+        },
+        "49": {
+          "sim": 0.84375,
+          "flag": "OK",
+          "transcript": "Hello there! You're doing today!",
+          "expected": "Hello there! How are you doing today?",
+          "original": "Hello there! How are you doing today?"
+        },
+        "50": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "Line 1, 2, 3",
+          "expected": "Line one, Line two, Line three.",
+          "original": "Line one. Line two. Line three."
+        },
+        "51": {
+          "sim": 0.6363636363636364,
+          "flag": "WEAK",
+          "transcript": "Yeah, I won!",
+          "expected": "Oh, yay! I won!",
+          "original": "YAAAAYYYY! I won!"
+        },
+        "52": {
+          "sim": 0.7317073170731707,
+          "flag": "WEAK",
+          "transcript": "No! Bows, you are got me!",
+          "expected": "Oh, no! Bowser got me!",
+          "original": "Nooooooo! Bowser got me!"
+        },
+        "53": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's go!",
+          "original": "Wahoooooo! Let's go!"
+        },
+        "54": {
+          "sim": 0.5517241379310345,
+          "flag": "WEAK",
+          "transcript": "How's the fire?",
+          "expected": "Oh, balls of fire!",
+          "original": "BAAAAAALLS of fire!"
+        },
+        "55": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "So, excited right now!",
+          "expected": "So excited right now!",
+          "original": "Sooooo excited right now!"
+        },
+        "56": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "Someone help!",
+          "expected": "Help! Someone help!",
+          "original": "Heeeeelp! Someone help!"
+        },
+        "57": {
+          "sim": 0.7241379310344828,
+          "flag": "WEAK",
+          "transcript": "What? You deceit and Bowser you are?",
+          "expected": "What?! You defeated Bowser?!",
+          "original": "What?! You defeated Bowser?!?!"
+        },
+        "58": {
+          "sim": 0.5714285714285714,
+          "flag": "WEAK",
+          "transcript": "Huh? Yes! Amazing!",
+          "expected": "Amazing, just, amazing",
+          "original": "Amazing... just... amazing..."
+        },
+        "59": {
+          "sim": 0.36363636363636365,
+          "flag": "BAD",
+          "transcript": "Hey, baby.",
+          "expected": "Oh, wait, really?!",
+          "original": "Wait... really?!"
+        },
+        "60": {
+          "sim": 0.7727272727272727,
+          "flag": "OK",
+          "transcript": "Hey! That's hilarious!",
+          "expected": "Ha ha hah! That's hilarious!",
+          "original": "Ha ha ha! That's hilarious!"
+        },
+        "61": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Can you hear me?",
+          "expected": "Oh, can you hear me?",
+          "original": "Can you hear me?"
+        },
+        "62": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The answer is mushroom.",
+          "expected": "The answer is: Mushroom!",
+          "original": "The answer is: MUSHROOM!"
+        },
+        "63": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "Corkit speech is fun!",
+          "expected": "Quoted speech is fun!",
+          "original": "'quoted speech' is fun!"
+        },
+        "64": {
+          "sim": 0.9874476987447699,
+          "flag": "GOOD",
+          "transcript": "Welcome to the most amazing bathroom party in the entire mushroom kingdom where everyone is having the time of their life.",
+          "expected": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+          "original": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"
+        },
+        "65": {
+          "sim": 0.5982142857142857,
+          "flag": "WEAK",
+          "transcript": "I won't travel to 8 worlds, defeated Countless Gumby Ice in the Coop as 20 underwater levels.",
+          "expected": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+          "original": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"
+        },
+        "66": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is in full swing! What a night!",
+          "expected": "The party is in full swing! What a night!",
+          "original": "The party is in full swing! What a night!"
+        },
+        "67": {
+          "sim": 0.72,
+          "flag": "WEAK",
+          "transcript": "Evening bathroom visits are the best.",
+          "expected": "Evening bathroom visits are the best! The lighting is so dramatic!",
+          "original": "Evening bathroom visits are the best! The lighting is so dramatic!"
+        },
+        "68": {
+          "sim": 0.6153846153846154,
+          "flag": "WEAK",
+          "transcript": "I don't know already. Thanks for having fun.",
+          "expected": "Afternoon already! Time flies when you're having fun!",
+          "original": "Afternoon already! Time flies when you're having fun!"
+        },
+        "69": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "I bet Todd would appreciate this tile pattern, very much remind.",
+          "expected": "I bet Toad would appreciate this tile pattern, Very mushroom like!",
+          "original": "I bet Toad would appreciate this tile pattern. Very mushroom-like!"
+        },
+        "70": {
+          "sim": 0.8865979381443299,
+          "flag": "OK",
+          "transcript": "This bathroom is cleaner than Bowser, you are a castle!",
+          "expected": "This bathroom is cleaner than Bowser's castle!",
+          "original": "This bathroom is cleaner than Bowser's castle!"
+        },
+        "71": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "Did you know? In Super Mario 64, I can do over 20 different types of jumps.",
+          "expected": "Did you know? In Super Mario sixty four, I can do over twenty different types of jumps!",
+          "original": "Did you know? In Super Mario 64, I can do over 20 different types of jumps!"
+        },
+        "72": {
+          "sim": 0.875,
+          "flag": "OK",
+          "transcript": "I wonder what the Ouija is doing right now.",
+          "expected": "I wonder what Luigi is doing right now",
+          "original": "I wonder what Luigi is doing right now..."
+        },
+        "73": {
+          "sim": 0.9908256880733946,
+          "flag": "GOOD",
+          "transcript": "Mamma mia, the acoustics in here are perfect for singing.",
+          "expected": "Mama mia, the acoustics in here are perfect for singing!",
+          "original": "Mama mia, the acoustics in here are perfect for singing!"
+        }
+      }
+    },
+    {
+      "round": 196,
+      "timestamp": "2026-03-12 04:53:45",
+      "tested": 73,
+      "good": 33,
+      "ok": 22,
+      "weak": 13,
+      "bad": 5,
+      "results": {
+        "1": {
+          "sim": 0.9230769230769231,
+          "flag": "GOOD",
+          "transcript": "It's me Mario!",
+          "expected": "It's a me, Mario!",
+          "original": "It's-a me, Mario!"
+        },
+        "2": {
+          "sim": 0.7368421052631579,
+          "flag": "WEAK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's a go!",
+          "original": "Let's-a go!"
+        },
+        "3": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "What's going on?",
+          "expected": "What's a going on?",
+          "original": "What's-a going on?"
+        },
+        "4": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's a funny!",
+          "expected": "Oh, that's a funny!",
+          "original": "That's-a funny!"
+        },
+        "5": {
+          "sim": 0.9411764705882353,
+          "flag": "GOOD",
+          "transcript": "Nice to meet you!",
+          "expected": "Nice to meet a you!",
+          "original": "Nice to meet-a you!"
+        },
+        "6": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "Take a care.",
+          "expected": "Oh, take a care!",
+          "original": "Take-a care!"
+        },
+        "7": {
+          "sim": 0.9714285714285714,
+          "flag": "GOOD",
+          "transcript": "This soap dispenser is very modern.",
+          "expected": "This a soap dispenser is very modern!",
+          "original": "This-a soap dispenser is very modern!"
+        },
+        "8": {
+          "sim": 0.9433962264150944,
+          "flag": "GOOD",
+          "transcript": "Not like in my castle pipes",
+          "expected": "Not like a my castle pipes!",
+          "original": "Not like-a my castle pipes!"
+        },
+        "9": {
+          "sim": 0.8181818181818182,
+          "flag": "OK",
+          "transcript": "I'm fine, so when you're having fun!",
+          "expected": "Time flies a when you're having fun!",
+          "original": "Time flies-a when you're having fun!"
+        },
+        "10": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "Go to time to recharge!",
+          "expected": "Good a time to recharge!",
+          "original": "Good-a time to recharge!"
+        },
+        "11": {
+          "sim": 0.9629629629629629,
+          "flag": "GOOD",
+          "transcript": "The party is great, everyone, it is having fun!",
+          "expected": "The party is great, everyone is having fun!",
+          "original": "The party is great - everyone is having fun!"
+        },
+        "12": {
+          "sim": 0.6037735849056604,
+          "flag": "WEAK",
+          "transcript": "You are me! I still will!",
+          "expected": "Bowser is mean, but I still win!",
+          "original": "Bowser is mean - but I still win!"
+        },
+        "13": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "One coin, two coins, three coins!",
+          "expected": "One coin, two coins, three coins!",
+          "original": "One coin - two coins - three coins!"
+        },
+        "14": {
+          "sim": 0.9552238805970149,
+          "flag": "GOOD",
+          "transcript": "Team Mushroom Kingdom, what a place!",
+          "expected": "The mushroom kingdom, what a place!",
+          "original": "The mushroom kingdom -- what a place!"
+        },
+        "15": {
+          "sim": 0.7083333333333334,
+          "flag": "WEAK",
+          "transcript": "It's very important.",
+          "expected": "Bathroom breaks, very important!",
+          "original": "Bathroom breaks --- very important!"
+        },
+        "16": {
+          "sim": 0.5454545454545454,
+          "flag": "WEAK",
+          "transcript": "My God, madness!",
+          "expected": "Oh, minecart madness!",
+          "original": "Ka-ching ka-ching! Mine cart madness!"
+        },
+        "17": {
+          "sim": 0.1111111111111111,
+          "flag": "BAD",
+          "transcript": "Oh",
+          "expected": "Hah hey! I'm Mario!",
+          "original": "WOO-HA-HEEEEEEEE! I'm Mario!"
+        },
+        "18": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "That was amazing!",
+          "expected": "That was amazing!",
+          "original": "WAHOO! That was amazing!"
+        },
+        "19": {
+          "sim": 0.6808510638297872,
+          "flag": "WEAK",
+          "transcript": "See, you want it's going down.",
+          "expected": "Bowser is going Down!",
+          "original": "BOWSER is going DOWN!"
+        },
+        "20": {
+          "sim": 0.819672131147541,
+          "flag": "OK",
+          "transcript": "I found the mushroom in the star!",
+          "expected": "I found a Mushroom and a Star!",
+          "original": "I found a MUSHROOM and a STAR!"
+        },
+        "21": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, that's incredible!",
+          "expected": "Mama Mia that's incredible!",
+          "original": "MAMA MIA that's incredible!"
+        },
+        "22": {
+          "sim": 0.746268656716418,
+          "flag": "WEAK",
+          "transcript": "Section to the B. Anjian Boogie.",
+          "expected": "Suction To The Beat! Plunge and boogie!",
+          "original": "SUCTION TO THE BEAT! Plunge and boogie!"
+        },
+        "23": {
+          "sim": 0.9824561403508771,
+          "flag": "GOOD",
+          "transcript": "The power of the fire flowers!",
+          "expected": "The Power of the Fire Flower!",
+          "original": "The POWER of the FIRE FLOWER!"
+        },
+        "24": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "Let me sing!",
+          "expected": "Hmm, let me think!",
+          "original": "Hmm, let me think!"
+        },
+        "25": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing.",
+          "expected": "Hmm, I wonder what Luigi is doing",
+          "original": "Hmmm, I wonder what Luigi is doing..."
+        },
+        "26": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "I'm not sure about that.",
+          "expected": "Um, I'm not sure about that.",
+          "original": "Umm, I'm not sure about that."
+        },
+        "27": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Maybe try again?",
+          "expected": "Uh, maybe try again?",
+          "original": "Uhh, maybe try again?"
+        },
+        "28": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "That feels nice!",
+          "expected": "Ah, that feels nice!",
+          "original": "Ahh, that feels nice!"
+        },
+        "29": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "What a surprise!",
+          "expected": "Oh, what a surprise!",
+          "original": "Ohh, what a surprise!"
+        },
+        "30": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's cold in here!",
+          "expected": "It's cold in here!",
+          "original": "Brrrr, it's cold in here!"
+        },
+        "31": {
+          "sim": 0.08695652173913043,
+          "flag": "BAD",
+          "transcript": "Who?",
+          "expected": "Bowser might hear us!",
+          "original": "Shh, Bowser might hear us!"
+        },
+        "32": {
+          "sim": 0.8695652173913043,
+          "flag": "OK",
+          "transcript": "Here we go!",
+          "expected": "Oh, here we go!",
+          "original": "Wahoo! Here we go!"
+        },
+        "33": {
+          "sim": 0.7692307692307693,
+          "flag": "OK",
+          "transcript": "Oh, he dokeyed!",
+          "expected": "Oh, okey dokey!",
+          "original": "Okie dokie!"
+        },
+        "34": {
+          "sim": 0.9827586206896551,
+          "flag": "GOOD",
+          "transcript": "I wonder if chain chomps count as a pets. They're very biting.",
+          "expected": "I wonder if Chain Chomps count as pets? They're very biting!",
+          "original": "I wonder if Chain Chomps count as pets? They're very bitey!"
+        },
+        "35": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's nothing.",
+          "expected": "Oh, that's nothing!",
+          "original": "Pfft, that's nothing!"
+        },
+        "36": {
+          "sim": 0.9032258064516129,
+          "flag": "GOOD",
+          "transcript": "Level complete!",
+          "expected": "Oh, level complete!",
+          "original": "Da da daa! Level complete!"
+        },
+        "37": {
+          "sim": 0.75,
+          "flag": "OK",
+          "transcript": "Jum, jum, jum, jum!",
+          "expected": "Oh, jump jump jump!",
+          "original": "Boing boing boing! Jump jump jump!"
+        },
+        "38": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "There goes the fighter ball!",
+          "expected": "There goes the fireball!",
+          "original": "Whoosh! There goes the fireball!"
+        },
+        "39": {
+          "sim": 0.4666666666666667,
+          "flag": "BAD",
+          "transcript": "I think I'm fine.",
+          "expected": "Oh, bathroom fun!",
+          "original": "Splish splash, bathroom fun!"
+        },
+        "40": {
+          "sim": 0.8421052631578947,
+          "flag": "OK",
+          "transcript": "Hurry up!",
+          "expected": "Oh, hurry up!",
+          "original": "Tick tock tick tock, hurry up!"
+        },
+        "41": {
+          "sim": 0.8372093023255814,
+          "flag": "OK",
+          "transcript": "Another MBA deceited.",
+          "expected": "Another Goomba defeated!",
+          "original": "Boom! Another Goomba defeated!"
+        },
+        "42": {
+          "sim": 0.7727272727272727,
+          "flag": "OK",
+          "transcript": "Nail, mushroom, kingdom, up!",
+          "expected": "The mushroom kingdom",
+          "original": "The mushroom kingdom.. da-da-daa!"
+        },
+        "43": {
+          "sim": 0.9142857142857143,
+          "flag": "GOOD",
+          "transcript": "Super Star Power!",
+          "expected": "Oh, super Star Power!",
+          "original": "Super Star Power!"
+        },
+        "44": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I give it a 10 out of 10.",
+          "expected": "I give it a ten out of ten!",
+          "original": "I give it a 10/10!"
+        },
+        "45": {
+          "sim": 0.576271186440678,
+          "flag": "WEAK",
+          "transcript": "Skull is 100 in counting!",
+          "expected": "The score is one hundred and counting!",
+          "original": "The score is 100 & counting!"
+        },
+        "46": {
+          "sim": 0.9066666666666666,
+          "flag": "GOOD",
+          "transcript": "e-mail me at Mario at mushroom. King them!",
+          "expected": "Email me at mario at mushroom.kingdom",
+          "original": "Email me at mario@mushroom.kingdom"
+        },
+        "47": {
+          "sim": 0.26666666666666666,
+          "flag": "BAD",
+          "transcript": "It's a...",
+          "expected": "It's fifty percent off on mushrooms!",
+          "original": "It's 50% off on mushrooms!"
+        },
+        "48": {
+          "sim": 0.782608695652174,
+          "flag": "OK",
+          "transcript": "After non-break, hang the recharge.",
+          "expected": "Afternoon break! Good time to recharge!",
+          "original": "Afternoon break! Good time to recharge!"
+        },
+        "49": {
+          "sim": 0.8307692307692308,
+          "flag": "OK",
+          "transcript": "Hello there, they're doing today.",
+          "expected": "Hello there! How are you doing today?",
+          "original": "Hello there! How are you doing today?"
+        },
+        "50": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Line 1, line 2, line 3.",
+          "expected": "Line one, Line two, Line three.",
+          "original": "Line one. Line two. Line three."
+        },
+        "51": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Yay! I won!",
+          "expected": "Oh, yay! I won!",
+          "original": "YAAAAYYYY! I won!"
+        },
+        "52": {
+          "sim": 0.5405405405405406,
+          "flag": "WEAK",
+          "transcript": "No! He'll work at me!",
+          "expected": "Oh, no! Bowser got me!",
+          "original": "Nooooooo! Bowser got me!"
+        },
+        "53": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's go!",
+          "original": "Wahoooooo! Let's go!"
+        },
+        "54": {
+          "sim": 0.7142857142857143,
+          "flag": "WEAK",
+          "transcript": "Boat of fire!",
+          "expected": "Oh, balls of fire!",
+          "original": "BAAAAAALLS of fire!"
+        },
+        "55": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "So excited right now!",
+          "expected": "So excited right now!",
+          "original": "Sooooo excited right now!"
+        },
+        "56": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "Someone help!",
+          "expected": "Help! Someone help!",
+          "original": "Heeeeelp! Someone help!"
+        },
+        "57": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "What? You defeated Bowser you are?",
+          "expected": "What?! You defeated Bowser?!",
+          "original": "What?! You defeated Bowser?!?!"
+        },
+        "58": {
+          "sim": 0.47058823529411764,
+          "flag": "BAD",
+          "transcript": "Easy. Just. Easy.",
+          "expected": "Amazing, just, amazing",
+          "original": "Amazing... just... amazing..."
+        },
+        "59": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "Wait, really?",
+          "expected": "Oh, wait, really?!",
+          "original": "Wait... really?!"
+        },
+        "60": {
+          "sim": 0.8620689655172413,
+          "flag": "OK",
+          "transcript": "Ha ha ha ha ha ha! That's hilarious!",
+          "expected": "Ha ha hah! That's hilarious!",
+          "original": "Ha ha ha! That's hilarious!"
+        },
+        "61": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Can you hear me?",
+          "expected": "Oh, can you hear me?",
+          "original": "Can you hear me?"
+        },
+        "62": {
+          "sim": 0.9565217391304348,
+          "flag": "GOOD",
+          "transcript": "The answer is a mushroom!",
+          "expected": "The answer is: Mushroom!",
+          "original": "The answer is: MUSHROOM!"
+        },
+        "63": {
+          "sim": 0.7272727272727273,
+          "flag": "WEAK",
+          "transcript": "Corp its speech is a fun",
+          "expected": "Quoted speech is fun!",
+          "original": "'quoted speech' is fun!"
+        },
+        "64": {
+          "sim": 0.9752066115702479,
+          "flag": "GOOD",
+          "transcript": "Welcome to the most amazing bathroom party in the entire of mushroom kingdom where everyone is having the time of their life.",
+          "expected": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+          "original": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"
+        },
+        "65": {
+          "sim": 0.6901960784313725,
+          "flag": "WEAK",
+          "transcript": "I won't travel through eight worlds, defeated countless gumb, don't be as in cookbass, although sway him through underwater levels.",
+          "expected": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+          "original": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"
+        },
+        "66": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is in full swing, what a night!",
+          "expected": "The party is in full swing! What a night!",
+          "original": "The party is in full swing! What a night!"
+        },
+        "67": {
+          "sim": 0.9076923076923077,
+          "flag": "GOOD",
+          "transcript": "Evening battle and visits are the best. The lighting is so dramatic.",
+          "expected": "Evening bathroom visits are the best! The lighting is so dramatic!",
+          "original": "Evening bathroom visits are the best! The lighting is so dramatic!"
+        },
+        "68": {
+          "sim": 0.9292929292929293,
+          "flag": "GOOD",
+          "transcript": "After no no lady, time flies when you're having fun.",
+          "expected": "Afternoon already! Time flies when you're having fun!",
+          "original": "Afternoon already! Time flies when you're having fun!"
+        },
+        "69": {
+          "sim": 0.7,
+          "flag": "WEAK",
+          "transcript": "I think Thor would appreciate this style of pattern. Damn!",
+          "expected": "I bet Toad would appreciate this tile pattern, Very mushroom like!",
+          "original": "I bet Toad would appreciate this tile pattern. Very mushroom-like!"
+        },
+        "70": {
+          "sim": 0.7619047619047619,
+          "flag": "OK",
+          "transcript": "This bathroom is cleaner than the both of you. All is a castle.",
+          "expected": "This bathroom is cleaner than Bowser's castle!",
+          "original": "This bathroom is cleaner than Bowser's castle!"
+        },
+        "71": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "Did you know? In Super Mario 64, I can do over 20 different types of jumps.",
+          "expected": "Did you know? In Super Mario sixty four, I can do over twenty different types of jumps!",
+          "original": "Did you know? In Super Mario 64, I can do over 20 different types of jumps!"
+        },
+        "72": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing right now.",
+          "expected": "I wonder what Luigi is doing right now",
+          "original": "I wonder what Luigi is doing right now..."
+        },
+        "73": {
+          "sim": 0.9908256880733946,
+          "flag": "GOOD",
+          "transcript": "Mamma mia, the acoustics in here are perfect for singing.",
+          "expected": "Mama mia, the acoustics in here are perfect for singing!",
+          "original": "Mama mia, the acoustics in here are perfect for singing!"
+        }
+      }
+    },
+    {
+      "round": 197,
+      "timestamp": "2026-03-12 04:59:01",
+      "tested": 73,
+      "good": 33,
+      "ok": 16,
+      "weak": 19,
+      "bad": 5,
+      "results": {
+        "1": {
+          "sim": 0.7272727272727273,
+          "flag": "WEAK",
+          "transcript": "It's a me!",
+          "expected": "It's a me, Mario!",
+          "original": "It's-a me, Mario!"
+        },
+        "2": {
+          "sim": 0.7368421052631579,
+          "flag": "WEAK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's a go!",
+          "original": "Let's-a go!"
+        },
+        "3": {
+          "sim": 0.7027027027027027,
+          "flag": "WEAK",
+          "transcript": "What's your calling on?",
+          "expected": "What's a going on?",
+          "original": "What's-a going on?"
+        },
+        "4": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's a funny!",
+          "expected": "Oh, that's a funny!",
+          "original": "That's-a funny!"
+        },
+        "5": {
+          "sim": 0.2,
+          "flag": "BAD",
+          "transcript": "No!",
+          "expected": "Nice to meet a you!",
+          "original": "Nice to meet-a you!"
+        },
+        "6": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "Take a care!",
+          "expected": "Oh, take a care!",
+          "original": "Take-a care!"
+        },
+        "7": {
+          "sim": 0.6031746031746031,
+          "flag": "WEAK",
+          "transcript": "This sub-spenser is delimada.",
+          "expected": "This a soap dispenser is very modern!",
+          "original": "This-a soap dispenser is very modern!"
+        },
+        "8": {
+          "sim": 0.9433962264150944,
+          "flag": "GOOD",
+          "transcript": "not like in my castle pipes",
+          "expected": "Not like a my castle pipes!",
+          "original": "Not like-a my castle pipes!"
+        },
+        "9": {
+          "sim": 0.9696969696969697,
+          "flag": "GOOD",
+          "transcript": "Time flies when you're having fun!",
+          "expected": "Time flies a when you're having fun!",
+          "original": "Time flies-a when you're having fun!"
+        },
+        "10": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "Get a time to recharge!",
+          "expected": "Good a time to recharge!",
+          "original": "Good-a time to recharge!"
+        },
+        "11": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is great, everyone is having fun!",
+          "expected": "The party is great, everyone is having fun!",
+          "original": "The party is great - everyone is having fun!"
+        },
+        "12": {
+          "sim": 0.5862068965517241,
+          "flag": "WEAK",
+          "transcript": "You are the need. I still win.",
+          "expected": "Bowser is mean, but I still win!",
+          "original": "Bowser is mean - but I still win!"
+        },
+        "13": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "One coin, two coins, three coins.",
+          "expected": "One coin, two coins, three coins!",
+          "original": "One coin - two coins - three coins!"
+        },
+        "14": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The Mushroom Kingdom, what a place!",
+          "expected": "The mushroom kingdom, what a place!",
+          "original": "The mushroom kingdom -- what a place!"
+        },
+        "15": {
+          "sim": 0.8135593220338984,
+          "flag": "OK",
+          "transcript": "Pattern Brakes. Very important.",
+          "expected": "Bathroom breaks, very important!",
+          "original": "Bathroom breaks --- very important!"
+        },
+        "16": {
+          "sim": 0.5454545454545454,
+          "flag": "WEAK",
+          "transcript": "My God, madness!",
+          "expected": "Oh, minecart madness!",
+          "original": "Ka-ching ka-ching! Mine cart madness!"
+        },
+        "17": {
+          "sim": 0.7142857142857143,
+          "flag": "WEAK",
+          "transcript": "Who? I'm Mario!",
+          "expected": "Hah hey! I'm Mario!",
+          "original": "WOO-HA-HEEEEEEEE! I'm Mario!"
+        },
+        "18": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "That was amazing!",
+          "expected": "That was amazing!",
+          "original": "WAHOO! That was amazing!"
+        },
+        "19": {
+          "sim": 0.68,
+          "flag": "WEAK",
+          "transcript": "Well, see you all is going down!",
+          "expected": "Bowser is going Down!",
+          "original": "BOWSER is going DOWN!"
+        },
+        "20": {
+          "sim": 0.819672131147541,
+          "flag": "OK",
+          "transcript": "I found the mushroom in the star!",
+          "expected": "I found a Mushroom and a Star!",
+          "original": "I found a MUSHROOM and a STAR!"
+        },
+        "21": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia that's INCREDIBLE!",
+          "expected": "Mama Mia that's incredible!",
+          "original": "MAMA MIA that's incredible!"
+        },
+        "22": {
+          "sim": 0.7058823529411765,
+          "flag": "WEAK",
+          "transcript": "Section to the beef. Panjum bobi.",
+          "expected": "Suction To The Beat! Plunge and boogie!",
+          "original": "SUCTION TO THE BEAT! Plunge and boogie!"
+        },
+        "23": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "the power of the fire flower.",
+          "expected": "The Power of the Fire Flower!",
+          "original": "The POWER of the FIRE FLOWER!"
+        },
+        "24": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "Let me think!",
+          "expected": "Hmm, let me think!",
+          "original": "Hmm, let me think!"
+        },
+        "25": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing.",
+          "expected": "Hmm, I wonder what Luigi is doing",
+          "original": "Hmmm, I wonder what Luigi is doing..."
+        },
+        "26": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "I'm not sure about that.",
+          "expected": "Um, I'm not sure about that.",
+          "original": "Umm, I'm not sure about that."
+        },
+        "27": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Maybe try again!",
+          "expected": "Uh, maybe try again?",
+          "original": "Uhh, maybe try again?"
+        },
+        "28": {
+          "sim": 0.45714285714285713,
+          "flag": "BAD",
+          "transcript": "Heck deals a nice!",
+          "expected": "Ah, that feels nice!",
+          "original": "Ahh, that feels nice!"
+        },
+        "29": {
+          "sim": 0.5714285714285714,
+          "flag": "WEAK",
+          "transcript": "What is the price?",
+          "expected": "Oh, what a surprise!",
+          "original": "Ohh, what a surprise!"
+        },
+        "30": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's cold in here!",
+          "expected": "It's cold in here!",
+          "original": "Brrrr, it's cold in here!"
+        },
+        "31": {
+          "sim": 0.3829787234042553,
+          "flag": "BAD",
+          "transcript": "Bowsing you, I make you guys!",
+          "expected": "Bowser might hear us!",
+          "original": "Shh, Bowser might hear us!"
+        },
+        "32": {
+          "sim": 0.6956521739130435,
+          "flag": "WEAK",
+          "transcript": "Here it go!",
+          "expected": "Oh, here we go!",
+          "original": "Wahoo! Here we go!"
+        },
+        "33": {
+          "sim": 0.56,
+          "flag": "WEAK",
+          "transcript": "Oopie doopie!",
+          "expected": "Oh, okey dokey!",
+          "original": "Okie dokie!"
+        },
+        "34": {
+          "sim": 0.8411214953271028,
+          "flag": "OK",
+          "transcript": "I wonder if Changchun County's pets are very biting!",
+          "expected": "I wonder if Chain Chomps count as pets? They're very biting!",
+          "original": "I wonder if Chain Chomps count as pets? They're very bitey!"
+        },
+        "35": {
+          "sim": 0.8387096774193549,
+          "flag": "OK",
+          "transcript": "That's a nothing!",
+          "expected": "Oh, that's nothing!",
+          "original": "Pfft, that's nothing!"
+        },
+        "36": {
+          "sim": 0.9032258064516129,
+          "flag": "GOOD",
+          "transcript": "Level complete!",
+          "expected": "Oh, level complete!",
+          "original": "Da da daa! Level complete!"
+        },
+        "37": {
+          "sim": 0.8333333333333334,
+          "flag": "OK",
+          "transcript": "Jump, jump, jump, jump!",
+          "expected": "Oh, jump jump jump!",
+          "original": "Boing boing boing! Jump jump jump!"
+        },
+        "38": {
+          "sim": 0.9777777777777777,
+          "flag": "GOOD",
+          "transcript": "Here goes the fireball!",
+          "expected": "There goes the fireball!",
+          "original": "Whoosh! There goes the fireball!"
+        },
+        "39": {
+          "sim": 0.7407407407407407,
+          "flag": "WEAK",
+          "transcript": "Backroom fun!",
+          "expected": "Oh, bathroom fun!",
+          "original": "Splish splash, bathroom fun!"
+        },
+        "40": {
+          "sim": 0.8421052631578947,
+          "flag": "OK",
+          "transcript": "Hurry up!",
+          "expected": "Oh, hurry up!",
+          "original": "Tick tock tick tock, hurry up!"
+        },
+        "41": {
+          "sim": 0.64,
+          "flag": "WEAK",
+          "transcript": "Another zombie had a seeded.",
+          "expected": "Another Goomba defeated!",
+          "original": "Boom! Another Goomba defeated!"
+        },
+        "42": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The Mushroom Kingdom",
+          "expected": "The mushroom kingdom",
+          "original": "The mushroom kingdom.. da-da-daa!"
+        },
+        "43": {
+          "sim": 0.9142857142857143,
+          "flag": "GOOD",
+          "transcript": "Super Star Power!",
+          "expected": "Oh, super Star Power!",
+          "original": "Super Star Power!"
+        },
+        "44": {
+          "sim": 0.96,
+          "flag": "GOOD",
+          "transcript": "I'll give it a 10 out of 10.",
+          "expected": "I give it a ten out of ten!",
+          "original": "I give it a 10/10!"
+        },
+        "45": {
+          "sim": 0.6785714285714286,
+          "flag": "WEAK",
+          "transcript": "Score is 100 counting!",
+          "expected": "The score is one hundred and counting!",
+          "original": "The score is 100 & counting!"
+        },
+        "46": {
+          "sim": 0.7419354838709677,
+          "flag": "WEAK",
+          "transcript": "Naomi at Mario at Mushroom",
+          "expected": "Email me at mario at mushroom.kingdom",
+          "original": "Email me at mario@mushroom.kingdom"
+        },
+        "47": {
+          "sim": 0.9387755102040817,
+          "flag": "GOOD",
+          "transcript": "It's 30% off on mushrooms!",
+          "expected": "It's fifty percent off on mushrooms!",
+          "original": "It's 50% off on mushrooms!"
+        },
+        "48": {
+          "sim": 0.927536231884058,
+          "flag": "GOOD",
+          "transcript": "afternoon break, time to recharge.",
+          "expected": "Afternoon break! Good time to recharge!",
+          "original": "Afternoon break! Good time to recharge!"
+        },
+        "49": {
+          "sim": 0.7586206896551724,
+          "flag": "OK",
+          "transcript": "Hey, how you doing today?",
+          "expected": "Hello there! How are you doing today?",
+          "original": "Hello there! How are you doing today?"
+        },
+        "50": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Line 1, line 2, line 3.",
+          "expected": "Line one, Line two, Line three.",
+          "original": "Line one. Line two. Line three."
+        },
+        "51": {
+          "sim": 0.6363636363636364,
+          "flag": "WEAK",
+          "transcript": "Yeah! I won!",
+          "expected": "Oh, yay! I won!",
+          "original": "YAAAAYYYY! I won!"
+        },
+        "52": {
+          "sim": 0.6976744186046512,
+          "flag": "WEAK",
+          "transcript": "No! Bowser, you are not me!",
+          "expected": "Oh, no! Bowser got me!",
+          "original": "Nooooooo! Bowser got me!"
+        },
+        "53": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's go!",
+          "original": "Wahoooooo! Let's go!"
+        },
+        "54": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "Balls of Fire",
+          "expected": "Oh, balls of fire!",
+          "original": "BAAAAAALLS of fire!"
+        },
+        "55": {
+          "sim": 0.7727272727272727,
+          "flag": "OK",
+          "transcript": "So, it's sighted right now.",
+          "expected": "So excited right now!",
+          "original": "Sooooo excited right now!"
+        },
+        "56": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "Someone help!",
+          "expected": "Help! Someone help!",
+          "original": "Heeeeelp! Someone help!"
+        },
+        "57": {
+          "sim": 0.9411764705882353,
+          "flag": "GOOD",
+          "transcript": "What? You defeated Bowsie UR?",
+          "expected": "What?! You defeated Bowser?!",
+          "original": "What?! You defeated Bowser?!?!"
+        },
+        "58": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Amazing, just amazing",
+          "expected": "Amazing, just, amazing",
+          "original": "Amazing... just... amazing..."
+        },
+        "59": {
+          "sim": 0.17142857142857143,
+          "flag": "BAD",
+          "transcript": "Oiiiieieieieieieieiee",
+          "expected": "Oh, wait, really?!",
+          "original": "Wait... really?!"
+        },
+        "60": {
+          "sim": 0.9615384615384616,
+          "flag": "GOOD",
+          "transcript": "Ha ha ha ha! That's hilarious!",
+          "expected": "Ha ha hah! That's hilarious!",
+          "original": "Ha ha ha! That's hilarious!"
+        },
+        "61": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Can you hear me?",
+          "expected": "Oh, can you hear me?",
+          "original": "Can you hear me?"
+        },
+        "62": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The answer is mushroom.",
+          "expected": "The answer is: Mushroom!",
+          "original": "The answer is: MUSHROOM!"
+        },
+        "63": {
+          "sim": 0.46153846153846156,
+          "flag": "BAD",
+          "transcript": "He's a bitch, he's fun!",
+          "expected": "Quoted speech is fun!",
+          "original": "'quoted speech' is fun!"
+        },
+        "64": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Welcome to the most amazing bathroom party in the entire mushroom kingdom where everyone is having the time of their lives.",
+          "expected": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+          "original": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"
+        },
+        "65": {
+          "sim": 0.6390041493775933,
+          "flag": "WEAK",
+          "transcript": "I want to travel to 8 worlds, defeat the countless Gambiais in the cool baths, swim through underwater levels.",
+          "expected": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+          "original": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"
+        },
+        "66": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is in full swing! What a night!",
+          "expected": "The party is in full swing! What a night!",
+          "original": "The party is in full swing! What a night!"
+        },
+        "67": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Evening bathroom visits are the best, the lighting is so dramatic.",
+          "expected": "Evening bathroom visits are the best! The lighting is so dramatic!",
+          "original": "Evening bathroom visits are the best! The lighting is so dramatic!"
+        },
+        "68": {
+          "sim": 0.7692307692307693,
+          "flag": "OK",
+          "transcript": "I have to know not already. Files when you're having fun!",
+          "expected": "Afternoon already! Time flies when you're having fun!",
+          "original": "Afternoon already! Time flies when you're having fun!"
+        },
+        "69": {
+          "sim": 0.9076923076923077,
+          "flag": "GOOD",
+          "transcript": "I bet Todd would appreciate this style pattern, a very mushroom mic.",
+          "expected": "I bet Toad would appreciate this tile pattern, Very mushroom like!",
+          "original": "I bet Toad would appreciate this tile pattern. Very mushroom-like!"
+        },
+        "70": {
+          "sim": 0.945054945054945,
+          "flag": "GOOD",
+          "transcript": "This bathroom is cleaner than a Bose UR's castle.",
+          "expected": "This bathroom is cleaner than Bowser's castle!",
+          "original": "This bathroom is cleaner than Bowser's castle!"
+        },
+        "71": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "Did you know? In Super Mario 64, I can do over 20 different types of jumps.",
+          "expected": "Did you know? In Super Mario sixty four, I can do over twenty different types of jumps!",
+          "original": "Did you know? In Super Mario 64, I can do over 20 different types of jumps!"
+        },
+        "72": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing right now.",
+          "expected": "I wonder what Luigi is doing right now",
+          "original": "I wonder what Luigi is doing right now..."
+        },
+        "73": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, the acoustics in here are perfect for singing.",
+          "expected": "Mama mia, the acoustics in here are perfect for singing!",
+          "original": "Mama mia, the acoustics in here are perfect for singing!"
+        }
+      }
+    },
+    {
+      "round": 198,
+      "timestamp": "2026-03-12 05:04:29",
+      "tested": 73,
+      "good": 28,
+      "ok": 20,
+      "weak": 19,
+      "bad": 6,
+      "results": {
+        "1": {
+          "sim": 0.9230769230769231,
+          "flag": "GOOD",
+          "transcript": "It's me Mario!",
+          "expected": "It's a me, Mario!",
+          "original": "It's-a me, Mario!"
+        },
+        "2": {
+          "sim": 0.7368421052631579,
+          "flag": "WEAK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's a go!",
+          "original": "Let's-a go!"
+        },
+        "3": {
+          "sim": 0.8571428571428571,
+          "flag": "OK",
+          "transcript": "What's your going on?",
+          "expected": "What's a going on?",
+          "original": "What's-a going on?"
+        },
+        "4": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "That's a funny!",
+          "expected": "Oh, that's a funny!",
+          "original": "That's-a funny!"
+        },
+        "5": {
+          "sim": 0.9411764705882353,
+          "flag": "GOOD",
+          "transcript": "Nice to meet you!",
+          "expected": "Nice to meet a you!",
+          "original": "Nice to meet-a you!"
+        },
+        "6": {
+          "sim": 0.8333333333333334,
+          "flag": "OK",
+          "transcript": "Take a...care!",
+          "expected": "Oh, take a care!",
+          "original": "Take-a care!"
+        },
+        "7": {
+          "sim": 0.8461538461538461,
+          "flag": "OK",
+          "transcript": "This is so dispenser. It's a very modern man.",
+          "expected": "This a soap dispenser is very modern!",
+          "original": "This-a soap dispenser is very modern!"
+        },
+        "8": {
+          "sim": 0.6122448979591837,
+          "flag": "WEAK",
+          "transcript": "not with my pencil pegs",
+          "expected": "Not like a my castle pipes!",
+          "original": "Not like-a my castle pipes!"
+        },
+        "9": {
+          "sim": 0.9565217391304348,
+          "flag": "GOOD",
+          "transcript": "Time flies so when you're having fun!",
+          "expected": "Time flies a when you're having fun!",
+          "original": "Time flies-a when you're having fun!"
+        },
+        "10": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "Go to time to recharge!",
+          "expected": "Good a time to recharge!",
+          "original": "Good-a time to recharge!"
+        },
+        "11": {
+          "sim": 0.9367088607594937,
+          "flag": "GOOD",
+          "transcript": "The party is agreed. Everyone is having fun!",
+          "expected": "The party is great, everyone is having fun!",
+          "original": "The party is great - everyone is having fun!"
+        },
+        "12": {
+          "sim": 0.7333333333333333,
+          "flag": "WEAK",
+          "transcript": "See you up is mean. I still win.",
+          "expected": "Bowser is mean, but I still win!",
+          "original": "Bowser is mean - but I still win!"
+        },
+        "13": {
+          "sim": 0.9523809523809523,
+          "flag": "GOOD",
+          "transcript": "One coin! Coins! Three coins!",
+          "expected": "One coin, two coins, three coins!",
+          "original": "One coin - two coins - three coins!"
+        },
+        "14": {
+          "sim": 0.9014084507042254,
+          "flag": "GOOD",
+          "transcript": "The mushroom kingdom is what the place.",
+          "expected": "The mushroom kingdom, what a place!",
+          "original": "The mushroom kingdom -- what a place!"
+        },
+        "15": {
+          "sim": 0.7931034482758621,
+          "flag": "OK",
+          "transcript": "Battle & Braids, very important.",
+          "expected": "Bathroom breaks, very important!",
+          "original": "Bathroom breaks --- very important!"
+        },
+        "16": {
+          "sim": 0.7428571428571429,
+          "flag": "WEAK",
+          "transcript": "Mind cut madness!",
+          "expected": "Oh, minecart madness!",
+          "original": "Ka-ching ka-ching! Mine cart madness!"
+        },
+        "17": {
+          "sim": 0.7586206896551724,
+          "flag": "OK",
+          "transcript": "Hey! Hey Mario!",
+          "expected": "Hah hey! I'm Mario!",
+          "original": "WOO-HA-HEEEEEEEE! I'm Mario!"
+        },
+        "18": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "That was amazing!",
+          "expected": "That was amazing!",
+          "original": "WAHOO! That was amazing!"
+        },
+        "19": {
+          "sim": 0.8108108108108109,
+          "flag": "OK",
+          "transcript": "Oh, it's going down!",
+          "expected": "Bowser is going Down!",
+          "original": "BOWSER is going DOWN!"
+        },
+        "20": {
+          "sim": 0.7017543859649122,
+          "flag": "WEAK",
+          "transcript": "I found my room in the store.",
+          "expected": "I found a Mushroom and a Star!",
+          "original": "I found a MUSHROOM and a STAR!"
+        },
+        "21": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, that's incredible!",
+          "expected": "Mama Mia that's incredible!",
+          "original": "MAMA MIA that's incredible!"
+        },
+        "22": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "Soxion to the beat. And in the movie.",
+          "expected": "Suction To The Beat! Plunge and boogie!",
+          "original": "SUCTION TO THE BEAT! Plunge and boogie!"
+        },
+        "23": {
+          "sim": 0.9285714285714286,
+          "flag": "GOOD",
+          "transcript": "The power of the fire shower!",
+          "expected": "The Power of the Fire Flower!",
+          "original": "The POWER of the FIRE FLOWER!"
+        },
+        "24": {
+          "sim": 0.6666666666666666,
+          "flag": "WEAK",
+          "transcript": "Let me sing!",
+          "expected": "Hmm, let me think!",
+          "original": "Hmm, let me think!"
+        },
+        "25": {
+          "sim": 0.9333333333333333,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing!",
+          "expected": "Hmm, I wonder what Luigi is doing",
+          "original": "Hmmm, I wonder what Luigi is doing..."
+        },
+        "26": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "I'm not sure about that.",
+          "expected": "Um, I'm not sure about that.",
+          "original": "Umm, I'm not sure about that."
+        },
+        "27": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "maybe try again",
+          "expected": "Uh, maybe try again?",
+          "original": "Uhh, maybe try again?"
+        },
+        "28": {
+          "sim": 0.7333333333333333,
+          "flag": "WEAK",
+          "transcript": "That is nice!",
+          "expected": "Ah, that feels nice!",
+          "original": "Ahh, that feels nice!"
+        },
+        "29": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "What the surprise!",
+          "expected": "Oh, what a surprise!",
+          "original": "Ohh, what a surprise!"
+        },
+        "30": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "It's cold in here!",
+          "expected": "It's cold in here!",
+          "original": "Brrrr, it's cold in here!"
+        },
+        "31": {
+          "sim": 0.6,
+          "flag": "WEAK",
+          "transcript": "They are mighty rush.",
+          "expected": "Bowser might hear us!",
+          "original": "Shh, Bowser might hear us!"
+        },
+        "32": {
+          "sim": 0.8695652173913043,
+          "flag": "OK",
+          "transcript": "Here we go!",
+          "expected": "Oh, here we go!",
+          "original": "Wahoo! Here we go!"
+        },
+        "33": {
+          "sim": 0.8181818181818182,
+          "flag": "OK",
+          "transcript": "Okey-dokey!",
+          "expected": "Oh, okey dokey!",
+          "original": "Okie dokie!"
+        },
+        "34": {
+          "sim": 0.9043478260869565,
+          "flag": "GOOD",
+          "transcript": "I wonder if change homes count as a bet, they're very biting.",
+          "expected": "I wonder if Chain Chomps count as pets? They're very biting!",
+          "original": "I wonder if Chain Chomps count as pets? They're very bitey!"
+        },
+        "35": {
+          "sim": 0.6896551724137931,
+          "flag": "WEAK",
+          "transcript": "It's a nothing!",
+          "expected": "Oh, that's nothing!",
+          "original": "Pfft, that's nothing!"
+        },
+        "36": {
+          "sim": 0.9032258064516129,
+          "flag": "GOOD",
+          "transcript": "Level complete!",
+          "expected": "Oh, level complete!",
+          "original": "Da da daa! Level complete!"
+        },
+        "37": {
+          "sim": 0.5,
+          "flag": "WEAK",
+          "transcript": "HUM, HUM, HUM, HUM, HUM",
+          "expected": "Oh, jump jump jump!",
+          "original": "Boing boing boing! Jump jump jump!"
+        },
+        "38": {
+          "sim": 0.08,
+          "flag": "BAD",
+          "transcript": "Oh",
+          "expected": "There goes the fireball!",
+          "original": "Whoosh! There goes the fireball!"
+        },
+        "39": {
+          "sim": 0.7407407407407407,
+          "flag": "WEAK",
+          "transcript": "Backroom, fun!",
+          "expected": "Oh, bathroom fun!",
+          "original": "Splish splash, bathroom fun!"
+        },
+        "40": {
+          "sim": 0.8421052631578947,
+          "flag": "OK",
+          "transcript": "Hurry up!",
+          "expected": "Oh, hurry up!",
+          "original": "Tick tock tick tock, hurry up!"
+        },
+        "41": {
+          "sim": 0.6046511627906976,
+          "flag": "WEAK",
+          "transcript": "Another can be aided",
+          "expected": "Another Goomba defeated!",
+          "original": "Boom! Another Goomba defeated!"
+        },
+        "42": {
+          "sim": 0.6111111111111112,
+          "flag": "WEAK",
+          "transcript": "Dimashun Kingdom",
+          "expected": "The mushroom kingdom",
+          "original": "The mushroom kingdom.. da-da-daa!"
+        },
+        "43": {
+          "sim": 0.9142857142857143,
+          "flag": "GOOD",
+          "transcript": "Super Star Power!",
+          "expected": "Oh, super Star Power!",
+          "original": "Super Star Power!"
+        },
+        "44": {
+          "sim": 0.96,
+          "flag": "GOOD",
+          "transcript": "I'll give it a 10 out of 10.",
+          "expected": "I give it a ten out of ten!",
+          "original": "I give it a 10/10!"
+        },
+        "45": {
+          "sim": 0.8,
+          "flag": "OK",
+          "transcript": "This score is 100 and counting.",
+          "expected": "The score is one hundred and counting!",
+          "original": "The score is 100 & counting!"
+        },
+        "46": {
+          "sim": 0.9166666666666666,
+          "flag": "GOOD",
+          "transcript": "Email me at Mario at my room. Kingdom!",
+          "expected": "Email me at mario at mushroom.kingdom",
+          "original": "Email me at mario@mushroom.kingdom"
+        },
+        "47": {
+          "sim": 0.6229508196721312,
+          "flag": "WEAK",
+          "transcript": "and set it per cent out on mushrooms.",
+          "expected": "It's fifty percent off on mushrooms!",
+          "original": "It's 50% off on mushrooms!"
+        },
+        "48": {
+          "sim": 0.927536231884058,
+          "flag": "GOOD",
+          "transcript": "Afternoon break time to recharge.",
+          "expected": "Afternoon break! Good time to recharge!",
+          "original": "Afternoon break! Good time to recharge!"
+        },
+        "49": {
+          "sim": 0.7575757575757576,
+          "flag": "OK",
+          "transcript": "Hello there! You're doing to that!",
+          "expected": "Hello there! How are you doing today?",
+          "original": "Hello there! How are you doing today?"
+        },
+        "50": {
+          "sim": 0.9473684210526315,
+          "flag": "GOOD",
+          "transcript": "Line 1. Line 2. In 3.",
+          "expected": "Line one, Line two, Line three.",
+          "original": "Line one. Line two. Line three."
+        },
+        "51": {
+          "sim": 0.6086956521739131,
+          "flag": "WEAK",
+          "transcript": "Yeah, I won't!",
+          "expected": "Oh, yay! I won!",
+          "original": "YAAAAYYYY! I won!"
+        },
+        "52": {
+          "sim": 0.32,
+          "flag": "BAD",
+          "transcript": "No! Hey!",
+          "expected": "Oh, no! Bowser got me!",
+          "original": "Nooooooo! Bowser got me!"
+        },
+        "53": {
+          "sim": 0.8235294117647058,
+          "flag": "OK",
+          "transcript": "Let's go!",
+          "expected": "Oh, let's go!",
+          "original": "Wahoooooo! Let's go!"
+        },
+        "54": {
+          "sim": 0.4,
+          "flag": "BAD",
+          "transcript": "Pause the fire.",
+          "expected": "Oh, balls of fire!",
+          "original": "BAAAAAALLS of fire!"
+        },
+        "55": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "So excited right now!",
+          "expected": "So excited right now!",
+          "original": "Sooooo excited right now!"
+        },
+        "56": {
+          "sim": 0.896551724137931,
+          "flag": "OK",
+          "transcript": "Hey! Someone help!",
+          "expected": "Help! Someone help!",
+          "original": "Heeeeelp! Someone help!"
+        },
+        "57": {
+          "sim": 0.6875,
+          "flag": "WEAK",
+          "transcript": "What? You defeated the house that you are?",
+          "expected": "What?! You defeated Bowser?!",
+          "original": "What?! You defeated Bowser?!?!"
+        },
+        "58": {
+          "sim": 0.3111111111111111,
+          "flag": "BAD",
+          "transcript": "Hey, he's in! Yes! Hey, he's in!",
+          "expected": "Amazing, just, amazing",
+          "original": "Amazing... just... amazing..."
+        },
+        "59": {
+          "sim": 0.88,
+          "flag": "OK",
+          "transcript": "Wait, really?",
+          "expected": "Oh, wait, really?!",
+          "original": "Wait... really?!"
+        },
+        "60": {
+          "sim": 0.2222222222222222,
+          "flag": "BAD",
+          "transcript": "Ahhhh! Dance!!",
+          "expected": "Ha ha hah! That's hilarious!",
+          "original": "Ha ha ha! That's hilarious!"
+        },
+        "61": {
+          "sim": 0.9090909090909091,
+          "flag": "GOOD",
+          "transcript": "Can you hear me?",
+          "expected": "Oh, can you hear me?",
+          "original": "Can you hear me?"
+        },
+        "62": {
+          "sim": 0.9361702127659575,
+          "flag": "GOOD",
+          "transcript": "The answer is a mushrooma.",
+          "expected": "The answer is: Mushroom!",
+          "original": "The answer is: MUSHROOM!"
+        },
+        "63": {
+          "sim": 0.18181818181818182,
+          "flag": "BAD",
+          "transcript": "Oh",
+          "expected": "Quoted speech is fun!",
+          "original": "'quoted speech' is fun!"
+        },
+        "64": {
+          "sim": 0.9874476987447699,
+          "flag": "GOOD",
+          "transcript": "Welcome to the most amazing bathroom party in the entire mushroom kingdom where everyone is having the time of their life.",
+          "expected": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!",
+          "original": "Welcome to the most amazing bathroom party in the entire Mushroom Kingdom where everyone is having the time of their lives!"
+        },
+        "65": {
+          "sim": 0.5798319327731093,
+          "flag": "WEAK",
+          "transcript": "I want to travel to eight worlds. He feed the canvas gum, the ice and the co-bass, sway him to underwater levels.",
+          "expected": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!",
+          "original": "I once traveled through eight worlds, defeated countless Goombas and Koopas, swam through underwater levels, and finally saved Princess Peach!"
+        },
+        "66": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "The party is in full swing, what a night!",
+          "expected": "The party is in full swing! What a night!",
+          "original": "The party is in full swing! What a night!"
+        },
+        "67": {
+          "sim": 0.8888888888888888,
+          "flag": "OK",
+          "transcript": "easing pattern visits are the best, the lighting is so dramatic.",
+          "expected": "Evening bathroom visits are the best! The lighting is so dramatic!",
+          "original": "Evening bathroom visits are the best! The lighting is so dramatic!"
+        },
+        "68": {
+          "sim": 0.6881720430107527,
+          "flag": "WEAK",
+          "transcript": "I don't know already. Bye, so you're having fun.",
+          "expected": "Afternoon already! Time flies when you're having fun!",
+          "original": "Afternoon already! Time flies when you're having fun!"
+        },
+        "69": {
+          "sim": 0.890625,
+          "flag": "OK",
+          "transcript": "I bet all would appreciate this style pattern. Very much zoom-like.",
+          "expected": "I bet Toad would appreciate this tile pattern, Very mushroom like!",
+          "original": "I bet Toad would appreciate this tile pattern. Very mushroom-like!"
+        },
+        "70": {
+          "sim": 0.7663551401869159,
+          "flag": "OK",
+          "transcript": "This bathroom is cleaner, then the boughs are you are the castle.",
+          "expected": "This bathroom is cleaner than Bowser's castle!",
+          "original": "This bathroom is cleaner than Bowser's castle!"
+        },
+        "71": {
+          "sim": 0.9795918367346939,
+          "flag": "GOOD",
+          "transcript": "Did you know? In Super Mario 64, I can do over 20 different types of jumps.",
+          "expected": "Did you know? In Super Mario sixty four, I can do over twenty different types of jumps!",
+          "original": "Did you know? In Super Mario 64, I can do over 20 different types of jumps!"
+        },
+        "72": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "I wonder what Luigi is doing right now.",
+          "expected": "I wonder what Luigi is doing right now",
+          "original": "I wonder what Luigi is doing right now..."
+        },
+        "73": {
+          "sim": 1.0,
+          "flag": "GOOD",
+          "transcript": "Mama Mia, the acoustics in here are perfect for singing.",
+          "expected": "Mama mia, the acoustics in here are perfect for singing!",
+          "original": "Mama mia, the acoustics in here are perfect for singing!"
+        }
+      }
     }
   ],
   "best_scores": {
