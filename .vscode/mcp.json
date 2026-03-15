@@ -16,18 +16,50 @@
         "@wonderwhy-er/desktop-commander@latest"
       ]
     },
+    "diagram-tools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@drawio/mcp@latest"
+      ]
+    },
     "memory": {
       "command": "uvx",
-      "args": ["mcp-server-qdrant"],
+      "args": [
+        "mcp-server-qdrant"
+      ],
       "env": {
-        "QDRANT_LOCAL_PATH": "./quadrant.db",
-        "COLLECTION_NAME": "wellnessscape_memory"
+        "COLLECTION_NAME": "memory",
+        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+        "QDRANT_LOCAL_PATH": "./qdrant.db"
       }
+    },
+    "playwright-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--output-dir",
+        "artifacts/playwright"
+      ]
     },
     "time": {
       "command": "uvx",
-      "args": ["mcp-server-time", "--local-timezone=America/New_York"],
+      "args": [
+        "mcp-server-time",
+        "--local-timezone=America/New_York"
+      ],
       "env": {}
-    }
+    },
+    "token-saver": {
+      "command": "uvx",
+      "args": [
+        "jcodemunch-mcp",
+        "--log-level",
+        "DEBUG",
+        "--log-file",
+        "token-saver.log"
+      ]
+    } // https://github.com/jgravelle/jcodemunch-mcp/tree/main
   }
 }

@@ -1,13 +1,6 @@
 {
-  "python-envs.pythonProjects": [
-    {
-      "path": "",
-      "envManager": "ms-python.python:pyenv",
-      "packageManager": "ms-python.python:pip"
-    }
-  ],
   "chat.mcp.serverSampling": {
-    "WellnessScape/.vscode/mcp.json: chrome-devtools": {
+    ".vscode/mcp.json: chrome-devtools": {
       "allowedModels": [
         "copilot/auto",
         "copilot/claude-haiku-4.5",
@@ -16,12 +9,12 @@
         "copilot/gemini-3-pro-preview",
         "copilot/gpt-4.1",
         "copilot/gpt-4o",
-        "copilot/gpt-5.2",
+        "copilot/gpt-5.4",
         "copilot/gpt-5.3-codex",
         "copilot/grok-code-fast-1"
       ]
     },
-    "WellnessScape/.vscode/mcp.json: desktop-commander": {
+    ".vscode/mcp.json: desktop-commander": {
       "allowedModels": [
         "copilot/auto",
         "copilot/claude-haiku-4.5",
@@ -30,12 +23,12 @@
         "copilot/gemini-3-pro-preview",
         "copilot/gpt-4.1",
         "copilot/gpt-4o",
-        "copilot/gpt-5.2",
+        "copilot/gpt-5.4",
         "copilot/gpt-5.3-codex",
         "copilot/grok-code-fast-1"
       ]
     },
-    "WellnessScape/.vscode/mcp.json: memory": {
+    ".vscode/mcp.json: diagram-tools": {
       "allowedModels": [
         "copilot/auto",
         "copilot/claude-haiku-4.5",
@@ -44,12 +37,12 @@
         "copilot/gemini-3-pro-preview",
         "copilot/gpt-4.1",
         "copilot/gpt-4o",
-        "copilot/gpt-5.2",
+        "copilot/gpt-5.4",
         "copilot/gpt-5.3-codex",
         "copilot/grok-code-fast-1"
       ]
     },
-    "WellnessScape/.vscode/mcp.json: time": {
+    ".vscode/mcp.json: memory": {
       "allowedModels": [
         "copilot/auto",
         "copilot/claude-haiku-4.5",
@@ -58,7 +51,35 @@
         "copilot/gemini-3-pro-preview",
         "copilot/gpt-4.1",
         "copilot/gpt-4o",
-        "copilot/gpt-5.2",
+        "copilot/gpt-5.4",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    },
+    ".vscode/mcp.json: playwright-mcp": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.4",
+        "copilot/gpt-5.3-codex",
+        "copilot/grok-code-fast-1"
+      ]
+    },
+    ".vscode/mcp.json: time": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilot/claude-haiku-4.5",
+        "copilot/claude-opus-4.6",
+        "copilot/claude-sonnet-4.6",
+        "copilot/gemini-3-pro-preview",
+        "copilot/gpt-4.1",
+        "copilot/gpt-4o",
+        "copilot/gpt-5.4",
         "copilot/gpt-5.3-codex",
         "copilot/grok-code-fast-1"
       ]

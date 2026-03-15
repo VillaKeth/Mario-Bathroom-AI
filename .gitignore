@@ -38,8 +38,6 @@ server/data/ralph_refs/
 server/data/ralph_results/
 
 # IDE / OS
-.claude/
-.vscode/
 *.swp
 *.swo
 Thumbs.db
