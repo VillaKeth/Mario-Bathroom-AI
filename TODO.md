@@ -877,3 +877,9 @@
 - [x] R70: 74.0% (first round with Bowzur+filler-skip fixes)
 - [x] R71: 72.6%, R72: 69.9% — scores in typical range, overnight loop continuing
 - [ ] Chase 85%+ — may need hybrid TTS (GPT-SoVITS for good phrases, Edge for persistent failures)
+
+## Build & Deployment
+- [x] Created root-level requirements.txt combining server + client deps
+- [x] Created Makefile with venv support (make, make server, make client, etc.)
+- [ ] Add Docker support for containerized deployment
+- [ ] Add CI/CD pipeline for automated testing

@@ -1,0 +1,39 @@
+# =============================================================
+# Mario AI — Bathroom Party Bot — Combined Requirements
+# =============================================================
+# This file combines all dependencies for both server and client.
+# Use: pip install -r requirements.txt
+# =============================================================
+
+# --- Web / Networking ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+websockets==12.0
+websocket-client==1.8.0
+httpx==0.27.0
+requests>=2.31.0
+
+# --- AI / ML ---
+faster-whisper==1.0.3
+resemblyzer==0.1.3
+torch>=2.1.0
+torchaudio>=2.1.0
+
+# --- Text-to-Speech ---
+edge-tts>=7.2.7
+
+# --- Audio ---
+sounddevice==0.4.7
+soundfile==0.12.1
+
+# --- Numeric / Scientific ---
+numpy==1.26.4
+scipy==1.13.0
+
+# --- Graphics / Display ---
+pygame==2.6.0
+opencv-python==4.10.0.84
+Pillow==10.4.0
+
+# --- Misc ---
+PyYAML>=6.0
