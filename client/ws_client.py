@@ -31,7 +31,8 @@ class MarioWSClient:
 
         self._expecting_audio = False
 
-        # Reconnection state tracking
+        # Reconnection state tracking (protected by lock)
+        self._reconnect_lock = threading.Lock()
         self._reconnecting = False
         self._reconnect_attempt = 0
         self._reconnect_max_attempts = 20
@@ -82,8 +83,9 @@ class MarioWSClient:
             base_delay = min(30, self._reconnect_delay * (2 ** min(attempt - 1, 4)))
             jitter = random.uniform(0, 2)
             delay = base_delay + jitter
-            self._reconnect_current_delay = delay
-            self._reconnecting = True
+            with self._reconnect_lock:
+                self._reconnect_current_delay = delay
+                self._reconnecting = True
             if DEBUG_WS:
                 logger.info(f"[DEBUG_WS] reconnecting in {delay:.0f}s (attempt {attempt}/{MAX_RECONNECT_ATTEMPTS})...")
             time.sleep(delay)
@@ -92,10 +94,11 @@ class MarioWSClient:
         if DEBUG_WS:
             logger.info("[DEBUG_WS] connected!")
         self._connected = True
-        self._attempt = 0  # Reset attempt counter on successful connection
-        self._reconnecting = False
-        self._reconnect_attempt = 0
-        self._reconnect_current_delay = 0.0
+        self._attempt = 0
+        with self._reconnect_lock:
+            self._reconnecting = False
+            self._reconnect_attempt = 0
+            self._reconnect_current_delay = 0.0
         if self.on_connected:
             self.on_connected()
 
@@ -144,18 +147,31 @@ class MarioWSClient:
         if self.on_disconnected:
             self.on_disconnected()
 
+    def _is_socket_ready(self):
+        """Safely check if WebSocket is connected and ready to send."""
+        try:
+            return (self._connected and self._ws
+                    and hasattr(self._ws, 'sock') and self._ws.sock
+                    and hasattr(self._ws.sock, 'connected') and self._ws.sock.connected)
+        except Exception:
+            return False
+
     def send_audio(self, audio_bytes: bytes):
         """Send audio data to the server."""
-        if self._connected and self._ws and self._ws.sock and self._ws.sock.connected:
+        if self._is_socket_ready():
             try:
                 self._ws.send(audio_bytes, opcode=websocket.ABNF.OPCODE_BINARY)
             except Exception as e:
                 logger.error(f"[DEBUG_WS] send_audio error: {e}")
                 self._connected = False
+                try:
+                    self._ws.close()
+                except Exception:
+                    pass
 
     def send_event(self, event: dict):
         """Send a JSON event to the server."""
-        if self._connected and self._ws and self._ws.sock and self._ws.sock.connected:
+        if self._is_socket_ready():
             try:
                 self._ws.send(json.dumps(event))
                 if DEBUG_WS:
@@ -163,6 +179,10 @@ class MarioWSClient:
             except Exception as e:
                 logger.error(f"[DEBUG_WS] send_event error: {e}")
                 self._connected = False
+                try:
+                    self._ws.close()
+                except Exception:
+                    pass
 
     @property
     def connected(self):

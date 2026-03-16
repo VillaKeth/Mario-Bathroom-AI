@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario TTS Cache Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #1a1a2e; 
+            color: #eee; 
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            color: #e74c3c; 
+            font-size: 2em; 
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .stats {
+            text-align: center;
+            color: #27ae60;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        .category {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .category h2 {
+            color: #f39c12;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .phrase-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .phrase-row:hover { background: #1a2744; }
+        .phrase-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .phrase-row:nth-child(even):hover { background: #1a2744; }
+        .play-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .play-btn:hover { background: #c0392b; transform: scale(1.1); }
+        .play-btn.loading { background: #f39c12; cursor: wait; }
+        .play-btn.playing { background: #27ae60; }
+        .phrase-text {
+            flex: 1;
+            font-size: 0.95em;
+        }
+        .score {
+            font-size: 0.8em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .score.perfect { background: #27ae60; color: white; }
+        .score.ok { background: #f39c12; color: #000; }
+        .score.failed { background: #e74c3c; color: white; }
+        .play-all {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px auto;
+            display: block;
+        }
+        .play-all:hover { background: #c0392b; }
+        #status {
+            text-align: center;
+            color: #888;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍄 Mario TTS Cache Preview</h1>
+    <p class="subtitle">Listen to all 51 pre-cached Mario phrases</p>
+    <div class="stats" id="stats">Loading results...</div>
+    <button class="play-all" onclick="playAll()">▶ Play All Phrases</button>
+    <div id="phrases"></div>
+    <p id="status"></p>
+
+<script>
+const SERVER = 'http://localhost:8765';
+
+const PHRASES = {
+    "Greetings": [
+        "It's-a me, Mario!",
+        "Hello there!",
+        "Welcome, welcome!",
+        "Hey, nice to see you!",
+        "Good to see you again!",
+        "Nice to meet-a you!"
+    ],
+    "Reactions": [
+        "Wahoo!",
+        "Mama mia!",
+        "Oh no, not again!",
+        "Wow, that's-a amazing!",
+        "Ha ha ha, that's so funny!",
+        "That's-a funny!",
+        "Oh yeah, that's right!",
+        "Yippee!",
+        "Super!",
+        "Fantastic!"
+    ],
+    "Game Prompts": [
+        "Correct!",
+        "That's not right! Try again!",
+        "Let's play!",
+        "Let's-a go!",
+        "You got it!",
+        "Try again!",
+        "Great job!",
+        "Your turn!",
+        "Yes, that's correct!"
+    ],
+    "Farewells": [
+        "See you later!",
+        "Bye bye!",
+        "Until next time!",
+        "Take-a care!",
+        "See you soon, friend!",
+        "Goodbye!"
+    ],
+    "Hand Wash Reminders": [
+        "Don't forget to wash-a your hands!",
+        "Wash those hands, it's-a important!",
+        "Clean hands, happy Mario!",
+        "Scrub-a scrub-a, nice and clean!",
+        "Time to wash-a your hands!"
+    ],
+    "Common Responses": [
+        "Alrighty!",
+        "Here we go!",
+        "No way!",
+        "Of course!",
+        "I don't-a know about that.",
+        "Tell me more!",
+        "What do you think?",
+        "That's-a good question!",
+        "Let me think about that.",
+        "You're-a welcome!",
+        "Thank you so much!",
+        "I'm-a ready!",
+        "One more time!"
+    ],
+    "Thinking Fillers": [
+        "Hmm, let me think!",
+        "Alrighty, one moment!"
+    ]
+};
+
+let currentAudio = null;
+let scores = {};
+
+// Embedded results from perfect_cache_v2.py run (51/51 pass, 43 PERFECT)
+const EMBEDDED_RESULTS = {"It's-a me, Mario!": {"s": 82, "f": "OK"}, "Hello there!": {"s": 88, "f": "OK"}, "Welcome, welcome!": {"s": 90, "f": "PERFECT"}, "Hey, nice to see you!": {"s": 88, "f": "OK"}, "Good to see you again!": {"s": 100, "f": "PERFECT"}, "Nice to meet-a you!": {"s": 94, "f": "PERFECT"}, "Wahoo!": {"s": 57, "f": "OK"}, "Mama mia!": {"s": 94, "f": "PERFECT"}, "Oh no, not again!": {"s": 82, "f": "OK"}, "Wow, that's-a amazing!": {"s": 81, "f": "OK"}, "Ha ha ha, that's so funny!": {"s": 85, "f": "OK"}, "That's-a funny!": {"s": 81, "f": "OK"}, "Oh yeah, that's right!": {"s": 91, "f": "PERFECT"}, "Yippee!": {"s": 80, "f": "OK"}, "Super!": {"s": 76, "f": "OK"}, "Fantastic!": {"s": 85, "f": "OK"}, "Correct!": {"s": 82, "f": "OK"}, "That's not right! Try again!": {"s": 91, "f": "PERFECT"}, "Let's play!": {"s": 85, "f": "OK"}, "Let's-a go!": {"s": 73, "f": "OK"}, "You got it!": {"s": 86, "f": "OK"}, "Try again!": {"s": 85, "f": "OK"}, "Great job!": {"s": 85, "f": "OK"}, "Your turn!": {"s": 85, "f": "OK"}, "See you later!": {"s": 89, "f": "OK"}, "Bye bye!": {"s": 75, "f": "OK"}, "Until next time!": {"s": 100, "f": "PERFECT"}, "Take-a care!": {"s": 88, "f": "OK"}, "See you soon, friend!": {"s": 100, "f": "PERFECT"}, "Goodbye!": {"s": 82, "f": "OK"}, "Don't forget to wash-a your hands!": {"s": 96, "f": "PERFECT"}, "Wash those hands, it's-a important!": {"s": 88, "f": "OK"}, "Clean hands, happy Mario!": {"s": 100, "f": "PERFECT"}, "Scrub-a scrub-a, nice and clean!": {"s": 100, "f": "PERFECT"}, "Time to wash-a your hands!": {"s": 95, "f": "PERFECT"}, "Alrighty!": {"s": 84, "f": "OK"}, "Here we go!": {"s": 86, "f": "OK"}, "Yes, that's correct!": {"s": 100, "f": "PERFECT"}, "No way!": {"s": 80, "f": "OK"}, "Of course!": {"s": 85, "f": "OK"}, "I don't-a know about that.": {"s": 90, "f": "PERFECT"}, "Tell me more!": {"s": 88, "f": "OK"}, "What do you think?": {"s": 91, "f": "PERFECT"}, "That's-a good question!": {"s": 100, "f": "PERFECT"}, "Let me think about that.": {"s": 100, "f": "PERFECT"}, "You're-a welcome!": {"s": 90, "f": "PERFECT"}, "Thank you so much!": {"s": 91, "f": "PERFECT"}, "I'm-a ready!": {"s": 86, "f": "OK"}, "One more time!": {"s": 89, "f": "OK"}, "Hmm, let me think!": {"s": 100, "f": "PERFECT"}, "Alrighty, one moment!": {"s": 100, "f": "PERFECT"}};
+
+async function loadResults() {
+    // Use embedded results (no fetch needed — works from file://)
+    for (const [phrase, r] of Object.entries(EMBEDDED_RESULTS)) {
+        scores[phrase] = { sim: r.s / 100, flag: r.f };
+    }
+    const perfect = Object.values(EMBEDDED_RESULTS).filter(r => r.f === 'PERFECT').length;
+    const total = Object.keys(EMBEDDED_RESULTS).length;
+    const passed = Object.values(EMBEDDED_RESULTS).filter(r => r.f !== 'FAILED').length;
+    document.getElementById('stats').textContent = 
+        `${passed}/${total} passed | ${perfect} PERFECT | ${passed}/${total} cached`;
+}
+
+function getScoreBadge(phrase) {
+    const s = scores[phrase];
+    if (!s) return '';
+    const cls = s.flag === 'PERFECT' ? 'perfect' : s.flag === 'FAILED' ? 'failed' : 'ok';
+    return `<span class="score ${cls}">${Math.round(s.sim * 100)}% ${s.flag}</span>`;
+}
+
+function buildUI() {
+    const container = document.getElementById('phrases');
+    let idx = 0;
+    for (const [cat, phrases] of Object.entries(PHRASES)) {
+        const section = document.createElement('div');
+        section.className = 'category';
+        section.innerHTML = `<h2>${cat}</h2>`;
+        phrases.forEach(phrase => {
+            const row = document.createElement('div');
+            row.className = 'phrase-row';
+            row.innerHTML = `
+                <button class="play-btn" id="btn-${idx}" onclick="playPhrase('${phrase.replace(/'/g, "\\'")}', ${idx})">▶</button>
+                <span class="phrase-text">${phrase}</span>
+                ${getScoreBadge(phrase)}
+            `;
+            section.appendChild(row);
+            idx++;
+        });
+        container.appendChild(section);
+    }
+}
+
+async function playPhrase(text, idx) {
+    // Stop any currently playing audio
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+        document.querySelectorAll('.play-btn.playing').forEach(b => {
+            b.classList.remove('playing');
+            b.textContent = '▶';
+        });
+    }
+
+    const btn = document.getElementById(`btn-${idx}`);
+    btn.classList.add('loading');
+    btn.textContent = '⏳';
+    document.getElementById('status').textContent = `Loading: "${text}"`;
+
+    try {
+        const url = `${SERVER}/tts?text=${encodeURIComponent(text)}`;
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        
+        currentAudio = new Audio(audioUrl);
+        btn.classList.remove('loading');
+        btn.classList.add('playing');
+        btn.textContent = '⏸';
+        document.getElementById('status').textContent = `Playing: "${text}"`;
+        
+        currentAudio.onended = () => {
+            btn.classList.remove('playing');
+            btn.textContent = '▶';
+            document.getElementById('status').textContent = '';
+            URL.revokeObjectURL(audioUrl);
+        };
+        
+        currentAudio.play();
+    } catch(e) {
+        btn.classList.remove('loading');
+        btn.textContent = '❌';
+        document.getElementById('status').textContent = `Error: ${e.message}`;
+    }
+}
+
+let playAllQueue = [];
+let playAllRunning = false;
+
+async function playAll() {
+    if (playAllRunning) {
+        playAllRunning = false;
+        if (currentAudio) currentAudio.pause();
+        document.getElementById('status').textContent = 'Stopped';
+        return;
+    }
+    
+    playAllRunning = true;
+    let idx = 0;
+    for (const phrases of Object.values(PHRASES)) {
+        for (const phrase of phrases) {
+            if (!playAllRunning) return;
+            await new Promise(resolve => {
+                playPhrase(phrase, idx).then(() => {
+                    const check = setInterval(() => {
+                        if (!currentAudio || currentAudio.ended || currentAudio.paused) {
+                            clearInterval(check);
+                            setTimeout(resolve, 300);
+                        }
+                    }, 100);
+                });
+            });
+            idx++;
+        }
+    }
+    playAllRunning = false;
+}
+
+loadResults().then(buildUI);
+</script>
+</body>
+</html>

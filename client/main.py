@@ -87,6 +87,9 @@ class MarioClient:
             logger.warning("Webcam not available — presence detection disabled")
             self.display.set_subtitle("⚠ No webcam detected")
 
+        # Pre-flight server health check
+        self._preflight_check()
+
         # Connect to server
         self.ws.connect()
 
@@ -131,6 +134,31 @@ class MarioClient:
         self.ws.close()
         self.display.quit()
 
+    def _preflight_check(self):
+        """Check server is reachable before connecting WebSocket."""
+        import urllib.request
+        health_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "/health")
+        self.display.set_mario_text("Checking server...")
+        self.display.update()
+        for attempt in range(3):
+            try:
+                req = urllib.request.urlopen(health_url, timeout=5)
+                data = json.loads(req.read())
+                if data.get("status") == "ok":
+                    logger.info(f"Server health OK — TTS cache: {data.get('tts_cache_size', '?')}, LLM: {data.get('llm_model', '?')}")
+                    self.display.set_mario_text("Server connected! Let's-a go!")
+                    self.display.update()
+                    return True
+            except Exception as e:
+                logger.warning(f"Health check attempt {attempt+1}/3 failed: {e}")
+                self.display.set_mario_text(f"Waiting for server... ({attempt+1}/3)")
+                self.display.update()
+                time.sleep(3)
+        logger.warning("Server health check failed — will try connecting anyway")
+        self.display.set_mario_text("Server not responding — retrying...")
+        self.display.update()
+        return False
+
     def _audio_stream_loop(self):
         """Continuously stream audio to the server."""
         SEND_INTERVAL = 0.25  # Send audio every 250ms
@@ -152,8 +180,11 @@ class MarioClient:
                     self.display.set_thinking(True)
                 audio_buffer = bytearray()
             elif len(audio_buffer) > 64000:
-                # Cap buffer to prevent memory bloat under heavy audio load
-                logger.warning(f"[DEBUG_CLIENT] Audio buffer overflow ({len(audio_buffer)} bytes), trimming")
+                if self.ws.connected:
+                    # Server connected but we're not sending — likely playing back; pause capture briefly
+                    logger.warning(f"[DEBUG_CLIENT] Audio buffer overflow ({len(audio_buffer)} bytes), pausing capture")
+                    time.sleep(0.3)
+                # Keep only last 8KB to prevent memory bloat
                 audio_buffer = audio_buffer[-8000:]
 
             time.sleep(0.01)

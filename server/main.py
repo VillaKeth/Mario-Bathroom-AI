@@ -21,10 +21,11 @@ import random
 import re
 import time
 import threading
+import httpx
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from contextlib import asynccontextmanager
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -172,6 +173,31 @@ state_current = {
 # Dedicated single-thread executor for TTS (prevents GPU contention)
 _tts_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
 
+# Background task limiter (prevents unbounded memory growth from fact extraction)
+_bg_tasks: set = set()
+MAX_BG_TASKS = 10
+
+# Idle loop error backoff counter
+_idle_error_count = 0
+
+
+async def _llm_keepalive():
+    """Ping Ollama every 4 min to prevent model unloading from VRAM."""
+    while True:
+        try:
+            await asyncio.sleep(240)
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    "http://localhost:11434/api/chat",
+                    json={"model": llm.MODEL_NAME, "messages": [{"role": "user", "content": "hi"}],
+                          "stream": False, "keep_alive": "30m", "options": {"num_predict": 1}},
+                    timeout=15.0
+                )
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            pass  # Non-critical, just keepalive
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -211,8 +237,13 @@ async def lifespan(app: FastAPI):
     threading.Thread(target=tts.precache_phrases, daemon=True).start()
     logger.info("Pre-caching common Mario phrases in background...")
 
+    # Start LLM keepalive to prevent Ollama from unloading model from VRAM
+    _keepalive_task = asyncio.create_task(_llm_keepalive())
+    logger.info("Started LLM keepalive ping (every 4min, keep_alive=30m)")
+
     logger.info("=== Mario AI Server Ready! Let's-a go! ===")
     yield
+    _keepalive_task.cancel()
     logger.info("=== Mario AI Server Shutting Down ===")
     _tts_executor.shutdown(wait=False)
     if tts._edge_executor:
@@ -459,6 +490,12 @@ async def tts_endpoint(text: str = "", nocache: bool = False):
     """Generate TTS audio for a given text and return WAV file."""
     if not text or len(text) > 300:
         return {"status": "error", "message": "Text required (max 300 chars)"}
+    # Fast path: check in-memory cache without executor/semaphore overhead
+    if not nocache:
+        cached = tts.get_cached(text)
+        if cached:
+            return Response(content=cached, media_type="audio/wav",
+                           headers={"Content-Disposition": "attachment; filename=mario_tts.wav"})
     async with _tts_semaphore:
         loop = asyncio.get_event_loop()
         try:
@@ -467,11 +504,8 @@ async def tts_endpoint(text: str = "", nocache: bool = False):
             )
             if not audio_bytes:
                 return {"status": "error", "message": "TTS synthesis failed"}
-            import tempfile
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-            tmp.write(audio_bytes)
-            tmp.close()
-            return FileResponse(tmp.name, media_type="audio/wav", filename="mario_tts.wav")
+            return Response(content=audio_bytes, media_type="audio/wav",
+                           headers={"Content-Disposition": "attachment; filename=mario_tts.wav"})
         except Exception as e:
             logger.error(f"TTS endpoint error: {e}")
             return {"status": "error", "message": str(e)}
@@ -484,6 +518,24 @@ async def tts_test_page():
     if os.path.exists(test_page):
         return FileResponse(test_page, media_type="text/html")
     return HTMLResponse("<h1>tts_test.html not found</h1>", status_code=404)
+
+
+@app.get("/tts_cache_preview")
+async def tts_cache_preview_page():
+    """Serve the TTS cache preview HTML page."""
+    preview_page = os.path.join(os.path.dirname(__file__), "..", "tts_cache_preview.html")
+    if os.path.exists(preview_page):
+        return FileResponse(preview_page, media_type="text/html")
+    return HTMLResponse("<h1>tts_cache_preview.html not found</h1>", status_code=404)
+
+
+@app.get("/perfect_cache_results.json")
+async def perfect_cache_results():
+    """Serve the perfect cache results JSON file."""
+    results_path = os.path.join(os.path.dirname(__file__), "..", "perfect_cache_results.json")
+    if os.path.exists(results_path):
+        return FileResponse(results_path, media_type="application/json")
+    return HTMLResponse("{}", status_code=404)
 
 
 @app.get("/pause_idle")
@@ -646,9 +698,11 @@ async def _emotion_decay_loop():
 
 async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
+    global _idle_error_count
     loop = asyncio.get_event_loop()
     while True:
         await asyncio.sleep(random.uniform(3, 8))
+        _idle_error_count = 0  # Reset backoff on successful iteration
 
         # Skip idle TTS when a user request is being processed (prevents GPU contention)
         async with _state_lock:
@@ -773,8 +827,10 @@ async def _idle_loop(ws: WebSocket):
                 logger.info("Idle loop cancelled")
                 return
             except Exception as e:
-                logger.error(f"Idle loop error: {e}")
-                await asyncio.sleep(10)  # Back off on error, don't kill idle permanently
+                _idle_error_count += 1
+                backoff = min(60, 10 * (2 ** min(_idle_error_count - 1, 3)))
+                logger.error(f"Idle loop error (#{_idle_error_count}): {e}, backing off {backoff}s")
+                await asyncio.sleep(backoff)
 
 
 async def handle_audio(ws: WebSocket, audio_bytes: bytes):
@@ -789,7 +845,7 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
 
         CHUNK_SIZE = 96000
         MIN_PROCESS_SIZE = 16000  # Minimum buffer to process on timeout
-        BUFFER_TIMEOUT = 5.0  # Process partial buffer after 5s
+        BUFFER_TIMEOUT = 2.5  # Process partial buffer after 2.5s (was 5s — too slow for party)
         # Prevent unbounded buffer growth (max 500KB)
         MAX_BUFFER = 500000
         if len(state_current["audio_buffer"]) > MAX_BUFFER:
@@ -1496,8 +1552,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
-        # Conversation history — keep window small for fast LLM on 1.5B model
-        hist_window = min(6, len(state_current["conversation_history"]))
+        # Conversation history — llama3 8B can handle more context than qwen2 1.5B
+        hist_window = min(10, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
@@ -1511,8 +1567,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Play "thinking" audio AND run LLM concurrently
         # These short phrases should be cache hits (instant)
         thinking_phrases = [
-            "Let me think about that.", "Hmm, let me think!", "Okie dokie, one moment!",
-            "Oh!", "Hmm!", "Well!", "Ha!", "Wahoo!", "Ooh!",
+            "Let me think about that.", "Hmm, let me think!", "Alrighty, one moment!",
+            "Wahoo!", "Here we go!", "Alrighty!", "That's-a good question!",
+            "I'm-a ready!", "Super!", "Fantastic!",
         ]
         thinking_text = random.choice(thinking_phrases)
 
@@ -1609,7 +1666,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     state_current["_session_topics"].update(topics)
             except Exception as e:
                 logger.error(f"Background fact extraction failed: {e}")
-        asyncio.create_task(_bg_extract())
+        if len(_bg_tasks) >= MAX_BG_TASKS:
+            logger.warning(f"Too many background tasks ({len(_bg_tasks)}), skipping fact extraction")
+        else:
+            task = asyncio.create_task(_bg_extract())
+            _bg_tasks.add(task)
+            task.add_done_callback(_bg_tasks.discard)
 
     # TTS with sentence streaming
     voice_params = emotion_system.get_voice_params()
@@ -1626,18 +1688,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
         try:
+            # Generate first sentence audio
             first_audio = await loop.run_in_executor(
                 _tts_executor, lambda: tts.synthesize_user(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-            rest_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize_user(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-            if first_audio and rest_audio and len(rest_audio) > 44:
+            if first_audio and len(first_audio) > 44:
+                # Send first sentence IMMEDIATELY — client plays while we generate second
                 await send_response(ws, analyzed["display_text"], first_audio,
                     sound=game_sound, emotion=emotion_system.current,
                     pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
                     particle_effect=particle)
-                await ws.send_bytes(rest_audio)
+                # Generate second sentence while first plays on client (~2-3s overlap)
+                rest_audio = await loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                if rest_audio and len(rest_audio) > 44:
+                    await ws.send_bytes(rest_audio)
                 streamed = True
-            # If either audio failed, fall through to non-streaming path
         except Exception as e:
             logger.error(f"Streaming TTS failed, falling back: {e}")
 
@@ -2103,28 +2168,33 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         pose_hint: str = None, response_time: float = None,
                         particle_effect: str = None):
     """Send Mario's response (text + audio + metadata) to the client."""
-    try:
-        msg = {
-            "type": "mario_response",
-            "text": text,
-            "has_audio": audio is not None and len(audio) > 0,
-            "sound_effect": sound,
-            "emotion": emotion or emotion_system.current,
-            "animation": emotion_system.animation_state,
-        }
-        if pose_hint:
-            msg["pose_hint"] = pose_hint
-        if response_time is not None:
-            msg["response_time"] = round(response_time, 1)
-        if particle_effect:
-            msg["particle_effect"] = particle_effect
+    msg = {
+        "type": "mario_response",
+        "text": text,
+        "has_audio": audio is not None and len(audio) > 0,
+        "sound_effect": sound,
+        "emotion": emotion or emotion_system.current,
+        "animation": emotion_system.animation_state,
+    }
+    if pose_hint:
+        msg["pose_hint"] = pose_hint
+    if response_time is not None:
+        msg["response_time"] = round(response_time, 1)
+    if particle_effect:
+        msg["particle_effect"] = particle_effect
 
-        await ws.send_json(msg)
-
-        if audio and len(audio) > 0:
-            await ws.send_bytes(audio)
-    except Exception as e:
-        logger.error(f"send_response failed: {e}")
+    for attempt in range(2):
+        try:
+            await ws.send_json(msg)
+            if audio and len(audio) > 0:
+                await ws.send_bytes(audio)
+            return
+        except Exception as e:
+            if attempt == 0:
+                logger.warning(f"send_response attempt 1 failed: {e}, retrying...")
+                await asyncio.sleep(0.1)
+            else:
+                logger.error(f"send_response failed after retry: {e}")
 
 
 if __name__ == "__main__":

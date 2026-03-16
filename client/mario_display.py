@@ -133,6 +133,7 @@ class MarioDisplay:
         self._screen = None
         self._clock = None
         self._running = False
+        self._initialized = False
         self._font = None
         self._font_small = None
         self._font_title = None
@@ -272,6 +273,7 @@ class MarioDisplay:
         self._running = True
 
         self._load_sprites()
+        self._bg_surface = None  # cached static background
 
         if DEBUG_DISPLAY:
             logger.info("[DEBUG_DISPLAY] MarioDisplay.init: END")
@@ -554,71 +556,63 @@ class MarioDisplay:
     # ==========================================
 
     def _draw_background(self):
-        """Draw the bathroom background scene."""
-        # Tile pattern on walls
-        tile_color1 = (40, 50, 70)
-        tile_color2 = (35, 45, 65)
-        grout_color = (30, 35, 50)
-        tile_size = 40
+        """Draw the bathroom background scene (cached for performance)."""
+        if self._bg_surface is None:
+            self._bg_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+            tile_color1 = (40, 50, 70)
+            tile_color2 = (35, 45, 65)
+            grout_color = (30, 35, 50)
+            tile_size = 40
 
-        # Draw tiled wall
-        for row in range(WINDOW_HEIGHT // tile_size + 1):
+            for row in range(WINDOW_HEIGHT // tile_size + 1):
+                for col in range(WINDOW_WIDTH // tile_size + 1):
+                    x = col * tile_size
+                    y = row * tile_size
+                    color = tile_color1 if (row + col) % 2 == 0 else tile_color2
+                    pygame.draw.rect(self._bg_surface, color, (x, y, tile_size, tile_size))
+                    pygame.draw.rect(self._bg_surface, grout_color, (x, y, tile_size, tile_size), 1)
+
+            floor_y = WINDOW_HEIGHT - 80
+            floor_color1 = (60, 50, 40)
+            floor_color2 = (50, 40, 30)
             for col in range(WINDOW_WIDTH // tile_size + 1):
                 x = col * tile_size
-                y = row * tile_size
-                color = tile_color1 if (row + col) % 2 == 0 else tile_color2
-                pygame.draw.rect(self._screen, color, (x, y, tile_size, tile_size))
-                pygame.draw.rect(self._screen, grout_color, (x, y, tile_size, tile_size), 1)
+                color = floor_color1 if col % 2 == 0 else floor_color2
+                pygame.draw.rect(self._bg_surface, color, (x, floor_y, tile_size, 80))
+                pygame.draw.rect(self._bg_surface, (40, 30, 20), (x, floor_y, tile_size, 80), 1)
 
-        # Floor (darker tiles at bottom)
-        floor_y = WINDOW_HEIGHT - 80
-        floor_color1 = (60, 50, 40)
-        floor_color2 = (50, 40, 30)
-        for col in range(WINDOW_WIDTH // tile_size + 1):
-            x = col * tile_size
-            color = floor_color1 if col % 2 == 0 else floor_color2
-            pygame.draw.rect(self._screen, color, (x, floor_y, tile_size, 80))
-            pygame.draw.rect(self._screen, (40, 30, 20), (x, floor_y, tile_size, 80), 1)
+            mirror_x, mirror_y = 30, 80
+            mirror_w, mirror_h = 120, 160
+            pygame.draw.rect(self._bg_surface, (80, 80, 90), (mirror_x - 4, mirror_y - 4, mirror_w + 8, mirror_h + 8))
+            pygame.draw.rect(self._bg_surface, (140, 160, 180), (mirror_x, mirror_y, mirror_w, mirror_h))
+            pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 10, mirror_y + 10), (mirror_x + 10, mirror_y + 50), 2)
+            pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 15, mirror_y + 10), (mirror_x + 15, mirror_y + 30), 1)
 
-        # Mirror on left wall
-        mirror_x, mirror_y = 30, 80
-        mirror_w, mirror_h = 120, 160
-        pygame.draw.rect(self._screen, (80, 80, 90), (mirror_x - 4, mirror_y - 4, mirror_w + 8, mirror_h + 8))
-        pygame.draw.rect(self._screen, (140, 160, 180), (mirror_x, mirror_y, mirror_w, mirror_h))
-        # Mirror shine
-        pygame.draw.line(self._screen, (180, 200, 220), (mirror_x + 10, mirror_y + 10), (mirror_x + 10, mirror_y + 50), 2)
-        pygame.draw.line(self._screen, (180, 200, 220), (mirror_x + 15, mirror_y + 10), (mirror_x + 15, mirror_y + 30), 1)
+            sink_y = mirror_y + mirror_h + 10
+            pygame.draw.ellipse(self._bg_surface, (180, 180, 190), (mirror_x + 10, sink_y, 100, 30))
+            pygame.draw.ellipse(self._bg_surface, (160, 160, 170), (mirror_x + 20, sink_y + 5, 80, 20))
+            pygame.draw.rect(self._bg_surface, (150, 150, 160), (mirror_x + 55, sink_y - 15, 10, 18))
+            pygame.draw.rect(self._bg_surface, (170, 170, 180), (mirror_x + 50, sink_y - 15, 20, 5))
 
-        # Sink below mirror
-        sink_y = mirror_y + mirror_h + 10
-        pygame.draw.ellipse(self._screen, (180, 180, 190), (mirror_x + 10, sink_y, 100, 30))
-        pygame.draw.ellipse(self._screen, (160, 160, 170), (mirror_x + 20, sink_y + 5, 80, 20))
-        # Faucet
-        pygame.draw.rect(self._screen, (150, 150, 160), (mirror_x + 55, sink_y - 15, 10, 18))
-        pygame.draw.rect(self._screen, (170, 170, 180), (mirror_x + 50, sink_y - 15, 20, 5))
+            toilet_x = WINDOW_WIDTH - 140
+            toilet_y = floor_y - 80
+            pygame.draw.rect(self._bg_surface, (200, 200, 210), (toilet_x + 15, toilet_y - 50, 60, 55), border_radius=5)
+            pygame.draw.rect(self._bg_surface, (180, 180, 190), (toilet_x + 15, toilet_y - 50, 60, 55), 2, border_radius=5)
+            pygame.draw.rect(self._bg_surface, (170, 170, 180), (toilet_x + 60, toilet_y - 35, 15, 5))
+            pygame.draw.ellipse(self._bg_surface, (210, 210, 220), (toilet_x, toilet_y, 90, 85))
+            pygame.draw.ellipse(self._bg_surface, (190, 190, 200), (toilet_x, toilet_y, 90, 85), 2)
+            pygame.draw.ellipse(self._bg_surface, (220, 220, 230), (toilet_x + 10, toilet_y + 5, 70, 50))
 
-        # Toilet on right side
-        toilet_x = WINDOW_WIDTH - 140
-        toilet_y = floor_y - 80
-        # Tank
-        pygame.draw.rect(self._screen, (200, 200, 210), (toilet_x + 15, toilet_y - 50, 60, 55), border_radius=5)
-        pygame.draw.rect(self._screen, (180, 180, 190), (toilet_x + 15, toilet_y - 50, 60, 55), 2, border_radius=5)
-        # Handle
-        pygame.draw.rect(self._screen, (170, 170, 180), (toilet_x + 60, toilet_y - 35, 15, 5))
-        # Bowl
-        pygame.draw.ellipse(self._screen, (210, 210, 220), (toilet_x, toilet_y, 90, 85))
-        pygame.draw.ellipse(self._screen, (190, 190, 200), (toilet_x, toilet_y, 90, 85), 2)
-        # Seat
-        pygame.draw.ellipse(self._screen, (220, 220, 230), (toilet_x + 10, toilet_y + 5, 70, 50))
+            tp_x = toilet_x - 30
+            tp_y = toilet_y + 10
+            pygame.draw.rect(self._bg_surface, (80, 80, 90), (tp_x + 5, tp_y - 15, 5, 20))
+            pygame.draw.circle(self._bg_surface, (240, 235, 225), (tp_x + 7, tp_y + 8), 12)
+            pygame.draw.circle(self._bg_surface, (180, 175, 165), (tp_x + 7, tp_y + 8), 5)
 
-        # Toilet paper roll
-        tp_x = toilet_x - 30
-        tp_y = toilet_y + 10
-        pygame.draw.rect(self._screen, (80, 80, 90), (tp_x + 5, tp_y - 15, 5, 20))
-        pygame.draw.circle(self._screen, (240, 235, 225), (tp_x + 7, tp_y + 8), 12)
-        pygame.draw.circle(self._screen, (180, 175, 165), (tp_x + 7, tp_y + 8), 5)
+        # Blit cached background
+        self._screen.blit(self._bg_surface, (0, 0))
 
-        # Party mode: disco lighting overlay
+        # Party mode: disco lighting overlay (dynamic, not cached)
         if self.party_mode:
             self._party_timer += 1
             if self._party_timer % 15 == 0:
@@ -828,6 +822,20 @@ class MarioDisplay:
         current_line = ""
 
         for word in words:
+            # Break long words that exceed max_width on their own
+            if self._font.size(word)[0] > max_width:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = ""
+                # Split by character
+                for char in word:
+                    test = current_line + char
+                    if self._font.size(test)[0] > max_width:
+                        lines.append(current_line)
+                        current_line = char
+                    else:
+                        current_line = test
+                continue
             test = current_line + " " + word if current_line else word
             if self._font.size(test)[0] > max_width:
                 if current_line:

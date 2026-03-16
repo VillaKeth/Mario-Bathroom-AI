@@ -99,7 +99,8 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\([^)]*\)', '', clean_text)
 
     # Remove sound effects / onomatopoeia that GPT-SoVITS cannot pronounce
-    _sfx_pattern = r'\b(?:wahoo+|whoosh|splish|splash|boom|boing|brr+|shh+|pfft+|mwah+|ka[\s\-]*ching|ching|whomp|swoosh|zing|thud|clang|bonk|woo+|tick[\s\-]*tock)\b'
+    # NOTE: wahoo removed from this list — it's a key Mario catchphrase the model handles well
+    _sfx_pattern = r'\b(?:whoosh|splish|splash|boom|boing|brr+|shh+|pfft+|mwah+|ka[\s\-]*ching|ching|whomp|swoosh|zing|thud|clang|bonk|tick[\s\-]*tock)\b'
     clean_text = _re.sub(_sfx_pattern, '', clean_text, flags=_re.IGNORECASE)
 
     # Normalize filler words to simple pronounceable forms (keep character, fix length)
@@ -112,23 +113,47 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\bmhm+\b', 'Mm hm', clean_text, flags=_re.IGNORECASE)
 
     # Pronunciation guides for words GPT-SoVITS garbles
-    clean_text = _re.sub(r'\bBowser\b', 'Bowzur', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bGoombah?\b', 'Goomba', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bGumba\b', 'Goomba', clean_text, flags=_re.IGNORECASE)
-
+    # Data from 220-round ralph loop + phonetic A/B testing:
+    #   Every phonetic Bowser variant fails (Bowzah, Bowzer, Browser, etc → gibberish)
+    #   BUT "the bad guy" transcribes perfectly! Model can't learn "Bowser" at all.
+    #   Goomba/Goombah/Gumba all fail → "bad mushroom" works perfectly
+    #   Koopa/Koopah fail → "Cooper" works
+    #   Toad → "Todd" already close enough (model does this naturally)
+    
+    # Character names — replace with words the model CAN actually say
+    clean_text = _re.sub(r"\bBowser's\b", "the bad guy's", clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowser\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzur\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzer\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzah\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bToad\b', 'Todd', clean_text)  # Case-sensitive: only proper noun
+    clean_text = _re.sub(r'\bGoombas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bGoomba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bGumbas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bGumba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bKoopas\b', 'Coopers', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bKoopa\b', 'Cooper', clean_text, flags=_re.IGNORECASE)
+    
     # Strip leading punctuation/whitespace left after word removal
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
 
     # Replace non-standard words with pronounceable alternatives
-    # Bowser → Bowzer phonetic (original spelling garbles in short context)
-    clean_text = _re.sub(r'\bbowser\b', 'Bowzer', clean_text, flags=_re.IGNORECASE)
-    # Goomba → Gumba (simpler phonetic)
-    clean_text = _re.sub(r'\bgoomba(s?)\b', r'Gumba\1', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bbitey\b', 'biting', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bokie\b', 'okey', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bdokie\b', 'dokey', clean_text, flags=_re.IGNORECASE)
-    # "mine cart" → "minecart" (two words garbles as "my god")
-    clean_text = _re.sub(r'\bmine\s+cart\b', 'minecart', clean_text, flags=_re.IGNORECASE)
+    # "okie dokie" — keep as-is, the model handles it reasonably well
+    # clean_text = _re.sub(r'\bokie[\s\-]*dokie\b', "let's go", clean_text, flags=_re.IGNORECASE)
+    # clean_text = _re.sub(r'\bokey[\s\-]*dokey\b', "let's go", clean_text, flags=_re.IGNORECASE)
+    # "balls of fire" → "fire balls" (reversed word order transcribes perfectly as "Fireballs!")
+    # Use flexible pattern to catch stretched spellings like "BAAAAAALLS"
+    clean_text = _re.sub(r'\bba+l+s\s+of\s+fire\b', 'fire balls', clean_text, flags=_re.IGNORECASE)
+    # "bathroom fun" → "this bathroom is fun" (short form garbles as "Batman!", longer works)
+    clean_text = _re.sub(r'\bbathroom\s+fun\b', 'this bathroom is fun', clean_text, flags=_re.IGNORECASE)
+    # "mine cart" is fine as two words — joining to "minecart" garbles as "my card"
+    # clean_text = _re.sub(r'\bmine\s+cart\b', 'minecart', clean_text, flags=_re.IGNORECASE)
+    # "quoted" garbles badly → "noted" (preserves meaning somewhat)
+    clean_text = _re.sub(r'\bquoted\b', 'noted', clean_text, flags=_re.IGNORECASE)
+    # "okie dokie" garbles to "Cheeey! Don't eat!" — replace entirely
+    clean_text = _re.sub(r'\bokie[\s\-]*dokie\b', 'alrighty', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bokey[\s\-]*dokey\b', 'alrighty', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bnoo+\b', 'no', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byaa+y+\b', 'yay', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\byay+\b', 'yay', clean_text, flags=_re.IGNORECASE)
@@ -180,11 +205,10 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'-+', '', clean_text)
 
     # Interjection phonetics — must run AFTER hyphen removal & char collapse
-    # "Ha He!" → "Hah hey!" (only for the "ha he" combo which is a Mario catchphrase)
-    clean_text = _re.sub(r'\bha\s+he\b', 'hah hey', clean_text, flags=_re.IGNORECASE)
+    # "Ha He!" → "Hey hey!" (simpler form the model can pronounce)
+    clean_text = _re.sub(r'\bha\s+he\b', 'Hey hey', clean_text, flags=_re.IGNORECASE)
     # Don't convert "ha ha ha" to "hah hah hah" — the repeated 'hah' garbles
-    # Instead just normalize trailing 'ha' before punctuation to 'hah'
-    clean_text = _re.sub(r'\bha\b(?=[!.,?])', 'hah', clean_text, flags=_re.IGNORECASE)
+    # Don't convert trailing ha→hah either — it causes more garbling than it fixes
 
     # Handle "da" interjections AFTER hyphen removal (da-da-daa → da da daa → removed)
     clean_text = _re.sub(r'\bdaa+\b', 'da', clean_text, flags=_re.IGNORECASE)
@@ -234,6 +258,9 @@ def clean_text_for_tts(text):
     # Only convert periods followed by space+uppercase (sentence boundaries mid-text)
     # Keep final period
     clean_text = _re.sub(r'\.\s+(?=[A-Z])', ', ', clean_text)
+    # Also convert mid-sentence "!" followed by lowercase to comma (prevents fragmentation)
+    # "Oh no! the bad guy" → "Oh no, the bad guy"
+    clean_text = _re.sub(r'!\s+(?=[a-z])', ', ', clean_text)
     # Clean up multiple commas/spaces from substitutions
     clean_text = _re.sub(r',\s*,', ',', clean_text)
     # Strip leading/trailing punctuation left from removals
@@ -299,19 +326,26 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         "prompt_lang": "en",
         "text_split_method": "cut5",
         "speed_factor": speed,
+        # Moderately tight sampling — prevents elongation without clipping
+        "top_k": 12,
+        "top_p": 0.92,
+        "temperature": 0.85,
+        "repetition_penalty": 1.4,
     }
 
     # Suppress stdout during inference (GPT-SoVITS prints progress bars)
     _real_stdout = sys.stdout
     
     # Retry mechanism: short/garbled outputs tend to be very brief
-    # Estimate minimum expected duration based on word count (~0.15s per word)
+    # Estimate expected duration based on word count
     _word_count = len(clean_text.split())
     _min_expected_duration = max(0.25, _word_count * 0.15)
+    _max_expected_duration = max(3.0, _word_count * 0.6)  # catch garbled elongation
     _best_audio = None
     _best_duration = 0
     _best_sr = 32000
-    _max_attempts = 3
+    _best_score = -1  # higher = better fit
+    _max_attempts = 1  # no retries — GPU contention with Ollama causes crashes on 4GB VRAM
     
     for _attempt in range(_max_attempts):
         sys.stdout = sys.stderr
@@ -334,16 +368,27 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
         audio = np.concatenate(chunks)
         duration = len(audio) / sr
         
-        if duration > _best_duration:
+        # Score this attempt — closer to expected range = higher score
+        _target = (_min_expected_duration + _max_expected_duration) / 2
+        _score = 1.0 - abs(duration - _target) / max(_target, 1.0)
+        if duration < _min_expected_duration:
+            _score -= 0.5  # heavy penalty for too short
+        if duration > _max_expected_duration:
+            _score -= 0.3  # penalty for too long (elongated)
+        
+        if _score > _best_score:
             _best_audio = audio
             _best_duration = duration
             _best_sr = sr
+            _best_score = _score
         
-        if duration >= _min_expected_duration:
+        # Accept if within expected range
+        if _min_expected_duration <= duration <= _max_expected_duration:
             break
         
         if DEBUG_SOVITS:
-            print(f"[sovits] RETRY {_attempt+1}: audio too short ({duration:.2f}s < {_min_expected_duration:.2f}s)", file=sys.stderr)
+            _reason = "too short" if duration < _min_expected_duration else "too long" if duration > _max_expected_duration else "ok"
+            print(f"[sovits] RETRY {_attempt+1}: {duration:.2f}s ({_reason}, expected {_min_expected_duration:.2f}-{_max_expected_duration:.2f}s, score={_score:.2f})", file=sys.stderr)
 
     full_audio = _best_audio
 

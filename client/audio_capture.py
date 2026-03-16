@@ -59,10 +59,16 @@ class AudioCapture:
                         logger.info(f"[DEBUG_AUDIO] Selected input device {i}: {d['name']} ({d['max_input_channels']}ch)")
                         break
 
-            if device is None and sd.default.device[0] == -1:
-                logger.warning("[DEBUG_AUDIO] No input devices available")
-                self._running = False
-                return False
+            if device is None:
+                try:
+                    default_idx = sd.default.device[0]
+                    if default_idx == -1:
+                        raise ValueError("No default input device set")
+                    sd.query_devices(default_idx, 'input')
+                except Exception:
+                    logger.warning("[DEBUG_AUDIO] No input devices available")
+                    self._running = False
+                    return False
 
             self._stream = sd.InputStream(
                 device=device,

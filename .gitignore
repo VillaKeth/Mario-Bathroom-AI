@@ -8,7 +8,10 @@ __pycache__/
 # Virtual environments
 .venv/
 gpt_sovits_env/
+chatterbox_env/
+f5tts_env/
 venv/
+*_env/
 
 # GPT-SoVITS (cloned repo, too large to track)
 gpt_sovits_repo/
@@ -36,6 +39,31 @@ server/voice_quality_test.py
 # Test/experiment results
 server/data/ralph_refs/
 server/data/ralph_results/
+model_comparison/
+
+# Logs and temp output
+*.log
+ralph_r*_out.txt
+ralph_overnight_*.txt
+server_*.log
+
+# One-off test scripts
+test_*.py
+analyze_ralph*.py
+
+# Cache build results
+perfect_cache_results.json
+cache_scores.json
+
+# One-off utility scripts
+check_cache.py
+model_comparison_test.py
+
+# Media files
+mario_assets/*.mp4
+
+# Server TTS cache (alternate location)
+server/tts_cache/
 
 # IDE / OS
 .claude/
@@ -47,3 +75,5 @@ Thumbs.db
 
 # Client asset variants
 client/assets/variants
+
+config.json

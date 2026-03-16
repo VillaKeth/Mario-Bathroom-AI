@@ -224,17 +224,17 @@ CACHED_PHRASES = [
     # Reactions/exclamations
     "Wahoo!",
     "Mama mia!",
-    "Oh no!",
+    "Oh no, not again!",
     "Wow, that's-a amazing!",
-    "Ha ha ha!",
+    "Ha ha ha, that's so funny!",
     "That's-a funny!",
-    "Oh yeah!",
+    "Oh yeah, that's right!",
     "Yippee!",
     "Super!",
     "Fantastic!",
     # Game prompts
     "Correct!",
-    "Wrong!",
+    "That's not right! Try again!",
     "Let's play!",
     "Let's-a go!",
     "You got it!",
@@ -255,9 +255,9 @@ CACHED_PHRASES = [
     "Scrub-a scrub-a, nice and clean!",
     "Time to wash-a your hands!",
     # Common commands/responses
-    "Okie dokie!",
+    "Alrighty!",
     "Here we go!",
-    "Yes!",
+    "Yes, that's correct!",
     "No way!",
     "Of course!",
     "I don't-a know about that.",
@@ -271,7 +271,7 @@ CACHED_PHRASES = [
     "One more time!",
     # Thinking filler phrases (played while LLM generates response)
     "Hmm, let me think!",
-    "Okie dokie, one moment!",
+    "Alrighty, one moment!",
 ]
 
 
@@ -864,6 +864,14 @@ def _start_idle_precache():
 
     t = threading.Thread(target=_idle_cache_worker, daemon=True, name="idle-precache")
     t.start()
+
+
+def get_cached(text: str, rate: str = None, pitch: str = None) -> bytes | None:
+    """Fast cache-only lookup — no generation, no locks that block. Returns None on miss."""
+    _rate = rate or "+0%"
+    _pitch = pitch or "+0Hz"
+    cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
+    return _audio_cache.get(cache_key)
 
 
 def synthesize_user(text: str, rate: str = None, pitch: str = None, nocache: bool = False) -> bytes:

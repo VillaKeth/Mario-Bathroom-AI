@@ -7,6 +7,7 @@ import httpx
 import json
 import logging
 import asyncio
+import os
 import random
 import re
 import time
@@ -14,9 +15,18 @@ import time
 DEBUG_LLM = True
 logger = logging.getLogger(__name__)
 
+# Load config
+_config_path = os.path.join(os.path.dirname(__file__), "..", "config.json")
+try:
+    with open(_config_path, "r") as f:
+        _config = json.load(f).get("server", {})
+except Exception:
+    _config = {}
+
 OLLAMA_URL = "http://localhost:11434"
-MODEL_NAME = "qwen2:1.5b"  # Best balance of speed (~3-5s) and Mario character quality
-MODEL_FALLBACK = "llama3"  # Fallback if qwen2 not available
+MODEL_NAME = _config.get("llm_model", "llama3")
+MODEL_FALLBACK = "qwen2:1.5b"
+LLM_TIMEOUT = float(_config.get("llm_timeout_seconds", 30))
 
 _warmup_task = None
 
@@ -25,7 +35,7 @@ LLM_FALLBACKS = [
     "Wahoo! Let's-a go!",
     "Mama mia! That's-a interesting!",
     "Ha ha! You're-a funny one!",
-    "Okie dokie! Mario likes-a that!",
+    "Alrighty! Mario likes-a that!",
     "Bellissimo! Tell me more!",
     "That's-a so cool! What else?",
     "Magnifico! You're-a great company!",
@@ -165,10 +175,11 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         "model": MODEL_NAME,
         "messages": messages,
         "stream": True,
+        "keep_alive": "30m",
         "options": {
             "temperature": round(temp, 2),
             "top_p": 0.9,
-            "num_predict": 40,
+            "num_predict": 35,
             "repeat_penalty": 1.3,
             "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
         },
@@ -181,7 +192,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
                 "POST",
                 f"{OLLAMA_URL}/api/chat",
                 json=payload,
-                timeout=8.0,
+                timeout=LLM_TIMEOUT,
             ) as resp:
                 resp.raise_for_status()
                 async for line in resp.aiter_lines():
@@ -272,3 +283,30 @@ def _clean_response(text: str) -> str:
         else:
             text = cut.rsplit(' ', 1)[0] + '!'
     return text
+
+
+async def keepalive_loop(interval_seconds: int = 240):
+    """Periodically ping Ollama to keep the model loaded in VRAM.
+    
+    Default Ollama unloads after 5 minutes. This pings every 4 minutes
+    with a minimal 1-token request to prevent unloading during the party.
+    """
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{OLLAMA_URL}/api/chat",
+                    json={
+                        "model": MODEL_NAME,
+                        "messages": [{"role": "user", "content": "hi"}],
+                        "stream": False,
+                        "keep_alive": "30m",
+                        "options": {"num_predict": 1},
+                    },
+                    timeout=15.0,
+                )
+            if DEBUG_LLM:
+                logger.debug("[DEBUG_LLM] keepalive: model ping OK")
+        except Exception as e:
+            logger.warning(f"[DEBUG_LLM] keepalive: ping failed: {e}")

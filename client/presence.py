@@ -81,8 +81,15 @@ class PresenceDetector:
             if not ret:
                 _consecutive_read_failures += 1
                 if _consecutive_read_failures > 30:
-                    logger.error("[DEBUG_PRESENCE] Camera read failed 30 times, stopping detection")
-                    break
+                    logger.warning("[DEBUG_PRESENCE] Camera read failed 30 times, restarting camera...")
+                    try:
+                        self._cap.release()
+                        time.sleep(1.0)
+                        self._cap = cv2.VideoCapture(self.camera_index)
+                        _consecutive_read_failures = 0
+                    except Exception as e:
+                        logger.error(f"[DEBUG_PRESENCE] Camera restart failed: {e}")
+                        break
                 time.sleep(0.1)
                 continue
             _consecutive_read_failures = 0

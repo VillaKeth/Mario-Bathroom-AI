@@ -157,3 +157,17 @@
 - **API**: One function — `handle_special_commands(transcript, state, game_config, emotion_system, idle_behavior, party_stats, memory_module)`. Synchronous (no async). Wrapper in main.py remains async for callers.
 - **Data moved**: EASTER_EGGS, SECRETS, DARES, NICKNAMES, FORTUNES, MOOD_RESPONSES, TWISTERS, STORIES, PICKUP_LINES, BATHROOM_TIPS, RAPS, MOTIVATIONS, CONFESSIONS, ROASTS
 - **Result**: main.py reduced to ~1150 lines; command_handlers.py is 683 lines
+
+## 2026-03-12 — Data-Driven Pronunciation Fixes Break 78% Ceiling
+- **Decision**: Replace character names with words the model CAN say, instead of phonetic spellings
+- **Reason**: 220-round ralph loop + 30-variant phonetic A/B testing proved GPT-SoVITS literally cannot pronounce any variant of "Bowser" (Bowzur, Bowzah, Bowzer, Browser, Bao-zer — ALL produce gibberish). Same for Goomba/Koopa.
+- **Key insight**: The model was fine-tuned on Mario audio which has strong game-word priors. It HALLUCINATES "Bowser" and other game words even when they're not in the input. But it cannot PRODUCE these words on command.
+- **Solution**: Semantic substitution instead of phonetic:
+  - Bowser → "the bad guy" (+12.9% on Bowser phrases: 62.4% → 75.3%)
+  - Goomba → "bad mushroom" (+13.1%: 66.1% → 79.2%)
+  - Koopa → "Cooper" (pronounceable real word)
+  - Toad → "Todd" (natural tendency, +0.5%)
+  - "quoted" → "noted" (avoids garbled "It's beach" outputs)
+- **Also fixed**: Conflicting double-replacements (Bowser→Bowzur then bowser→Bowzer were overwriting each other)
+- **Result**: R231 hit 79.4% acceptable (28G+22O/63) — first time ever breaking the 78% ceiling
+- **Prior best**: 78.1% (R67) out of 220 rounds; avg was 65.3%
