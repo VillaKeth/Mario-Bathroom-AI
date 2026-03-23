@@ -24,38 +24,38 @@ class Emotion:
     NEUTRAL = "neutral"
 
 
-# How emotions affect TTS voice parameters
+# How emotions affect TTS voice parameters — more dramatic range for Neuro-sama energy
 EMOTION_VOICE_MAP = {
-    Emotion.HAPPY:      {"rate": "+10%", "pitch": "+2Hz"},
-    Emotion.EXCITED:    {"rate": "+25%", "pitch": "+5Hz"},
-    Emotion.BORED:      {"rate": "-15%", "pitch": "-3Hz"},
-    Emotion.SURPRISED:  {"rate": "+15%", "pitch": "+4Hz"},
-    Emotion.CONFUSED:   {"rate": "-5%", "pitch": "+1Hz"},
-    Emotion.WORRIED:    {"rate": "-10%", "pitch": "-1Hz"},
-    Emotion.LOVING:     {"rate": "-5%", "pitch": "+2Hz"},
-    Emotion.MISCHIEVOUS: {"rate": "+5%", "pitch": "+3Hz"},
-    Emotion.SLEEPY:     {"rate": "-20%", "pitch": "-4Hz"},
-    Emotion.PROUD:      {"rate": "+5%", "pitch": "+1Hz"},
-    Emotion.FRUSTRATED: {"rate": "+10%", "pitch": "-2Hz"},
-    Emotion.EMBARRASSED: {"rate": "-10%", "pitch": "+3Hz"},
+    Emotion.HAPPY:      {"rate": "+15%", "pitch": "+3Hz"},
+    Emotion.EXCITED:    {"rate": "+30%", "pitch": "+6Hz"},
+    Emotion.BORED:      {"rate": "-20%", "pitch": "-4Hz"},
+    Emotion.SURPRISED:  {"rate": "+20%", "pitch": "+5Hz"},
+    Emotion.CONFUSED:   {"rate": "-8%", "pitch": "+2Hz"},
+    Emotion.WORRIED:    {"rate": "-12%", "pitch": "-2Hz"},
+    Emotion.LOVING:     {"rate": "-5%", "pitch": "+3Hz"},
+    Emotion.MISCHIEVOUS: {"rate": "+10%", "pitch": "+4Hz"},
+    Emotion.SLEEPY:     {"rate": "-25%", "pitch": "-5Hz"},
+    Emotion.PROUD:      {"rate": "+8%", "pitch": "+2Hz"},
+    Emotion.FRUSTRATED: {"rate": "+15%", "pitch": "-3Hz"},
+    Emotion.EMBARRASSED: {"rate": "-12%", "pitch": "+4Hz"},
     Emotion.NEUTRAL:    {"rate": "+0%", "pitch": "+0Hz"},
 }
 
-# Emotion descriptions for the LLM prompt
+# Emotion descriptions for the LLM prompt — Neuro-sama dramatic style
 EMOTION_DESCRIPTIONS = {
-    Emotion.HAPPY:      "You're feeling happy and cheerful! Everything is wonderful!",
-    Emotion.EXCITED:    "You're SUPER excited! Jumping with energy! Wahoo!",
-    Emotion.BORED:      "You're a little bored... nobody's been around for a while.",
-    Emotion.SURPRISED:  "You're surprised! Something unexpected just happened!",
-    Emotion.CONFUSED:   "You're confused... that didn't make much sense to you.",
-    Emotion.WORRIED:    "You're a little worried... is everything okay?",
-    Emotion.LOVING:     "You're feeling warm and friendly! You love meeting people!",
-    Emotion.MISCHIEVOUS: "You're feeling mischievous! Time for some playful jokes!",
-    Emotion.SLEEPY:     "You're getting sleepy... it's been a long party...",
-    Emotion.PROUD:      "You're feeling proud and confident! Like a true hero!",
-    Emotion.FRUSTRATED: "You're a bit frustrated! Things aren't going your way! Mama mia!",
-    Emotion.EMBARRASSED: "You're a little embarrassed... oops! That was awkward!",
-    Emotion.NEUTRAL:    "You're feeling normal — ready for anything!",
+    Emotion.HAPPY:      "You're feeling GREAT! Everything is amazing! Be warm and enthusiastic!",
+    Emotion.EXCITED:    "You're BUZZING with energy! Can't contain yourself! WAHOO! Be WILD!",
+    Emotion.BORED:      "You're SO bored you might literally turn into a Goomba. Be dramatically bored.",
+    Emotion.SURPRISED:  "WHAT?! You did NOT expect that! Be shocked! Dramatic gasp!",
+    Emotion.CONFUSED:   "You're SO confused right now. Nothing makes sense. Question EVERYTHING.",
+    Emotion.WORRIED:    "Something feels off... be genuinely concerned but still Mario about it.",
+    Emotion.LOVING:     "You're feeling SO warm and fuzzy! Hearts everywhere! Be sweet and genuine!",
+    Emotion.MISCHIEVOUS: "You're feeling DEVIOUS! Time for chaos! Tease, prank, be a menace (lovingly)!",
+    Emotion.SLEEPY:     "Soooo sleeeepy... *yawns* ...words are getting harder... but you're trying...",
+    Emotion.PROUD:      "You're the GREATEST! Flex! Brag! You earned it! Be magnificently proud!",
+    Emotion.FRUSTRATED: "MAMA MIA! Things aren't going your way! Be grumpy but funny about it!",
+    Emotion.EMBARRASSED: "Oh no... that was awkward... try to play it cool but FAIL at playing it cool.",
+    Emotion.NEUTRAL:    "Normal Mario vibes — ready for anything!",
 }
 
 
@@ -72,6 +72,10 @@ class EmotionSystem:
         # Rolling sentiment tracker — average mood over recent exchanges
         self._sentiment_history = []  # list of (timestamp, score) — score: -1.0 to +1.0
         self._conversation_energy = 0.5  # 0=dead, 1=high energy
+        self._negative_mood_start = 0.0  # When negative mood began (for cheer-up system)
+        self._previous_emotion = Emotion.HAPPY  # For smooth transitions
+        self._transition_start = 0.0  # When transition began
+        self._transition_duration = 1.5  # Seconds for smooth emotion blend
 
     def update(self, event: str = None, transcript: str = None):
         """Update emotion based on events and conversation."""
@@ -83,10 +87,10 @@ class EmotionSystem:
         now = time.time()
         idle_time = now - self._last_interaction
 
-        # Decay intensity over time (emotions fade)
+        # Decay intensity over time (emotions fade — faster for Neuro-sama volatility)
         time_since_change = now - self._last_change
-        if time_since_change > 30 and self.intensity > 0.3:
-            self.intensity = max(0.3, self.intensity - 0.03 * (time_since_change / 60))
+        if time_since_change > 20 and self.intensity > 0.3:
+            self.intensity = max(0.3, self.intensity - 0.05 * (time_since_change / 60))
 
         # Time-based mood shifts
         if idle_time > 600:  # 10 minutes alone
@@ -208,7 +212,19 @@ class EmotionSystem:
 
         # Track when emotion last changed for decay
         if transcript or event:
+            old_emotion = self._previous_emotion
+            if self.current != old_emotion:
+                self._previous_emotion = old_emotion
+                self._transition_start = time.time()
             self._last_change = time.time()
+
+        # Negative mood tracking for cheer-up system
+        _NEGATIVE_EMOTIONS = {Emotion.WORRIED, Emotion.FRUSTRATED, Emotion.BORED}
+        if self.current in _NEGATIVE_EMOTIONS:
+            if self._negative_mood_start == 0.0:
+                self._negative_mood_start = time.time()
+        else:
+            self._negative_mood_start = 0.0
 
         # Update rolling sentiment from transcript
         if transcript and len(transcript.split()) >= 2:
@@ -292,19 +308,22 @@ class EmotionSystem:
     def get_personality_modifier(self) -> str:
         """Return a short personality amplifier based on emotion + intensity."""
         with self._lock:
-            if self.intensity < 0.5:
+            if self.intensity < 0.4:
                 return ""
             modifiers = {
-                Emotion.EXCITED: "SUPER hyped! Over-the-top energy!",
-                Emotion.MISCHIEVOUS: "Full tease mode! Be playfully mean!",
-                Emotion.BORED: "So bored! Be dramatic and sarcastic about it!",
-                Emotion.PROUD: "Feeling like a HERO! Boast a little!",
-                Emotion.LOVING: "Extra warm and kind! Compliment them!",
-                Emotion.SLEEPY: "So sleepy... mumble a bit, be goofy tired.",
-                Emotion.FRUSTRATED: "A bit grumpy! Show it playfully!",
+                Emotion.EXCITED: "MAXIMUM ENERGY! Go absolutely WILD! Wahoo!",
+                Emotion.MISCHIEVOUS: "Full chaos mode! Be a lovable menace!",
+                Emotion.BORED: "So bored you're becoming unhinged! Be dramatically sarcastic!",
+                Emotion.PROUD: "You're the GREATEST plumber who ever lived! FLEX!",
+                Emotion.LOVING: "Your heart is SO full! Be genuinely warm and sweet!",
+                Emotion.SLEEPY: "Can barely keep eyes open... mumble... trail off mid-sentence...",
+                Emotion.FRUSTRATED: "EVERYTHING is annoying right now! Channel it into comedy!",
+                Emotion.SURPRISED: "NOTHING could have prepared you for this! DRAMATIC GASP!",
+                Emotion.CONFUSED: "Reality is breaking! Nothing makes sense! Question everything!",
+                Emotion.EMBARRASSED: "SO AWKWARD! Try to recover but make it worse!",
             }
             mod = modifiers.get(self.current, "")
-            return f"[PERSONALITY]: {mod}" if mod and self.intensity >= 0.6 else ""
+            return f"[PERSONALITY]: {mod}" if mod and self.intensity >= 0.5 else ""
 
     @property
     def animation_state(self) -> str:
@@ -325,3 +344,42 @@ class EmotionSystem:
             Emotion.NEUTRAL: "idle",
         }
         return mapping.get(self.current, "idle")
+
+    def should_cheer_up(self) -> str | None:
+        """If user has been in negative mood for 2+ minutes, suggest Mario cheer them up."""
+        with self._lock:
+            if self._negative_mood_start == 0.0:
+                return None
+            negative_duration = time.time() - self._negative_mood_start
+            if negative_duration < 120:  # 2 minutes
+                return None
+            # Generate cheer-up hint based on current negative emotion
+            cheer_hints = {
+                Emotion.WORRIED: "They've been worried for a while. Try to reassure them! Tell a silly story or compliment them!",
+                Emotion.FRUSTRATED: "They're frustrated! Time to turn it around — be extra silly, tell a joke, or challenge them to something fun!",
+                Emotion.BORED: "They seem bored! SHAKE THINGS UP! Do something unexpected, propose a wild game, or tell a crazy story!",
+            }
+            hint = cheer_hints.get(self.current)
+            if hint:
+                # Reset so we don't spam the same hint
+                self._negative_mood_start = time.time()
+                return f"[CHEER UP]: {hint}"
+            return None
+
+    def get_emotion_particle(self) -> str | None:
+        """Get a particle effect matching the current emotion (fallback if no keyword match)."""
+        with self._lock:
+            if self.intensity < 0.5:
+                return None
+            _EMOTION_PARTICLES = {
+                Emotion.HAPPY: "sparkle",
+                Emotion.EXCITED: "stars",
+                Emotion.LOVING: "hearts",
+                Emotion.MISCHIEVOUS: "fire",
+                Emotion.PROUD: "confetti",
+                Emotion.SURPRISED: "stars",
+                Emotion.EMBARRASSED: "rain",
+                Emotion.FRUSTRATED: "fire",
+                Emotion.WORRIED: "rain",
+            }
+            return _EMOTION_PARTICLES.get(self.current)

@@ -212,6 +212,11 @@ class MarioClient:
             if pose_hint:
                 self.display.set_pose_hint(pose_hint)
 
+            # Spawn keyword-based particle effects from server
+            particle_effect = metadata.get("particle_effect")
+            if particle_effect:
+                self.display.spawn_keyword_particles(particle_effect)
+
             # Track response time for display
             resp_time = metadata.get("response_time")
             if resp_time:

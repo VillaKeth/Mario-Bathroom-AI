@@ -1,5 +1,41 @@
 # Mario AI — Task Tracking
 
+## Neuro-sama Party Overhaul (Current)
+- [x] Rewrote MARIO_SYSTEM_PROMPT for Neuro-sama energy (chaotic, opinionated, gossipy, dramatic)
+- [x] Built party_gossip.py — cross-visitor social dynamics (gossip, comparisons, titles, rivalries, narratives)
+- [x] Added chaos system — random interrupts, existential crises, fourth-wall breaks, mood swings
+- [x] Enhanced greeting prompts — more dramatic, gossipy, titles for guests, party narrative references
+- [x] Added 20 chaotic Neuro-sama-style idle mumbles (existential crises, arguing with Luigi, conspiracy theories)
+- [x] Wired gossip into idle loop — Mario reminisces about guests when alone
+- [x] Guest title system — each visitor gets a random fun title (The Magnificent Bathroom Visitor, etc.)
+- [x] Guest comparison system — detects when current guest mentions same topics as previous guests
+- [x] Party narrative tracking — records dramatic moments, creates ongoing storyline
+- [x] Added frustrated/neutral to EMOTION_SPRITE_MAP (was missing, causing fallback to happy)
+- [x] Added 12 new emotion particle configs (loving, proud, frustrated, embarrassed, worried, bored, determined, sad, angry, nervous, scared)
+- [x] Added keyword particle effects system (fire, stars, hearts, confetti, rain, sparkle, mushroom, coins)
+- [x] Wired particle_effect from server to client (was being sent but never received!)
+- [x] Wired personality_modifier into LLM context (existed but was never called!)
+- [x] Added Neuro-sama mood swing system (5% chance random emotion shift per response)
+- [x] Made emotion voice modulation more dramatic (wider rate/pitch ranges)
+- [x] Made emotion descriptions more dramatic for LLM (Neuro-sama style chaos instructions)
+- [x] Faster emotion decay (emotions shift more rapidly like Neuro-sama)
+- [x] Added gossip stats to /health endpoint
+- [x] Idle loop auto-recovery — resets error count after 5min cooldown, circuit breaker at 10 errors
+- [x] LLM timeout graceful fallback — funny canned responses instead of dead silence on timeout
+- [x] Gossip log size cap (500 entries) + time decay (4hr expiry) — prevents memory growth
+- [x] Speech-derived personalized titles — analyzes guest's words (foodie, gamer, jokester, etc.)
+- [x] Title evolution — titles update as guest reveals more personality traits
+- [x] 5 new gossip categories: food, gaming, fear, dream, embarrassing
+- [x] Emotion-based particle fallback — particles match mood when no keyword match
+- [x] Cheer-up system — if guest is negative for 2+ min, Mario actively tries to uplift
+- [x] Negative mood tracking — timestamps when guest enters sad/frustrated/bored state
+- [x] Emotion transition tracking — smooth transitions between emotion states
+- [x] Prompt injection hardening — strict whitelist (alphanum+space+hyphen), 20 char cap, more blocked words
+- [x] Expanded chaos hints — 16 total (was 8): mind reading, countdown, phone call, hand washing, third person
+- [ ] Test end-to-end with live conversation
+- [ ] Tune gossip frequency (currently 35% in conversation, 50% in greetings)
+- [ ] Consider guest rivalry system (friendly competitions between visitors)
+
 ## Voice Quality Improvement
 - [x] Downloaded Charles Martinet RVC models (Switch Era + TITAN 500ep)
 - [x] Built voice A/B testing tool (15 configs x 3 phrases)

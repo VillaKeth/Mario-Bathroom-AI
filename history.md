@@ -171,3 +171,36 @@
 - **Also fixed**: Conflicting double-replacements (Bowser→Bowzur then bowser→Bowzer were overwriting each other)
 - **Result**: R231 hit 79.4% acceptable (28G+22O/63) — first time ever breaking the 78% ceiling
 - **Prior best**: 78.1% (R67) out of 220 rounds; avg was 65.3%
+
+## 2026-03-16 — Neuro-sama Party Overhaul: Guest Interaction & Chaos
+- **Decision**: Major personality overhaul to make Mario more like Neuro-sama — chaotic, gossipy, emotionally volatile, socially dynamic
+- **Reason**: User wanted Mario to interact with party guests, reference previous visitors, create social dynamics, and be more unpredictable/entertaining
+- **Key changes**:
+  1. **System prompt rewrite**: Mario is now chaotic, opinionated, gossipy, dramatically emotional, self-aware about being a bathroom guardian. Strong takes on everything, mood swings, teasing, genuine curiosity.
+  2. **Party Gossip System** (`server/party_gossip.py`): New module that tracks interesting things each guest says/does, then feeds gossip about previous visitors into LLM context for new visitors. Creates cross-visitor social dynamics.
+     - `analyze_for_gossip()`: Detects gossip-worthy content (opinions, claims, preferences, reactions) via keyword matching
+     - `get_gossip_for_guest()`: Returns formatted gossip hints about OTHER guests, filtered to not gossip about the current speaker
+     - `get_comparison_hint()`: Detects when current guest mentions same topics as previous guests
+     - `assign_title()`: Gives each guest a fun title ("The Magnificent Bathroom Visitor", "Defender of Hand Soap")
+     - `add_dramatic_moment()` / `get_party_narrative_hint()`: Running party storyline
+  3. **Chaos System**: 8% chance per response of random chaos hint — existential crises, sudden topic shifts, pretending Luigi is behind them, forgetting identity momentarily
+  4. **Enhanced idle**: 20 new chaotic idle mumbles — arguing with mirror, conspiracy theories about coins, existential plumber crises, Luigi apologies
+  5. **Gossip in greetings**: 50% chance to gossip about previous visitors when greeting new ones; 30% chance to use guest's fun title
+  6. **Gossip in idle**: 20% chance of gossip-based idle when alone (reminiscing about guests)
+  7. **Enhanced greeting prompts**: All 16 prompts rewritten for maximum drama, chaos, and guest interaction energy
+- **Architecture**: PartyGossip is in-memory (resets on server restart) — party-scoped by design, no persistence needed
+
+## 2026-03-16 — Ralph Loop Round 2: Robustness & Polish
+- **Decision**: Deep codebase analysis followed by targeted improvements across 4 files
+- **Key changes**:
+  1. **Idle loop auto-recovery**: Error counter now resets after 5min cooldown instead of accumulating forever. Circuit breaker at 10 consecutive errors pauses idle until next visitor.
+  2. **LLM timeout fallback**: Wrapped LLM call in `asyncio.wait_for`. On timeout, returns funny canned responses ("My brain went on vacation!") instead of dead silence. Sets emotion to CONFUSED.
+  3. **Gossip memory management**: Capped gossip log at 500 entries with 4-hour time decay. Prevents unbounded memory growth during long parties.
+  4. **Speech-derived titles**: Guests get personalized titles based on detected speech traits (foodie → "Grand Chef of Flavor Town", gamer → "Boss Battle Survivor"). 12 trait categories with 3-4 titles each.
+  5. **Title evolution**: Titles update as guest reveals more personality traits during conversation.
+  6. **5 new gossip categories**: food, gaming, fear, dream, embarrassing — richer cross-visitor references.
+  7. **Emotion-based particle fallback**: If no keyword triggers particles, emotion state provides fallback (EXCITED→stars, LOVING→hearts, FRUSTRATED→fire).
+  8. **Cheer-up system**: If guest is negative (worried/frustrated/bored) for 2+ minutes, Mario actively tries to cheer them up with specific strategies per emotion.
+  9. **Prompt injection hardening**: Strict whitelist (alphanumeric + space/hyphen/apostrophe), 20 char cap on names, more blocked injection words, control char stripping.
+  10. **Expanded chaos hints**: 16 total (from 8) — mind reading, countdowns, phone calls from Peach, hand-washing concerns, third-person speech.
+- **Bug prevention**: Smooth emotion transitions tracked via `_previous_emotion` and `_transition_start` for future interpolation.

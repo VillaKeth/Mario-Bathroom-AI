@@ -59,6 +59,8 @@ EMOTION_SPRITE_MAP = {
     "thinking": "thinking/thinking",
     "shocked": "thinking/shocked",
     "idea": "thinking/idea",
+    "frustrated": "negative/annoyed",
+    "neutral": "neutral/idle",
 }
 
 # Map states to AI pose paths
@@ -420,6 +422,18 @@ class MarioDisplay:
             "sleepy": {"color": (100, 100, 200), "count": 3, "shape": "circle", "spread": 30},
             "mischievous": {"color": (0, 255, 100), "count": 10, "shape": "star", "spread": 70},
             "laughing": {"color": (255, 255, 100), "count": 10, "shape": "star", "spread": 70},
+            "loving": {"color": (255, 100, 150), "count": 12, "shape": "star", "spread": 75},
+            "love": {"color": (255, 80, 130), "count": 12, "shape": "star", "spread": 75},
+            "proud": {"color": (255, 200, 0), "count": 10, "shape": "star", "spread": 65},
+            "frustrated": {"color": (255, 60, 30), "count": 10, "shape": "circle", "spread": 55},
+            "embarrassed": {"color": (255, 150, 180), "count": 6, "shape": "circle", "spread": 45},
+            "worried": {"color": (180, 180, 255), "count": 5, "shape": "circle", "spread": 35},
+            "bored": {"color": (150, 150, 150), "count": 4, "shape": "circle", "spread": 30},
+            "determined": {"color": (255, 165, 0), "count": 8, "shape": "star", "spread": 60},
+            "sad": {"color": (100, 150, 255), "count": 6, "shape": "circle", "spread": 45},
+            "angry": {"color": (255, 30, 30), "count": 12, "shape": "circle", "spread": 70},
+            "nervous": {"color": (200, 200, 255), "count": 5, "shape": "circle", "spread": 40},
+            "scared": {"color": (180, 180, 255), "count": 8, "shape": "circle", "spread": 60},
         }
 
         cfg = particle_configs.get(emotion, {"color": (200, 200, 200), "count": 5, "shape": "circle", "spread": 50})
@@ -453,6 +467,43 @@ class MarioDisplay:
                 shape="rect",
             ))
             self._particles[-1].gravity = 0.05
+        if len(self._particles) > 200:
+            self._particles = self._particles[-200:]
+
+    def spawn_keyword_particles(self, effect_type: str):
+        """Spawn themed particles based on keyword detection from server."""
+        cx = WINDOW_WIDTH // 2
+        cy = WINDOW_HEIGHT // 2
+
+        effects = {
+            "fire": {"color": (255, 100, 0), "count": 15, "shape": "circle", "vy": (-4, -1), "spread": 60},
+            "stars": {"color": (255, 215, 0), "count": 12, "shape": "star", "vy": (-3, -0.5), "spread": 80},
+            "hearts": {"color": (255, 80, 130), "count": 10, "shape": "star", "vy": (-2, -0.5), "spread": 70},
+            "confetti": {"color": None, "count": 20, "shape": "rect", "vy": (1, 3), "spread": 150},
+            "rain": {"color": (100, 150, 255), "count": 15, "shape": "circle", "vy": (2, 4), "spread": 120},
+            "sparkle": {"color": (255, 255, 200), "count": 8, "shape": "star", "vy": (-2, 0), "spread": 50},
+            "mushroom": {"color": (255, 50, 50), "count": 8, "shape": "circle", "vy": (-3, -1), "spread": 40},
+            "coins": {"color": (255, 215, 0), "count": 10, "shape": "circle", "vy": (-3, -1), "spread": 60},
+        }
+
+        cfg = effects.get(effect_type, effects["sparkle"])
+        for _ in range(cfg["count"]):
+            color = cfg["color"] or random.choice(self._disco_colors)
+            vy_min, vy_max = cfg["vy"]
+            p = Particle(
+                x=cx + random.randint(-cfg["spread"], cfg["spread"]),
+                y=cy + random.randint(-30, 30) if vy_min < 0 else random.randint(-50, 0),
+                color=color,
+                vx=random.uniform(-1.5, 1.5),
+                vy=random.uniform(vy_min, vy_max),
+                life=random.randint(40, 100),
+                size=random.randint(3, 7),
+                shape=cfg["shape"],
+            )
+            if effect_type in ("confetti", "rain"):
+                p.gravity = 0.05
+            self._particles.append(p)
+
         if len(self._particles) > 200:
             self._particles = self._particles[-200:]
 

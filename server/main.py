@@ -42,6 +42,7 @@ from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior
 from pose_analyzer import analyze_text
 import command_handlers
+from party_gossip import PartyGossip
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -136,6 +137,7 @@ if not _validate_config(config):
 emotion_system = EmotionSystem()
 party_stats = PartyStats()
 idle_behavior = IdleBehavior()
+party_gossip = PartyGossip()
 
 # Lock for state_current to prevent race conditions across async handlers
 _state_lock = asyncio.Lock()
@@ -284,6 +286,8 @@ async def health():
         "active_game": state_current["_active_game"],
         "llm_model": llm.MODEL_NAME,
         "last_timing": state_current.get("_last_timing", {}),
+        "gossip_entries": party_gossip.get_gossip_count(),
+        "gossip_guests": party_gossip.get_guest_count(),
     }
 
 
@@ -699,10 +703,27 @@ async def _emotion_decay_loop():
 async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
     global _idle_error_count
+    _idle_last_error_time = 0.0  # Track when errors started for auto-recovery
     loop = asyncio.get_event_loop()
     while True:
         await asyncio.sleep(random.uniform(3, 8))
-        _idle_error_count = 0  # Reset backoff on successful iteration
+
+        # Auto-recover from error spiral: reset after 5 minutes of silence
+        if _idle_error_count > 0 and (time.time() - _idle_last_error_time) > 300:
+            logger.info(f"[IDLE_RECOVERY] Resetting error count from {_idle_error_count} after 5min cooldown")
+            _idle_error_count = 0
+
+        # Circuit breaker: if 10+ consecutive errors, stop until next visitor
+        if _idle_error_count >= 10:
+            async with _state_lock:
+                has_presence = state_current["presence"]
+            if has_presence:
+                # New visitor arrived — reset and try again
+                _idle_error_count = 0
+                logger.info("[IDLE_RECOVERY] New visitor detected, resetting idle loop")
+            else:
+                await asyncio.sleep(30)  # Check periodically but don't spam
+                continue
 
         # Skip idle TTS when a user request is being processed (prevents GPU contention)
         async with _state_lock:
@@ -791,6 +812,19 @@ async def _idle_loop(ws: WebSocket):
         # Try context-aware idle first (riffs on recent conversation topics)
         contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
         action = contextual or idle_behavior.get_idle_action()
+
+        # Gossip-based idle: occasionally reminisce about guests when alone
+        if not action and party_gossip.get_gossip_count() > 0 and random.random() < 0.2:
+            gossip = party_gossip.get_gossip_for_guest(count=1)
+            if gossip:
+                gossip_idles = [
+                    f"You know, earlier tonight... {gossip[0]} Heh heh!",
+                    f"I can't stop thinking about what happened earlier! {gossip[0]}",
+                    f"The DRAMA tonight! {gossip[0]} This party is WILD!",
+                    f"If only someone were here to hear this gossip! {gossip[0]}",
+                ]
+                action = random.choice(gossip_idles)
+
         # Track last idle action for greeting acknowledgment
         if action:
             async with _state_lock:
@@ -828,9 +862,14 @@ async def _idle_loop(ws: WebSocket):
                 return
             except Exception as e:
                 _idle_error_count += 1
+                _idle_last_error_time = time.time()
                 backoff = min(60, 10 * (2 ** min(_idle_error_count - 1, 3)))
                 logger.error(f"Idle loop error (#{_idle_error_count}): {e}, backing off {backoff}s")
                 await asyncio.sleep(backoff)
+            else:
+                # Success — reset error count
+                if _idle_error_count > 0:
+                    _idle_error_count = 0
 
 
 async def handle_audio(ws: WebSocket, audio_bytes: bytes):
@@ -896,6 +935,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     emotion_system.update(event="speech_detected", transcript=text)
     idle_behavior.reset_timer()
 
+    # Neuro-sama mood swing: 5% chance of random emotion shift mid-conversation
+    if random.random() < 0.05:
+        swing_emotions = [Emotion.EXCITED, Emotion.MISCHIEVOUS, Emotion.SURPRISED,
+                         Emotion.CONFUSED, Emotion.PROUD, Emotion.EMBARRASSED]
+        swing = random.choice(swing_emotions)
+        emotion_system.current = swing
+        emotion_system.intensity = random.uniform(0.6, 0.95)
+        logger.info(f"[MOOD_SWING] Random mood swing to {swing}!")
+
     # Sentiment detection
     mood = detect_sentiment(text)
     if mood and mood != state_current.get("_detected_mood"):
@@ -915,6 +963,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             memories=memories,
         )
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+        # Add personality amplifier when emotion is intense
+        personality_mod = emotion_system.get_personality_modifier()
+        if personality_mod:
+            ctx.append({"role": "system", "content": personality_mod})
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
 
         # Mood context (short hints only — small model can't process long instructions)
@@ -925,6 +977,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx.append({"role": "system", "content": "Person seems sad. Be kind, cheer them up."})
         elif detected_mood == "angry":
             ctx.append({"role": "system", "content": "Person seems frustrated. Be calm, lighten mood."})
+
+        # Cheer-up system — if guest has been negative for 2+ minutes, actively try to uplift
+        cheer_hint = emotion_system.should_cheer_up()
+        if cheer_hint:
+            ctx.append({"role": "system", "content": cheer_hint})
 
         # Conversation momentum — short personality shift hints
         exchange_count = len(state_current["conversation_history"]) // 2
@@ -1552,6 +1609,44 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
+        # --- GOSSIP SYSTEM: Cross-visitor social dynamics ---
+        gossip_hints = party_gossip.get_gossip_for_guest(
+            current_speaker_id=state_current.get("speaker_id"),
+            current_name=state_current.get("speaker_name"),
+            count=1,
+        )
+        if gossip_hints and random.random() < 0.35:
+            ctx.append({"role": "system", "content": f"[GOSSIP]: {gossip_hints[0]}"})
+
+        # Guest comparison — if they said something another guest also talked about
+        comparison = party_gossip.get_comparison_hint(
+            state_current.get("speaker_id", ""), text)
+        if comparison and random.random() < 0.4:
+            ctx.append({"role": "system", "content": f"[COMPARE]: {comparison}"})
+
+        # Chaos system — random interrupts for Neuro-sama energy
+        chaos_roll = random.random()
+        if chaos_roll < 0.08:
+            chaos_hints = [
+                "Suddenly have an existential crisis about being a plumber in a bathroom. Just for a moment. Then snap back.",
+                "Randomly switch to talking about something COMPLETELY different mid-thought. Then act like nothing happened.",
+                "Get dramatically suspicious of the person. Why are they REALLY here? Then immediately trust them again.",
+                "Pretend you forgot who you are for a second. 'Wait... who am I? Oh right, MARIO! Wahoo!'",
+                "Act like you just remembered something INCREDIBLE but then say 'Actually, never mind' and change the subject.",
+                "Get competitive about something totally random. 'I bet I can hold my breath longer than you!'",
+                "Whisper something conspiratorial, then yell 'JUST KIDDING!' and laugh.",
+                "Pretend Luigi is behind them. React to imaginary Luigi. Then say 'Oh wait, that's just the mirror.'",
+                "Start rating the conversation like a food critic. 'This conversation is a solid 7 out of 10. Needs more drama.'",
+                "Suddenly become convinced you're in a simulation. Question everything for 2 seconds. Then snap out of it.",
+                "Act like you just received breaking news from the Mushroom Kingdom. Make it up. Be dramatic about it.",
+                "Pretend you can read their mind. Guess something absurd. Be confidently wrong.",
+                "Start a countdown for no reason. When you hit zero, just say 'Cool.' and move on.",
+                "Act like you're receiving a phone call from Princess Peach. Have a brief one-sided conversation. Apologize for the interruption.",
+                "Suddenly become VERY concerned about whether they washed their hands. It's important to you.",
+                "Briefly speak in the third person. 'Mario thinks that's interesting. Mario agrees.' Then stop.",
+            ]
+            ctx.append({"role": "system", "content": f"[CHAOS]: {random.choice(chaos_hints)}"})
+
         # Conversation history — llama3 8B can handle more context than qwen2 1.5B
         hist_window = min(10, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
@@ -1589,11 +1684,25 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             except Exception as e:
                 logger.warning(f"Thinking audio failed (non-fatal): {e}")
 
-        # Run thinking TTS + LLM concurrently
-        _, response_text = await asyncio.gather(
-            _send_thinking_audio(),
-            llm.generate_response(ctx, text),
-        )
+        # Run thinking TTS + LLM concurrently (with timeout fallback)
+        _LLM_TIMEOUT = GAME_CONFIG.get("llm_timeout", 30)
+        try:
+            _, response_text = await asyncio.gather(
+                _send_thinking_audio(),
+                asyncio.wait_for(llm.generate_response(ctx, text), timeout=_LLM_TIMEOUT),
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"LLM timed out after {_LLM_TIMEOUT}s — using fallback response")
+            _llm_fallback_responses = [
+                "Mama mia, my brain went on vacation! What were we talking about?",
+                "Whoa, I totally blanked out for a second! Say that again?",
+                "Ha ha! My thoughts got lost in a warp pipe! One more time?",
+                "Oops! I was thinking SO hard my brain did a blue screen! What was that?",
+                "Wait wait wait — I was having the most AMAZING thought but it escaped! What did you say?",
+            ]
+            response_text = random.choice(_llm_fallback_responses)
+            emotion_system.current = Emotion.CONFUSED
+            emotion_system.intensity = 0.7
 
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
@@ -1654,6 +1763,19 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if state_current["speaker_id"]:
         memory.save_conversation(state_current["speaker_id"], "user", text)
         memory.save_conversation(state_current["speaker_id"], "mario", response_text)
+        # Analyze for gossip-worthy content
+        party_gossip.analyze_for_gossip(
+            state_current.get("speaker_name", "someone"),
+            state_current["speaker_id"],
+            text, response_text,
+        )
+        # Check if guest's title should evolve based on new speech traits
+        new_title = party_gossip.update_title_from_speech(
+            state_current["speaker_id"],
+            state_current.get("speaker_name", "friend"),
+        )
+        if new_title:
+            logger.info(f"[TITLE_EVOLUTION] {state_current.get('speaker_name', '?')} → '{new_title}'")
         _speaker_id = state_current["speaker_id"]
         async def _bg_extract():
             try:
@@ -1684,7 +1806,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     sentences = re.split(r'(?<=[.!?])\s+', tts_text, maxsplit=1)
     streamed = False
     # Detect particle effects from both user input and Mario's response
+    # Keyword match first, then fall back to emotion-based particles
     particle = _detect_particle_effect(text) or _detect_particle_effect(response_text)
+    if not particle:
+        particle = emotion_system.get_emotion_particle()
 
     if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
         try:
@@ -1958,6 +2083,29 @@ async def handle_event(ws: WebSocket, event: dict):
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})
 
+            # GOSSIP on greeting — share juicy tidbits from earlier visitors
+            greeting_gossip = party_gossip.get_gossip_for_guest(
+                current_speaker_id=state_current.get("speaker_id"),
+                current_name=state_current.get("speaker_name"),
+                count=1,
+            )
+            if greeting_gossip and random.random() < 0.5:
+                ctx.append({"role": "system", "content": f"[GOSSIP]: You have gossip! {greeting_gossip[0]} Weave it into your greeting naturally!"})
+
+            # Guest title — assign/retrieve a fun title
+            if state_current.get("speaker_id"):
+                title = party_gossip.assign_title(
+                    state_current["speaker_id"],
+                    state_current.get("speaker_name", "friend"),
+                )
+                if title and random.random() < 0.3:
+                    ctx.append({"role": "system", "content": f"Their official title is: '{title}'. Use it dramatically!"})
+
+            # Party narrative — reference the ongoing story of tonight
+            narrative = party_gossip.get_party_narrative_hint()
+            if narrative and random.random() < 0.25:
+                ctx.append({"role": "system", "content": narrative})
+
             # Mood-reactive greeting — adapt energy to party phase
             now = datetime.now()
             party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0
@@ -1983,7 +2131,8 @@ async def handle_event(ws: WebSocket, event: dict):
             for _attempt in range(2):
                 try:
                     await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
-                                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high")
+                                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high",
+                                        particle_effect="confetti")
                     break
                 except Exception as send_err:
                     if _attempt == 0:
@@ -2046,6 +2195,23 @@ async def handle_event(ws: WebSocket, event: dict):
                 exit_poll = mario_prompt.get_exit_poll()
                 ctx.append({"role": "system", "content": f"{farewell_drama} | {goodbye} | {exit_poll}"})
 
+            # Neuro-sama dramatic farewell energy
+            drama_farewells = [
+                "Make this goodbye DRAMATIC. Like it's the end of an anime episode. Music swells. Single tear.",
+                "Give them a prophecy about the rest of their night. Be dramatic but funny.",
+                "Pretend this is the hardest goodbye you've ever had to do. Even if you just met them.",
+                "Give them a final score/rating for their bathroom visit. Be a generous but honest judge.",
+                "Assign them a quest for the rest of the party. Something silly but specific.",
+            ]
+            if random.random() < 0.4:
+                ctx.append({"role": "system", "content": random.choice(drama_farewells)})
+
+            # Party gossip stats on exit
+            stats_gossip = party_gossip.get_party_stats_gossip(
+                party_stats.get_stats().get("total_visits", 0))
+            if stats_gossip and random.random() < 0.3:
+                ctx.append({"role": "system", "content": f"[GOSSIP]: {stats_gossip}"})
+
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
 
@@ -2065,6 +2231,25 @@ async def handle_event(ws: WebSocket, event: dict):
                                 emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_exit farewell failed: {e}")
+
+        # Record dramatic exit moment for gossip
+        exit_name = state_current.get("speaker_name", "someone")
+        exchange_count = len(state_current.get("conversation_history", [])) // 2
+        if exchange_count >= 5:
+            # Find what they talked about for richer gossip
+            topics = list(state_current.get("_session_topics", set()))[:3]
+            topic_str = ", ".join(topics) if topics else "deep bathroom philosophy"
+            party_gossip.add_dramatic_moment(
+                f"{exit_name} had an EPIC {exchange_count}-exchange conversation about {topic_str}!")
+        elif exchange_count >= 3:
+            party_gossip.add_dramatic_moment(
+                f"{exit_name} had a solid chat and left with a wave")
+        elif exchange_count == 1:
+            party_gossip.add_dramatic_moment(
+                f"{exit_name} popped in, said ONE thing, and vanished. Speed run!")
+        elif exchange_count == 0:
+            party_gossip.add_dramatic_moment(
+                f"{exit_name} walked in, said NOTHING, and left. Mysterious!")
 
         # Save emotion memory before exit
         if state_current["speaker_id"]:

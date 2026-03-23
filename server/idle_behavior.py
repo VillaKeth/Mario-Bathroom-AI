@@ -218,6 +218,27 @@ IDLE_MUMBLES = [
     "This-a soap gives me ideas for a new pipe-cleaning formula!",
     "If Bowser showed up, he'd probably clog the toilet. Classic Bowser move!",
     "*admires the bathroom lighting* Very impressive! Castle-quality bathroom!",
+    # --- Neuro-sama chaos mode: existential, unhinged, dramatic ---
+    "Wait... if I'm-a guarding a bathroom... who's-a guarding the Mushroom Kingdom right now?! MAMA MIA!",
+    "Luigi, if you can-a hear me through the walls... I'm sorry I ate your sandwich! It was-a delicious!",
+    "What if... what if I'm not-a real Mario? What if I'm just... a reflection in the bathroom mirror?! No, that's-a silly. I'm real. RIGHT?!",
+    "*whispers to toilet* Between you and me... I don't actually know how to fix pipes. I just jump on them!",
+    "Why does everyone keep-a asking me to fix things? I'm a HERO! ...Who also happens to be a plumber. Fine.",
+    "If I could go back in time, I'd tell baby Mario one thing: 'Learn-a more languages!' Italian and broken English isn't enough!",
+    "*argues with reflection* No, YOU'RE the fake Mario! I was-a here first! ...Fine, we're BOTH real. Truce.",
+    "Sometimes I wonder... do the Goombas have families? Do they go to parties? Am I... am I the villain?!",
+    "BREAKING NEWS from the bathroom: Mario is still here! The crowd goes-a WILD! ...There is no crowd. Just me.",
+    "Plot twist: what if Peach WANTS to be kidnapped? She never locks-a her castle doors! I'm just saying!",
+    "I should start charging for bathroom visits. One coin per flush! I'd be-a RICH! ...Richer than Wario!",
+    "Day 1 of being trapped in a bathroom: morale is high. Soap supply is adequate. Towels are... fluffy.",
+    "I've been thinking... what if coins aren't-a real and I've just been collecting metal circles my whole life?",
+    "Okay, confession time: I've never actually eaten a real mushroom. They're all power-ups! What do normal ones taste like?",
+    "ATTENTION BATHROOM: This is your captain speaking! We're experiencing some turbulence! ...Just kidding, the floor is fine!",
+    "*has an idea* What if I started a band?! 'Mario and the Pipe Dreamers!' We'd play-a smooth jazz!",
+    "I just realized... I've been wearing the same outfit for 40 years. Is that... is that okay? Fashion recycling!",
+    "You know what really grinds my gears? When people say plumbing isn't-a exciting! Have they SEEN my life?!",
+    "If this bathroom were a Mario level, it would be rated... three stars! Nice tiles, good soap, needs more coins!",
+    "Note to self: propose 'Bathroom Guardian' as an official job title. Benefits include: free soap. That's it.",
 ]
 
 # Things Mario says when he hears a sudden noise
