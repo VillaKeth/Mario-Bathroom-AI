@@ -236,6 +236,113 @@ HOT_TAKES = [
     "Mario would LOSE in a fair fight against Sonic!",
 ]
 
+# ---------------------------------------------------------------------------
+# NEW MINI-GAME CONTENT — Mario Trivia, Name That Character, Bathroom Dares,
+# Story Builder, enhanced Would-You-Rather
+# ---------------------------------------------------------------------------
+
+MARIO_TRIVIA_QUESTIONS = [
+    {"q": "In what year was the original Super Mario Bros. released?", "a": ["1985"], "accept": ["85", "1985", "nineteen eighty five"]},
+    {"q": "What is the name of Bowser's flying ship?", "a": ["airship"], "accept": ["airship", "koopa cruiser", "doomship"]},
+    {"q": "How many worlds are in Super Mario Bros.?", "a": ["8"], "accept": ["8", "eight"]},
+    {"q": "What power-up lets Mario fly in Super Mario World?", "a": ["cape feather"], "accept": ["cape", "feather", "cape feather"]},
+    {"q": "What is Princess Peach's original English name?", "a": ["toadstool"], "accept": ["toadstool", "princess toadstool"]},
+    {"q": "What is the name of Mario's dinosaur companion?", "a": ["yoshi"], "accept": ["yoshi"]},
+    {"q": "In Super Mario 64, how many Power Stars can you collect?", "a": ["120"], "accept": ["120", "one hundred twenty", "one hundred and twenty"]},
+    {"q": "What color is Waluigi's hat?", "a": ["purple"], "accept": ["purple", "violet"]},
+    {"q": "What is the name of the final boss in Super Mario Galaxy?", "a": ["bowser"], "accept": ["bowser", "king bowser"]},
+    {"q": "Which Mario game introduced the wall jump?", "a": ["super mario 64"], "accept": ["64", "mario 64", "super mario 64"]},
+    {"q": "What animal is Donkey Kong?", "a": ["gorilla"], "accept": ["gorilla", "ape", "monkey"]},
+    {"q": "In Mario Kart, what item targets the player in first place?", "a": ["blue shell"], "accept": ["blue shell", "spiny shell", "blue"]},
+    {"q": "What is the name of Bowser's son?", "a": ["bowser jr"], "accept": ["bowser jr", "bowser junior", "jr"]},
+    {"q": "How many Koopalings are there?", "a": ["7"], "accept": ["7", "seven"]},
+    {"q": "What is the name of the ghost king in Luigi's Mansion?", "a": ["king boo"], "accept": ["king boo", "boo"]},
+    {"q": "What shape is the power-up block in most Mario games?", "a": ["question mark block"], "accept": ["question", "question mark", "block", "cube", "square"]},
+    {"q": "What profession was Mario before plumbing?", "a": ["carpenter"], "accept": ["carpenter"]},
+    {"q": "What is the name of the star guardian in Super Mario Galaxy?", "a": ["rosalina"], "accept": ["rosalina"]},
+    {"q": "In Super Mario Odyssey, what is Mario's hat companion called?", "a": ["cappy"], "accept": ["cappy"]},
+    {"q": "What city has a festival in Super Mario Odyssey?", "a": ["new donk city"], "accept": ["new donk", "new donk city", "donk city"]},
+    {"q": "What game features the Isle Delfino setting?", "a": ["super mario sunshine"], "accept": ["sunshine", "mario sunshine", "super mario sunshine"]},
+    {"q": "What is Toad's full name?", "a": ["toad"], "accept": ["toad", "kinopio"]},
+    {"q": "Which princess rules Sarasaland?", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
+    {"q": "What enemy hides in pipes and bites Mario?", "a": ["piranha plant"], "accept": ["piranha", "piranha plant"]},
+    {"q": "What is the name of the chain enemy attached to a post?", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
+]
+
+NAME_THAT_CHARACTER = [
+    {"desc": "This-a guy is green, taller than me, and afraid of ghosts!", "a": ["luigi"], "accept": ["luigi"]},
+    {"desc": "She's-a got a pink dress, blonde hair, and keeps getting kidnapped by Bowser!", "a": ["peach"], "accept": ["peach", "princess peach", "toadstool"]},
+    {"desc": "This little mushroom head always says 'Thank you Mario!' but the princess is NEVER there!", "a": ["toad"], "accept": ["toad"]},
+    {"desc": "Big spiky turtle, breathes fire, has a SERIOUS princess obsession!", "a": ["bowser"], "accept": ["bowser", "king koopa"]},
+    {"desc": "Green dinosaur, long tongue, eats EVERYTHING, and I may have... dropped him into pits!", "a": ["yoshi"], "accept": ["yoshi"]},
+    {"desc": "This guy looks like me but EVIL, wears yellow and purple, and loves garlic!", "a": ["wario"], "accept": ["wario"]},
+    {"desc": "Tall, skinny, purple hat, goes 'WAH!' a LOT, and never gets invited to Smash Bros!", "a": ["waluigi"], "accept": ["waluigi"]},
+    {"desc": "Floats in a cloud, wears goggles, throws spiny eggs at you from above!", "a": ["lakitu"], "accept": ["lakitu"]},
+    {"desc": "Round, brown, angry face, just walks in one direction, gets stomped by EVERYONE!", "a": ["goomba"], "accept": ["goomba"]},
+    {"desc": "A ghost that covers its face when you look at it, but chases you when you turn around!", "a": ["boo"], "accept": ["boo", "king boo"]},
+    {"desc": "She lives in space, watches over the Lumas, and has a mysterious backstory!", "a": ["rosalina"], "accept": ["rosalina"]},
+    {"desc": "He's a star-shaped warrior from the legends, made of wood, shoots laser beams!", "a": ["geno"], "accept": ["geno"]},
+    {"desc": "A turtle with a red or green shell — kick the shell and it goes FLYING!", "a": ["koopa troopa"], "accept": ["koopa", "koopa troopa", "koopa trooper"]},
+    {"desc": "This big ape throws barrels and loves bananas more than ANYTHING!", "a": ["donkey kong"], "accept": ["donkey kong", "dk"]},
+    {"desc": "She's got an orange dress, is from Sarasaland, and says 'Hi I'm Daisy!' ALL the time!", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
+]
+
+BATHROOM_DARES = [
+    "I DARE you to look in the mirror and say 'I am the greatest plumber in the Mushroom Kingdom' three times!",
+    "I DARE you to do 5 jumping jacks right now! Come on, WAHOO with each one!",
+    "I DARE you to strike your BEST superhero pose in the mirror and hold it for 5 seconds!",
+    "I DARE you to do your best Mario impression! Say 'It's-a me!' as loud as you can!",
+    "I DARE you to sing 'Happy Birthday' but replace every word with 'Wahoo'!",
+    "I DARE you to flex in the mirror and give yourself a compliment! You DESERVE it!",
+    "I DARE you to do a little dance right now! Show me your BEST moves!",
+    "I DARE you to make a funny face in the mirror and HOLD it for 10 seconds!",
+    "I DARE you to pat your head and rub your tummy at the SAME TIME! It's harder than it sounds!",
+    "I DARE you to do your best Bowser ROAR! RAAAWR! Scare those Goombas!",
+    "I DARE you to high-five yourself in the mirror! Both hands! SLAP!",
+    "I DARE you to do 3 squats while saying 'WAHOO' each time you come up!",
+    "I DARE you to wink at yourself in the mirror and say 'Looking GOOD, superstar!'",
+    "I DARE you to pretend you're swimming through the air like it's a water level!",
+    "I DARE you to snap your fingers 10 times as fast as you can! Speed run!",
+    "I DARE you to do a robot dance for 5 seconds! Beep boop beep!",
+    "I DARE you to give a thumbs up to the mirror with BOTH hands and say 'Let's-a go!'",
+    "I DARE you to pretend you just won a race and do a victory celebration!",
+    "I DARE you to try touching your nose with your tongue! Can you do it?!",
+    "I DARE you to tell the mirror a joke! Make YOURSELF laugh!",
+]
+
+STORY_STARTERS = [
+    "Once upon a time, in the deepest pipe of the Mushroom Kingdom, Mario found a golden toilet that granted wishes!",
+    "It was a dark and stormy night in Bowser's Castle when suddenly, a Goomba showed up wearing a TOP HAT!",
+    "Luigi was minding his own business when a ghost popped out and said 'I need YOUR help to plan a PARTY!'",
+    "Deep in the jungle, Donkey Kong discovered a banana that could TALK, and it said...",
+    "Princess Peach was tired of being rescued, so she grabbed a fire flower and said 'MY TURN!'",
+    "Toad was running the Mushroom Kingdom's first-ever pizza shop when Bowser walked in and ordered...",
+    "Waluigi entered a talent show, and his secret talent was something NOBODY expected...",
+    "Mario was fixing a toilet when he accidentally opened a portal to a dimension made entirely of SPAGHETTI!",
+    "Yoshi ate a mystery mushroom and suddenly could speak perfect English, and the FIRST thing he said was...",
+    "Bowser decided to take a vacation from being evil, so he booked a trip to...",
+    "In a parallel universe, Mario was a VILLAIN and Bowser was the HERO! It all started when...",
+    "A Chain Chomp broke free from its post and decided to become a PUPPY at a pet store!",
+]
+
+WYR_EXTENDED = [
+    {"a": "Fight 100 Goomba-sized Bowsers", "b": "Fight 1 Bowser-sized Goomba"},
+    {"a": "Have a Bullet Bill as your personal taxi", "b": "Have a Lakitu cloud as your bed"},
+    {"a": "Only speak in Mario's voice forever", "b": "Only walk by jumping everywhere"},
+    {"a": "Live inside a question mark block", "b": "Live inside a green pipe"},
+    {"a": "Be chased by an angry Chain Chomp for a day", "b": "Be stuck in a Ghost House overnight"},
+    {"a": "Eat nothing but mushrooms for a month", "b": "Eat nothing but fire flowers for a week"},
+    {"a": "Have Bowser as your roommate", "b": "Have Waluigi as your coworker"},
+    {"a": "Ride a Thwomp to school every day", "b": "Ride a Blooper through the ocean to work"},
+    {"a": "Have Bob-ombs as party poppers at your birthday", "b": "Have Boos as your hide-and-seek teammates"},
+    {"a": "Win a Mario Kart Grand Prix but no one believes you", "b": "Lose but everyone thinks you won"},
+    {"a": "Have the double cherry power-up forever (clone yourself)", "b": "Have the cat suit forever"},
+    {"a": "Be trapped in Rainbow Road with no guardrails", "b": "Be trapped in a water level with no air bubbles"},
+    {"a": "Have Toad narrate your entire life", "b": "Have Lakitu film your entire life"},
+    {"a": "Play Mario Party for 100 turns", "b": "Play a single Mario Kart race on Rainbow Road that never ends"},
+    {"a": "Have unlimited coins but can't spend them", "b": "Have only 1 coin but it buys anything"},
+]
+
 NHIE_PROMPTS = [
     "Never have I ever... jumped on a Goomba in real life!",
     "Never have I ever... tried to slide down a flagpole!",
@@ -428,6 +535,85 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         first_prompt = prompts[0]
         return f"NEVER HAVE I EVER! Let's-a see how DARING you are! Round 1 of 5! {first_prompt} Say 'I have' or 'I haven't'!"
 
+    # --- Mario Trivia ---
+    if game_name == "mario_trivia":
+        questions = list(MARIO_TRIVIA_QUESTIONS)
+        random.shuffle(questions)
+        max_r = 5
+        state["_active_game"] = "mario_trivia"
+        state["_game_state"] = {
+            "questions": questions[:max_r],
+            "current": 0,
+            "score": 0,
+            "max_rounds": max_r,
+        }
+        emotion_sys.current = Emotion.EXCITED
+        first_q = questions[0]["q"]
+        return f"MARIO TRIVIA TIME! 5 questions about the wonderful world of Mario! Let's-a see how smart you are! Question 1: {first_q}"
+
+    # --- Name That Character ---
+    if game_name == "name_that_character":
+        chars = list(NAME_THAT_CHARACTER)
+        random.shuffle(chars)
+        max_r = min(5, len(chars))
+        state["_active_game"] = "name_that_character"
+        state["_game_state"] = {
+            "characters": chars[:max_r],
+            "current": 0,
+            "score": 0,
+            "max_rounds": max_r,
+            "start_time": time.time(),
+            "round_start": time.time(),
+        }
+        emotion_sys.current = Emotion.EXCITED
+        first_desc = chars[0]["desc"]
+        return f"NAME THAT CHARACTER! I describe someone, you guess who! Speed matters — faster answers get bonus praise! Ready? Here we go! {first_desc}"
+
+    # --- Bathroom Dare ---
+    if game_name == "bathroom_dare":
+        dares = list(BATHROOM_DARES)
+        random.shuffle(dares)
+        max_r = 3
+        state["_active_game"] = "bathroom_dare"
+        state["_game_state"] = {
+            "dares": dares[:max_r],
+            "current": 0,
+            "completed": 0,
+            "max_rounds": max_r,
+        }
+        emotion_sys.current = Emotion.MISCHIEVOUS
+        first_dare = dares[0]
+        return f"BATHROOM DARE TIME! Mario's got some challenges for you! Dare 1 of {max_r}: {first_dare} Say 'done' when you finish, or 'skip' if you're chicken! Bawk bawk!"
+
+    # --- Story Builder ---
+    if game_name == "story_builder":
+        starter = random.choice(STORY_STARTERS)
+        state["_active_game"] = "story_builder"
+        state["_game_state"] = {
+            "story": [starter],
+            "current_round": 1,
+            "max_rounds": 5,
+            "whose_turn": "player",
+        }
+        emotion_sys.current = Emotion.EXCITED
+        return f"STORY BUILDER TIME! We take turns adding to a story! I'll start, you add the next part, then me, back and forth for 5 rounds! Here we go: {starter} ...NOW YOU! Add the next sentence!"
+
+    # --- Would You Rather (Extended/Mario Edition) ---
+    if game_name == "wyr_mario":
+        combined = list(WYR_EXTENDED)
+        random.shuffle(combined)
+        max_rounds = 5
+        state["_active_game"] = "wyr_mario"
+        state["_game_state"] = {
+            "questions": combined[:max_rounds],
+            "current": 0,
+            "max_rounds": max_rounds,
+            "choices": [],
+        }
+        emotion_sys.current = Emotion.MISCHIEVOUS
+        q = combined[0]
+        return f"WOULD YOU RATHER — MARIO EDITION! The CRAZIEST choices from the Mushroom Kingdom! Round 1 of {max_rounds}! Would you rather: A) {q['a']} OR B) {q['b']}? Say A or B!"
+
     return None
 
 
@@ -440,8 +626,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
     game = state["_active_game"]
     gs = state["_game_state"]
 
-    # Universal quit
-    if any(w in lower for w in ["quit", "stop", "give up", "end game", "done", "exit"]):
+    # Universal quit (exclude "done" — used as valid input by bathroom_dare and simon_says)
+    quit_words = ["quit", "stop", "give up", "end game", "exit"]
+    if game not in ("bathroom_dare", "simon_says", "story_builder"):
+        quit_words.append("done")
+    if any(w in lower for w in quit_words):
         game_name = game.replace("_", " ")
         score = gs.get("score", 0)
         state["_active_game"] = None
@@ -915,5 +1104,227 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             return (f"{reaction} Round {next_round} of {gs['max_rounds']}! {next_prompt} Say 'I have' or 'I haven't'!", sfx)
 
         return (f"Say 'I have' or 'I haven't'! {gs['prompts'][gs['current']]}", "hint")
+
+    # --- Mario Trivia ---
+    if game == "mario_trivia":
+        current_idx = gs["current"]
+        if current_idx >= len(gs["questions"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return (f"Trivia over! Score: {gs['score']}/{gs['max_rounds']}! Wahoo!", "game_over")
+
+        question = gs["questions"][current_idx]
+        accepted = question["accept"]
+        got_it = any(a in lower for a in accepted)
+
+        gs["current"] += 1
+        next_idx = gs["current"]
+
+        if got_it:
+            gs["score"] += 1
+            feedback = random.choice([
+                "CORRECT! Wahoo! You REALLY know your Mario!",
+                "YES! That's-a RIGHT! You're a true Mario fan!",
+                "MAMA MIA! You got it! Impressive!",
+                "WAHOO! Correct! Are you secretly a Toad scholar?!",
+            ])
+            sfx = "correct"
+        else:
+            correct_answer = question["a"][0]
+            feedback = random.choice([
+                f"Ooh, not quite! The answer was '{correct_answer}'!",
+                f"Nope! It's '{correct_answer}'! Now you know!",
+                f"Sorry! The correct answer is '{correct_answer}'! Tricky one!",
+            ])
+            sfx = "wrong"
+
+        if next_idx >= len(gs["questions"]):
+            score = gs["score"]
+            total = gs["max_rounds"]
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            if score == total:
+                return (f"{feedback} PERFECT SCORE! {score}/{total}! You're a MARIO MASTER! Wahoo!", "achievement")
+            elif score >= 3:
+                return (f"{feedback} Final score: {score}/{total}! Great job, you know your stuff!", "game_over")
+            else:
+                return (f"{feedback} Final score: {score}/{total}! Time to play more Mario games! Ha ha!", "game_over")
+
+        next_q = gs["questions"][next_idx]["q"]
+        return (f"{feedback} Question {next_idx + 1}: {next_q}", sfx)
+
+    # --- Name That Character ---
+    if game == "name_that_character":
+        current_idx = gs["current"]
+        if current_idx >= len(gs["characters"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return (f"Game over! Score: {gs['score']}/{gs['max_rounds']}!", "game_over")
+
+        char = gs["characters"][current_idx]
+        accepted = char["accept"]
+        got_it = any(a in lower for a in accepted)
+        elapsed = time.time() - gs["round_start"]
+
+        gs["current"] += 1
+        next_idx = gs["current"]
+
+        if got_it:
+            gs["score"] += 1
+            if elapsed < 5:
+                feedback = f"LIGHTNING FAST! {elapsed:.1f} seconds! You INSTANTLY knew it! INCREDIBLE!"
+            elif elapsed < 15:
+                feedback = f"Nice! {elapsed:.1f} seconds! Quick thinker! Wahoo!"
+            else:
+                feedback = f"You got it in {elapsed:.1f} seconds! A bit slow but CORRECT!"
+            sfx = "correct"
+        else:
+            correct_answer = char["a"][0]
+            feedback = f"Nope! It was {correct_answer.upper()}! {elapsed:.1f} seconds and no dice!"
+            sfx = "wrong"
+
+        if next_idx >= len(gs["characters"]):
+            total_time = time.time() - gs["start_time"]
+            score = gs["score"]
+            total = gs["max_rounds"]
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            if score == total:
+                return (f"{feedback} PERFECT! {score}/{total} in {total_time:.0f}s total! You know EVERYONE in the Mushroom Kingdom!", "achievement")
+            elif score >= 3:
+                return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Not bad at all!", "game_over")
+            else:
+                return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Time to study your Mario characters!", "game_over")
+
+        gs["round_start"] = time.time()
+        next_desc = gs["characters"][next_idx]["desc"]
+        return (f"{feedback} Character {next_idx + 1}: {next_desc}", sfx)
+
+    # --- Bathroom Dare ---
+    if game == "bathroom_dare":
+        current_idx = gs["current"]
+        if current_idx >= len(gs["dares"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return (f"All dares done! You completed {gs['completed']}/{gs['max_rounds']}! Wahoo!", "game_over")
+
+        did_it = any(w in lower for w in ["done", "did it", "finished", "completed", "yes", "okay"])
+        skipped = any(w in lower for w in ["skip", "pass", "no", "nope", "chicken", "next"])
+
+        if did_it:
+            gs["completed"] += 1
+            reactions = [
+                "WAHOO! You actually DID it! Mario is-a SO PROUD of you!",
+                "INCREDIBLE! You're braver than me fighting Bowser! Respect!",
+                "YES! You're a CHAMPION! That took GUTS! Ha ha!",
+                "MAMA MIA! You really did it?! You're AMAZING! Wahoo!",
+                "BRAVO! Standing ovation from Mario! *clap clap clap*",
+            ]
+            reaction = random.choice(reactions)
+            sfx = "correct"
+            emotion_sys.current = Emotion.EXCITED
+        elif skipped:
+            reactions = [
+                "Bawk bawk BAWK! Chicken! Ha ha, just kidding! It's okay!",
+                "Skipped! Mario understands, not everyone can be as brave as a plumber!",
+                "No worries! That one WAS pretty tough! Maybe next time!",
+                "Oh come ON! ...Fine fine, we'll move on! Ha ha!",
+            ]
+            reaction = random.choice(reactions)
+            sfx = "wrong"
+            emotion_sys.current = Emotion.MISCHIEVOUS
+        else:
+            return (f"Did you do the dare? Say 'done' when you finish, or 'skip' to move on!", None)
+
+        gs["current"] += 1
+        next_idx = gs["current"]
+
+        if next_idx >= len(gs["dares"]):
+            completed = gs["completed"]
+            total = gs["max_rounds"]
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            if completed == total:
+                return (f"{reaction} ALL DARES COMPLETED! {completed}/{total}! You're the DARE CHAMPION! Wahoo!", "achievement")
+            elif completed > 0:
+                return (f"{reaction} Dares over! You completed {completed}/{total}! Not bad!", "game_over")
+            else:
+                return (f"{reaction} Dares over! You skipped them ALL?! Mama mia! Ha ha!", "game_over")
+
+        next_dare = gs["dares"][next_idx]
+        return (f"{reaction} Dare {next_idx + 1} of {gs['max_rounds']}: {next_dare} Say 'done' or 'skip'!", sfx)
+
+    # --- Story Builder ---
+    if game == "story_builder":
+        if gs["whose_turn"] == "player":
+            # Player just added their sentence
+            player_addition = lower.strip()
+            if len(player_addition) < 3:
+                return ("Come on, add something to the story! Say a sentence to continue!", None)
+
+            gs["story"].append(player_addition)
+            gs["current_round"] += 1
+
+            if gs["current_round"] > gs["max_rounds"]:
+                full_story = " ".join(gs["story"])
+                state["_active_game"] = None
+                state["_game_state"] = {}
+                emotion_sys.current = Emotion.HAPPY
+                return (f"THE END! What a MASTERPIECE! Here's our story: {full_story} ...WAHOO! We should write a BOOK together!", "achievement")
+
+            # Mario adds his part
+            mario_continuations = [
+                "And THEN, out of NOWHERE, a giant Goomba appeared wearing sunglasses and said 'What's up?!'",
+                "But WAIT! Bowser showed up riding a skateboard and doing kickflips! Nobody expected THAT!",
+                "Suddenly the ground started shaking and a GOLDEN pipe burst through the floor!",
+                "Just when things couldn't get crazier, Luigi showed up with a BOOMBOX blasting the Mario theme!",
+                "And then — PLOT TWIST — it was all a dream! Just kidding! A Koopa in a tuxedo appeared!",
+                "BUT the Star Power activated and EVERYTHING turned to disco lights and funky music!",
+                "Out of the shadows, Toad appeared carrying the BIGGEST pizza anyone had ever seen!",
+                "And in that exact moment, a Bullet Bill flew by carrying a love letter from Princess Peach!",
+                "Then Waluigi crashed through the wall on a motorcycle yelling 'WAAAH!' at the top of his lungs!",
+                "Suddenly a warp pipe opened and 50 coins came flying out like a golden fountain!",
+            ]
+            mario_part = random.choice(mario_continuations)
+            gs["story"].append(mario_part)
+            gs["whose_turn"] = "player"
+            rnd = gs["current_round"]
+            return (f"LOVE IT! Mario's turn: {mario_part} ...Round {rnd} of {gs['max_rounds']}! YOUR turn! Add the next part!", "correct")
+
+        return ("It's YOUR turn! Add a sentence to the story!", None)
+
+    # --- Would You Rather (Mario Edition) ---
+    if game == "wyr_mario":
+        chose_a = any(w in lower for w in ["a", "first", "option a", "first one"])
+        chose_b = any(w in lower for w in ["b", "second", "option b", "second one"])
+        if not chose_a and not chose_b:
+            return ("Say A or B! Which would you rather?", None)
+
+        choice = "A" if chose_a else "B"
+        q = gs["questions"][gs["current"]]
+        chosen_text = q["a"] if chose_a else q["b"]
+        other_text = q["b"] if chose_a else q["a"]
+        gs["choices"].append({"choice": choice, "text": chosen_text})
+
+        dramatic_reactions = [
+            f"MAMA MIA! You chose '{chosen_text}' over '{other_text}'?! That says SO MUCH about you! Ha ha!",
+            f"'{chosen_text}'?! REALLY?! Mario would have picked '{other_text}'! We're-a so different! Wahoo!",
+            f"Interesting! '{chosen_text}'! You know what, I RESPECT that choice! Bold move!",
+            f"WAHOO! '{chosen_text}'! That's the choice of a TRUE adventurer! Or maybe a crazy person! Either way I love it!",
+            f"'{chosen_text}'! Ooh ooh ooh! {random.choice(['Luigi', 'Peach', 'Toad', 'Bowser'])} would be SO jealous of that answer!",
+        ]
+        reaction = random.choice(dramatic_reactions)
+
+        gs["current"] += 1
+        if gs["current"] >= gs["max_rounds"]:
+            state["_active_game"] = None
+            choices_summary = ", ".join([c["choice"] for c in gs["choices"]])
+            state["_game_state"] = {}
+            emotion_sys.current = Emotion.HAPPY
+            return (f"{reaction} All rounds done! Your choices were: {choices_summary}! You are TRULY one of a kind! Wahoo!", "game_over")
+
+        next_q = gs["questions"][gs["current"]]
+        next_round = gs["current"] + 1
+        return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
 
     return None

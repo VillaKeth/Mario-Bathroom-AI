@@ -462,15 +462,13 @@ def handle_special_commands(
         emotion_system.current = Emotion.HAPPY
         return base_compliment
 
-    # Challenge request
+    # Challenge / trivia request → starts Mario Trivia game
     if any(w in lower for w in ["challenge", "quiz me", "test me", "trivia"]):
-        emotion_system.current = "mischievous"
-        return idle_behavior.get_challenge()
+        return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
-    # Dare
+    # Dare → starts Bathroom Dare game
     if any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you"]):
-        emotion_system.current = "mischievous"
-        return random.choice(DARES)
+        return game_handlers.start_game("bathroom_dare", state, game_config, emotion_system)
 
     # Hand wash reminder
     if any(w in lower for w in ["wash my hands", "should i wash", "hygiene", "wash hands", "hand wash", "soap"]):
@@ -532,8 +530,10 @@ def handle_special_commands(
         return (
             "I can do so much! Ask for a joke, trivia, song, dare, roast, nickname, "
             "pickup line, fortune, tongue twister, story, rap, motivation, bathroom tip, "
-            "or just-a chat! Play Simon Says, 20 Questions, Truth or Dare, Riddles, Word Chain, "
-            "Rapid Fire Quiz, Would You Rather, Karaoke, Rock Paper Scissors, Hangman, or Hot Takes! Check achievements, leaderboard, trending, party phase, "
+            "or just-a chat! Play Mario Trivia, Name That Character, Bathroom Dare, Story Builder, "
+            "Would You Rather, Simon Says, 20 Questions, Truth or Dare, Riddles, Word Chain, "
+            "Rapid Fire Quiz, Karaoke, Rock Paper Scissors, Hangman, Hot Takes, or Never Have I Ever! "
+            "Check achievements, leaderboard, trending, party phase, "
             "party stats, conversation summary, holiday, crew, or sound catalog! Wahoo!"
         )
 
@@ -583,19 +583,18 @@ def handle_special_commands(
         current_mood = emotion_system.current
         return MOOD_RESPONSES.get(current_mood, "I'm-a doing great! It's always a good day to be Mario!")
 
-    # Would You Rather game
+    # Would You Rather game (Mario Edition)
     if any(w in lower for w in ["would you rather", "rather game", "choice game", "this or that"]):
-        return game_handlers.start_game("would_you_rather", state, game_config, emotion_system)
+        return game_handlers.start_game("wyr_mario", state, game_config, emotion_system)
 
     # Tongue twister
     if any(w in lower for w in ["tongue twister", "say something hard", "twist my tongue"]):
         emotion_system.current = "mischievous"
         return random.choice(TWISTERS)
 
-    # Tell me a story / story time
+    # Tell me a story / story time → starts Story Builder game
     if any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
-        emotion_system.current = "happy"
-        return random.choice(STORIES)
+        return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
     # Pickup line
     if any(w in lower for w in ["pickup line", "flirt", "rizz", "pick up line", "smooth line"]):
@@ -847,6 +846,22 @@ def handle_special_commands(
     # Never Have I Ever
     if any(w in lower for w in ["never have i ever", "never ever", "play never"]):
         return game_handlers.start_game("never_have_i_ever", state, game_config, emotion_system)
+
+    # Mario Trivia (additional triggers beyond "trivia"/"quiz me" above)
+    if any(w in lower for w in ["play trivia", "mario trivia", "trivia game", "quiz me mario"]):
+        return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
+
+    # Name That Character (Speed Round)
+    if any(w in lower for w in ["name that character", "guess the character", "who am i describing", "character quiz", "speed round"]):
+        return game_handlers.start_game("name_that_character", state, game_config, emotion_system)
+
+    # Bathroom Dare (additional triggers beyond "dare me" above)
+    if any(w in lower for w in ["bathroom dare", "dare challenge"]):
+        return game_handlers.start_game("bathroom_dare", state, game_config, emotion_system)
+
+    # Story Builder (additional triggers beyond "tell me a story"/"story time" above)
+    if any(w in lower for w in ["story builder", "build a story", "let's write a story"]):
+        return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
     # Sound catalog
     if any(w in lower for w in ["sound catalog", "what sounds", "sound effects", "sound list"]):

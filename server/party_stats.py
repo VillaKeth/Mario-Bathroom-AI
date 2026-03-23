@@ -19,6 +19,10 @@ class PartyStats:
         self._init_db()
         self.party_start_time = self._load_or_create_party_start()
 
+    @staticmethod
+    def _db_path() -> str:
+        return DB_PATH
+
     def _init_db(self):
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute("PRAGMA journal_mode=WAL")

@@ -6,6 +6,7 @@ import logging
 import math
 import random
 import string
+import time
 import pygame
 
 DEBUG_DISPLAY = True
@@ -183,6 +184,7 @@ class MarioDisplay:
         self._keyboard_cursor_visible = True
         self._keyboard_cursor_timer = 0
         self.on_keyboard_submit = None  # callback(text)
+        self.on_volume_change = None   # callback(delta: float)
 
         # Party mode
         self.party_mode = False
@@ -204,6 +206,41 @@ class MarioDisplay:
 
         # Fullscreen toggle
         self._fullscreen = False
+
+        # --- Enhanced animation system (time-based, frame-independent) ---
+        # Sprite crossfade
+        self._crossfade_start = 0.0
+        self._crossfade_from_surface = None
+        self._crossfade_duration = 0.3  # 300ms crossfade
+        self._last_sprite_key = None
+
+        # Talking word-bounce
+        self._talk_bounce_start = 0.0
+        self._talk_last_char_count = 0
+
+        # Entrance/Exit time-based
+        self._enter_exit_start = 0.0
+
+        # Emotion flash + edge glow
+        self._emotion_flash_start = 0.0
+        self._emotion_flash_color = (255, 255, 255)
+        self._emotion_flash_type = ""
+        self._edge_glow_start = 0.0
+        self._edge_glow_color = (255, 255, 255)
+
+        # Volume overlay
+        self._volume_level = 1.0
+        self._volume_show_frame = -999  # frame when volume was last shown
+        self._volume_display_duration = 60  # ~2 seconds at 30fps
+
+        # Leaderboard overlay
+        self._leaderboard_visible = False
+        self._leaderboard_show_frame = 0  # frame when leaderboard was shown
+        self._leaderboard_auto_hide_frames = 450  # ~15 seconds at 30fps
+        self._leaderboard_data = {}
+        self._leaderboard_ticker_index = 0
+        self._leaderboard_ticker_frame = 0
+        self._leaderboard_ticker_interval = 150  # ~5 seconds at 30fps
 
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
@@ -303,12 +340,22 @@ class MarioDisplay:
                         self._keyboard_text = ""
                     elif event.key == pygame.K_F5:
                         self.party_mode = not self.party_mode
+                    elif event.key == pygame.K_F6:
+                        self._leaderboard_visible = not self._leaderboard_visible
+                        if self._leaderboard_visible:
+                            self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F11:
                         self._fullscreen = not self._fullscreen
                         if self._fullscreen:
                             self._screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
                         else:
                             self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    elif not self.keyboard_mode and event.key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
+                        if self.on_volume_change:
+                            self.on_volume_change(0.1)
+                    elif not self.keyboard_mode and event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+                        if self.on_volume_change:
+                            self.on_volume_change(-0.1)
                     elif self.keyboard_mode:
                         self._handle_keyboard_input(event)
 
@@ -343,6 +390,7 @@ class MarioDisplay:
         self.current_text = ""
         self.state = STATE_TALKING
         self._text_display_time = self._frame
+        self._talk_last_char_count = 0
 
     def set_subtitle(self, text: str):
         """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
@@ -354,7 +402,7 @@ class MarioDisplay:
         self.state = state
 
     def set_emotion(self, emotion: str):
-        """Set Mario's emotional state, spawning particles."""
+        """Set Mario's emotional state, spawning particles and triggering flash."""
         if emotion and emotion not in EMOTION_SPRITE_MAP:
             if DEBUG_DISPLAY:
                 logger.info(f"[DEBUG_DISPLAY] set_emotion: unknown emotion '{emotion}', using 'happy'")
@@ -365,6 +413,7 @@ class MarioDisplay:
         if emotion != prev:
             self._particles = []  # Clear old particles on emotion change
             self._spawn_emotion_particles(emotion)
+            self._trigger_emotion_flash(emotion)
 
     def set_pose_hint(self, pose_hint: str):
         """Set an explicit pose hint from the server (highest priority for sprite selection)."""
@@ -382,11 +431,23 @@ class MarioDisplay:
         self._thinking = thinking
         self._thinking_dots = 0
 
+    def show_volume(self, level: float):
+        """Show a brief volume indicator overlay (~2 seconds)."""
+        self._volume_level = level
+        self._volume_show_frame = self._frame
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] show_volume: {level:.1f} ({int(level * 100)}%)")
+
     def start_transition(self, transition_type: str):
         """Start a walk-in or walk-out transition. Type: 'enter' or 'exit'."""
         self._transition_active = True
         self._transition_type = transition_type
         self._transition_progress = 0.0
+        self._enter_exit_start = time.time()
+        if transition_type == "enter":
+            self.state = STATE_ENTERING
+        elif transition_type == "exit":
+            self.state = STATE_EXITING
 
     def _update_typewriter(self):
         """Advance typewriter text effect."""
@@ -398,15 +459,15 @@ class MarioDisplay:
             self.current_text = self._typewriter_text[:int(self._typewriter_pos)]
 
     def _update_transition(self):
-        """Update walk-in/walk-out animation."""
+        """Update walk-in/walk-out animation progress (time-based)."""
         if not self._transition_active:
             return
-        self._transition_progress += self._transition_speed
-        if self._transition_progress >= 1.0:
-            self._transition_active = False
-            self._transition_progress = 1.0
-            if self._transition_type == "exit":
-                self.state = STATE_IDLE
+        now = time.time()
+        elapsed = now - self._enter_exit_start
+        if self._transition_type == "enter":
+            self._transition_progress = min(elapsed / 1.5, 1.0)
+        elif self._transition_type == "exit":
+            self._transition_progress = min(elapsed / 1.5, 1.0)
 
     def _spawn_emotion_particles(self, emotion: str):
         """Spawn particles based on emotion change."""
@@ -538,15 +599,25 @@ class MarioDisplay:
         if self._pose_hint_timer >= 120:
             self._pose_hint = None
 
-        # Transitions use running sprite
+        # Transitions use appropriate poses (walk/run for enter, wave for exit)
         if self._transition_active:
-            return "movement/running"
+            if self._transition_type == "enter":
+                cycle = int(time.time() * 5) % 2
+                if cycle == 0:
+                    return "movement/running"
+                walk_key = "movement/walking"
+                return walk_key if walk_key in self._sprites else "movement/running"
+            elif self._transition_type == "exit":
+                elapsed = time.time() - self._enter_exit_start
+                if elapsed < 0.5:
+                    return "greeting/wave_high"
+                return "greeting/farewell"
 
         # State-based selection
         if self.state == STATE_TALKING:
             sprites = STATE_SPRITE_MAP[STATE_TALKING]
-            self._talk_frame += 1
-            return sprites[0] if (self._talk_frame // 6) % 2 == 0 else sprites[1]
+            cycle = int(time.time() / 0.3) % len(sprites)
+            return sprites[cycle]
         elif self.state == STATE_DANCING:
             sprites = STATE_SPRITE_MAP[STATE_DANCING]
             return sprites[0] if (self._frame // 8) % 2 == 0 else sprites[1]
@@ -747,6 +818,9 @@ class MarioDisplay:
         # Draw Mario sprite
         self._draw_mario()
 
+        # Emotion flash overlay (on Mario area)
+        self._draw_emotion_flash()
+
         # Draw particles on top of Mario
         self._draw_particles()
 
@@ -789,80 +863,259 @@ class MarioDisplay:
         self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
 
         # Hint for keyboard/party toggle
-        hint = "TAB: type | F5: party | ESC: quit"
+        hint = "TAB: type | F5: party | +/-: vol | ESC: quit"
         hint_surf = self._font_small.render(hint, True, (100, 100, 120))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
+
+        # Volume overlay (fades out after ~2 seconds)
+        self._draw_volume_overlay()
+
+        # Leaderboard overlay (F6 toggle)
+        self._draw_leaderboard()
+
+        # Screen edge glow for emotion changes
+        self._draw_edge_glow()
 
         pygame.display.flip()
 
     def _draw_mario(self):
-        """Draw the Mario sprite with bounce and transition animations."""
-        sprite_name = self._get_current_sprite()
-        sprite = self._sprites.get(sprite_name)
+        """Draw the Mario sprite with crossfade transitions, breathing,
+        talking bounce, entrance/exit spring, excitement shake, and emotion flash."""
+        now = time.time()
 
+        # --- Get target sprite ---
+        sprite_key = self._get_current_sprite()
+        sprite = self._sprites.get(sprite_key)
         if not sprite:
-            sprite = self._sprites.get("idle")
+            sprite = self._sprites.get("neutral/idle") or self._sprites.get("idle")
         if not sprite:
             return
 
-        # Calculate bounce animation based on state and emotion
-        bounce = 0
-        if self.state == STATE_TALKING:
-            bounce = int(math.sin(self._frame * 0.3) * 6)
-        elif self.state == STATE_IDLE:
-            bounce = int(math.sin(self._frame * 0.05) * 3)
-        elif self.state == STATE_THINKING:
-            bounce = int(math.sin(self._frame * 0.15) * 5)
-        elif self.state == STATE_DANCING:
-            bounce = int(math.sin(self._frame * 0.4) * 8)
+        # --- Sprite crossfade detection ---
+        if sprite_key != self._last_sprite_key and self._last_sprite_key is not None:
+            old_spr = self._sprites.get(self._last_sprite_key)
+            if old_spr:
+                self._crossfade_from_surface = old_spr
+                self._crossfade_start = now
+        self._last_sprite_key = sprite_key
 
-        if self._emotion == "excited":
-            bounce += int(math.sin(self._frame * 0.5) * 6)
-        elif self._emotion == "sleepy":
-            bounce += int(math.sin(self._frame * 0.02) * 2)
-        elif self._emotion == "surprised":
-            bounce -= 10
+        crossfade_progress = 1.0
+        if self._crossfade_from_surface is not None:
+            elapsed_cf = now - self._crossfade_start
+            if elapsed_cf < self._crossfade_duration:
+                crossfade_progress = elapsed_cf / self._crossfade_duration
+            else:
+                self._crossfade_from_surface = None
 
-        # Transition offset (walk in from left, walk out to right)
+        # --- Animation offsets ---
         offset_x = 0
-        if self._transition_active:
-            if self._transition_type == "enter":
-                # Walk in from left edge to center
-                start_x = -sprite.get_width()
-                end_x = 0
-                t = self._ease_in_out(self._transition_progress)
-                offset_x = int(start_x + (end_x - start_x) * t)
-            elif self._transition_type == "exit":
-                # Walk out to right edge
-                start_x = 0
-                end_x = WINDOW_WIDTH
-                t = self._ease_in_out(self._transition_progress)
-                offset_x = int(start_x + (end_x - start_x) * t)
+        offset_y = 0
+        scale = 1.0
+        rotation = 0.0
+        alpha = 255
 
-        # Center the sprite
-        cx = WINDOW_WIDTH // 2 - sprite.get_width() // 2 + offset_x
-        cy = WINDOW_HEIGHT // 2 - sprite.get_height() // 2 + 40 + bounce
+        # 1. Idle breathing animation (sine wave, ~3s period)
+        if self.state == STATE_IDLE and not self._transition_active:
+            breath = math.sin(2.0 * math.pi * now / 3.0)
+            offset_y += int(breath * 3)                        # ±3px vertical bob
+            scale *= 1.0 + 0.01 * (1.0 + breath)              # 1.0 → 1.02
 
-        # Scale pulsing for excitement
+        # 2. Talking bounce
+        if self.state == STATE_TALKING:
+            offset_y += int(math.sin(self._frame * 0.3) * 6)  # general talking bob
+            # Word-based micro-bounce on word boundaries
+            char_count = int(self._typewriter_pos)
+            if char_count > self._talk_last_char_count and self._typewriter_text:
+                new_text = self._typewriter_text[self._talk_last_char_count:char_count]
+                if ' ' in new_text or any(c in '.,!?;:' for c in new_text):
+                    self._talk_bounce_start = now
+            self._talk_last_char_count = char_count
+            bounce_elapsed = now - self._talk_bounce_start
+            if 0 < bounce_elapsed < 0.2:
+                t = bounce_elapsed / 0.2
+                offset_y -= int(5 * math.sin(t * math.pi))    # 5px up then down
+        else:
+            self._talk_last_char_count = 0
+
+        # Preserved state bounces
+        if self.state == STATE_THINKING:
+            offset_y += int(math.sin(self._frame * 0.15) * 5)
+        elif self.state == STATE_DANCING:
+            offset_y += int(math.sin(self._frame * 0.4) * 8)
+
+        # 5. Excitement shake (excited emotion)
         if self._emotion == "excited" and not self._transition_active:
-            scale = 1.0 + math.sin(self._frame * 0.2) * 0.03
-            w = int(sprite.get_width() * scale)
-            h = int(sprite.get_height() * scale)
-            sprite = pygame.transform.smoothscale(sprite, (w, h))
-            cx = WINDOW_WIDTH // 2 - w // 2 + offset_x
-            cy = WINDOW_HEIGHT // 2 - h // 2 + 40 + bounce
+            scale *= 1.0 + math.sin(self._frame * 0.2) * 0.03  # scale pulse
+            offset_x += random.randint(-3, 3)                   # rapid position jitter
+            offset_y += random.randint(-3, 3)
+            rotation = random.uniform(-5, 5)                    # ±5° rotation wobble
+            if self._frame % 5 == 0:                            # faster particles
+                self._spawn_emotion_particles("excited")
+        elif self._emotion == "sleepy":
+            offset_y += int(math.sin(self._frame * 0.02) * 2)
+        elif self._emotion == "surprised":
+            offset_y -= 10
+
+        # 4. Entrance/Exit time-based transitions with spring
+        if self._transition_active:
+            elapsed = now - self._enter_exit_start
+            if self._transition_type == "enter":
+                duration = 1.5
+                if elapsed >= duration:
+                    self._transition_active = False
+                    self.state = STATE_IDLE
+                else:
+                    t = min(elapsed / duration, 1.0)
+                    spring_val = self._spring_ease_out(t)
+                    start_x = -200 - sprite.get_width() // 2
+                    offset_x = int(start_x * (1.0 - spring_val))
+            elif self._transition_type == "exit":
+                wave_dur = 0.5
+                slide_dur = 1.0
+                total = wave_dur + slide_dur
+                if elapsed >= total:
+                    self._transition_active = False
+                    self.state = STATE_IDLE
+                elif elapsed >= wave_dur:
+                    slide_t = (elapsed - wave_dur) / slide_dur
+                    eased = self._ease_in_out(slide_t)
+                    offset_x = int(WINDOW_WIDTH * eased)
+                    alpha = max(0, int(255 * (1.0 - slide_t)))
 
         # Gentle sway for idle
         if self.state == STATE_IDLE and not self._transition_active:
             sway = int(math.sin(self._frame * 0.03) * 3)
-            cx += sway
+            offset_x += sway
 
-        self._screen.blit(sprite, (cx, cy))
+        # --- Render sprite with transforms ---
+        def apply_transforms(spr, scl, rot):
+            if scl != 1.0:
+                w = max(1, int(spr.get_width() * scl))
+                h = max(1, int(spr.get_height() * scl))
+                spr = pygame.transform.smoothscale(spr, (w, h))
+            if abs(rot) > 0.1:
+                spr = pygame.transform.rotate(spr, rot)
+            return spr
+
+        display_sprite = apply_transforms(sprite, scale, rotation)
+        cx = WINDOW_WIDTH // 2 - display_sprite.get_width() // 2 + offset_x
+        cy = WINDOW_HEIGHT // 2 - display_sprite.get_height() // 2 + 40 + offset_y
+
+        # --- Draw with crossfade and/or alpha ---
+        if self._crossfade_from_surface is not None and crossfade_progress < 1.0:
+            # Old sprite fading out
+            old_spr = apply_transforms(self._crossfade_from_surface, scale, rotation)
+            old_copy = old_spr.copy()
+            old_copy.set_alpha(int(255 * (1.0 - crossfade_progress)))
+            ocx = WINDOW_WIDTH // 2 - old_copy.get_width() // 2 + offset_x
+            ocy = WINDOW_HEIGHT // 2 - old_copy.get_height() // 2 + 40 + offset_y
+            self._screen.blit(old_copy, (ocx, ocy))
+            # New sprite fading in
+            new_copy = display_sprite.copy()
+            new_copy.set_alpha(int(255 * crossfade_progress))
+            self._screen.blit(new_copy, (cx, cy))
+        elif alpha < 255:
+            faded = display_sprite.copy()
+            faded.set_alpha(alpha)
+            self._screen.blit(faded, (cx, cy))
+        else:
+            self._screen.blit(display_sprite, (cx, cy))
 
     @staticmethod
     def _ease_in_out(t: float) -> float:
         """Smooth ease-in-out interpolation."""
         return t * t * (3 - 2 * t)
+
+    @staticmethod
+    def _spring_ease_out(t: float) -> float:
+        """Ease-out with elastic spring overshoot (~20px at display scale)."""
+        if t <= 0:
+            return 0.0
+        if t >= 1:
+            return 1.0
+        c4 = (2 * math.pi) / 3
+        return math.pow(2, -10 * t) * math.sin((t * 10 - 0.75) * c4) + 1
+
+    def _trigger_emotion_flash(self, emotion: str):
+        """Set up emotion flash effect (color tint + edge glow)."""
+        now = time.time()
+        self._emotion_flash_start = now
+        self._edge_glow_start = now
+
+        flash_map = {
+            "happy": ((255, 215, 0), "golden"),
+            "excited": ((255, 255, 0), "rainbow"),
+            "surprised": ((255, 255, 255), "white"),
+            "shocked": ((255, 255, 255), "white"),
+            "angry": ((255, 50, 30), "red"),
+            "frustrated": ((255, 80, 40), "red"),
+            "sad": ((80, 130, 255), "blue"),
+            "nervous": ((100, 150, 255), "blue"),
+            "love": ((255, 100, 150), "golden"),
+            "loving": ((255, 100, 150), "golden"),
+            "proud": ((255, 200, 0), "golden"),
+            "laughing": ((255, 255, 100), "golden"),
+            "mischievous": ((0, 255, 100), "golden"),
+        }
+
+        color, flash_type = flash_map.get(emotion, ((200, 200, 200), "white"))
+        self._emotion_flash_color = color
+        self._emotion_flash_type = flash_type
+        self._edge_glow_color = color
+
+    def _draw_emotion_flash(self):
+        """Draw brief color tint flash overlay on Mario when emotion changes."""
+        now = time.time()
+        elapsed = now - self._emotion_flash_start
+        if elapsed > 0.2:
+            return
+
+        intensity = 1.0 - (elapsed / 0.2)
+
+        if self._emotion_flash_type == "rainbow":
+            colors = self._disco_colors
+            idx = int(elapsed * 30) % len(colors)
+            r, g, b = colors[idx]
+        else:
+            r, g, b = self._emotion_flash_color
+
+        flash_alpha = int(60 * intensity)
+        flash_w = AI_POSE_DISPLAY_SIZE[0] + 40
+        flash_h = AI_POSE_DISPLAY_SIZE[1] + 40
+        flash_x = WINDOW_WIDTH // 2 - flash_w // 2
+        flash_y = WINDOW_HEIGHT // 2 - flash_h // 2 + 40
+
+        flash_surf = pygame.Surface((flash_w, flash_h), pygame.SRCALPHA)
+        flash_surf.fill((r, g, b, flash_alpha))
+        self._screen.blit(flash_surf, (flash_x, flash_y))
+
+    def _draw_edge_glow(self):
+        """Draw screen edge glow matching emotion color for 500ms."""
+        now = time.time()
+        elapsed = now - self._edge_glow_start
+        if elapsed > 0.5:
+            return
+
+        intensity = 1.0 - (elapsed / 0.5)
+        r, g, b = self._edge_glow_color
+        glow_alpha = int(40 * intensity)
+        glow_w = 40
+
+        top = pygame.Surface((WINDOW_WIDTH, glow_w), pygame.SRCALPHA)
+        top.fill((r, g, b, glow_alpha))
+        self._screen.blit(top, (0, 0))
+
+        bottom = pygame.Surface((WINDOW_WIDTH, glow_w), pygame.SRCALPHA)
+        bottom.fill((r, g, b, glow_alpha))
+        self._screen.blit(bottom, (0, WINDOW_HEIGHT - glow_w))
+
+        left = pygame.Surface((glow_w, WINDOW_HEIGHT), pygame.SRCALPHA)
+        left.fill((r, g, b, glow_alpha))
+        self._screen.blit(left, (0, 0))
+
+        right = pygame.Surface((glow_w, WINDOW_HEIGHT), pygame.SRCALPHA)
+        right.fill((r, g, b, glow_alpha))
+        self._screen.blit(right, (WINDOW_WIDTH - glow_w, 0))
 
     def _draw_speech_bubble(self, text: str):
         """Draw Mario's speech bubble with style variations."""
@@ -1003,6 +1256,67 @@ class MarioDisplay:
         self._screen.blit(bg, (x - 10, y - 5))
         self._screen.blit(subtitle_surf, (x, y))
 
+    def _draw_volume_overlay(self):
+        """Draw a volume indicator that fades out after ~2 seconds."""
+        frames_since = self._frame - self._volume_show_frame
+        if frames_since >= self._volume_display_duration:
+            return
+
+        # Fade out over the last 20 frames
+        fade_start = self._volume_display_duration - 20
+        if frames_since > fade_start:
+            alpha = int(255 * (1.0 - (frames_since - fade_start) / 20.0))
+        else:
+            alpha = 255
+
+        pct = int(self._volume_level * 100)
+        # Pick icon based on level
+        if self._volume_level <= 0.01:
+            icon = "\U0001f507"  # muted
+        elif self._volume_level < 0.5:
+            icon = "\U0001f509"  # low
+        elif self._volume_level <= 1.0:
+            icon = "\U0001f50a"  # normal
+        else:
+            icon = "\U0001f50a"  # loud (boosted)
+
+        label = f"{icon} Volume: {pct}%"
+        label_surf = self._font.render(label, True, (255, 255, 255))
+
+        # Draw filled volume bar
+        bar_w = 160
+        bar_h = 12
+        bar_x = 15
+        bar_y = 55
+
+        # Background panel
+        panel_w = max(label_surf.get_width() + 20, bar_w + 30)
+        panel_h = label_surf.get_height() + bar_h + 20
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((0, 0, 0, min(180, alpha)))
+
+        # Label on panel
+        label_alpha_surf = pygame.Surface(label_surf.get_size(), pygame.SRCALPHA)
+        label_alpha_surf.blit(label_surf, (0, 0))
+        label_alpha_surf.set_alpha(alpha)
+        panel.blit(label_alpha_surf, (10, 5))
+
+        # Bar background
+        pygame.draw.rect(panel, (60, 60, 60, alpha), (10, label_surf.get_height() + 10, bar_w, bar_h), border_radius=4)
+
+        # Bar fill (green->yellow->red as volume increases)
+        fill_w = int(bar_w * min(self._volume_level / 2.0, 1.0))
+        if self._volume_level <= 1.0:
+            bar_color = (80, 220, 80, alpha)
+        elif self._volume_level <= 1.5:
+            bar_color = (220, 220, 50, alpha)
+        else:
+            bar_color = (220, 80, 80, alpha)
+        if fill_w > 0:
+            pygame.draw.rect(panel, bar_color, (10, label_surf.get_height() + 10, fill_w, bar_h), border_radius=4)
+
+        self._screen.blit(panel, (10, 45))
+
     def _draw_keyboard_input(self):
         """Draw the keyboard text input area."""
         input_y = WINDOW_HEIGHT - 110
@@ -1042,6 +1356,161 @@ class MarioDisplay:
         # Label
         label = self._font_small.render("Type a message (Enter to send, ESC to close)", True, (120, 120, 160))
         self._screen.blit(label, (input_x, input_y - 18))
+
+    def update_leaderboard(self, data: dict):
+        """Update leaderboard data from server."""
+        self._leaderboard_data = data
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] Leaderboard data updated")
+
+    def _draw_leaderboard(self):
+        """Draw the party leaderboard overlay on the right side of the screen."""
+        if not self._leaderboard_visible:
+            return
+
+        # Auto-hide after 15 seconds if not interacted with
+        if self._frame - self._leaderboard_show_frame > self._leaderboard_auto_hide_frames:
+            self._leaderboard_visible = False
+            return
+
+        screen_w = self._screen.get_width()
+        screen_h = self._screen.get_height()
+        panel_w = int(screen_w * 0.4)
+        panel_x = screen_w - panel_w
+
+        # Semi-transparent dark background
+        overlay = pygame.Surface((panel_w, screen_h), pygame.SRCALPHA)
+        overlay.fill((10, 10, 30, 200))
+        self._screen.blit(overlay, (panel_x, 0))
+
+        # Gold border on left edge
+        pygame.draw.line(self._screen, (255, 215, 0), (panel_x, 0), (panel_x, screen_h), 2)
+
+        data = self._leaderboard_data
+        y = 15
+        cx = panel_x + panel_w // 2
+
+        # Title
+        title_text = "PARTY LEADERBOARD"
+        title_surf = self._font_title.render(title_text, True, (255, 215, 0))
+        self._screen.blit(title_surf, (cx - title_surf.get_width() // 2, y))
+        y += 45
+
+        # Trophy decorations
+        trophy_left = self._font.render("\u2b50", True, (255, 215, 0))
+        trophy_right = self._font.render("\u2b50", True, (255, 215, 0))
+        self._screen.blit(trophy_left, (panel_x + 15, 18))
+        self._screen.blit(trophy_right, (panel_x + panel_w - 35, 18))
+
+        # Divider line
+        pygame.draw.line(self._screen, (255, 215, 0), (panel_x + 15, y), (panel_x + panel_w - 15, y), 1)
+        y += 12
+
+        # Category entries
+        categories = []
+
+        # Most visits
+        mv = data.get("most_visits", {})
+        if mv.get("name"):
+            categories.append(("Most Visits", f"{mv['name']} ({mv.get('count', 0)})", (255, 215, 0)))
+
+        # Longest stay
+        ls = data.get("longest_stay", {})
+        if ls.get("name"):
+            minutes = ls.get("minutes", 0)
+            categories.append(("Longest Stay", f"{ls['name']} ({minutes:.0f}m)", (100, 200, 255)))
+
+        # Game champion
+        gc = data.get("game_champion", {})
+        if gc.get("name"):
+            categories.append(("Game Champion", f"{gc['name']} ({gc.get('score', 0)})", (255, 100, 100)))
+
+        # Most chatty
+        chatty = data.get("most_chatty")
+        if chatty:
+            categories.append(("Most Chatty", chatty, (100, 255, 200)))
+
+        # Total visitors
+        total = data.get("unique_visitors", 0)
+        categories.append(("Total Visitors", str(total), (200, 200, 255)))
+
+        # Party duration
+        pd = data.get("party_duration", {})
+        if pd:
+            h = pd.get("hours", 0)
+            m = pd.get("minutes", 0)
+            categories.append(("Party Duration", f"{h}h {m}m", (255, 180, 100)))
+
+        # Funniest moment
+        fm = data.get("funniest_moment", {})
+        if fm and fm.get("name"):
+            categories.append(("Funniest Moment", fm["name"], (255, 255, 100)))
+
+        # Most dramatic
+        md = data.get("most_dramatic", {})
+        if md and md.get("name"):
+            categories.append(("Most Dramatic", f"{md['name']} ({md.get('count', 0)})", (255, 100, 255)))
+
+        # Draw category entries
+        icons = {
+            "Most Visits": "\u265a",
+            "Longest Stay": "\u23f1",
+            "Game Champion": "\u2605",
+            "Most Chatty": "\u266a",
+            "Total Visitors": "\u2606",
+            "Party Duration": "\u25cb",
+            "Funniest Moment": "\u263a",
+            "Most Dramatic": "\u2727",
+        }
+        for label, value, color in categories:
+            if y > screen_h - 80:
+                break
+            icon = icons.get(label, "\u2022")
+            label_surf = self._font_small.render(f"{icon} {label}:", True, (180, 180, 200))
+            value_surf = self._font.render(value, True, color)
+            self._screen.blit(label_surf, (panel_x + 20, y))
+            y += 20
+            self._screen.blit(value_surf, (panel_x + 30, y))
+            y += 30
+
+        # Top visitors list
+        visitors = data.get("visitors", [])
+        if visitors and y < screen_h - 100:
+            y += 5
+            pygame.draw.line(self._screen, (100, 100, 140), (panel_x + 15, y), (panel_x + panel_w - 15, y), 1)
+            y += 8
+            rank_header = self._font_small.render("Top Visitors", True, (255, 215, 0))
+            self._screen.blit(rank_header, (cx - rank_header.get_width() // 2, y))
+            y += 22
+            for i, visitor in enumerate(visitors[:5]):
+                if y > screen_h - 60:
+                    break
+                name = visitor.get("name", "???")
+                count = visitor.get("visit_count", 0)
+                rank_colors = [(255, 215, 0), (200, 200, 210), (205, 127, 50),
+                               (180, 180, 200), (160, 160, 180)]
+                rc = rank_colors[i] if i < len(rank_colors) else (150, 150, 170)
+                entry_surf = self._font_small.render(f"#{i+1}  {name} — {count} visits", True, rc)
+                self._screen.blit(entry_surf, (panel_x + 25, y))
+                y += 20
+
+        # Scrolling ticker at bottom
+        ticker_stats = data.get("ticker_stats", [])
+        if ticker_stats:
+            self._leaderboard_ticker_frame += 1
+            if self._leaderboard_ticker_frame >= self._leaderboard_ticker_interval:
+                self._leaderboard_ticker_frame = 0
+                self._leaderboard_ticker_index = (self._leaderboard_ticker_index + 1) % len(ticker_stats)
+            ticker_y = screen_h - 35
+            pygame.draw.rect(self._screen, (20, 20, 50), (panel_x, ticker_y - 5, panel_w, 30))
+            pygame.draw.line(self._screen, (255, 215, 0), (panel_x, ticker_y - 5), (panel_x + panel_w, ticker_y - 5), 1)
+            idx = self._leaderboard_ticker_index % len(ticker_stats)
+            ticker_text = ticker_stats[idx]
+            # Pulsing alpha effect
+            pulse = abs(math.sin(self._frame * 0.05))
+            g_val = int(200 + 55 * pulse)
+            ticker_surf = self._font_small.render(f"\u2726 {ticker_text}", True, (g_val, g_val, 100))
+            self._screen.blit(ticker_surf, (panel_x + 15, ticker_y))
 
     def quit(self):
         """Clean up Pygame."""

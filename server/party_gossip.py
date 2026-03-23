@@ -131,6 +131,8 @@ class PartyGossip:
         self._dramatic_moments: deque = deque(maxlen=20)  # Recent dramatic events
         self._party_start = time.time()
         self._guest_speech_traits: dict[str, list[str]] = {}  # guest_id → detected traits
+        self._shared_rivalries: set = set()  # Track which rivalry indices have been hinted
+        self._guest_names: dict[str, str] = {}  # guest_id → display name lookup
 
     def analyze_for_gossip(self, speaker_name: str, speaker_id: str,
                            text: str, mario_response: str = "") -> list[dict]:
@@ -142,10 +144,15 @@ class PartyGossip:
         # Prune old gossip entries (time decay + size cap)
         self._prune_gossip()
 
+        # Track guest name for rivalry lookups
+        if speaker_id:
+            self._guest_names[speaker_id] = speaker_name
+
         # Track speech traits for personalized titles
         self._analyze_speech_traits(speaker_id, text)
 
         new_gossip = []
+        new_rivalries = []
         lower = text.lower()
 
         # Check each gossip trigger category
@@ -165,10 +172,43 @@ class PartyGossip:
                     new_gossip.append(entry)
 
                     # Track opinions for comparison system
-                    if gtype == "opinion" or gtype == "preference":
+                    if gtype in ("opinion", "preference"):
                         if speaker_id not in self._guest_opinions:
                             self._guest_opinions[speaker_id] = {}
                         self._guest_opinions[speaker_id][kw] = text[:80]
+
+                        # Rivalry detection: compare against ALL other guests' opinions
+                        _OPPOSING_KEYWORDS = {
+                            "love": "hate", "hate": "love",
+                            "best": "worst", "worst": "best",
+                            "favorite": "terrible", "terrible": "favorite",
+                            "amazing": "disgusting", "disgusting": "amazing",
+                            "overrated": "underrated", "underrated": "overrated",
+                            "beautiful": "ugly", "ugly": "beautiful",
+                            "genius": "stupid", "stupid": "genius",
+                        }
+                        for other_id, other_opinions in self._guest_opinions.items():
+                            if other_id == speaker_id:
+                                continue
+                            if kw in other_opinions:
+                                # Same topic discussed — check for opposing sentiment
+                                other_text_lower = other_opinions[kw].lower()
+                                has_opposition = False
+                                for pos_kw, neg_kw in _OPPOSING_KEYWORDS.items():
+                                    if (pos_kw in lower and neg_kw in other_text_lower) or \
+                                       (neg_kw in lower and pos_kw in other_text_lower):
+                                        has_opposition = True
+                                        break
+                                if has_opposition:
+                                    other_name = self._guest_names.get(other_id, "someone")
+                                    rivalry_key = (speaker_name, other_name, kw)
+                                    reverse_key = (other_name, speaker_name, kw)
+                                    if rivalry_key not in self._rivalries and \
+                                       reverse_key not in self._rivalries:
+                                        self._rivalries.append(rivalry_key)
+                                        new_rivalries.append(rivalry_key)
+                                        self._queue_rivalry_announcement(speaker_name, other_name, kw)
+                                        logger.info(f"[RIVALRY] New rivalry: {speaker_name} vs {other_name} about '{kw}'")
 
                     break  # One entry per type per message
 
@@ -271,6 +311,38 @@ class PartyGossip:
                             similarity=f"talked about {topic}",
                         )
         return None
+
+    def get_rivalry_hint(self, current_speaker_id: str, text: str) -> str | None:
+        """Check if any existing rivalry involves a topic the current speaker is talking about.
+        Returns a formatted rivalry template string, or None. Avoids repeats."""
+        if not self._rivalries:
+            return None
+
+        lower = text.lower()
+        for idx, (name1, name2, topic) in enumerate(self._rivalries):
+            if idx in self._shared_rivalries:
+                continue
+            if topic in lower:
+                self._shared_rivalries.add(idx)
+                template = random.choice(_RIVALRY_TEMPLATES)
+                return template.format(name1=name1, name2=name2)
+        return None
+
+    def get_new_rivalry_announcements(self) -> list[str]:
+        """Return dramatic announcements for any newly detected rivalries.
+        Clears them after returning so they're only announced once."""
+        if not hasattr(self, '_pending_rivalry_announcements'):
+            self._pending_rivalry_announcements = []
+        announcements = list(self._pending_rivalry_announcements)
+        self._pending_rivalry_announcements.clear()
+        return announcements
+
+    def _queue_rivalry_announcement(self, name1: str, name2: str, topic: str):
+        """Queue a dramatic rivalry announcement for Mario to deliver."""
+        if not hasattr(self, '_pending_rivalry_announcements'):
+            self._pending_rivalry_announcements = []
+        announcement = f"BREAKING NEWS! We have a RIVALRY! {name1} and {name2} DISAGREE about {topic}!"
+        self._pending_rivalry_announcements.append(announcement)
 
     def assign_title(self, speaker_id: str, speaker_name: str) -> str:
         """Assign or retrieve a fun title for a guest. Speech-derived when possible."""

@@ -9,6 +9,7 @@ import numpy as np
 import sounddevice as sd
 
 DEBUG_PLAYBACK = True
+DEBUG_AUDIO = True
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +22,7 @@ class AudioPlayback:
         self._thread = None
         self._actively_playing = False
         self._lock = threading.Lock()
+        self._gain = 1.0  # Volume multiplier (0.0 - 2.0)
 
     def start(self):
         """Start the playback worker thread."""
@@ -57,6 +59,16 @@ class AudioPlayback:
                 logger.warning(f"[DEBUG_PLAYBACK] play: invalid audio ({len(wav_bytes) if wav_bytes else 0} bytes), skipping")
             return
         self._play_queue.put(wav_bytes)
+
+    def set_volume(self, gain: float):
+        """Set the volume/gain multiplier (clamped to 0.0-2.0)."""
+        self._gain = max(0.0, min(2.0, gain))
+        if DEBUG_AUDIO:
+            logger.info(f"[DEBUG_AUDIO] set_volume: gain set to {self._gain:.2f}")
+
+    def get_volume(self) -> float:
+        """Get the current volume/gain multiplier."""
+        return self._gain
 
     @property
     def is_playing(self) -> bool:
@@ -104,6 +116,13 @@ class AudioPlayback:
                 audio = audio.reshape(-1, channels)
             else:
                 audio = audio.reshape(-1, 1)
+
+            # Apply gain/volume multiplier
+            if self._gain != 1.0:
+                if DEBUG_AUDIO:
+                    logger.info(f"[DEBUG_AUDIO] _play_wav: applying gain {self._gain:.2f}")
+                audio = audio * self._gain
+                audio = np.clip(audio, -1.0, 1.0)
 
             sd.play(audio, samplerate=sample_rate)
             sd.wait()

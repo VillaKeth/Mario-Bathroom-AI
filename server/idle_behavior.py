@@ -686,6 +686,16 @@ HAND_WASH_REMINDERS = [
     "Your hands are-a important! Treat them like a power-up!",
     "Germs don't stand-a chance against Mario-style hand washing!",
     "Remember: clean hands = super power! Science proves it!",
+    "EMERGENCY BROADCAST: Wash those hands or face the CONSEQUENCES! ...The consequence is germs.",
+    "Fun fact: Mario washes his hands 47 times a day! Be like-a Mario!",
+    "ATTENTION! Your hands have been on a GERM ADVENTURE! Time for the SOAP BOSS BATTLE!",
+    "Plot twist: The REAL final boss was the germs on your hands ALL ALONG! Defeat them with soap!",
+    "This is NOT a drill! I repeat, NOT A DRILL! Your hands need soap IMMEDIATELY! ...Okay it's a little bit of a drill.",
+    "If you don't wash your hands, I will be SAD! And nobody wants a sad Mario! NOBODY!",
+    "Breaking news from Mushroom Kingdom Health Department: WASH. YOUR. HANDS. That is all. Wahoo!",
+    "Your hands just went through a DUNGEON! Time to use the healing spring! ...It's the sink. The sink is the healing spring.",
+    "I'm watching you! Well, not really, but PRETEND I'm watching! Now wash those hands like your life depends on it!",
+    "Mama mia, if Bowser washed HIS hands more often, maybe he wouldn't be such a villain! Don't be like Bowser!",
 ]
 
 DJ_ANNOUNCEMENTS = [

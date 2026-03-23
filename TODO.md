@@ -1,5 +1,17 @@
 # Mario AI — Task Tracking
 
+## Party Leaderboard System
+- [x] Enhanced /leaderboard endpoint with game scores, funniest moment, most dramatic, ticker stats, guest titles
+- [x] Added leaderboard_update WebSocket broadcast every 60 seconds + on new visitor events
+- [x] Added F6 toggle leaderboard overlay in client display (semi-transparent right 40% panel)
+- [x] Leaderboard overlay shows: most visits, longest stay, game champion, most chatty, total visitors, party duration, funniest moment, most dramatic
+- [x] Scrolling ticker at bottom rotates fun stats every 5 seconds
+- [x] Auto-hide overlay after 15 seconds
+- [x] Created leaderboard.html — full-page dark/neon Mario-themed display for TV/second screen
+- [x] leaderboard.html auto-refreshes from /leaderboard every 10 seconds
+- [x] Added /leaderboard_page server endpoint to serve the HTML
+- [x] Wired leaderboard_update WebSocket messages through ws_client.py to mario_display.py
+
 ## Neuro-sama Party Overhaul (Current)
 - [x] Rewrote MARIO_SYSTEM_PROMPT for Neuro-sama energy (chaotic, opinionated, gossipy, dramatic)
 - [x] Built party_gossip.py — cross-visitor social dynamics (gossip, comparisons, titles, rivalries, narratives)
@@ -1170,3 +1182,27 @@
 - [x] Inject rivalry hints into LLM context in main.py
 - [x] Enhanced hand wash reminder: separate TTS chunk with 1s delay after farewell
 - [x] Add 10 creative dramatic hand wash reminders to idle_behavior.py
+
+## Bathroom Challenge Mini-Game System
+- [x] Mario Trivia game (25 questions, 5 per round, fuzzy answer matching)
+- [x] Name That Character speed round (15 characters, timed scoring)
+- [x] Bathroom Dare game (20 dares, done/skip mechanic, completion tracking)
+- [x] Story Builder collaborative game (12 starters, 5-round back-and-forth)
+- [x] Would You Rather Mario Edition (15 extended scenarios, dramatic reactions)
+- [x] Wired all 5 games into command_handlers.py trigger detection
+- [x] Redirected existing dare/story/trivia/wyr triggers to new game modes
+- [x] Updated help text with all new game names
+- [x] Fixed universal quit to not intercept 'done' in dare/simon/story games
+- [ ] Add LLM-based fuzzy answer judging for trivia (call ollama for borderline answers)
+- [ ] Add gossip fuel tracking from Would You Rather choices
+
+## Animation System Enhancements
+- [x] Smooth sprite crossfade transitions (300ms alpha blending)
+- [x] Idle breathing animation (sine wave bob + scale pulse)
+- [x] Talking word-bounce (5px up-down on word boundaries)
+- [x] Spring-based entrance animation with overshoot
+- [x] Wave + fade exit animation
+- [x] Excitement shake (random jitter + rotation wobble)
+- [x] Emotion flash (color tint + screen edge glow)
+- [x] Time-based mouth animation cycle (300ms)
+- [ ] Add more walk/run pose variants for entrance animation
