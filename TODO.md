@@ -1206,3 +1206,31 @@
 - [x] Emotion flash (color tint + screen edge glow)
 - [x] Time-based mouth animation cycle (300ms)
 - [ ] Add more walk/run pose variants for entrance animation
+
+## Party Leaderboard System
+- [x] Enhanced /leaderboard endpoint with game champion, funniest moment, most dramatic
+- [x] WebSocket leaderboard_update broadcasts (every 60s + on new visitor)
+- [x] F6 key toggles visual leaderboard overlay (right 40%, semi-transparent)
+- [x] Leaderboard categories: Most Visits, Longest Stay, Game Champ, Most Chatty, Total Visitors
+- [x] Top 5 visitors ranked list with medals
+- [x] Scrolling ticker at bottom rotating every 5s
+- [x] Auto-hide after 15 seconds
+- [x] leaderboard.html full-page TV display (dark theme, neon, auto-refresh 10s)
+- [x] Client WebSocket handler for leaderboard_update messages
+
+## Sentence Streaming TTS
+- [x] split_into_sentences() in tts.py (merges short <15 char chunks)
+- [x] synthesize_streaming() async generator yields (index, total, audio) per sentence
+- [x] Server sends audio_chunk messages with chunk metadata
+- [x] Client queues chunks sequentially, clears speaking only on final chunk
+- [x] tts_streaming config flag in config.json
+
+## Bugfixes
+- [x] Fixed exchange_count UnboundLocalError in presence_exit handler
+- [x] Fixed e2e WebSocket test: handle binary audio frames (was crashing on json.loads of WAV data)
+- [x] All 8 e2e tests pass
+
+## TTS Quality Iteration Progress (R406+)
+- [x] Ralph loop running 300 rounds (14hr overnight run)
+- [ ] End-to-end party rehearsal test
+- [ ] Final cache quality audit (listen to all 51 phrases)
