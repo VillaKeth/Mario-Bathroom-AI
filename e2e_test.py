@@ -112,6 +112,8 @@ def test_websocket():
                 for _ in range(10):  # Wait up to 30s
                     try:
                         msg = await asyncio.wait_for(ws.recv(), timeout=3.0)
+                        if isinstance(msg, bytes):
+                            continue  # Skip binary audio frames
                         data = json.loads(msg)
                         if data.get("type") == "mario_response":
                             greeting = data.get("text", "")
@@ -134,16 +136,19 @@ def test_websocket():
                 for _ in range(20):  # Wait up to 60s for LLM + TTS
                     try:
                         msg = await asyncio.wait_for(ws.recv(), timeout=3.0)
+                        if isinstance(msg, bytes):
+                            audio_received = True
+                            print(f"  [OK] Audio: received {len(msg):,} bytes")
+                            continue
                         data = json.loads(msg)
                         if data.get("type") == "mario_response":
                             response = data.get("text", "")
-                            has_audio = bool(data.get("audio"))
                             print(f"  [OK] Response: \"{response[:80]}\"")
-                            print(f"  [{'OK' if has_audio else 'WARN'}] Audio: {'included' if has_audio else 'MISSING'}")
-                            audio_received = has_audio
                             break
                         elif data.get("type") == "mario_thinking":
                             print(f"  [THINKING] {data.get('text', '...')[:50]}")
+                        elif data.get("type") == "audio_chunk":
+                            pass  # Chunk metadata, audio follows as binary
                     except asyncio.TimeoutError:
                         continue
 
@@ -155,9 +160,11 @@ def test_websocket():
                 print("  [SENT] presence_exit")
 
                 farewell = None
-                for _ in range(10):
+                for _ in range(15):
                     try:
                         msg = await asyncio.wait_for(ws.recv(), timeout=3.0)
+                        if isinstance(msg, bytes):
+                            continue  # Skip binary audio frames
                         data = json.loads(msg)
                         if data.get("type") == "mario_response":
                             farewell = data.get("text", "")
