@@ -2421,6 +2421,8 @@ async def handle_event(ws: WebSocket, event: dict):
             party_stats.record_exit(state_current["current_visit_id"])
         party_stats.record_event("exit", state_current["speaker_name"])
 
+        exchange_count = len(state_current.get("conversation_history", [])) // 2
+
         try:
             if state_current["speaker_name"]:
                 ctx = mario_prompt.build_context(
@@ -2491,7 +2493,6 @@ async def handle_event(ws: WebSocket, event: dict):
 
         # Record dramatic exit moment for gossip
         exit_name = state_current.get("speaker_name", "someone")
-        exchange_count = len(state_current.get("conversation_history", [])) // 2
         if exchange_count >= 5:
             # Find what they talked about for richer gossip
             topics = list(state_current.get("_session_topics", set()))[:3]
