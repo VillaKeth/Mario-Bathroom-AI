@@ -262,8 +262,7 @@
 - [x] Curated 18s Mario reference audio (trimmed/normalized best clips)
 - [x] Post-synthesis pitch shift (+2 semitones) and speed boost (1.2x) for authentic Mario voice
 - [x] Reduced LLM response length (50 tokens, 1-2 sentences max) for faster TTS
-- [ ] Sentence streaming TTS (stream first sentence while generating rest)
-- [ ] Test XTTS voice quality at the party (might need to tune reference audio)
+- [x] Sentence streaming TTS (stream first sentence while generating rest)
 - [x] Ralph loop — 100 iterations of XTTS v2 parameter sweep with 16 reference audio variations
 - [x] Ralph loop HTML comparison page (filter by ref/phrase, sort, star favorites)
 - [x] Enhanced Mario personality prompt (authentic Charles Martinet speech patterns, bathroom comedy)
@@ -588,9 +587,7 @@
 ## Future
 - [ ] Try different Edge TTS base voices for better RVC result
 - [ ] Tune RVC pitch further (try 6, 10, 12 semitones)
-- [ ] Sentence streaming TTS (stream first sentence while generating rest)
-
-## ✅ Rounds 1500-1750 (Completed)
+- [x] Sentence streaming TTS (stream first sentence while generating rest)
 - [x] LLM fallback pool (25 pre-written Mario responses when Ollama fails)
 - [x] Config-driven game settings (max rounds, cooldowns, history limit in config.json)
 - [x] Input validation (event type whitelist, size limits, field validation)
@@ -1161,3 +1158,15 @@
 - [x] Five consecutive full-round 100% scores — unprecedented stability
 - [ ] Optimize retry loop to stop re-testing OK phrases (wastes server time)
 - [ ] End-to-end party rehearsal test
+
+- [x] Added volume/gain control to audio_playback.py (0.0-2.0 range, np.clip to prevent clipping)
+- [x] Added audio_gain config option in config.json
+- [x] Wired +/- keyboard controls for volume in main.py and mario_display.py
+- [x] Added volume overlay indicator with fade-out and color-coded bar in mario_display.py
+
+- [x] Wire up rivalry system in party_gossip.py (detect opposing opinions, create rivalries)
+- [x] Add get_rivalry_hint() method to PartyGossip
+- [x] Add rivalry announcements (BREAKING NEWS format) with TTS
+- [x] Inject rivalry hints into LLM context in main.py
+- [x] Enhanced hand wash reminder: separate TTS chunk with 1s delay after farewell
+- [x] Add 10 creative dramatic hand wash reminders to idle_behavior.py

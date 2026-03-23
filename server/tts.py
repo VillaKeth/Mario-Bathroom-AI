@@ -994,6 +994,69 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     return result
 
 
+# --- Sentence streaming helpers ---
+
+DEBUG_STREAM = _load_debug_flag()  # Reuses debug_tts flag from config
+
+
+def split_into_sentences(text: str) -> list[str]:
+    """Split text into speakable chunks at sentence boundaries.
+
+    Splits on .!? while keeping punctuation attached. Merges very short
+    chunks (< 15 chars) with the next one to avoid choppy TTS output.
+    """
+    import re
+    chunks = re.split(r'(?<=[.!?])\s+', text)
+    merged = []
+    buffer = ""
+    for chunk in chunks:
+        buffer += (" " if buffer else "") + chunk
+        if len(buffer) >= 15:
+            merged.append(buffer)
+            buffer = ""
+    if buffer:
+        if merged:
+            merged[-1] += " " + buffer
+        else:
+            merged.append(buffer)
+    return merged
+
+
+async def synthesize_streaming(text: str, voice_params: dict = None):
+    """Split text into sentences, synthesize each, yield WAV bytes as they complete.
+
+    Yields (index, total, wav_bytes) tuples for each sentence chunk.
+    Uses synthesize_user() so user-priority is maintained.
+    """
+    import asyncio
+    sentences = split_into_sentences(text)
+    if not sentences:
+        return
+
+    rate = voice_params.get("rate") if voice_params else None
+    pitch = voice_params.get("pitch") if voice_params else None
+    total = len(sentences)
+    loop = asyncio.get_event_loop()
+
+    for i, sentence in enumerate(sentences):
+        stripped = sentence.strip()
+        if not stripped:
+            continue
+        if DEBUG_STREAM:
+            logger.info(f"[DEBUG_STREAM] Streaming sentence {i+1}/{total}: \"{stripped[:60]}\"")
+        try:
+            audio = await loop.run_in_executor(
+                None, lambda s=stripped: synthesize_user(s, rate=rate, pitch=pitch))
+            if audio and len(audio) > 44:
+                yield (i, total, audio)
+            else:
+                if DEBUG_STREAM:
+                    logger.warning(f"[DEBUG_STREAM] Sentence {i+1}/{total} produced empty audio, skipping")
+        except Exception as e:
+            logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total} TTS failed: {e}")
+            # Continue with remaining sentences — don't break the whole stream
+
+
 def _make_dummy_wav(duration: float = 0.5, sample_rate: int = 24000) -> bytes:
     """Generate a tiny silent WAV file for RVC pipeline warmup."""
     num_samples = int(duration * sample_rate)

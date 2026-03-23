@@ -59,6 +59,8 @@ else:
 server_config = config.get("server", {})
 
 DEBUG_SERVER = os.environ.get("DEBUG_MODE", "").lower() == "true" or server_config.get("debug_server", True)
+DEBUG_STREAM = server_config.get("debug_tts", True)
+TTS_STREAMING_ENABLED = server_config.get("tts_streaming", True)
 
 # Game configuration from config.json (with defaults)
 GAME_CONFIG = {
@@ -436,15 +438,120 @@ async def stats_endpoint():
 
 @app.get("/leaderboard")
 async def leaderboard_endpoint():
-    """Return party leaderboard data."""
+    """Return enhanced party leaderboard data with categories and fun stats."""
     stats = party_stats.get_stats()
     people = party_stats.get_all_visitors()
+
+    # Game champion — guest with most game events
+    game_champion = None
+    game_score = 0
+    try:
+        import sqlite3
+        with sqlite3.connect(party_stats._db_path()) as conn:
+            row = conn.execute("""
+                SELECT details, COUNT(*) as cnt FROM party_events
+                WHERE event_type = 'game_complete'
+                GROUP BY details ORDER BY cnt DESC LIMIT 1
+            """).fetchone()
+            if row:
+                game_champion = row[0]
+                game_score = row[1]
+    except Exception:
+        pass
+
+    # Funniest moment — longest gossip entry per guest
+    funniest_name = None
+    funniest_text = None
+    if party_gossip._gossip_log:
+        longest_entry = max(party_gossip._gossip_log, key=lambda g: len(g.get("text", "")))
+        funniest_name = longest_entry.get("speaker_name")
+        funniest_text = longest_entry.get("text", "")[:80]
+
+    # Most dramatic — guest with most emotion-triggering gossip entries
+    dramatic_name = None
+    dramatic_count = 0
+    if party_gossip._gossip_log:
+        from collections import Counter
+        speaker_counts = Counter(g["speaker_id"] for g in party_gossip._gossip_log
+                                 if g.get("type") in ("reaction", "opinion", "embarrassing", "fear"))
+        if speaker_counts:
+            top_id, dramatic_count = speaker_counts.most_common(1)[0]
+            for g in party_gossip._gossip_log:
+                if g["speaker_id"] == top_id:
+                    dramatic_name = g["speaker_name"]
+                    break
+
+    # Most chatty — most gossip entries overall
+    chatty_name = None
+    if party_gossip._gossip_log:
+        from collections import Counter
+        chatty_counts = Counter(g["speaker_name"] for g in party_gossip._gossip_log)
+        if chatty_counts:
+            chatty_name = chatty_counts.most_common(1)[0][0]
+
+    # Party duration breakdown
+    party_duration_secs = time.time() - party_stats.party_start_time
+    duration_hours = int(party_duration_secs // 3600)
+    duration_minutes = int((party_duration_secs % 3600) // 60)
+
+    # Guest titles from gossip system
+    guest_titles = {}
+    for visitor in people[:10]:
+        name = visitor.get("name", "")
+        for gid, title in party_gossip._guest_titles.items():
+            for g in party_gossip._gossip_log:
+                if g.get("speaker_id") == gid and g.get("speaker_name") == name:
+                    guest_titles[name] = title
+                    break
+
+    # Fun ticker stats
+    ticker_stats = []
+    if stats.get("avg_duration_seconds", 0) > 0:
+        ticker_stats.append(f"Average visit: {int(stats['avg_duration_seconds'])}s")
+    if len(people) > 0:
+        ticker_stats.append(f"{len(people)} unique guests tonight!")
+    gossip_count = party_gossip.get_gossip_count()
+    if gossip_count > 0:
+        ticker_stats.append(f"{gossip_count} gossip-worthy moments collected!")
+    if party_gossip._rivalries:
+        ticker_stats.append(f"{len(party_gossip._rivalries)} rivalries brewing!")
+    if party_gossip._dramatic_moments:
+        ticker_stats.append(f"{len(party_gossip._dramatic_moments)} dramatic moments tonight!")
+    if stats.get("total_visits", 0) >= 10:
+        rate = stats["total_visits"] / max(1, party_duration_secs / 3600)
+        ticker_stats.append(f"Traffic: {rate:.1f} visits/hour!")
+
     return {
         "total_visits": stats.get("total_visits", 0),
         "unique_visitors": stats.get("unique_visitors", 0),
-        "longest_visit": stats.get("longest_visit_seconds", 0),
-        "most_talkative": stats.get("most_frequent_name", "nobody"),
+        "party_duration": {"hours": duration_hours, "minutes": duration_minutes},
+        "most_visits": {
+            "name": stats.get("most_frequent_name"),
+            "count": stats.get("most_frequent_count", 0),
+        },
+        "longest_stay": {
+            "name": stats.get("longest_visit_name"),
+            "seconds": stats.get("longest_visit_seconds", 0),
+            "minutes": round(stats.get("longest_visit_seconds", 0) / 60, 1),
+        },
+        "game_champion": {
+            "name": game_champion,
+            "score": game_score,
+        },
+        "most_chatty": chatty_name,
+        "funniest_moment": {
+            "name": funniest_name,
+            "text": funniest_text,
+        },
+        "most_dramatic": {
+            "name": dramatic_name,
+            "count": dramatic_count,
+        },
         "visitors": people[:10],
+        "guest_titles": guest_titles,
+        "ticker_stats": ticker_stats,
+        "current_emotion": emotion_system.current,
+        "current_time": datetime.now().strftime("%I:%M %p"),
     }
 
 
@@ -533,6 +640,15 @@ async def tts_cache_preview_page():
     return HTMLResponse("<h1>tts_cache_preview.html not found</h1>", status_code=404)
 
 
+@app.get("/leaderboard_page")
+async def leaderboard_page():
+    """Serve the party leaderboard HTML page (for TV/second screen display)."""
+    page = os.path.join(os.path.dirname(__file__), "..", "leaderboard.html")
+    if os.path.exists(page):
+        return FileResponse(page, media_type="text/html")
+    return HTMLResponse("<h1>leaderboard.html not found</h1>", status_code=404)
+
+
 @app.get("/perfect_cache_results.json")
 async def perfect_cache_results():
     """Serve the perfect cache results JSON file."""
@@ -612,6 +728,7 @@ async def websocket_endpoint(ws: WebSocket):
     idle_task = asyncio.create_task(_idle_loop(ws))
     heartbeat_task = asyncio.create_task(_heartbeat_loop(ws))
     emotion_decay_task = asyncio.create_task(_emotion_decay_loop())
+    leaderboard_task = asyncio.create_task(_leaderboard_broadcast_loop(ws))
 
     # Message rate limiting (flood protection)
     _msg_timestamps = deque(maxlen=50)  # Track last 50 message times
@@ -673,6 +790,11 @@ async def websocket_endpoint(ws: WebSocket):
             await emotion_decay_task
         except asyncio.CancelledError:
             pass
+        leaderboard_task.cancel()
+        try:
+            await leaderboard_task
+        except asyncio.CancelledError:
+            pass
 
 
 async def _heartbeat_loop(ws: WebSocket):
@@ -688,6 +810,76 @@ async def _heartbeat_loop(ws: WebSocket):
             if _missed_pongs >= 3:
                 logger.warning("[HEARTBEAT] 3 consecutive heartbeats failed — connection may be dead")
                 break
+
+
+async def _leaderboard_broadcast_loop(ws: WebSocket):
+    """Send leaderboard updates to the client every 60 seconds."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            lb_data = await _build_leaderboard_data()
+            await ws.send_json({"type": "leaderboard_update", **lb_data})
+        except Exception:
+            pass
+
+
+async def _build_leaderboard_data() -> dict:
+    """Build leaderboard data dict (reused by broadcast and on-demand sends)."""
+    stats = party_stats.get_stats()
+    people = party_stats.get_all_visitors()
+    party_duration_secs = time.time() - party_stats.party_start_time
+
+    chatty_name = None
+    if party_gossip._gossip_log:
+        from collections import Counter
+        chatty_counts = Counter(g["speaker_name"] for g in party_gossip._gossip_log)
+        if chatty_counts:
+            chatty_name = chatty_counts.most_common(1)[0][0]
+
+    game_champion = None
+    game_score = 0
+    try:
+        import sqlite3
+        with sqlite3.connect(party_stats._db_path()) as conn:
+            row = conn.execute("""
+                SELECT details, COUNT(*) as cnt FROM party_events
+                WHERE event_type = 'game_complete'
+                GROUP BY details ORDER BY cnt DESC LIMIT 1
+            """).fetchone()
+            if row:
+                game_champion = row[0]
+                game_score = row[1]
+    except Exception:
+        pass
+
+    return {
+        "total_visits": stats.get("total_visits", 0),
+        "unique_visitors": stats.get("unique_visitors", 0),
+        "party_duration": {
+            "hours": int(party_duration_secs // 3600),
+            "minutes": int((party_duration_secs % 3600) // 60),
+        },
+        "most_visits": {
+            "name": stats.get("most_frequent_name"),
+            "count": stats.get("most_frequent_count", 0),
+        },
+        "longest_stay": {
+            "name": stats.get("longest_visit_name"),
+            "minutes": round(stats.get("longest_visit_seconds", 0) / 60, 1),
+        },
+        "game_champion": {"name": game_champion, "score": game_score},
+        "most_chatty": chatty_name,
+        "current_emotion": emotion_system.current,
+    }
+
+
+async def _send_leaderboard_event(ws: WebSocket):
+    """Send an on-demand leaderboard update (called on significant events)."""
+    try:
+        lb_data = await _build_leaderboard_data()
+        await ws.send_json({"type": "leaderboard_update", **lb_data})
+    except Exception:
+        pass
 
 
 async def _emotion_decay_loop():
@@ -1624,6 +1816,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if comparison and random.random() < 0.4:
             ctx.append({"role": "system", "content": f"[COMPARE]: {comparison}"})
 
+        # Rivalry hint — if current topic touches an existing rivalry
+        rivalry_hint = party_gossip.get_rivalry_hint(
+            state_current.get("speaker_id", ""), text)
+        if rivalry_hint:
+            ctx.append({"role": "system", "content": f"[RIVALRY]: {rivalry_hint}"})
+
         # Chaos system — random interrupts for Neuro-sama energy
         chaos_roll = random.random()
         if chaos_roll < 0.08:
@@ -1769,6 +1967,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             state_current["speaker_id"],
             text, response_text,
         )
+        # Announce any new rivalries dramatically
+        rivalry_announcements = party_gossip.get_new_rivalry_announcements()
+        for announcement in rivalry_announcements:
+            logger.info(f"[RIVALRY_ANNOUNCE] {announcement}")
+            try:
+                rivalry_audio = await loop.run_in_executor(
+                    _tts_executor, lambda a=announcement: tts.synthesize(a))
+                await send_response(ws, announcement, rivalry_audio,
+                                    emotion="excited", pose_hint="emotion/surprise")
+            except Exception as e:
+                logger.warning(f"Rivalry announcement TTS failed: {e}")
         # Check if guest's title should evolve based on new speech traits
         new_title = party_gossip.update_title_from_speech(
             state_current["speaker_id"],
@@ -1803,7 +2012,6 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         voice_params["pitch"] = "+5Hz"
     game_sound = state_current.pop("_game_sound_hint", None)
     tts_text = analyzed["tts_text"]
-    sentences = re.split(r'(?<=[.!?])\s+', tts_text, maxsplit=1)
     streamed = False
     # Detect particle effects from both user input and Mario's response
     # Keyword match first, then fall back to emotion-based particles
@@ -1811,25 +2019,63 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not particle:
         particle = emotion_system.get_emotion_particle()
 
-    if len(sentences) >= 2 and len(sentences[0]) >= 12 and len(sentences[1]) >= 10:
-        try:
-            # Generate first sentence audio
-            first_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize_user(sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-            if first_audio and len(first_audio) > 44:
-                # Send first sentence IMMEDIATELY — client plays while we generate second
-                await send_response(ws, analyzed["display_text"], first_audio,
-                    sound=game_sound, emotion=emotion_system.current,
-                    pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
-                    particle_effect=particle)
-                # Generate second sentence while first plays on client (~2-3s overlap)
-                rest_audio = await loop.run_in_executor(
-                    _tts_executor, lambda: tts.synthesize_user(sentences[1], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-                if rest_audio and len(rest_audio) > 44:
-                    await ws.send_bytes(rest_audio)
-                streamed = True
-        except Exception as e:
-            logger.error(f"Streaming TTS failed, falling back: {e}")
+    # Sentence streaming: split into sentences, send first chunk immediately,
+    # synthesize remaining in background while client plays first chunk
+    if TTS_STREAMING_ENABLED:
+        sentences = tts.split_into_sentences(tts_text)
+        if len(sentences) >= 2 and len(sentences[0]) >= 12:
+            try:
+                total_chunks = len(sentences)
+                if DEBUG_STREAM:
+                    logger.info(f"[DEBUG_STREAM] Streaming {total_chunks} sentences for: \"{tts_text[:80]}...\"")
+
+                # Synthesize first sentence immediately
+                first_audio = await loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(
+                        sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                if first_audio and len(first_audio) > 44:
+                    # Send full text + metadata with first audio chunk
+                    await send_response(ws, analyzed["display_text"], first_audio,
+                        sound=game_sound, emotion=emotion_system.current,
+                        pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
+                        particle_effect=particle,
+                        chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
+                    streamed = True
+
+                    # Synthesize and send remaining sentences while client plays first
+                    for i, sentence in enumerate(sentences[1:], start=1):
+                        stripped = sentence.strip()
+                        if not stripped:
+                            continue
+                        if DEBUG_STREAM:
+                            logger.info(f"[DEBUG_STREAM] Streaming sentence {i+1}/{total_chunks}: \"{stripped[:60]}\"")
+                        try:
+                            chunk_audio = await loop.run_in_executor(
+                                _tts_executor, lambda s=stripped: tts.synthesize_user(
+                                    s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                            if chunk_audio and len(chunk_audio) > 44:
+                                is_last = (i == total_chunks - 1)
+                                await ws.send_json({
+                                    "type": "audio_chunk",
+                                    "chunk_index": i,
+                                    "total_chunks": total_chunks,
+                                    "is_last": is_last,
+                                })
+                                await ws.send_bytes(chunk_audio)
+                                if DEBUG_STREAM:
+                                    logger.info(f"[DEBUG_STREAM] Sent chunk {i+1}/{total_chunks} ({len(chunk_audio)} bytes, is_last={is_last})")
+                            else:
+                                if DEBUG_STREAM:
+                                    logger.warning(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} produced empty audio, skipping")
+                        except Exception as e:
+                            logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {e}")
+                            # Continue — already sent earlier chunks, don't break playback
+                else:
+                    if DEBUG_STREAM:
+                        logger.warning("[DEBUG_STREAM] First sentence produced empty audio, falling back to full synthesis")
+            except Exception as e:
+                logger.error(f"Streaming TTS failed, falling back: {e}")
+                streamed = False
 
     if not streamed:
         try:
@@ -2026,6 +2272,9 @@ async def handle_event(ws: WebSocket, event: dict):
             state_current["current_visit_id"] = visit_id
             party_stats.record_event("enter", state_current["speaker_name"])
 
+            # Send leaderboard update on new visitor
+            asyncio.create_task(_send_leaderboard_event(ws))
+
             # Detect crew (groups of people who arrive together)
             crews = party_stats.detect_crew()
             crew_ctx = None
@@ -2215,10 +2464,7 @@ async def handle_event(ws: WebSocket, event: dict):
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
 
-            # Always add hand wash reminder on exit
-            wash_reminder = idle_behavior.get_hand_wash_reminder()
-            response_text = f"{response_text} {wash_reminder}"
-
+            # Send farewell response (without hand wash reminder baked in)
             analyzed = analyze_text(response_text)
             loop = asyncio.get_event_loop()
             voice_params = emotion_system.get_voice_params()
@@ -2229,6 +2475,17 @@ async def handle_event(ws: WebSocket, event: dict):
                 analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",
                                 emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
+
+            # Send hand wash reminder as its OWN separate TTS chunk after a delay
+            await asyncio.sleep(1.0)
+            wash_reminder = idle_behavior.get_hand_wash_reminder()
+            try:
+                wash_audio = await loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize(wash_reminder))
+                await send_response(ws, wash_reminder, wash_audio,
+                                    emotion="excited", pose_hint="emotion/surprise")
+            except Exception as wash_err:
+                logger.warning(f"Hand wash reminder TTS failed: {wash_err}")
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_exit farewell failed: {e}")
 
@@ -2351,7 +2608,9 @@ async def send_thinking(ws: WebSocket, subtitle: str = None):
 async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         sound: str = None, emotion: str = None,
                         pose_hint: str = None, response_time: float = None,
-                        particle_effect: str = None):
+                        particle_effect: str = None,
+                        chunk_index: int = None, total_chunks: int = None,
+                        is_last: bool = None):
     """Send Mario's response (text + audio + metadata) to the client."""
     msg = {
         "type": "mario_response",
@@ -2367,6 +2626,11 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["response_time"] = round(response_time, 1)
     if particle_effect:
         msg["particle_effect"] = particle_effect
+    # Sentence streaming metadata
+    if chunk_index is not None:
+        msg["chunk_index"] = chunk_index
+        msg["total_chunks"] = total_chunks
+        msg["is_last"] = is_last
 
     for attempt in range(2):
         try:

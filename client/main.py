@@ -23,6 +23,7 @@ from ws_client import MarioWSClient
 from sound_effects import SoundEffects
 
 DEBUG_CLIENT = True
+DEBUG_AUDIO = True
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-client")
 
@@ -48,6 +49,12 @@ class MarioClient:
         self.ws = MarioWSClient(server_url)
         self.sfx = SoundEffects()
 
+        # Apply audio gain from config
+        audio_gain = client_config.get("audio_gain", 1.0)
+        self.audio_playback.set_volume(audio_gain)
+        if DEBUG_AUDIO:
+            logger.info(f"[DEBUG_AUDIO] Initial audio gain from config: {audio_gain}")
+
         self._running = False
         self._audio_thread = None
         self._health_thread = None
@@ -56,15 +63,18 @@ class MarioClient:
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
         self.ws.on_audio_response = self._on_mario_audio
+        self.ws.on_audio_chunk = self._on_audio_chunk
         self.ws.on_connected = self._on_connected
         self.ws.on_disconnected = self._on_disconnected
         self.ws.on_state_update = self._on_state_update
+        self.ws.on_leaderboard_update = self._on_leaderboard_update
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
 
         # Wire up keyboard input from display
         self.display.on_keyboard_submit = self._on_keyboard_submit
+        self.display.on_volume_change = self._on_volume_change
 
     def start(self):
         """Start all client components."""
@@ -241,6 +251,29 @@ class MarioClient:
         self._speaking_timer.daemon = True
         self._speaking_timer.start()
 
+    def _on_audio_chunk(self, wav_bytes: bytes, chunk_meta: dict):
+        """Called when a streaming audio chunk arrives (sentence streaming)."""
+        if not wav_bytes or len(wav_bytes) < 44:
+            logger.warning("[DEBUG_CLIENT] Received empty audio chunk, skipping")
+            return
+        chunk_idx = chunk_meta.get("chunk_index", "?")
+        total = chunk_meta.get("total_chunks", "?")
+        is_last = chunk_meta.get("is_last", False)
+        if DEBUG_CLIENT:
+            logger.info(f"[DEBUG_CLIENT] Audio chunk {chunk_idx}/{total} ({len(wav_bytes)} bytes, is_last={is_last})")
+        # Queue the chunk — AudioPlayback plays them sequentially
+        self.audio_playback.play(wav_bytes)
+        # Keep speaking state active; extend echo cancellation window
+        duration = max(0.5, len(wav_bytes) / 48000)
+        self._last_play_end_time = time.time() + duration
+        # Only schedule speaking state clear on the last chunk
+        if is_last:
+            if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
+                self._speaking_timer.cancel()
+            self._speaking_timer = threading.Timer(duration, self._clear_speaking_state)
+            self._speaking_timer.daemon = True
+            self._speaking_timer.start()
+
     def _clear_speaking_state(self):
         """Clear speaking state after audio finishes."""
         self.display._speaking = False
@@ -301,6 +334,21 @@ class MarioClient:
         self.display.set_thinking(True)
         if self.ws.connected:
             self.ws.send_event({"type": "text_input", "text": text})
+
+    def _on_volume_change(self, delta: float):
+        """Called when user adjusts volume with +/- keys."""
+        current = self.audio_playback.get_volume()
+        new_vol = max(0.0, min(2.0, current + delta))
+        self.audio_playback.set_volume(new_vol)
+        self.display.show_volume(new_vol)
+        if DEBUG_AUDIO:
+            logger.info(f"[DEBUG_AUDIO] Volume changed: {current:.1f} -> {new_vol:.1f}")
+
+    def _on_leaderboard_update(self, data: dict):
+        """Called when server sends leaderboard update."""
+        if DEBUG_CLIENT:
+            logger.info(f"[DEBUG_CLIENT] Leaderboard update received")
+        self.display.update_leaderboard(data)
 
 
 def main():

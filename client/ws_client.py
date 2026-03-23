@@ -25,11 +25,15 @@ class MarioWSClient:
         # Callbacks
         self.on_text_response = None    # Called with (text: str, metadata: dict)
         self.on_audio_response = None   # Called with (wav_bytes: bytes)
+        self.on_audio_chunk = None      # Called with (wav_bytes: bytes, chunk_meta: dict)
         self.on_state_update = None     # Called with (state: dict)
+        self.on_leaderboard_update = None  # Called with (data: dict)
         self.on_connected = None
         self.on_disconnected = None
 
         self._expecting_audio = False
+        self._expecting_chunk_audio = False
+        self._last_chunk_meta = None
 
         # Reconnection state tracking (protected by lock)
         self._reconnect_lock = threading.Lock()
@@ -107,7 +111,13 @@ class MarioWSClient:
             # Binary = audio response
             if DEBUG_WS:
                 logger.info(f"[DEBUG_WS] received audio: {len(message)} bytes")
-            if self.on_audio_response:
+            if self._expecting_chunk_audio and self._last_chunk_meta:
+                # This binary follows an audio_chunk JSON — route to chunk handler
+                if self.on_audio_chunk:
+                    self.on_audio_chunk(message, self._last_chunk_meta)
+                self._expecting_chunk_audio = False
+                self._last_chunk_meta = None
+            elif self.on_audio_response:
                 self.on_audio_response(message)
             self._expecting_audio = False
         else:
@@ -123,6 +133,13 @@ class MarioWSClient:
                     if self.on_text_response:
                         self.on_text_response(data.get("text", ""), data)
 
+                elif msg_type == "audio_chunk":
+                    # Sentence streaming: server sends audio_chunk JSON followed by binary audio
+                    if DEBUG_WS:
+                        logger.info(f"[DEBUG_WS] audio_chunk {data.get('chunk_index', '?')}/{data.get('total_chunks', '?')} is_last={data.get('is_last', False)}")
+                    self._expecting_chunk_audio = True
+                    self._last_chunk_meta = data
+
                 elif msg_type == "state":
                     if self.on_state_update:
                         self.on_state_update(data)
@@ -133,6 +150,12 @@ class MarioWSClient:
 
                 elif msg_type == "speaker_registered":
                     logger.info(f"[DEBUG_WS] speaker registered: {data.get('name')}")
+
+                elif msg_type == "leaderboard_update":
+                    if DEBUG_WS:
+                        logger.info(f"[DEBUG_WS] leaderboard update received")
+                    if self.on_leaderboard_update:
+                        self.on_leaderboard_update(data)
 
             except json.JSONDecodeError as e:
                 logger.error(f"[DEBUG_WS] invalid JSON: {e}")
