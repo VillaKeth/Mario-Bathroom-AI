@@ -22,7 +22,9 @@
 - [x] Endurance: 7-8 consecutive chats over 3 min, 0 errors, 0 reconnects
 - [x] Game auto-timeout: 180s inactivity auto-clears stale games
 - [x] Response timing instrumentation: safety/context/llm/filter/tts breakdown in /health
-- [x] Response times: 4-5s warm (LLM 3-4s + TTS cached), 13s cold start
+- [x] Response times: 1.5-3.2s warm (optimized from 4-5s), 8-10s complex/creative
+- [x] Response optimization: context window 10→6, num_predict 35→30, reaction hint early-exit, parallel TTS, 2 TTS threads
+- [x] Browser audio chat: built interactive WebSocket chat with real-time audio playback and Replay buttons
 - [ ] Run --ralph loop mode for extended overnight stress testing
 - [ ] Add --endurance 480 for full 8-hour simulation before party day
 
