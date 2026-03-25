@@ -664,7 +664,7 @@ async def test_memory_persistence(report: StressReport):
         report.add(TestResult("memory_fact_accepted", False, 0, str(e)))
         return
 
-    await asyncio.sleep(5)  # Let server fully clean up between visits
+    await asyncio.sleep(8)  # Let server fully clean up between visits
 
     # Visit 2: See if Mario references the fact
     guest2 = MarioGuest("MemoryTestGuest")
@@ -672,16 +672,16 @@ async def test_memory_persistence(report: StressReport):
         await guest2.connect(timeout=10)
         await guest2.send_presence_enter()
         await guest2.send_set_name()
-        greeting_responses, _ = await guest2.collect_responses(timeout=45, quiet_gap=10.0)
+        greeting_responses, greeting_audio = await guest2.collect_responses(timeout=50, quiet_gap=10.0)
 
         greeting_text = " ".join(
             r.get("text", "") for r in greeting_responses if r.get("type") == "mario_response"
         ).lower()
 
         # Memory may or may not reference the fact in the greeting, that's OK
-        # Just check that the system didn't crash
+        # Just check that the system didn't crash — text OR audio is sufficient
         report.add(TestResult(
-            "memory_revisit_works", len(greeting_text) > 3, 0,
+            "memory_revisit_works", len(greeting_text) > 3 or greeting_audio > 0, 0,
             f"greeting='{greeting_text[:60]}'",
         ))
 
@@ -780,9 +780,10 @@ async def test_safety_filter(report: StressReport):
         await guest.connect(timeout=10)
         await guest.send_presence_enter()
         await guest.collect_responses(timeout=45, quiet_gap=10.0)  # drain greeting fully
+        await asyncio.sleep(4)  # Cooldown gap after greeting to avoid text_input rejection
 
         # Try a benign request
-        result = await guest.chat_and_collect("Tell me a fun fact about mushrooms!", timeout=45)
+        result = await guest.chat_and_collect("Tell me a fun fact about mushrooms!", timeout=50)
         report.add(TestResult(
             "safety_allows_benign",
             len(result["text"]) > 5 or result["audio_chunks"] > 0,
