@@ -25,8 +25,12 @@
 - [x] Response times: 1.5-3.2s warm (optimized from 4-5s), 8-10s complex/creative
 - [x] Response optimization: context window 10→6, num_predict 35→30, reaction hint early-exit, parallel TTS, 2 TTS threads
 - [x] Browser audio chat: built interactive WebSocket chat with real-time audio playback and Replay buttons
+- [x] Built party_endurance_test.py: autonomous 6-hour stress test with 24 guest profiles, health monitoring, self-learning
+- [x] Quick smoke test: 29/29 (100%) confirmed post-optimization
+- [x] Full suite: 49/52 (94%) — 3 failures from browser WS interference, all pass when clean
+- [ ] Run 1-hour endurance test to validate (IN PROGRESS)
+- [ ] Run full 6-hour endurance test before party
 - [ ] Run --ralph loop mode for extended overnight stress testing
-- [ ] Add --endurance 480 for full 8-hour simulation before party day
 
 ## Party Leaderboard System
 - [x] Enhanced /leaderboard endpoint with game scores, funniest moment, most dramatic, ticker stats, guest titles
@@ -1215,6 +1219,19 @@
 - [x] Mario Trivia game (25 questions, 5 per round, fuzzy answer matching)
 - [x] Name That Character speed round (15 characters, timed scoring)
 - [x] Bathroom Dare game (20 dares, done/skip mechanic, completion tracking)
+
+## Autonomous Endurance Stress Test
+- [x] Created party_endurance_test.py (1151 lines) — autonomous 6-hour endurance stress test
+- [x] 24 unique guest profiles with personalities (casual, drunk, trivia-lover, game-player, shy, etc.)
+- [x] 50+ realistic chat messages across 6 categories (general, trivia, drunk, emotional, challenging, lore)
+- [x] Background health monitor polling /health and /stats every 30s with alert detection
+- [x] Self-learning: tracks slow messages, failing games, empty responses, adjusts density in ralph mode
+- [x] Ralph mode: continuous 30-min cycles until 3 consecutive perfect cycles
+- [x] Results saved to JSON with full metrics, trends, learnings, guest details, cycle history
+- [x] Loads previous results on startup for cross-session learning
+- [x] CLI args: --hours, --ralph, --guests, --verbose, --results, --load
+- [ ] Run --hours 1 quick endurance test to validate
+- [ ] Run --ralph overnight for continuous improvement
 - [x] Story Builder collaborative game (12 starters, 5-round back-and-forth)
 - [x] Would You Rather Mario Edition (15 extended scenarios, dramatic reactions)
 - [x] Wired all 5 games into command_handlers.py trigger detection
