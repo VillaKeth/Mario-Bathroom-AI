@@ -1,8 +1,11 @@
 # Mario AI — Task Tracking
 
-## E2E Party Stress Test (NEW — 2026-03-25)
+## E2E Party Stress Test (2026-03-25)
 - [x] Built comprehensive party_stress_test.py with 14 test suites, 52 tests
 - [x] Achieved 100% pass rate (52/52) — server is party-ready for 8-hour event
+- [x] FIXED: Critical idle spam bug — long-stay comments fired every 3-8s with only 3 msgs (now 180s interval, 7+ msgs per bracket, dedup)
+- [x] Browser E2E: Verified leaderboard page, TTS test suite, real WebSocket chat in browser
+- [x] Real Pygame client: Launched with 74 AI poses, audio playback, idle behavior — all working
 - [x] Health checks: endpoints, TTS cache (504 entries), Ollama/llama3, stats, leaderboard
 - [x] TTS quality: 6 cached phrases + 3 live generation — all valid WAV, <5s latency
 - [x] LLM quality: humor, personality, knowledge, safety — all in-character
