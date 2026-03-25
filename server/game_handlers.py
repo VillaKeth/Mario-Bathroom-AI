@@ -391,6 +391,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         config:    ``GAME_CONFIG`` dict from main.
         emotion_sys: ``EmotionSystem`` instance from main.
     """
+    import time as _time
+    state["_game_last_input_time"] = _time.time()  # Start timeout clock
     if game_name == "simon_says":
         state["_active_game"] = "simon_says"
         state["_game_state"] = {"round": 1, "score": 0, "max_rounds": config["simon_max_rounds"]}
@@ -623,6 +625,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
 def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] | None:
     """Handle input while a game mode is active. Returns (response, sound_hint) or None."""
+    import time as _time
+    state["_game_last_input_time"] = _time.time()  # Reset timeout clock on every input
     game = state["_active_game"]
     gs = state["_game_state"]
 

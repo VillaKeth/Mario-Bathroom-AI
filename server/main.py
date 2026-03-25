@@ -163,6 +163,7 @@ state_current = {
     "_last_command_time": 0.0,  # Rate limit special commands (1s cooldown)
     "_active_game": None,  # Active game mode (simon_says, twenty_questions, truth_or_dare)
     "_game_state": {},  # Game-specific state data
+    "_game_last_input_time": 0.0,  # Last valid game input — auto-timeout after 180s
     "_response_times": deque(maxlen=50),  # Track last 50 response times for metrics
     "_pending_announcement": None,  # Admin-queued announcement text
     "_detected_mood": None,  # Sentiment detection: drunk/sad/angry/None
@@ -948,6 +949,26 @@ async def _idle_loop(ws: WebSocket):
                 logger.error(f"Scheduled event failed: {e}")
             continue
 
+        # Game auto-timeout: clear stale game state after 3 minutes of no input
+        _GAME_TIMEOUT_SECONDS = 180
+        async with _state_lock:
+            if state_current["_active_game"]:
+                last_game_input = state_current.get("_game_last_input_time", 0.0)
+                if last_game_input > 0 and (time.time() - last_game_input) > _GAME_TIMEOUT_SECONDS:
+                    stale_game = state_current["_active_game"]
+                    state_current["_active_game"] = None
+                    state_current["_game_state"] = {}
+                    state_current["_game_last_input_time"] = 0.0
+                    logger.info(f"[GAME_TIMEOUT] Auto-cleared '{stale_game}' after {_GAME_TIMEOUT_SECONDS}s inactivity")
+                    try:
+                        timeout_msg = f"Oops! Looks like we forgot about our {stale_game.replace('_', ' ')} game! No worries, let's-a chat!"
+                        analyzed = analyze_text(timeout_msg)
+                        audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                        await send_response(ws, analyzed["display_text"], audio,
+                                            sound="game_over", pose_hint="positive/happy")
+                    except Exception as e:
+                        logger.error(f"Game timeout announcement failed: {e}")
+
         async with _state_lock:
             has_presence = state_current["presence"]
             enter_time = state_current["enter_time"] if has_presence else None
@@ -1124,9 +1145,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if start_time is None:
         start_time = time.time()
     loop = asyncio.get_event_loop()
+    _timing = {"start": start_time}  # Response time breakdown
 
     # Safety check
+    _t0 = time.time()
     safety = check_input(text)
+    _timing["safety_ms"] = int((time.time() - _t0) * 1000)
     if not safety["safe"]:
         logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
         redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(safety["redirect"]))
@@ -1153,9 +1177,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         logger.info(f"[SENTIMENT] Detected mood shift: {mood}")
 
     # Special commands
+    _t_cmd = time.time()
     response_text = await _handle_special_commands(text)
+    _timing["commands_ms"] = int((time.time() - _t_cmd) * 1000)
     if response_text is None:
         # Build LLM context
+        _t_ctx = time.time()
         memories = []
         if state_current["speaker_id"]:
             memories = memory.get_memories_for_context(state_current["speaker_id"])
@@ -1866,6 +1893,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if new_facts and state_current.get("speaker_id"):
             ctx.append({"role": "system", "content": f"Learned: {new_facts[0]}"})
 
+        _timing["context_ms"] = int((time.time() - _t_ctx) * 1000)
+
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently
         # These short phrases should be cache hits (instant)
@@ -1894,6 +1923,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Run thinking TTS + LLM concurrently (with timeout fallback)
         _LLM_TIMEOUT = GAME_CONFIG.get("llm_timeout", 30)
+        _t_llm = time.time()
         try:
             _, response_text = await asyncio.gather(
                 _send_thinking_audio(),
@@ -1911,7 +1941,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             response_text = random.choice(_llm_fallback_responses)
             emotion_system.current = Emotion.CONFUSED
             emotion_system.intensity = 0.7
+        _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)
 
+    _t_filter = time.time()
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
@@ -2015,6 +2047,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             task.add_done_callback(_bg_tasks.discard)
 
     # TTS with sentence streaming
+    _timing["filter_ms"] = int((time.time() - _t_filter) * 1000)
+    _t_tts = time.time()
     voice_params = emotion_system.get_voice_params()
     # Boost energy for high-energy text (detected from ALL CAPS before cleaning)
     if analyzed.get("energy") == "high":
@@ -2099,10 +2133,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
             particle_effect=particle)
 
-    # Track response time
+    # Track response time with breakdown
+    _timing["tts_ms"] = int((time.time() - _t_tts) * 1000)
     total_time = time.time() - start_time
+    _timing["total_ms"] = int(total_time * 1000)
     state_current["_response_times"].append(total_time)
-    logger.info(f"⏱ {source} response time: {total_time:.1f}s")
+    state_current["_last_timing"] = _timing
+    logger.info(f"⏱ {source} response: {total_time:.1f}s "
+                f"[safety={_timing.get('safety_ms',0)}ms ctx={_timing.get('context_ms',0)}ms "
+                f"llm={_timing.get('llm_ms',0)}ms filter={_timing.get('filter_ms',0)}ms "
+                f"tts={_timing.get('tts_ms',0)}ms]")
 
 
 async def _process_audio(ws: WebSocket, audio_chunk: bytes):
