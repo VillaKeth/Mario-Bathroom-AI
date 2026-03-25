@@ -179,7 +179,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         "options": {
             "temperature": round(temp, 2),
             "top_p": 0.9,
-            "num_predict": 35,
+            "num_predict": 30,
             "repeat_penalty": 1.3,
             "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
         },

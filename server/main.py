@@ -176,7 +176,7 @@ state_current = {
 }
 
 # Dedicated single-thread executor for TTS (prevents GPU contention)
-_tts_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="tts")
+_tts_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tts")
 
 # Background task limiter (prevents unbounded memory growth from fact extraction)
 _bg_tasks: set = set()
@@ -1295,100 +1295,37 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if chapter:
             reaction_parts.append(chapter)
 
-        # Conversation depth
-        depth = mario_prompt.update_depth(text)
-        if depth:
-            reaction_parts.append(depth)
+        # Lower-priority reaction hints — skip if we already have 2 (we only use [:2])
+        # Always run stateful trackers (depth, intensity, mood) but skip result collection
+        mario_prompt.update_depth(text)
+        mario_prompt.update_intensity(text)
 
-        # Emotional callback
-        emo_cb = mario_prompt.get_emotional_callback()
-        if emo_cb:
-            reaction_parts.append(emo_cb)
-
-        # Sound effect suggestion
-        sfx = mario_prompt.suggest_sound_effect(text)
-        if sfx:
-            reaction_parts.append(sfx)
-
-        # Intensity tracking
-        intensity = mario_prompt.update_intensity(text)
-        if intensity:
-            reaction_parts.append(intensity)
-
-        # Throwback references
-        throwback = mario_prompt.check_throwback(text)
-        if throwback:
-            reaction_parts.append(throwback)
-
-        # Sassy meter
-        sassy = mario_prompt.update_sassy_meter(text)
-        if sassy:
-            reaction_parts.append(sassy)
-
-        # Zodiac jokes
-        zodiac = mario_prompt.check_zodiac(text)
-        if zodiac:
-            reaction_parts.append(zodiac)
-
-        # Emotional support
-        support = mario_prompt.detect_needs_support(text)
-        if support:
-            reaction_parts.append(support)
-
-        # Joke rating
-        joke_rate = mario_prompt.maybe_rate_joke(text)
-        if joke_rate:
-            reaction_parts.append(joke_rate)
-
-        # Party duration
-        party_dur = mario_prompt.get_party_duration_hint()
-        if party_dur:
-            reaction_parts.append(party_dur)
-
-        # Catchphrase milestone
-        catch_mile = mario_prompt.get_catchphrase_milestone()
-        if catch_mile:
-            reaction_parts.append(catch_mile)
-
-        # Mirror commentary
-        mirror = mario_prompt.check_mirror(text)
-        if mirror:
-            reaction_parts.append(mirror)
-
-        # Food talk
-        food = mario_prompt.check_food_talk(text)
-        if food:
-            reaction_parts.append(food)
-
-        # Password guess check
-        pwd_guess = mario_prompt.check_password_guess(text)
-        if pwd_guess:
-            reaction_parts.append(pwd_guess)
-
-        # Movie/show references
-        movie = mario_prompt.check_movie_ref(text)
-        if movie:
-            reaction_parts.append(movie)
-
-        # Music genre reaction
-        music = mario_prompt.check_music_talk(text)
-        if music:
-            reaction_parts.append(music)
-
-        # Pet talk
-        pet = mario_prompt.check_pet_talk(text)
-        if pet:
-            reaction_parts.append(pet)
-
-        # Weather talk
-        weather = mario_prompt.check_weather(text)
-        if weather:
-            reaction_parts.append(weather)
-
-        # Sports talk
-        sports = mario_prompt.check_sports_talk(text)
-        if sports:
-            reaction_parts.append(sports)
+        if len(reaction_parts) < 2:
+            _low_pri_checks = [
+                lambda: mario_prompt.get_emotional_callback(),
+                lambda: mario_prompt.suggest_sound_effect(text),
+                lambda: mario_prompt.check_throwback(text),
+                lambda: mario_prompt.update_sassy_meter(text),
+                lambda: mario_prompt.check_zodiac(text),
+                lambda: mario_prompt.detect_needs_support(text),
+                lambda: mario_prompt.maybe_rate_joke(text),
+                lambda: mario_prompt.get_party_duration_hint(),
+                lambda: mario_prompt.get_catchphrase_milestone(),
+                lambda: mario_prompt.check_mirror(text),
+                lambda: mario_prompt.check_food_talk(text),
+                lambda: mario_prompt.check_password_guess(text),
+                lambda: mario_prompt.check_movie_ref(text),
+                lambda: mario_prompt.check_music_talk(text),
+                lambda: mario_prompt.check_pet_talk(text),
+                lambda: mario_prompt.check_weather(text),
+                lambda: mario_prompt.check_sports_talk(text),
+            ]
+            for check in _low_pri_checks:
+                result = check()
+                if result:
+                    reaction_parts.append(result)
+                    if len(reaction_parts) >= 2:
+                        break
 
         # --- Combine reaction + personality into ONE hint message (max 3 short hints) ---
         personality_parts = []
@@ -1882,8 +1819,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ]
             ctx.append({"role": "system", "content": f"[CHAOS]: {random.choice(chaos_hints)}"})
 
-        # Conversation history — llama3 8B can handle more context than qwen2 1.5B
-        hist_window = min(10, len(state_current["conversation_history"]))
+        # Conversation history — 6 recent messages keeps context tight for speed
+        hist_window = min(6, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
@@ -2086,17 +2023,20 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
                     streamed = True
 
-                    # Synthesize and send remaining sentences while client plays first
-                    for i, sentence in enumerate(sentences[1:], start=1):
-                        stripped = sentence.strip()
-                        if not stripped:
-                            continue
-                        if DEBUG_STREAM:
-                            logger.info(f"[DEBUG_STREAM] Streaming sentence {i+1}/{total_chunks}: \"{stripped[:60]}\"")
-                        try:
-                            chunk_audio = await loop.run_in_executor(
-                                _tts_executor, lambda s=stripped: tts.synthesize_user(
+                    # Pre-synthesize remaining sentences in parallel for speed
+                    remaining = [(i, s.strip()) for i, s in enumerate(sentences[1:], start=1) if s.strip()]
+                    if remaining:
+                        synth_tasks = [
+                            loop.run_in_executor(
+                                _tts_executor, lambda s=s: tts.synthesize_user(
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                            for _, s in remaining
+                        ]
+                        synth_results = await asyncio.gather(*synth_tasks, return_exceptions=True)
+                        for (i, stripped), chunk_audio in zip(remaining, synth_results):
+                            if isinstance(chunk_audio, Exception):
+                                logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {chunk_audio}")
+                                continue
                             if chunk_audio and len(chunk_audio) > 44:
                                 is_last = (i == total_chunks - 1)
                                 await ws.send_json({
@@ -2111,9 +2051,6 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                             else:
                                 if DEBUG_STREAM:
                                     logger.warning(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} produced empty audio, skipping")
-                        except Exception as e:
-                            logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {e}")
-                            # Continue — already sent earlier chunks, don't break playback
                 else:
                     if DEBUG_STREAM:
                         logger.warning("[DEBUG_STREAM] First sentence produced empty audio, falling back to full synthesis")
