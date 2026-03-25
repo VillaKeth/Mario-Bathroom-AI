@@ -6,20 +6,23 @@
 - [x] FIXED: Critical idle spam bug — long-stay comments fired every 3-8s with only 3 msgs (now 180s interval, 7+ msgs per bracket, dedup)
 - [x] Browser E2E: Verified leaderboard page, TTS test suite, real WebSocket chat in browser
 - [x] Real Pygame client: Launched with 74 AI poses, audio playback, idle behavior — all working
-- [x] Health checks: endpoints, TTS cache (504 entries), Ollama/llama3, stats, leaderboard
+- [x] Health checks: endpoints, TTS cache (735+ entries), Ollama/llama3, stats, leaderboard
 - [x] TTS quality: 6 cached phrases + 3 live generation — all valid WAV, <5s latency
 - [x] LLM quality: humor, personality, knowledge, safety — all in-character
 - [x] WebSocket lifecycle: connect, greeting, 3 chats, farewell, disconnect, emotion diversity
-- [x] Idle behavior: confirmed idle mumbles fire when presence=False (4 msgs in 60s)
+- [x] Idle behavior: confirmed idle mumbles fire when presence=False (2-3 msgs in 60s, all unique)
 - [x] Games: 20 Questions, Truth/Dare, Riddles, Simon Says, Rock Paper Scissors — all working
 - [x] Memory persistence: facts remembered across visits, greeting on revisit
 - [x] Rate limiting: 5 rapid messages handled gracefully, no crash
-- [x] Safety filter: benign requests pass, harmful requests redirected ("NO WAY JOSE!")
+- [x] Safety filter: benign requests pass, harmful requests redirected
 - [x] Leaderboard: structure, visits, duration — all accurate
 - [x] Error recovery: empty text + long text edge cases → server recovers and responds
-- [x] Multi-guest: 5/5 sequential guests (Alice/Bob/Charlie/Diana/Eve) all get responses
+- [x] Multi-guest: 5/5 sequential guests all get responses
 - [x] Guest simulation: 9/9 (100%) chats across 3 party guests with varied conversations
-- [x] Endurance: 9 consecutive chats, 0 errors, 0 reconnects, avg 15s response time
+- [x] Endurance: 7-8 consecutive chats over 3 min, 0 errors, 0 reconnects
+- [x] Game auto-timeout: 180s inactivity auto-clears stale games
+- [x] Response timing instrumentation: safety/context/llm/filter/tts breakdown in /health
+- [x] Response times: 4-5s warm (LLM 3-4s + TTS cached), 13s cold start
 - [ ] Run --ralph loop mode for extended overnight stress testing
 - [ ] Add --endurance 480 for full 8-hour simulation before party day
 
