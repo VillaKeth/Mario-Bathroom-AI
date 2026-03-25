@@ -1,5 +1,25 @@
 # Mario AI — Task Tracking
 
+## E2E Party Stress Test (NEW — 2026-03-25)
+- [x] Built comprehensive party_stress_test.py with 14 test suites, 52 tests
+- [x] Achieved 100% pass rate (52/52) — server is party-ready for 8-hour event
+- [x] Health checks: endpoints, TTS cache (504 entries), Ollama/llama3, stats, leaderboard
+- [x] TTS quality: 6 cached phrases + 3 live generation — all valid WAV, <5s latency
+- [x] LLM quality: humor, personality, knowledge, safety — all in-character
+- [x] WebSocket lifecycle: connect, greeting, 3 chats, farewell, disconnect, emotion diversity
+- [x] Idle behavior: confirmed idle mumbles fire when presence=False (4 msgs in 60s)
+- [x] Games: 20 Questions, Truth/Dare, Riddles, Simon Says, Rock Paper Scissors — all working
+- [x] Memory persistence: facts remembered across visits, greeting on revisit
+- [x] Rate limiting: 5 rapid messages handled gracefully, no crash
+- [x] Safety filter: benign requests pass, harmful requests redirected ("NO WAY JOSE!")
+- [x] Leaderboard: structure, visits, duration — all accurate
+- [x] Error recovery: empty text + long text edge cases → server recovers and responds
+- [x] Multi-guest: 5/5 sequential guests (Alice/Bob/Charlie/Diana/Eve) all get responses
+- [x] Guest simulation: 9/9 (100%) chats across 3 party guests with varied conversations
+- [x] Endurance: 9 consecutive chats, 0 errors, 0 reconnects, avg 15s response time
+- [ ] Run --ralph loop mode for extended overnight stress testing
+- [ ] Add --endurance 480 for full 8-hour simulation before party day
+
 ## Party Leaderboard System
 - [x] Enhanced /leaderboard endpoint with game scores, funniest moment, most dramatic, ticker stats, guest titles
 - [x] Added leaderboard_update WebSocket broadcast every 60 seconds + on new visitor events
