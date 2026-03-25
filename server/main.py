@@ -952,17 +952,27 @@ async def _idle_loop(ws: WebSocket):
             has_presence = state_current["presence"]
             enter_time = state_current["enter_time"] if has_presence else None
         if has_presence:
+            # When someone is present, occasionally make long-stay comments
+            # but use proper interval gating (not every 3-8s!)
             if enter_time:
                 minutes = (time.time() - enter_time) / 60
-                comment = idle_behavior.get_long_stay_comment(minutes)
-                if comment:
-                    try:
-                        analyzed = analyze_text(comment)
-                        audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                        await send_response(ws, analyzed["display_text"], audio,
-                                            sound="coin", pose_hint=analyzed["pose_hint"])
-                    except Exception as e:
-                        logger.error(f"Long stay comment TTS failed: {e}")
+                if minutes >= 3:
+                    # Use idle_behavior's interval system for long-stay too
+                    if not hasattr(idle_behavior, '_last_long_stay_time'):
+                        idle_behavior._last_long_stay_time = 0.0
+                    now = time.time()
+                    # Only fire long-stay comments every 3 minutes (180s)
+                    if now - idle_behavior._last_long_stay_time >= 180:
+                        comment = idle_behavior.get_long_stay_comment(minutes)
+                        if comment:
+                            idle_behavior._last_long_stay_time = now
+                            try:
+                                analyzed = analyze_text(comment)
+                                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                                await send_response(ws, analyzed["display_text"], audio,
+                                                    sound="coin", pose_hint=analyzed["pose_hint"])
+                            except Exception as e:
+                                logger.error(f"Long stay comment TTS failed: {e}")
             continue
 
         # DJ announcements when nobody is around (every 20+ minutes)

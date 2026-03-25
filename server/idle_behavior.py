@@ -852,23 +852,34 @@ class IdleBehavior:
         if minutes < 3:
             return None
         elif minutes < 5:
-            return random.choice([
+            options = [
                 "Taking your time, eh? No rush! Mario will-a wait!",
                 "Still here? Must be-a comfy in here!",
                 "Enjoying the ambiance? I don't blame you!",
-            ])
+                "This-a bathroom has great vibes, no?",
+                "You know, in the Mushroom Kingdom, we don't rush bathroom breaks!",
+                "I once spent 3 hours in Bowser's bathroom... long story!",
+                "Need anything? Magazine? Mushroom? Star power?",
+            ]
         elif minutes < 10:
-            return random.choice([
+            options = [
                 f"Mama mia! {int(minutes)} minutes! Everything okay in there?",
                 f"You've been here {int(minutes)} minutes! That's-a new record!",
                 f"{int(minutes)} minutes?! You could've-a beaten World 1-1 by now!",
-            ])
+                f"Wow, {int(minutes)} minutes! Luigi would be-a worried by now!",
+                f"At {int(minutes)} minutes, you're practically a bathroom resident!",
+                f"Fun fact: In {int(minutes)} minutes, I can eat-a 47 mushrooms!",
+            ]
         else:
-            return random.choice([
+            options = [
                 f"Wahoo! {int(minutes)} minutes?! You should-a see a doctor! Ha ha, just kidding!",
                 f"Still going strong after {int(minutes)} minutes! You're-a champion!",
                 f"{int(minutes)} minutes! I think you live-a here now! Welcome home!",
-            ])
+                f"{int(minutes)} minutes?! Even Bowser doesn't stay this long!",
+                f"After {int(minutes)} minutes, I'm-a starting to think you forgot about the party!",
+                f"Legend says after {int(minutes)} minutes in this bathroom, you unlock a secret level!",
+            ]
+        return self._pick_unique(options)
 
     def get_contextual_idle(self, conversation_history: list) -> str | None:
         """Generate an idle phrase that riffs on recent conversation topics.
