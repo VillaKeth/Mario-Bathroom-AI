@@ -623,6 +623,15 @@ async def tts_endpoint(text: str = "", nocache: bool = False):
             return {"status": "error", "message": str(e)}
 
 
+@app.get("/chat")
+async def chat_page():
+    """Serve the Mario Party Chat HTML page."""
+    chat_file = os.path.join(os.path.dirname(__file__), "..", "mario_chat.html")
+    if os.path.exists(chat_file):
+        return FileResponse(chat_file, media_type="text/html")
+    return HTMLResponse("<h1>mario_chat.html not found</h1>", status_code=404)
+
+
 @app.get("/tts_test")
 async def tts_test_page():
     """Serve the TTS test suite HTML page."""

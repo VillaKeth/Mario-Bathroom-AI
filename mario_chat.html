@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍄 Mario Party Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --mario-red: #E52521;
+  --mario-red-dark: #B71C1C;
+  --mario-blue: #049CD8;
+  --mario-yellow: #FBD000;
+  --mario-green: #43B047;
+  --mario-brown: #8B5E3C;
+  --bg-deep: #0A0A1A;
+  --bg-panel: #111128;
+  --bg-card: #1A1A3E;
+  --bg-input: #0D0D25;
+  --text-primary: #F0F0FF;
+  --text-muted: #8888AA;
+  --text-dim: #555577;
+  --glow-red: rgba(229, 37, 33, 0.3);
+  --glow-blue: rgba(4, 156, 216, 0.25);
+  --glow-yellow: rgba(251, 208, 0, 0.2);
+  --border-subtle: rgba(255,255,255,0.06);
+  --shadow-deep: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Fredoka', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Pixel-art background pattern ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(229,37,33,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(4,156,216,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(251,208,0,0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Top Bar ─── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  color: var(--mario-red);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+  letter-spacing: 1px;
+}
+
+.topbar-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  transition: background 0.3s;
+}
+.status-dot.connected { background: var(--mario-green); box-shadow: 0 0 8px rgba(67,176,71,0.6); }
+.status-dot.connecting { background: var(--mario-yellow); animation: pulse 1s infinite; }
+
+@keyframes pulse { 50% { opacity: 0.4; } }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.emotion-badge {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 9px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--mario-yellow);
+  text-transform: uppercase;
+}
+
+.stats-mini {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ─── Main Layout ─── */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 260px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-section h3 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.guest-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.guest-input:focus { border-color: var(--mario-blue); }
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 8px;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-enter {
+  background: var(--mario-green);
+  color: #fff;
+  box-shadow: 0 3px 0 #2d7a30, 0 4px 12px rgba(67,176,71,0.3);
+}
+.btn-enter:hover { background: #4ec752; }
+.btn-enter:disabled { opacity: 0.4; cursor: default; }
+
+.btn-exit {
+  background: var(--mario-red);
+  color: #fff;
+  box-shadow: 0 3px 0 #a01b18, 0 4px 12px rgba(229,37,33,0.3);
+}
+.btn-exit:hover { background: #f03030; }
+
+.btn-game {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+  font-size: 12px;
+  padding: 7px 10px;
+}
+.btn-game:hover { background: #222250; border-color: var(--mario-blue); }
+.btn-game.active-game { border-color: var(--mario-yellow); background: rgba(251,208,0,0.1); }
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* Health panel */
+.health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.health-item {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+.health-item .label {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.health-item .value {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 11px;
+  color: var(--mario-yellow);
+  margin-top: 4px;
+}
+
+/* Audio controls */
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-card);
+  outline: none;
+}
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--mario-blue);
+  cursor: pointer;
+}
+
+.mute-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* ─── Chat Area ─── */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+
+/* Message bubbles */
+.msg {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: msgIn 0.25s ease-out;
+  position: relative;
+  word-wrap: break-word;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: var(--mario-blue);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-mario {
+  align-self: flex-start;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.msg-mario.thinking {
+  opacity: 0.7;
+  font-style: italic;
+  border-color: rgba(251,208,0,0.2);
+}
+
+.msg-mario.idle {
+  opacity: 0.6;
+  border-left: 3px solid var(--mario-brown);
+}
+
+.msg-system {
+  align-self: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  padding: 6px 0;
+  font-style: italic;
+}
+
+.msg-meta {
+  font-size: 10px;
+  margin-top: 4px;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.msg-mario .msg-meta { color: var(--text-dim); }
+.msg-user .msg-meta { color: rgba(255,255,255,0.6); }
+
+.replay-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.replay-btn:hover { opacity: 1; }
+
+/* Typing indicator */
+.typing-indicator {
+  display: none;
+  align-self: flex-start;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  border: 1px solid rgba(251,208,0,0.15);
+}
+.typing-indicator.visible { display: flex; gap: 4px; align-items: center; }
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mario-yellow);
+  animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ─── Input Area ─── */
+.input-area {
+  padding: 12px 20px 16px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 2px solid var(--border-subtle);
+  border-radius: 24px;
+  color: var(--text-primary);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.chat-input:focus { border-color: var(--mario-blue); }
+.chat-input::placeholder { color: var(--text-dim); }
+.chat-input:disabled { opacity: 0.3; }
+
+.send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--mario-red);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 3px 0 var(--mario-red-dark);
+  flex-shrink: 0;
+}
+.send-btn:hover { background: #f03030; transform: translateY(-1px); }
+.send-btn:active { transform: translateY(2px); box-shadow: none; }
+.send-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quick-btn:hover { border-color: var(--mario-yellow); color: var(--mario-yellow); }
+
+/* ─── Responsive ─── */
+@media (max-width: 800px) {
+  .sidebar { display: none; }
+}
+
+/* Coin animation for audio */
+@keyframes coinSpin {
+  0% { transform: scaleX(1); }
+  50% { transform: scaleX(0.1); }
+  100% { transform: scaleX(1); }
+}
+.audio-playing { animation: coinSpin 0.6s ease-in-out infinite; }
+
+/* Welcome splash */
+.welcome-splash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+.welcome-splash.hidden { opacity: 0; }
+.welcome-emoji { font-size: 64px; }
+.welcome-text {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 2;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Top Bar ─── -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="status-dot" id="statusDot"></div>
+    <div>
+      <div class="topbar-title">MARIO PARTY CHAT</div>
+      <div class="topbar-subtitle" id="connStatus">Disconnected</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="emotion-badge" id="emotionBadge">😊 happy</div>
+    <div class="stats-mini" id="statsMini">0 msgs</div>
+  </div>
+</div>
+
+<!-- ─── Main Layout ─── -->
+<div class="main-layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- Guest Name -->
+    <div class="sidebar-section">
+      <h3>🎭 Guest Name</h3>
+      <input type="text" class="guest-input" id="guestName" placeholder="Enter your name..." value="Party Guest">
+      <button class="btn btn-enter" id="btnEnter" onclick="enterParty()">🚪 Enter the Bathroom</button>
+      <button class="btn btn-exit" id="btnExit" onclick="exitParty()" style="display:none">👋 Leave</button>
+    </div>
+
+    <!-- Games -->
+    <div class="sidebar-section">
+      <h3>🎮 Games</h3>
+      <div class="game-grid">
+        <button class="btn btn-game" onclick="sendChat('Lets play trivia!')">🧠 Trivia</button>
+        <button class="btn btn-game" onclick="sendChat('Lets play rock paper scissors!')">✊ RPS</button>
+        <button class="btn btn-game" onclick="sendChat('Lets play truth or dare!')">🎯 T or D</button>
+        <button class="btn btn-game" onclick="sendChat('Play Simon Says!')">🗣️ Simon</button>
+        <button class="btn btn-game" onclick="sendChat('Lets play 20 questions!')">❓ 20 Q</button>
+        <button class="btn btn-game" onclick="sendChat('Tell me a joke!')">😂 Joke</button>
+        <button class="btn btn-game" onclick="sendChat('Sing me a song!')">🎵 Song</button>
+        <button class="btn btn-game" onclick="sendChat('Dance for me!')">💃 Dance</button>
+      </div>
+    </div>
+
+    <!-- Audio -->
+    <div class="sidebar-section">
+      <h3>🔊 Audio</h3>
+      <div class="audio-controls">
+        <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊</button>
+        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+        <span id="volLabel" style="font-size:11px; color:var(--text-dim)">80%</span>
+      </div>
+    </div>
+
+    <!-- Health -->
+    <div class="sidebar-section">
+      <h3>📊 Server Health</h3>
+      <div class="health-grid">
+        <div class="health-item">
+          <div class="label">Status</div>
+          <div class="value" id="hStatus">--</div>
+        </div>
+        <div class="health-item">
+          <div class="label">Avg RT</div>
+          <div class="value" id="hRT">--</div>
+        </div>
+        <div class="health-item">
+          <div class="label">Cache</div>
+          <div class="value" id="hCache">--</div>
+        </div>
+        <div class="health-item">
+          <div class="label">Emotion</div>
+          <div class="value" id="hEmotion">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session Log -->
+    <div class="sidebar-section">
+      <h3>📝 Session</h3>
+      <div style="font-size:12px; color:var(--text-dim); line-height:1.8">
+        <div>Messages: <span id="sMessages">0</span></div>
+        <div>Responses: <span id="sResponses">0</span></div>
+        <div>Audio clips: <span id="sAudio">0</span></div>
+        <div>Avg latency: <span id="sLatency">--</span></div>
+        <div>Uptime: <span id="sUptime">0:00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+      <div class="welcome-splash" id="welcomeSplash">
+        <div class="welcome-emoji">🍄</div>
+        <div class="welcome-text">
+          Enter your name and<br>click "Enter the Bathroom"<br>to talk to Mario!
+        </div>
+      </div>
+    </div>
+
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Say something to Mario..." disabled
+               onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); sendFromInput(); }">
+        <button class="send-btn" id="sendBtn" onclick="sendFromInput()" disabled>▶</button>
+      </div>
+      <div class="quick-actions">
+        <button class="quick-btn" onclick="sendChat('Hey Mario!')">👋 Hey!</button>
+        <button class="quick-btn" onclick="sendChat('Whats your favorite power-up?')">⭐ Power-up</button>
+        <button class="quick-btn" onclick="sendChat('Tell me about Luigi')">🟢 Luigi</button>
+        <button class="quick-btn" onclick="sendChat('Who is Bowser?')">🐢 Bowser</button>
+        <button class="quick-btn" onclick="sendChat('Do you like this party?')">🎉 Party</button>
+        <button class="quick-btn" onclick="sendChat('Whats it like in the Mushroom Kingdom?')">🏰 Kingdom</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Mario Party Chat — WebSocket Client
+// ═══════════════════════════════════════════════════════════
+
+let ws = null;
+let isConnected = false;
+let isPresent = false;
+let audioCtx = null;
+let volume = 0.8;
+let isMuted = false;
+let msgCount = 0;
+let responseCount = 0;
+let audioCount = 0;
+let latencies = [];
+let lastSendTime = 0;
+let sessionStart = null;
+let healthInterval = null;
+let uptimeInterval = null;
+let pendingAudioBuffers = [];
+let isPlayingAudio = false;
+
+// Audio queue system
+const audioQueue = [];
+let audioPlaying = false;
+
+function initAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 32000 });
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function connect() {
+  const dot = document.getElementById('statusDot');
+  const status = document.getElementById('connStatus');
+  dot.className = 'status-dot connecting';
+  status.textContent = 'Connecting...';
+
+  ws = new WebSocket('ws://localhost:8765/ws');
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    isConnected = true;
+    dot.className = 'status-dot connected';
+    status.textContent = 'Connected';
+    addSystemMsg('🔌 Connected to Mario server');
+    sessionStart = Date.now();
+    startHealthPolling();
+    startUptimeTimer();
+  };
+
+  ws.onmessage = (event) => {
+    if (event.data instanceof ArrayBuffer) {
+      handleAudioData(event.data);
+    } else {
+      try {
+        const msg = JSON.parse(event.data);
+        handleServerMessage(msg);
+      } catch (e) {
+        console.warn('Non-JSON message:', event.data);
+      }
+    }
+  };
+
+  ws.onclose = () => {
+    isConnected = false;
+    isPresent = false;
+    dot.className = 'status-dot';
+    status.textContent = 'Disconnected';
+    addSystemMsg('🔌 Disconnected from server');
+    updateButtons();
+    if (healthInterval) clearInterval(healthInterval);
+    if (uptimeInterval) clearInterval(uptimeInterval);
+    // Auto-reconnect after 3s
+    setTimeout(() => {
+      if (!isConnected) {
+        addSystemMsg('🔄 Reconnecting...');
+        connect();
+      }
+    }, 3000);
+  };
+
+  ws.onerror = (err) => {
+    console.error('WS error:', err);
+    dot.className = 'status-dot';
+    status.textContent = 'Error';
+  };
+}
+
+function handleServerMessage(msg) {
+  switch (msg.type) {
+    case 'mario_response':
+      handleMarioResponse(msg);
+      break;
+    case 'audio_chunk':
+      // Additional sentence audio — text already shown with first response
+      if (msg.text) {
+        appendToLastMario(msg.text);
+      }
+      break;
+    case 'state':
+      if (msg.thinking) showTyping(true);
+      break;
+    case 'heartbeat':
+      break;
+    case 'leaderboard_update':
+      break;
+    case 'speaker_registered':
+      addSystemMsg(`🎤 Speaker registered: ${msg.name}`);
+      break;
+    default:
+      console.log('Unknown msg type:', msg.type, msg);
+  }
+}
+
+function handleMarioResponse(msg) {
+  showTyping(false);
+
+  const latency = lastSendTime ? ((Date.now() - lastSendTime) / 1000) : null;
+  if (latency && !msg.is_idle) {
+    latencies.push(latency);
+    updateStats();
+  }
+
+  if (msg.emotion) {
+    const emojiMap = {
+      happy: '😊', excited: '🤩', mischievous: '😏', confused: '🤔',
+      sad: '😢', angry: '😤', scared: '😨', proud: '😎',
+      nostalgic: '🥺', singing: '🎵', dancing: '💃', laughing: '😂',
+      thinking: '🤔'
+    };
+    const emoji = emojiMap[msg.emotion] || '😊';
+    document.getElementById('emotionBadge').textContent = `${emoji} ${msg.emotion}`;
+  }
+
+  if (msg.is_thinking_filler) {
+    addMarioMsg(msg.text, { thinking: true, emotion: msg.emotion, hasAudio: msg.has_audio });
+  } else if (msg.is_idle) {
+    addMarioMsg(msg.text, { idle: true, emotion: msg.emotion, hasAudio: msg.has_audio });
+  } else {
+    responseCount++;
+    addMarioMsg(msg.text, { emotion: msg.emotion, latency, hasAudio: msg.has_audio });
+    updateStats();
+  }
+}
+
+function handleAudioData(arrayBuffer) {
+  if (isMuted || !arrayBuffer || arrayBuffer.byteLength < 100) return;
+  initAudioContext();
+  audioCount++;
+  updateStats();
+  audioQueue.push(arrayBuffer);
+  if (!audioPlaying) playNextAudio();
+}
+
+async function playNextAudio() {
+  if (audioQueue.length === 0) {
+    audioPlaying = false;
+    return;
+  }
+  audioPlaying = true;
+  const buf = audioQueue.shift();
+
+  try {
+    // Parse WAV — skip 44-byte header
+    const view = new DataView(buf);
+    let sampleRate = 32000;
+    let dataOffset = 44;
+    let channels = 1;
+
+    // Try to read WAV header
+    if (buf.byteLength > 44) {
+      const riff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+      if (riff === 'RIFF') {
+        channels = view.getUint16(22, true);
+        sampleRate = view.getUint32(24, true);
+        // Find data chunk
+        let offset = 12;
+        while (offset < buf.byteLength - 8) {
+          const chunkId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2), view.getUint8(offset+3));
+          const chunkSize = view.getUint32(offset + 4, true);
+          if (chunkId === 'data') {
+            dataOffset = offset + 8;
+            break;
+          }
+          offset += 8 + chunkSize;
+        }
+      }
+    }
+
+    const pcmData = new Int16Array(buf, dataOffset);
+    const audioBuffer = audioCtx.createBuffer(1, pcmData.length, sampleRate);
+    const channelData = audioBuffer.getChannelData(0);
+    for (let i = 0; i < pcmData.length; i++) {
+      channelData[i] = pcmData[i] / 32768;
+    }
+
+    const source = audioCtx.createBufferSource();
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = volume;
+    source.buffer = audioBuffer;
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    source.onended = () => playNextAudio();
+    source.start();
+  } catch (e) {
+    console.warn('Audio playback error:', e);
+    playNextAudio();
+  }
+}
+
+// ─── UI Functions ───
+
+function enterParty() {
+  if (!isConnected) return;
+  initAudioContext();
+  const name = document.getElementById('guestName').value.trim() || 'Guest';
+  ws.send(JSON.stringify({ type: 'set_name', name }));
+  ws.send(JSON.stringify({ type: 'presence_enter' }));
+  isPresent = true;
+  lastSendTime = Date.now();
+  addSystemMsg(`🚪 ${name} entered the bathroom`);
+  document.getElementById('welcomeSplash').classList.add('hidden');
+  showTyping(true);
+  updateButtons();
+}
+
+function exitParty() {
+  if (!isConnected || !isPresent) return;
+  ws.send(JSON.stringify({ type: 'presence_exit' }));
+  isPresent = false;
+  lastSendTime = 0;
+  addSystemMsg('👋 You left the bathroom');
+  showTyping(false);
+  updateButtons();
+}
+
+function sendChat(text) {
+  if (!isConnected || !isPresent || !text.trim()) return;
+  ws.send(JSON.stringify({ type: 'text_input', text: text.trim() }));
+  msgCount++;
+  lastSendTime = Date.now();
+  addUserMsg(text.trim());
+  showTyping(true);
+  updateStats();
+}
+
+function sendFromInput() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  sendChat(text);
+  input.value = '';
+  input.focus();
+}
+
+function updateButtons() {
+  const enter = document.getElementById('btnEnter');
+  const exit = document.getElementById('btnExit');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  enter.style.display = isPresent ? 'none' : 'flex';
+  exit.style.display = isPresent ? 'flex' : 'none';
+  chatInput.disabled = !isPresent;
+  sendBtn.disabled = !isPresent;
+
+  if (isPresent) {
+    chatInput.focus();
+  }
+}
+
+function addUserMsg(text) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-user';
+  div.innerHTML = `${escHtml(text)}<div class="msg-meta">${timeStr()}</div>`;
+  appendMsg(div);
+}
+
+let lastMarioEl = null;
+function addMarioMsg(text, opts = {}) {
+  const div = document.createElement('div');
+  let cls = 'msg msg-mario';
+  if (opts.thinking) cls += ' thinking';
+  if (opts.idle) cls += ' idle';
+  div.className = cls;
+
+  let meta = timeStr();
+  if (opts.emotion) meta += ` · ${opts.emotion}`;
+  if (opts.latency) meta += ` · ${opts.latency.toFixed(1)}s`;
+
+  let audioBtn = '';
+  div.innerHTML = `${escHtml(text)}<div class="msg-meta">${meta}</div>`;
+  lastMarioEl = div;
+  appendMsg(div);
+}
+
+function appendToLastMario(text) {
+  if (lastMarioEl) {
+    // Append text to the last mario message bubble
+    const existing = lastMarioEl.childNodes[0].textContent;
+    lastMarioEl.childNodes[0].textContent = existing + ' ' + text;
+  }
+}
+
+function addSystemMsg(text) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-system';
+  div.textContent = text;
+  appendMsg(div);
+}
+
+function appendMsg(el) {
+  const container = document.getElementById('chatMessages');
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping(show) {
+  document.getElementById('typingIndicator').className = 'typing-indicator' + (show ? ' visible' : '');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function timeStr() {
+  const now = new Date();
+  return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ─── Audio Controls ───
+function toggleMute() {
+  isMuted = !isMuted;
+  document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊';
+}
+
+function setVolume(val) {
+  volume = val / 100;
+  document.getElementById('volLabel').textContent = val + '%';
+}
+
+// ─── Stats ───
+function updateStats() {
+  document.getElementById('statsMini').textContent = `${msgCount} sent · ${responseCount} recv`;
+  document.getElementById('sMessages').textContent = msgCount;
+  document.getElementById('sResponses').textContent = responseCount;
+  document.getElementById('sAudio').textContent = audioCount;
+  if (latencies.length > 0) {
+    const avg = latencies.reduce((a,b) => a+b, 0) / latencies.length;
+    document.getElementById('sLatency').textContent = avg.toFixed(1) + 's';
+  }
+}
+
+// ─── Health Polling ───
+function startHealthPolling() {
+  fetchHealth();
+  healthInterval = setInterval(fetchHealth, 15000);
+}
+
+async function fetchHealth() {
+  try {
+    const res = await fetch('/health');
+    const h = await res.json();
+    document.getElementById('hStatus').textContent = h.status || '--';
+    document.getElementById('hRT').textContent = h.avg_response_time || '--';
+    document.getElementById('hCache').textContent = h.tts_cache_size || '--';
+    document.getElementById('hEmotion').textContent = h.emotion || '--';
+  } catch (e) {
+    document.getElementById('hStatus').textContent = '⚠️';
+  }
+}
+
+// ─── Uptime Timer ───
+function startUptimeTimer() {
+  uptimeInterval = setInterval(() => {
+    if (!sessionStart) return;
+    const sec = Math.floor((Date.now() - sessionStart) / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    document.getElementById('sUptime').textContent =
+      h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+             : `${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+// ─── Init ───
+connect();
+</script>
+</body>
+</html>
