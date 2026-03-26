@@ -28,8 +28,10 @@
 - [x] Built party_endurance_test.py: autonomous 6-hour stress test with 24 guest profiles, health monitoring, self-learning
 - [x] Quick smoke test: 29/29 (100%) confirmed post-optimization
 - [x] Full suite: 49/52 (94%) — 3 failures from browser WS interference, all pass when clean
-- [ ] Run 1-hour endurance test to validate (IN PROGRESS)
-- [ ] Run full 6-hour endurance test before party
+- [x] Run 1-hour endurance test to validate — PERFECT (0 errors, 15 guests, 117/117 health, 10/10 games)
+- [x] Built mario_chat.html browser chat interface at /chat — games, audio, health panel, quick actions
+- [x] Live browser E2E test: greeting, name memory, jokes, RPS game, Bowser lore, song, idle, farewell — 0 errors, 39 audio clips
+- [x] 6-HOUR ENDURANCE TEST COMPLETE — 851 responses, 677/677 health, 39/39 games, 98.9% success (9 errors), 58 learnings
 - [ ] Run --ralph loop mode for extended overnight stress testing
 
 ## Party Leaderboard System
