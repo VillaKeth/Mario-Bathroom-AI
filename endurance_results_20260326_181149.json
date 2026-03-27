@@ -1,0 +1,1773 @@
+{
+  "start_time": "2026-03-26T21:39:23.150035+00:00",
+  "end_time": null,
+  "duration_hours": 0,
+  "total_guests": 10,
+  "total_messages": 69,
+  "total_responses": 78,
+  "response_times": {
+    "avg": 19.92,
+    "p50": 20.66,
+    "p95": 35.42,
+    "max": 41.07
+  },
+  "error_count": 1,
+  "error_types": {
+    "empty_response": 1
+  },
+  "games_started": 3,
+  "games_completed": 3,
+  "tts_cache_trend": [
+    {
+      "time": 1774561193.185011,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561225.2344656,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561257.274326,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561289.335975,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561321.3799157,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561353.4278476,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561385.469229,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561417.496419,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561449.5456302,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561481.5748892,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561513.6195562,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561545.6441293,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561577.686414,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561609.7653484,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561641.8092172,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561673.8712263,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561705.9010074,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561737.9606473,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561770.0035865,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561802.067839,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561834.1103172,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561866.1445806,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561898.1959596,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561930.2331784,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561962.270301,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774561994.326829,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562026.3630717,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562058.402328,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562090.470348,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562122.5151687,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562154.5827832,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562186.6428146,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562218.6725152,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562250.7254307,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562282.7791505,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562314.820512,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562346.8782732,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562378.9447827,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562410.9726331,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562443.0077162,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562475.052112,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562507.0993392,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562539.151097,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562571.203013,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562603.259727,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562635.3021414,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562667.348599,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562699.426937,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562731.4900563,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562763.547185,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562795.595472,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562827.6392195,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562859.7052572,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562891.7551806,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562923.9270346,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562955.9749131,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774562988.0268219,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774563020.0737362,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774563052.1247027,
+      "hit_rate": 52.0,
+      "size": 1296
+    },
+    {
+      "time": 1774563084.172877,
+      "hit_rate": 52.0,
+      "size": 1296
+    }
+  ],
+  "response_time_trend": [
+    {
+      "time": 1774561193.185011,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774561225.2344656,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774561257.274326,
+      "avg_rt": 4.7
+    },
+    {
+      "time": 1774561289.335975,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774561321.3799157,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774561353.4278476,
+      "avg_rt": 4.6
+    },
+    {
+      "time": 1774561385.469229,
+      "avg_rt": 4.6
+    },
+    {
+      "time": 1774561417.496419,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561449.5456302,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561481.5748892,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561513.6195562,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561545.6441293,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561577.686414,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561609.7653484,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561641.8092172,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561673.8712263,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561705.9010074,
+      "avg_rt": 4.4
+    },
+    {
+      "time": 1774561737.9606473,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561770.0035865,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561802.067839,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561834.1103172,
+      "avg_rt": 4.5
+    },
+    {
+      "time": 1774561866.1445806,
+      "avg_rt": 4.6
+    },
+    {
+      "time": 1774561898.1959596,
+      "avg_rt": 4.7
+    },
+    {
+      "time": 1774561930.2331784,
+      "avg_rt": 4.7
+    },
+    {
+      "time": 1774561962.270301,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774561994.326829,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562026.3630717,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562058.402328,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562090.470348,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562122.5151687,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562154.5827832,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562186.6428146,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562218.6725152,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562250.7254307,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562282.7791505,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562314.820512,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562346.8782732,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562378.9447827,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562410.9726331,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562443.0077162,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562475.052112,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562507.0993392,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562539.151097,
+      "avg_rt": 5.1
+    },
+    {
+      "time": 1774562571.203013,
+      "avg_rt": 5.2
+    },
+    {
+      "time": 1774562603.259727,
+      "avg_rt": 5.2
+    },
+    {
+      "time": 1774562635.3021414,
+      "avg_rt": 5.2
+    },
+    {
+      "time": 1774562667.348599,
+      "avg_rt": 5.3
+    },
+    {
+      "time": 1774562699.426937,
+      "avg_rt": 5.2
+    },
+    {
+      "time": 1774562731.4900563,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562763.547185,
+      "avg_rt": 5.2
+    },
+    {
+      "time": 1774562795.595472,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562827.6392195,
+      "avg_rt": 4.8
+    },
+    {
+      "time": 1774562859.7052572,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562891.7551806,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562923.9270346,
+      "avg_rt": 5.0
+    },
+    {
+      "time": 1774562955.9749131,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774562988.0268219,
+      "avg_rt": 4.9
+    },
+    {
+      "time": 1774563020.0737362,
+      "avg_rt": 5.1
+    },
+    {
+      "time": 1774563052.1247027,
+      "avg_rt": 5.1
+    },
+    {
+      "time": 1774563084.172877,
+      "avg_rt": 4.5
+    }
+  ],
+  "health_checks": {
+    "total": 60,
+    "passed": 60,
+    "failed": 0
+  },
+  "alerts": [
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:39:55.217811+00:00",
+      "elapsed_hours": 0.008907715876897176
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:40:27.263516+00:00",
+      "elapsed_hours": 0.017809300356441075
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:40:59.326409+00:00",
+      "elapsed_hours": 0.02671565976407793
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:41:31.380215+00:00",
+      "elapsed_hours": 0.03561949478255378
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 3 checks",
+      "timestamp": "2026-03-26T21:41:31.380742+00:00",
+      "elapsed_hours": 0.03561964094638825
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:42:03.408910+00:00",
+      "elapsed_hours": 0.04451635446813371
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 4 checks",
+      "timestamp": "2026-03-26T21:42:03.408910+00:00",
+      "elapsed_hours": 0.04451635446813371
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:42:35.463282+00:00",
+      "elapsed_hours": 0.053420346644189626
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 5 checks",
+      "timestamp": "2026-03-26T21:42:35.463282+00:00",
+      "elapsed_hours": 0.053420346644189626
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:43:07.495062+00:00",
+      "elapsed_hours": 0.062318063378334045
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 6 checks",
+      "timestamp": "2026-03-26T21:43:07.495062+00:00",
+      "elapsed_hours": 0.062318063378334045
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:43:39.534686+00:00",
+      "elapsed_hours": 0.07121795892715455
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 7 checks",
+      "timestamp": "2026-03-26T21:43:39.534686+00:00",
+      "elapsed_hours": 0.07121795892715455
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:44:11.575842+00:00",
+      "elapsed_hours": 0.08011827992068396
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 8 checks",
+      "timestamp": "2026-03-26T21:44:11.575842+00:00",
+      "elapsed_hours": 0.08011827992068396
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:44:43.612706+00:00",
+      "elapsed_hours": 0.08901740895377265
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 9 checks",
+      "timestamp": "2026-03-26T21:44:43.612706+00:00",
+      "elapsed_hours": 0.08901740895377265
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:45:15.643314+00:00",
+      "elapsed_hours": 0.09791479998164707
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 10 checks",
+      "timestamp": "2026-03-26T21:45:15.643314+00:00",
+      "elapsed_hours": 0.09791479998164707
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:45:47.684708+00:00",
+      "elapsed_hours": 0.10681518707010482
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 11 checks",
+      "timestamp": "2026-03-26T21:45:47.684708+00:00",
+      "elapsed_hours": 0.10681518707010482
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:46:19.754736+00:00",
+      "elapsed_hours": 0.11572352833218044
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 12 checks",
+      "timestamp": "2026-03-26T21:46:19.754736+00:00",
+      "elapsed_hours": 0.11572352833218044
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:46:51.799670+00:00",
+      "elapsed_hours": 0.12462489869859483
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 13 checks",
+      "timestamp": "2026-03-26T21:46:51.799670+00:00",
+      "elapsed_hours": 0.12462489869859483
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:47:23.855354+00:00",
+      "elapsed_hours": 0.13352925539016725
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 14 checks",
+      "timestamp": "2026-03-26T21:47:23.855354+00:00",
+      "elapsed_hours": 0.13352925539016725
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:47:55.897517+00:00",
+      "elapsed_hours": 0.14242985639307235
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 15 checks",
+      "timestamp": "2026-03-26T21:47:55.897517+00:00",
+      "elapsed_hours": 0.14242985639307235
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:48:27.945697+00:00",
+      "elapsed_hours": 0.15133212864398957
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 16 checks",
+      "timestamp": "2026-03-26T21:48:27.945697+00:00",
+      "elapsed_hours": 0.15133212864398957
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:48:59.996181+00:00",
+      "elapsed_hours": 0.16023504078388215
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 17 checks",
+      "timestamp": "2026-03-26T21:48:59.996181+00:00",
+      "elapsed_hours": 0.16023504078388215
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:49:32.053600+00:00",
+      "elapsed_hours": 0.16913987947834863
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 18 checks",
+      "timestamp": "2026-03-26T21:49:32.053600+00:00",
+      "elapsed_hours": 0.16913987947834863
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:50:04.104642+00:00",
+      "elapsed_hours": 0.17804294652409025
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 19 checks",
+      "timestamp": "2026-03-26T21:50:04.104642+00:00",
+      "elapsed_hours": 0.17804294652409025
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:50:36.144940+00:00",
+      "elapsed_hours": 0.1869430294301775
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 20 checks",
+      "timestamp": "2026-03-26T21:50:36.144940+00:00",
+      "elapsed_hours": 0.1869430294301775
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:51:08.190235+00:00",
+      "elapsed_hours": 0.19584450019730462
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 21 checks",
+      "timestamp": "2026-03-26T21:51:08.190235+00:00",
+      "elapsed_hours": 0.19584450019730462
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:51:40.234550+00:00",
+      "elapsed_hours": 0.2047456987698873
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 22 checks",
+      "timestamp": "2026-03-26T21:51:40.234550+00:00",
+      "elapsed_hours": 0.2047456987698873
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:52:12.269259+00:00",
+      "elapsed_hours": 0.2136442291074329
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 23 checks",
+      "timestamp": "2026-03-26T21:52:12.269259+00:00",
+      "elapsed_hours": 0.2136442291074329
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:52:44.323433+00:00",
+      "elapsed_hours": 0.22254816624853346
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 24 checks",
+      "timestamp": "2026-03-26T21:52:44.323433+00:00",
+      "elapsed_hours": 0.22254816624853346
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:53:16.358725+00:00",
+      "elapsed_hours": 0.23144685844580332
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 25 checks",
+      "timestamp": "2026-03-26T21:53:16.358725+00:00",
+      "elapsed_hours": 0.23144685844580332
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:53:48.392389+00:00",
+      "elapsed_hours": 0.2403450984425015
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 26 checks",
+      "timestamp": "2026-03-26T21:53:48.392389+00:00",
+      "elapsed_hours": 0.2403450984425015
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:54:20.450409+00:00",
+      "elapsed_hours": 0.24925010396374597
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 27 checks",
+      "timestamp": "2026-03-26T21:54:20.450409+00:00",
+      "elapsed_hours": 0.24925010396374597
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:54:52.503463+00:00",
+      "elapsed_hours": 0.25815373023351035
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 28 checks",
+      "timestamp": "2026-03-26T21:54:52.503463+00:00",
+      "elapsed_hours": 0.25815373023351035
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:55:24.561695+00:00",
+      "elapsed_hours": 0.2670587946308984
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 29 checks",
+      "timestamp": "2026-03-26T21:55:24.561695+00:00",
+      "elapsed_hours": 0.2670587946308984
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:55:56.637662+00:00",
+      "elapsed_hours": 0.27596878555085924
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 30 checks",
+      "timestamp": "2026-03-26T21:55:56.637662+00:00",
+      "elapsed_hours": 0.27596878555085924
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:56:28.678152+00:00",
+      "elapsed_hours": 0.2848689217037625
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 31 checks",
+      "timestamp": "2026-03-26T21:56:28.678498+00:00",
+      "elapsed_hours": 0.2848690176010132
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:57:00.724010+00:00",
+      "elapsed_hours": 0.29377054896619587
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 32 checks",
+      "timestamp": "2026-03-26T21:57:00.724010+00:00",
+      "elapsed_hours": 0.29377054896619587
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:57:32.766855+00:00",
+      "elapsed_hours": 0.30267133911450705
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 33 checks",
+      "timestamp": "2026-03-26T21:57:32.766855+00:00",
+      "elapsed_hours": 0.30267133911450705
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:58:04.816623+00:00",
+      "elapsed_hours": 0.3115740523735682
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 34 checks",
+      "timestamp": "2026-03-26T21:58:04.816623+00:00",
+      "elapsed_hours": 0.3115740523735682
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:58:36.860407+00:00",
+      "elapsed_hours": 0.32047510365645093
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 35 checks",
+      "timestamp": "2026-03-26T21:58:36.860407+00:00",
+      "elapsed_hours": 0.32047510365645093
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:59:08.929141+00:00",
+      "elapsed_hours": 0.329383085237609
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 36 checks",
+      "timestamp": "2026-03-26T21:59:08.929141+00:00",
+      "elapsed_hours": 0.329383085237609
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T21:59:40.978150+00:00",
+      "elapsed_hours": 0.3382855875624551
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 37 checks",
+      "timestamp": "2026-03-26T21:59:40.978150+00:00",
+      "elapsed_hours": 0.3382855875624551
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:00:13.008174+00:00",
+      "elapsed_hours": 0.34718281653192307
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 38 checks",
+      "timestamp": "2026-03-26T22:00:13.008174+00:00",
+      "elapsed_hours": 0.34718281653192307
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:00:45.043914+00:00",
+      "elapsed_hours": 0.3560816333691279
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 39 checks",
+      "timestamp": "2026-03-26T22:00:45.043914+00:00",
+      "elapsed_hours": 0.3560816333691279
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:01:17.107283+00:00",
+      "elapsed_hours": 0.36498812483416665
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 40 checks",
+      "timestamp": "2026-03-26T22:01:17.107283+00:00",
+      "elapsed_hours": 0.36498812483416665
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:01:49.142218+00:00",
+      "elapsed_hours": 0.37388671775658927
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 41 checks",
+      "timestamp": "2026-03-26T22:01:49.142218+00:00",
+      "elapsed_hours": 0.37388671775658927
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.1s > 5.0s",
+      "timestamp": "2026-03-26T22:02:21.190467+00:00",
+      "elapsed_hours": 0.3827890090147654
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:02:21.191466+00:00",
+      "elapsed_hours": 0.3827892866399553
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 42 checks",
+      "timestamp": "2026-03-26T22:02:21.191466+00:00",
+      "elapsed_hours": 0.3827892866399553
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.2s > 5.0s",
+      "timestamp": "2026-03-26T22:02:53.241228+00:00",
+      "elapsed_hours": 0.39169199837578667
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:02:53.241228+00:00",
+      "elapsed_hours": 0.39169199837578667
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 43 checks",
+      "timestamp": "2026-03-26T22:02:53.241228+00:00",
+      "elapsed_hours": 0.39169199837578667
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.2s > 5.0s",
+      "timestamp": "2026-03-26T22:03:25.306417+00:00",
+      "elapsed_hours": 0.4005989952882131
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:03:25.306417+00:00",
+      "elapsed_hours": 0.4005989952882131
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 44 checks",
+      "timestamp": "2026-03-26T22:03:25.306417+00:00",
+      "elapsed_hours": 0.4005989952882131
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.2s > 5.0s",
+      "timestamp": "2026-03-26T22:03:57.331760+00:00",
+      "elapsed_hours": 0.4094949237505595
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:03:57.331760+00:00",
+      "elapsed_hours": 0.4094949237505595
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 45 checks",
+      "timestamp": "2026-03-26T22:03:57.331760+00:00",
+      "elapsed_hours": 0.4094949237505595
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.3s > 5.0s",
+      "timestamp": "2026-03-26T22:04:29.410509+00:00",
+      "elapsed_hours": 0.4184056873453988
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:04:29.410509+00:00",
+      "elapsed_hours": 0.4184056873453988
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 46 checks",
+      "timestamp": "2026-03-26T22:04:29.410509+00:00",
+      "elapsed_hours": 0.4184056873453988
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.2s > 5.0s",
+      "timestamp": "2026-03-26T22:05:01.499617+00:00",
+      "elapsed_hours": 0.42731932865248784
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:05:01.499617+00:00",
+      "elapsed_hours": 0.42731932865248784
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 47 checks",
+      "timestamp": "2026-03-26T22:05:01.499617+00:00",
+      "elapsed_hours": 0.42731932865248784
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:05:33.535713+00:00",
+      "elapsed_hours": 0.4362182442347209
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 48 checks",
+      "timestamp": "2026-03-26T22:05:33.535713+00:00",
+      "elapsed_hours": 0.4362182442347209
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.2s > 5.0s",
+      "timestamp": "2026-03-26T22:06:05.594462+00:00",
+      "elapsed_hours": 0.44512345227930283
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:06:05.594462+00:00",
+      "elapsed_hours": 0.44512345227930283
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 49 checks",
+      "timestamp": "2026-03-26T22:06:05.594462+00:00",
+      "elapsed_hours": 0.44512345227930283
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:06:37.637375+00:00",
+      "elapsed_hours": 0.45402426143487296
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 50 checks",
+      "timestamp": "2026-03-26T22:06:37.637375+00:00",
+      "elapsed_hours": 0.45402426143487296
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:07:09.687796+00:00",
+      "elapsed_hours": 0.4629271559582816
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 51 checks",
+      "timestamp": "2026-03-26T22:07:09.687796+00:00",
+      "elapsed_hours": 0.4629271559582816
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:07:41.751221+00:00",
+      "elapsed_hours": 0.471833662920528
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 52 checks",
+      "timestamp": "2026-03-26T22:07:41.751221+00:00",
+      "elapsed_hours": 0.471833662920528
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:08:13.906409+00:00",
+      "elapsed_hours": 0.4807656596766578
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 53 checks",
+      "timestamp": "2026-03-26T22:08:13.906409+00:00",
+      "elapsed_hours": 0.4807656596766578
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:08:45.968885+00:00",
+      "elapsed_hours": 0.4896719030539195
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 54 checks",
+      "timestamp": "2026-03-26T22:08:45.968885+00:00",
+      "elapsed_hours": 0.4896719030539195
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:09:18.033078+00:00",
+      "elapsed_hours": 0.498578623202112
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 55 checks",
+      "timestamp": "2026-03-26T22:09:18.033078+00:00",
+      "elapsed_hours": 0.498578623202112
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:09:50.075308+00:00",
+      "elapsed_hours": 0.5074792426824569
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 56 checks",
+      "timestamp": "2026-03-26T22:09:50.075308+00:00",
+      "elapsed_hours": 0.5074792426824569
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.1s > 5.0s",
+      "timestamp": "2026-03-26T22:10:22.112543+00:00",
+      "elapsed_hours": 0.5163784746991263
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:10:22.112543+00:00",
+      "elapsed_hours": 0.5163784746991263
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 57 checks",
+      "timestamp": "2026-03-26T22:10:22.112543+00:00",
+      "elapsed_hours": 0.5163784746991263
+    },
+    {
+      "type": "SLOW_RESPONSE",
+      "message": "Avg response time 5.1s > 5.0s",
+      "timestamp": "2026-03-26T22:10:54.176186+00:00",
+      "elapsed_hours": 0.5252850421932008
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:10:54.176186+00:00",
+      "elapsed_hours": 0.5252850421932008
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 58 checks",
+      "timestamp": "2026-03-26T22:10:54.176186+00:00",
+      "elapsed_hours": 0.5252850421932008
+    },
+    {
+      "type": "LOW_CACHE_HIT",
+      "message": "TTS cache hit rate 52% < 80.0%",
+      "timestamp": "2026-03-26T22:11:26.209918+00:00",
+      "elapsed_hours": 0.5341833009984758
+    },
+    {
+      "type": "STAGNANT_RESPONSES",
+      "message": "total_responses stuck at 50 for 59 checks",
+      "timestamp": "2026-03-26T22:11:26.209918+00:00",
+      "elapsed_hours": 0.5341833009984758
+    }
+  ],
+  "guest_results": [
+    {
+      "name": "KingBoo",
+      "personality": "chaotic",
+      "messages_sent": 8,
+      "responses_received": 9,
+      "audio_chunks": 19,
+      "response_times": {
+        "avg": 17.1,
+        "p50": 18.87,
+        "p95": 23.66,
+        "max": 23.66
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 196.3
+    },
+    {
+      "name": "Yoshi",
+      "personality": "shy",
+      "messages_sent": 5,
+      "responses_received": 6,
+      "audio_chunks": 13,
+      "response_times": {
+        "avg": 18.29,
+        "p50": 18.99,
+        "p95": 22.84,
+        "max": 22.84
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 139.2
+    },
+    {
+      "name": "KoopaTroopa",
+      "personality": "nervous",
+      "messages_sent": 4,
+      "responses_received": 5,
+      "audio_chunks": 7,
+      "response_times": {
+        "avg": 13.97,
+        "p50": 13.17,
+        "p95": 20.38,
+        "max": 20.38
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 98.9
+    },
+    {
+      "name": "Peach",
+      "personality": "polite",
+      "messages_sent": 6,
+      "responses_received": 7,
+      "audio_chunks": 17,
+      "response_times": {
+        "avg": 22.01,
+        "p50": 25.96,
+        "p95": 27.52,
+        "max": 27.52
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 178.8
+    },
+    {
+      "name": "DaisyFan42",
+      "personality": "trivia-lover",
+      "messages_sent": 10,
+      "responses_received": 11,
+      "audio_chunks": 31,
+      "response_times": {
+        "avg": 18.41,
+        "p50": 20.17,
+        "p95": 27.5,
+        "max": 27.5
+      },
+      "errors": [],
+      "game_started": true,
+      "game_completed": true,
+      "game_type": "rock paper scissors",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 253.4
+    },
+    {
+      "name": "DaisyFan42",
+      "personality": "trivia-lover",
+      "messages_sent": 9,
+      "responses_received": 10,
+      "audio_chunks": 22,
+      "response_times": {
+        "avg": 18.97,
+        "p50": 20.74,
+        "p95": 27.34,
+        "max": 27.34
+      },
+      "errors": [],
+      "game_started": true,
+      "game_completed": true,
+      "game_type": "truth or dare",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 223.1
+    },
+    {
+      "name": "Toad",
+      "personality": "energetic",
+      "messages_sent": 10,
+      "responses_received": 11,
+      "audio_chunks": 29,
+      "response_times": {
+        "avg": 24.12,
+        "p50": 25.79,
+        "p95": 35.42,
+        "max": 35.42
+      },
+      "errors": [],
+      "game_started": true,
+      "game_completed": true,
+      "game_type": "rock paper scissors",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 282.7
+    },
+    {
+      "name": "ProfGoom",
+      "personality": "intellectual",
+      "messages_sent": 6,
+      "responses_received": 7,
+      "audio_chunks": 17,
+      "response_times": {
+        "avg": 17.28,
+        "p50": 12.06,
+        "p95": 29.35,
+        "max": 29.35
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 141.6
+    },
+    {
+      "name": "DiddyKong",
+      "personality": "energetic",
+      "messages_sent": 6,
+      "responses_received": 6,
+      "audio_chunks": 17,
+      "response_times": {
+        "avg": 26.46,
+        "p50": 27.35,
+        "p95": 41.07,
+        "max": 41.07
+      },
+      "errors": [
+        "empty_response: What's the weirdest thing a guest has sa"
+      ],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 1,
+      "timeout_count": 0,
+      "duration": 201.5
+    },
+    {
+      "name": "HammerBro",
+      "personality": "loud",
+      "messages_sent": 5,
+      "responses_received": 6,
+      "audio_chunks": 12,
+      "response_times": {
+        "avg": 16.26,
+        "p50": 13.03,
+        "p95": 25.48,
+        "max": 25.48
+      },
+      "errors": [],
+      "game_started": false,
+      "game_completed": false,
+      "game_type": "",
+      "empty_responses": 0,
+      "timeout_count": 0,
+      "duration": 127.7
+    }
+  ],
+  "cycles": [
+    {
+      "cycle_num": 1,
+      "start_time": "2026-03-26T22:11:49.649304+00:00",
+      "end_time": "2026-03-26T22:11:49.649304+00:00",
+      "duration_seconds": 0.0,
+      "guests_simulated": 10,
+      "messages_sent": 69,
+      "responses_received": 78,
+      "errors": 1,
+      "avg_response_time": 19.92,
+      "pass_rate": 113.0,
+      "is_perfect": false,
+      "alerts": []
+    }
+  ],
+  "learnings": [
+    {
+      "type": "slow_message",
+      "message": "Sing me a song!",
+      "avg_time": 28.87,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Tell me about Princess Peach",
+      "avg_time": 16.67,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Do you know any jokes?",
+      "avg_time": 20.77,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Can you say something actually funny?",
+      "avg_time": 22.52,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's your favorite food?",
+      "avg_time": 22.57,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Is it true you used to be a plumber?",
+      "avg_time": 17.0,
+      "samples": 4,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What do you think about Bowser?",
+      "avg_time": 13.25,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "How long have you been guarding this bathroom?",
+      "avg_time": 17.19,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Have you seen Toad around?",
+      "avg_time": 12.88,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What does a fire flower taste like?",
+      "avg_time": 12.43,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "This party is kind of boring honestly",
+      "avg_time": 22.33,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Do you miss the old days of stomping goombas?",
+      "avg_time": 25.4,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "This bathroom is really something!",
+      "avg_time": 23.05,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "How do you stay so cheerful?",
+      "avg_time": 30.45,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Tell me about your adventures!",
+      "avg_time": 22.01,
+      "samples": 4,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Do you believe in ghosts?",
+      "avg_time": 21.99,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's it like in the Darklands?",
+      "avg_time": 21.48,
+      "samples": 4,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Who's the best dancer at this party?",
+      "avg_time": 23.58,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Is the Mushroom Kingdom real?",
+      "avg_time": 13.62,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's your opinion on pineapple pizza?",
+      "avg_time": 27.29,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "You're not the real Mario, are you?",
+      "avg_time": 25.24,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "How did you and Peach meet?",
+      "avg_time": 26.92,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Tell me about the Star Festival",
+      "avg_time": 15.76,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "How many worlds are in the original game?",
+      "avg_time": 20.55,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's Mario's full name?",
+      "avg_time": 24.11,
+      "samples": 4,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "Are you having fun at the party?",
+      "avg_time": 25.92,
+      "samples": 4,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "You always cheer me up!",
+      "avg_time": 13.8,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's the name of Mario's dinosaur friend?",
+      "avg_time": 22.66,
+      "samples": 3,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "I wish every night was this fun",
+      "avg_time": 21.44,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "What's your favorite power-up?",
+      "avg_time": 26.79,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "I'm having a really rough day, Mario",
+      "avg_time": 26.54,
+      "samples": 2,
+      "cycle": 1
+    },
+    {
+      "type": "slow_message",
+      "message": "How many coins for a 1-UP?",
+      "avg_time": 13.09,
+      "samples": 4,
+      "cycle": 1
+    }
+  ]
+}
