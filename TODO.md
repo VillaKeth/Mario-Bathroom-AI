@@ -1,5 +1,22 @@
 # Mario AI — Task Tracking
 
+## Comprehensive E2E Browser Test (2026-03-27)
+- [x] 40/45 tests PASSED across all categories (53+ min session, 107 audio clips)
+- [x] Entry/Exit: enter, leave, re-enter as different guest — all working
+- [x] Chat: free-form, quick replies, long messages, emoji/special chars — all working
+- [x] Games: RPS, Truth or Dare, Simon Says, 20Q, Joke, Trivia, Song, Dance — all working
+- [x] Game switching: RPS→ToD, ToD→RPS, Simon→20Q — all clean transitions (0.0s)
+- [x] Game auto-timeout: 180s with cleanup message — working
+- [x] Idle: messages fire at 30-135s intervals, varied content, in-character
+- [x] Emotions: responsive to input, decay over idle, full range working
+- [x] Health panel: status/RT/cache/emotion all accurate and updating
+- [x] Rapid-fire: 5 messages in quick succession — all 5 responded, no crashes
+- [x] 53+ min uptime: server stable, status ok throughout
+- [ ] Minor: "Afternoon break!" idle message repeated too often (needs variety)
+- [ ] Minor: Trivia not structured as interactive Q&A (just facts)
+- [ ] Implement vomit comfort feature (text + audio detection)
+- [ ] Create reusable stress test skill for repeated testing
+
 ## Game Switch Bug Fix (2026-03-27)
 - [x] Identified root cause: `logger` undefined in command_handlers.py game switch code (NameError)
 - [x] Fixed: Changed `logger.info()` to `print()` in game switch logging
