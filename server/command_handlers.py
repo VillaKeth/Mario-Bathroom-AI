@@ -370,18 +370,37 @@ def handle_special_commands(
 
     # --- Active game mode handling (intercepts input when a game is running) ---
     if state["_active_game"]:
-        game_before = state["_active_game"]
-        game_state_before = dict(state["_game_state"])
-        result = game_handlers.handle_game_input(lower, state, emotion_system)
-        if result is not None:
-            text, sound = result
-            state["_game_sound_hint"] = sound
-            # Save game result if game just ended
-            if state["_active_game"] is None and state["speaker_id"]:
-                score = game_state_before.get("score", 0)
-                max_s = game_state_before.get("max_rounds", game_state_before.get("max_attempts", 1))
-                memory_module.save_game_result(state["speaker_id"], game_before, score, max_s)
-            return text
+        # Check if the user wants to start a DIFFERENT game or quit
+        _GAME_SWITCH_KEYWORDS = [
+            "trivia", "quiz me", "truth or dare", "dare me", "rock paper scissors",
+            "rps", "simon says", "20 questions", "twenty questions", "would you rather",
+            "riddle", "word chain", "karaoke", "hangman", "hot take", "never have i ever",
+            "rapid fire", "name that character", "story time", "tell me a story",
+            "joke", "tell me a joke", "joke battle", "dance", "song",
+            "stop game", "quit game", "end game", "stop playing", "quit playing",
+        ]
+        wants_switch = any(kw in lower for kw in _GAME_SWITCH_KEYWORDS)
+        if not wants_switch:
+            game_before = state["_active_game"]
+            game_state_before = dict(state["_game_state"])
+            result = game_handlers.handle_game_input(lower, state, emotion_system)
+            if result is not None:
+                text, sound = result
+                state["_game_sound_hint"] = sound
+                # Save game result if game just ended
+                if state["_active_game"] is None and state["speaker_id"]:
+                    score = game_state_before.get("score", 0)
+                    max_s = game_state_before.get("max_rounds", game_state_before.get("max_attempts", 1))
+                    memory_module.save_game_result(state["speaker_id"], game_before, score, max_s)
+                return text
+        else:
+            # Clear current game to allow the new command to be processed below
+            old_game = state["_active_game"]
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            state["_game_last_input_time"] = 0.0
+            print(f"[GAME_SWITCH] Cleared '{old_game}' — user requested: {lower[:50]}")
+            # Fall through to process the new command normally
 
     # Easter eggs — hidden trigger phrases for extra fun
     for trigger, response in EASTER_EGGS.items():

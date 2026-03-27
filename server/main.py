@@ -2711,7 +2711,14 @@ async def _handle_text_input(ws: WebSocket, text: str):
     except Exception:
         pass
 
-    await _generate_and_send_response(ws, text, source="text", start_time=now)
+    try:
+        await _generate_and_send_response(ws, text, source="text", start_time=now)
+    except Exception as e:
+        logger.error(f"[TEXT_INPUT_ERROR] Exception in response pipeline for '{text[:50]}': {e}", exc_info=True)
+        try:
+            await ws.send_json({"type": "mario_response", "text": f"Mama mia! Something went wrong: {e}", "emotion": "confused"})
+        except Exception:
+            pass
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):

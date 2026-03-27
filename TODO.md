@@ -1,5 +1,12 @@
 # Mario AI — Task Tracking
 
+## Game Switch Bug Fix (2026-03-27)
+- [x] Identified root cause: `logger` undefined in command_handlers.py game switch code (NameError)
+- [x] Fixed: Changed `logger.info()` to `print()` in game switch logging
+- [x] Fixed: Error handler sent wrong message type (`response` → `mario_response`)
+- [x] Tested: RPS→ToD, ToD→RPS, rapid back-to-back switching — all working
+- [x] Removed debug pipeline logging from main.py
+
 ## Sick Guest Proactive Care System (2026-03-27)
 - [x] Text-based sick detection (vomit words, sick phrases, onomatopoeia)
 - [x] Proactive idle check-in: after sick mood + 30s silence, Mario checks on guest
