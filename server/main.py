@@ -325,11 +325,20 @@ async def reload_config():
 _DRUNK_WORDS = {"drunk", "wasted", "hammered", "smashed", "tipsy", "buzzed", "sloshed", "trashed", "plastered", "lit", "faded"}
 _SAD_WORDS = {"sad", "depressed", "lonely", "crying", "upset", "heartbroken", "miserable", "unhappy", "down", "broken", "hurting"}
 _ANGRY_WORDS = {"angry", "mad", "furious", "pissed", "annoyed", "frustrated", "hate", "stupid", "idiot", "sucks"}
+_SICK_WORDS = {"vomit", "puke", "puking", "puked", "nauseous", "nausea", "barf", "barfing", "barfed", "retching", "gagging", "hurling", "hurled", "queasy"}
+_SICK_PHRASES = ["throwing up", "throw up", "threw up", "going to be sick", "gonna be sick", "about to puke", "feel sick", "feeling sick", "getting sick"]
 
 
 def detect_sentiment(text: str) -> str | None:
-    """Detect if user is drunk/sad/angry from their text. Returns mood or None."""
+    """Detect if user is drunk/sad/angry/sick from their text. Returns mood or None."""
     words = set(text.lower().split())
+    lower = text.lower()
+    # Sick/vomit detection (check first — takes priority if someone is actually ill)
+    if words & _SICK_WORDS or any(p in lower for p in _SICK_PHRASES):
+        return "sick"
+    # Onomatopoeia for vomiting sounds
+    if re.search(r'(bleh+|blarg+|blegh+|hurk+|ugggh+|blargh+)', lower):
+        return "sick"
     # Check for slurred patterns (repeated chars, all caps yelling)
     slurred = bool(re.search(r'(.)\1{3,}', text)) or (len(text) > 10 and text == text.upper())
     if words & _DRUNK_WORDS or slurred:
@@ -1215,6 +1224,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx.append({"role": "system", "content": "Person seems sad. Be kind, cheer them up."})
         elif detected_mood == "angry":
             ctx.append({"role": "system", "content": "Person seems frustrated. Be calm, lighten mood."})
+        elif detected_mood == "sick":
+            ctx.append({"role": "system", "content": "Person is throwing up or feeling sick in the bathroom. Be genuinely caring but still funny — you're a plumber, you've seen worse. Offer real help: water, sit down, deep breaths. Do NOT be corny or preachy. Keep it real."})
 
         # Cheer-up system — if guest has been negative for 2+ minutes, actively try to uplift
         cheer_hint = emotion_system.should_cheer_up()

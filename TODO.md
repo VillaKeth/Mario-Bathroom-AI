@@ -1,5 +1,31 @@
 # Mario AI — Task Tracking
 
+## Repo Reorganization & Full E2E Browser Test (2026-03-27)
+- [x] Reorganized repo: 100+ root files → clean structure with tests/, scripts/, web/, logs/
+- [x] Deleted ~50 junk files (ralph logs, debug files, server logs)
+- [x] Updated server/main.py HTML paths for web/ subdirectory
+- [x] Updated .gitignore with log/cache patterns
+- [x] Updated test imports for new directory structure
+- [x] Committed and pushed (8e0f148)
+- [x] Rewrote README.md as drunk-proof setup guide (2301c2e)
+- [x] Full browser E2E test as party guest — ALL FEATURES WORKING:
+  - [x] Enter/Leave bathroom flow
+  - [x] Free-form chat with in-character responses
+  - [x] Quick reply buttons (Bowser, Hey, etc.) — cache hits <2s
+  - [x] RPS game — full 3-round interactive with scoring (0.0s instant)
+  - [x] Truth or Dare — structured 3-dare game with done/skip
+  - [x] Joke game — Mario tells jokes, 2.1s
+  - [x] Trivia — fun facts, 4.3s
+  - [x] Idle behavior — proactive messages after 28s, songs, health tips
+  - [x] Emotion system — happy/confused/excited/mischievous/surprised all cycling
+  - [x] Audio generation — 45 clips in 5 min session
+  - [x] Leave/rejoin as different guest — clean session reset
+  - [x] Leaderboard page — live stats, top visitors
+  - [x] Health endpoint — full JSON with all metrics
+  - [x] Server health panel — real-time status in chat UI
+- [ ] Run extended 6-hour endurance test with new file paths
+- [ ] Test Pygame client with reorganized repo
+
 ## E2E Party Stress Test (2026-03-25)
 - [x] Built comprehensive party_stress_test.py with 14 test suites, 52 tests
 - [x] Achieved 100% pass rate (52/52) — server is party-ready for 8-hour event

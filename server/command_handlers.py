@@ -545,6 +545,26 @@ def handle_special_commands(
             "I'm a plumber, a hero, and tonight I'm-a the DJ of this bathroom! Wahoo!"
         )
 
+    # Someone is throwing up / feeling sick — be genuinely caring but still Mario
+    _sick_triggers = ["throwing up", "throw up", "threw up", "vomit", "puke", "puking",
+                      "nauseous", "nausea", "gonna be sick", "feeling sick", "about to puke",
+                      "barfing", "barf", "hurling", "queasy"]
+    if any(w in lower for w in _sick_triggers):
+        emotion_system.current = "worried"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Hey hey hey, {name}, it's okay. Mario's got you. Deep breaths — in through the nose, out through the mouth. I'm-a right here.",
+            f"Whoa, {name}! Listen, you're in the right place. Bathroom's got your back and so does Mario. Want me to get you some water?",
+            f"Oh no, {name}! Look, I'm-a plumber — I've seen way worse than this. You're gonna be fine. Just let it out, no judgment.",
+            f"Mama mia, {name}... okay, here's what we do. Breathe. Sip some water. And remember — every hero has a rough level. This is yours.",
+            f"Hey {name}, been there. Well, not literally — I'm-a made of pixels. But you're safe here. Take your time, nobody's rushing you.",
+            f"Ohhh {name}... listen, the toilet is right there, the floor is clean, and Mario doesn't judge. You need anything? Water? A minute alone?",
+            f"It's-a okay, {name}. You know how many times Yoshi has done this? That guy eats EVERYTHING. You're handling it way better.",
+            f"Real talk, {name} — just breathe. Cold water on the back of your neck helps. I learned that from Toad, and that little guy knows things.",
+            f"{name}, no shame in this! Half the Mushroom Kingdom has been right where you are after Princess Peach's cooking. You're gonna be alright.",
+            f"Hey, you're doing great, {name}. Seriously. The fact that you made it to the bathroom? That's a WIN. Mario's proud of you.",
+        ])
+
     # Goodbye/goodnight
     if any(w in lower for w in ["goodbye", "goodnight", "see ya", "gotta go", "leaving", "bye bye"]):
         emotion_system.current = "happy"
