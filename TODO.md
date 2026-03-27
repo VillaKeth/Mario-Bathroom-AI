@@ -1,5 +1,16 @@
 # Mario AI — Task Tracking
 
+## Sick Guest Proactive Care System (2026-03-27)
+- [x] Text-based sick detection (vomit words, sick phrases, onomatopoeia)
+- [x] Proactive idle check-in: after sick mood + 30s silence, Mario checks on guest
+- [x] 6 unique proactive follow-up messages (guarding door, deep breaths, etc.)
+- [x] Audio gibberish detection: retching/groaning sounds while sick → comfort response
+- [x] 5 unique audio distress comfort responses
+- [x] Sick check-in gating: first at 30s, then every 90s to avoid spamming
+- [x] Tested full flow: sick → silence → proactive check-in → recovery
+- [ ] Test extended endurance with sick guest scenarios
+- [ ] Add "friend reported sick" detection (e.g., "my friend is throwing up")
+
 ## Repo Reorganization & Full E2E Browser Test (2026-03-27)
 - [x] Reorganized repo: 100+ root files → clean structure with tests/, scripts/, web/, logs/
 - [x] Deleted ~50 junk files (ralph logs, debug files, server logs)

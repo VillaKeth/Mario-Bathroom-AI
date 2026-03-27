@@ -708,6 +708,8 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["_game_state"] = {}
     state_current["conversation_history"] = []
     state_current["_detected_mood"] = None
+    state_current["_sick_checkin_time"] = 0.0  # Track last sick follow-up
+    state_current["_last_user_msg_time"] = 0.0  # Track silence for sick check-ins
     state_current["presence_phase"] = "IDLE"
     state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
     state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
@@ -986,6 +988,40 @@ async def _idle_loop(ws: WebSocket):
                                             sound="game_over", pose_hint="positive/happy")
                     except Exception as e:
                         logger.error(f"Game timeout announcement failed: {e}")
+
+        # Sick guest proactive check-in: if someone said they're sick and then went silent
+        async with _state_lock:
+            detected_mood = state_current.get("_detected_mood")
+            last_msg = state_current.get("_last_user_msg_time", 0.0)
+            last_checkin = state_current.get("_sick_checkin_time", 0.0)
+            has_presence_sick = state_current["presence"]
+        if detected_mood == "sick" and has_presence_sick and last_msg > 0:
+            silence_secs = time.time() - last_msg
+            since_checkin = time.time() - last_checkin
+            # First check at 30s silence, then every 90s after
+            threshold = 30.0 if last_checkin == 0.0 else 90.0
+            if silence_secs >= 30.0 and since_checkin >= threshold:
+                name = state_current.get("speaker_name") or "friend"
+                sick_followups = [
+                    f"Hey {name}... you still with me? Take your time. Mario's not going anywhere.",
+                    f"{name}? Just checking on you. Tap the mic or send a message when you're ready. No rush.",
+                    f"Still here, {name}. Whenever you're good, I'm-a right here. Deep breaths.",
+                    f"Hey... you okay in there, {name}? If you need water, just say the word.",
+                    f"Mario's still guarding the door for you, {name}. Nobody's coming in. Take as long as you need.",
+                    f"Checking in, {name}. You don't have to talk — just knock on something so I know you're okay.",
+                ]
+                followup = random.choice(sick_followups)
+                try:
+                    analyzed = analyze_text(followup)
+                    audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                    await send_response(ws, analyzed["display_text"], audio,
+                                        sound="coin", pose_hint="concerned/worried")
+                    async with _state_lock:
+                        state_current["_sick_checkin_time"] = time.time()
+                    logger.info(f"[SICK_CHECKIN] Proactive check-in after {silence_secs:.0f}s silence")
+                except Exception as e:
+                    logger.error(f"Sick check-in failed: {e}")
+                continue
 
         async with _state_lock:
             has_presence = state_current["presence"]
@@ -2125,7 +2161,40 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
         logger.info(f"[DEBUG_SERVER] handle_audio: transcript too short to process: '{transcript}'")
         return
 
+    # Gibberish detection: if guest is sick and STT picks up nonsense/retching sounds,
+    # treat as active distress — send comfort instead of processing through LLM
+    _clean = transcript.strip().lower()
+    if state_current.get("_detected_mood") == "sick":
+        import re as _re_audio
+        # Check if transcript is mostly non-words (gibberish from retching/groaning)
+        _words = _clean.split()
+        _real_words = [w for w in _words if len(w) > 2 and w.isalpha()]
+        _gibberish_ratio = 1.0 - (len(_real_words) / max(len(_words), 1))
+        _sounds_like_distress = bool(_re_audio.search(
+            r'(ugh+|urgh+|bleh+|hurk+|ack+|guh+|mmm+|uhhh+|ahhh+|ohhh+|groan|moan)', _clean))
+        if (_gibberish_ratio >= 0.7 and len(_words) <= 5) or _sounds_like_distress:
+            logger.info(f"[SICK_AUDIO] Detected distress sounds while guest is sick: '{transcript}'")
+            _distress_responses = [
+                "I hear you. Just breathe. Mario's right here.",
+                "Hey, it's okay. You're doing great. Deep breaths.",
+                "I got you. Just let it out. Nobody's judging.",
+                "You're gonna be fine. Mario promises. Water's coming.",
+                "Take your time. Mario's played through worse levels than this.",
+            ]
+            _comfort = random.choice(_distress_responses)
+            try:
+                analyzed = analyze_text(_comfort)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="coin", pose_hint="concerned/worried")
+                state_current["_last_user_msg_time"] = time.time()
+                state_current["_sick_checkin_time"] = time.time()
+            except Exception as e:
+                logger.error(f"Sick audio comfort failed: {e}")
+            return
+
     logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
+    state_current["_last_user_msg_time"] = time.time()
 
     # Send thinking
     try:
@@ -2591,6 +2660,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
             logger.warning(f"Text input rate-limited: '{text[:50]}'")
             return
         state_current["_last_text_input_time"] = now
+        state_current["_last_user_msg_time"] = now
 
     logger.info(f"Text input: '{text}'")
 
