@@ -42,6 +42,7 @@ from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior
 from pose_analyzer import analyze_text
 import command_handlers
+import audio_distress
 from party_gossip import PartyGossip
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -224,6 +225,13 @@ async def lifespan(app: FastAPI):
 
     logger.info("Loading speaker identification...")
     speaker_id.init_speaker_id()
+
+    logger.info("Loading audio distress detector...")
+    try:
+        audio_distress.init_detector(device="cpu")
+        logger.info(f"Audio distress detector: {'ready' if audio_distress.is_available() else 'FAILED'}")
+    except Exception as e:
+        logger.warning(f"Audio distress detector unavailable: {e} — text detection still active")
 
     logger.info("Initializing memory system...")
     memory.init_memory()
@@ -2143,15 +2151,49 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     _response_start = time.time()
     loop = asyncio.get_event_loop()
 
-    # STT + Speaker ID in parallel
+    # STT + Speaker ID + Audio Distress Detection in parallel
     transcript_task = loop.run_in_executor(None, stt.transcribe, audio_chunk)
     speaker_task = loop.run_in_executor(None, speaker_id.identify_speaker, audio_chunk)
+    distress_task = None
+    if audio_distress.is_available():
+        distress_task = loop.run_in_executor(None, audio_distress.detect_distress, audio_chunk)
     try:
-        transcript, speaker_info = await asyncio.wait_for(
-            asyncio.gather(transcript_task, speaker_task), timeout=30.0)
+        tasks = [transcript_task, speaker_task]
+        if distress_task:
+            tasks.append(distress_task)
+        results = await asyncio.wait_for(asyncio.gather(*tasks), timeout=30.0)
+        transcript = results[0]
+        speaker_info = results[1]
+        distress_result = results[2] if distress_task else None
     except asyncio.TimeoutError:
         logger.error("[DEBUG_SERVER] STT + speaker ID timed out after 30s")
         return
+
+    # Audio-based vomit detection: if PANNs detects distress sounds (even without speech)
+    if distress_result and distress_result.get("is_distress"):
+        logger.info(f"[AUDIO_DISTRESS] PANNs detected distress: {distress_result['details']}")
+        _distress_audio_responses = [
+            "Hey... I can hear you're not doing great. Mario's right here. Just breathe.",
+            "I hear you, friend. You're gonna be okay. Take your time.",
+            "Mario's got your back. Don't worry about a thing. Deep breaths.",
+            "I'm right outside. You're safe. Just let it pass.",
+            "Been there, friend. It always passes. Mario believes in you.",
+        ]
+        _comfort = random.choice(_distress_audio_responses)
+        # Only respond if we haven't just checked in
+        last_checkin = state_current.get("_sick_checkin_time", 0.0)
+        if time.time() - last_checkin >= 20.0:
+            try:
+                state_current["_detected_mood"] = "sick"
+                analyzed = analyze_text(_comfort)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="coin", pose_hint="concerned/worried")
+                state_current["_last_user_msg_time"] = time.time()
+                state_current["_sick_checkin_time"] = time.time()
+            except Exception as e:
+                logger.error(f"Audio distress comfort failed: {e}")
+            return
 
     if not transcript or transcript.strip() == "":
         if DEBUG_SERVER:
