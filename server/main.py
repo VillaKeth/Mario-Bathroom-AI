@@ -626,7 +626,7 @@ async def tts_endpoint(text: str = "", nocache: bool = False):
 @app.get("/chat")
 async def chat_page():
     """Serve the Mario Party Chat HTML page."""
-    chat_file = os.path.join(os.path.dirname(__file__), "..", "mario_chat.html")
+    chat_file = os.path.join(os.path.dirname(__file__), "..", "web", "mario_chat.html")
     if os.path.exists(chat_file):
         return FileResponse(chat_file, media_type="text/html")
     return HTMLResponse("<h1>mario_chat.html not found</h1>", status_code=404)
@@ -635,7 +635,7 @@ async def chat_page():
 @app.get("/tts_test")
 async def tts_test_page():
     """Serve the TTS test suite HTML page."""
-    test_page = os.path.join(os.path.dirname(__file__), "..", "tts_test.html")
+    test_page = os.path.join(os.path.dirname(__file__), "..", "web", "tts_test.html")
     if os.path.exists(test_page):
         return FileResponse(test_page, media_type="text/html")
     return HTMLResponse("<h1>tts_test.html not found</h1>", status_code=404)
@@ -644,7 +644,7 @@ async def tts_test_page():
 @app.get("/tts_cache_preview")
 async def tts_cache_preview_page():
     """Serve the TTS cache preview HTML page."""
-    preview_page = os.path.join(os.path.dirname(__file__), "..", "tts_cache_preview.html")
+    preview_page = os.path.join(os.path.dirname(__file__), "..", "web", "tts_cache_preview.html")
     if os.path.exists(preview_page):
         return FileResponse(preview_page, media_type="text/html")
     return HTMLResponse("<h1>tts_cache_preview.html not found</h1>", status_code=404)
@@ -653,7 +653,7 @@ async def tts_cache_preview_page():
 @app.get("/leaderboard_page")
 async def leaderboard_page():
     """Serve the party leaderboard HTML page (for TV/second screen display)."""
-    page = os.path.join(os.path.dirname(__file__), "..", "leaderboard.html")
+    page = os.path.join(os.path.dirname(__file__), "..", "web", "leaderboard.html")
     if os.path.exists(page):
         return FileResponse(page, media_type="text/html")
     return HTMLResponse("<h1>leaderboard.html not found</h1>", status_code=404)

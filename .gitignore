@@ -42,10 +42,17 @@ server/data/ralph_results/
 model_comparison/
 
 # Logs and temp output
+logs/
 *.log
 ralph_r*_out.txt
+ralph_r*_err.txt
+ralph_*_debug*.txt
 ralph_overnight_*.txt
 server_*.log
+
+# Python cache
+__pycache__/
+*.pyc
 
 # One-off test scripts
 test_*.py

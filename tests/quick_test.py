@@ -1,6 +1,6 @@
 import sys; sys.path.insert(0, 'server')
 from gpt_sovits_server import clean_text_for_tts
-sys.path.insert(0, '.')
+sys.path.insert(0, 'scripts')
 from ralph_tts_loop import TEST_PHRASES
 
 mismatches = 0
