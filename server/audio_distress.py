@@ -110,7 +110,7 @@ def detect_distress(audio_bytes: bytes, sample_rate: int = 16000) -> dict:
 
         # Check if speech is dominant (reduce false positives)
         speech_score = max(float(probs[i]) for i in _SPEECH_CLASSES)
-        is_mostly_speech = speech_score > 0.5
+        is_mostly_speech = speech_score > 0.6  # Real vomiting won't register as speech
 
         # Determine if distress
         is_distress = (combined >= _COMBINED_THRESHOLD and
