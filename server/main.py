@@ -1011,12 +1011,12 @@ async def _idle_loop(ws: WebSocket):
             if silence_secs >= 30.0 and since_checkin >= threshold:
                 name = state_current.get("speaker_name") or "friend"
                 sick_followups = [
-                    f"Hey {name}... you still with me? Take your time. Mario's not going anywhere.",
-                    f"{name}? Just checking on you. Tap the mic or send a message when you're ready. No rush.",
-                    f"Still here, {name}. Whenever you're good, I'm-a right here. Deep breaths.",
-                    f"Hey... you okay in there, {name}? If you need water, just say the word.",
-                    f"Mario's still guarding the door for you, {name}. Nobody's coming in. Take as long as you need.",
-                    f"Checking in, {name}. You don't have to talk — just knock on something so I know you're okay.",
+                    f"{name}... still breathing? Just checking. Tap the sink or something so I know you're alive in there.",
+                    f"Hey {name}. Still here. Not going anywhere. Whenever you're ready — no rush, seriously.",
+                    f"{name}? Quick status check. You don't gotta talk, just... make a noise or something. Any noise.",
+                    f"Still guarding the door, {name}. If you need water, say water. If you need a minute, take ten. I got nowhere to be.",
+                    f"{name}, it's been a minute. The cold water thing still works if you haven't tried it. Sink's right there.",
+                    f"Look {name}, I've been standing in this bathroom all night. You think I'm gonna leave NOW? Take your time.",
                 ]
                 followup = random.choice(sick_followups)
                 try:
@@ -2173,11 +2173,11 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     if distress_result and distress_result.get("is_distress"):
         logger.info(f"[AUDIO_DISTRESS] PANNs detected distress: {distress_result['details']}")
         _distress_audio_responses = [
-            "Hey... I can hear you're not doing great. Mario's right here. Just breathe.",
-            "I hear you, friend. You're gonna be okay. Take your time.",
-            "Mario's got your back. Don't worry about a thing. Deep breaths.",
-            "I'm right outside. You're safe. Just let it pass.",
-            "Been there, friend. It always passes. Mario believes in you.",
+            "Okay, I can hear that. Nose breathing — in through the nose, not the mouth. You're alright.",
+            "Yeah, that sounds rough. Splash cold water on your face. Trust me on this one.",
+            "I hear you in there. It passes. It always passes. Cold water, back of the neck.",
+            "Been through worse pipes than this. You're doing fine. Just ride it out.",
+            "Hey, I've listened to Bowser sing karaoke. Whatever you're doing in there, I've heard worse.",
         ]
         _comfort = random.choice(_distress_audio_responses)
         # Only respond if we haven't just checked in
@@ -2217,11 +2217,11 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
         if (_gibberish_ratio >= 0.7 and len(_words) <= 5) or _sounds_like_distress:
             logger.info(f"[SICK_AUDIO] Detected distress sounds while guest is sick: '{transcript}'")
             _distress_responses = [
-                "I hear you. Just breathe. Mario's right here.",
-                "Hey, it's okay. You're doing great. Deep breaths.",
-                "I got you. Just let it out. Nobody's judging.",
-                "You're gonna be fine. Mario promises. Water's coming.",
-                "Take your time. Mario's played through worse levels than this.",
+                "Yep, heard that. Breathe through the nose. You're okay.",
+                "Still here. Not going anywhere. Water's in the sink when you're ready.",
+                "That's it, get it out. No one's keeping score in here.",
+                "I've cleaned worse pipes than this, trust me. You're doing great.",
+                "Fun fact — this is still less scary than World 8. You got this.",
             ]
             _comfort = random.choice(_distress_responses)
             try:

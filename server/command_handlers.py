@@ -568,20 +568,51 @@ def handle_special_commands(
     _sick_triggers = ["throwing up", "throw up", "threw up", "vomit", "puke", "puking",
                       "nauseous", "nausea", "gonna be sick", "feeling sick", "about to puke",
                       "barfing", "barf", "hurling", "queasy"]
+    # Friend reported sick ("my friend is throwing up", "my girlfriend is puking", etc.)
+    _friend_sick_patterns = ["friend is", "buddy is", "girlfriend is", "boyfriend is",
+                             "friend's", "buddy's", "homie is", "girl is", "guy is",
+                             "someone is", "somebody is", "they're"]
+    _is_friend_sick = any(fp in lower for fp in _friend_sick_patterns) and any(w in lower for w in _sick_triggers)
+    if _is_friend_sick:
+        emotion_system.current = "worried"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Okay {name}, go grab them some water — small sips, not big gulps. Cold towel on the neck if there is one. They'll be fine.",
+            f"Tell them nose breathing, not mouth breathing. And cold water on the back of the neck. That's the move, {name}. Go help your friend.",
+            f"Alright, {name} — water, cold towel, sit them down if they're standing. And tell them Mario said they're gonna be fine. Because they are.",
+            f"Been there. Well, Yoshi's been there. Same thing. Get them water, {name}. Small sips. If they need to sit on the floor, let them. Floor's clean.",
+            f"Go be a good friend, {name}. Water, cold cloth, and just be there. That's all anyone needs. Mario's got the bathroom covered.",
+        ])
     if any(w in lower for w in _sick_triggers):
         emotion_system.current = "worried"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Hey hey hey, {name}, it's okay. Mario's got you. Deep breaths — in through the nose, out through the mouth. I'm-a right here.",
-            f"Whoa, {name}! Listen, you're in the right place. Bathroom's got your back and so does Mario. Want me to get you some water?",
-            f"Oh no, {name}! Look, I'm-a plumber — I've seen way worse than this. You're gonna be fine. Just let it out, no judgment.",
-            f"Mama mia, {name}... okay, here's what we do. Breathe. Sip some water. And remember — every hero has a rough level. This is yours.",
-            f"Hey {name}, been there. Well, not literally — I'm-a made of pixels. But you're safe here. Take your time, nobody's rushing you.",
-            f"Ohhh {name}... listen, the toilet is right there, the floor is clean, and Mario doesn't judge. You need anything? Water? A minute alone?",
-            f"It's-a okay, {name}. You know how many times Yoshi has done this? That guy eats EVERYTHING. You're handling it way better.",
-            f"Real talk, {name} — just breathe. Cold water on the back of your neck helps. I learned that from Toad, and that little guy knows things.",
-            f"{name}, no shame in this! Half the Mushroom Kingdom has been right where you are after Princess Peach's cooking. You're gonna be alright.",
-            f"Hey, you're doing great, {name}. Seriously. The fact that you made it to the bathroom? That's a WIN. Mario's proud of you.",
+            f"Look {name}, I'm-a plumber. I've unclogged pipes worse than whatever's happening right now. Cold water on your neck, breathe through your nose.",
+            f"Okay {name}, real talk — nose breathing, not mouth. There's water in the sink. Small sips. I've eaten questionable mushrooms before, this passes.",
+            f"Hey {name}, you made it to the bathroom. That's more than Luigi can say. Splash cold water on your face, you'll be alright.",
+            f"{name}, listen — nobody at this party is gonna know about this except me, and I don't have a phone. Wet your face, take a breath.",
+            f"Yoshi once ate a bad shell and did this for twenty minutes straight. You're already doing better than a dinosaur, {name}. Water. Small sips.",
+            f"Hey {name}. I'm-a guard this door like it's Peach's castle. Nobody's coming in. There's water right there — small sips, not big ones.",
+            f"{name}, the toilet's right there, floor's clean, and I've seen things in these pipes you wouldn't believe. This? This is nothing. Breathe.",
+            f"Okay here's what we do, {name}. Cold water, back of the neck. Learned that from Toad and that little mushroom head actually knows his stuff.",
+            f"{name}, between you and me, Peach's cooking has put half the kingdom right where you are. Sit on the floor if you need to. No judgment.",
+            f"Hey {name}, you're in the right room for this. Cold water's in the sink, towels are right there. I'll keep everyone out. Take your time.",
+        ])
+
+    # Recovery from sickness — clear sick mood
+    _recovery_words = ["feeling better", "i'm better", "im better", "i'm okay", "im okay",
+                       "i'm fine", "im fine", "i'm good", "im good", "all better",
+                       "feeling good", "much better", "recovered", "not sick"]
+    if any(w in lower for w in _recovery_words) and state.get("_detected_mood") == "sick":
+        state["_detected_mood"] = None
+        emotion_system.current = "happy"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"There it is! {name}'s back. Honestly I was about to start charging rent for that floor spot.",
+            f"Look at {name}, making a comeback! Rinse your mouth out, splash some water on your face, and get back out there.",
+            f"Welcome back to the land of the living, {name}. Told you it passes. Go grab some water — real water, not whatever got you here.",
+            f"{name} returns! If anyone asks, you were in here fixing your hair. Our secret.",
+            f"And just like that, {name} is back. Mario never doubted you. Well, maybe for a second there. But you're good now.",
         ])
 
     # Goodbye/goodnight

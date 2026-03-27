@@ -14,7 +14,9 @@
 - [x] 53+ min uptime: server stable, status ok throughout
 - [ ] Minor: "Afternoon break!" idle message repeated too often (needs variety)
 - [ ] Minor: Trivia not structured as interactive Q&A (just facts)
-- [ ] Implement vomit comfort feature (text + audio detection)
+- [x] Vomit comfort messages rewritten — deadpan/funny/caring tone (NOT corny)
+- [x] Recovery detection: "feeling better" clears sick mood with funny response
+- [x] Friend-sick detection: "my friend is throwing up" gives helpful advice
 - [ ] Create reusable stress test skill for repeated testing
 
 ## Game Switch Bug Fix (2026-03-27)
@@ -32,8 +34,9 @@
 - [x] 5 unique audio distress comfort responses
 - [x] Sick check-in gating: first at 30s, then every 90s to avoid spamming
 - [x] Tested full flow: sick → silence → proactive check-in → recovery
-- [ ] Test extended endurance with sick guest scenarios
-- [ ] Add "friend reported sick" detection (e.g., "my friend is throwing up")
+- [x] Friend reported sick detection added and tested
+- [x] Recovery detection added and tested
+- [x] All 26 comfort messages rewritten with new tone
 
 ## Repo Reorganization & Full E2E Browser Test (2026-03-27)
 - [x] Reorganized repo: 100+ root files → clean structure with tests/, scripts/, web/, logs/
