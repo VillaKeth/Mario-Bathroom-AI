@@ -1,0 +1,1453 @@
+2026-03-26 18:05:07,963 [INFO] 🍄 Mario AI Party Bot — Endurance Stress Test
+2026-03-26 18:05:07,964 [INFO]    Mode: Ralph (continuous)
+2026-03-26 18:05:07,964 [INFO]    Guests/wave: 5
+2026-03-26 18:05:07,964 [INFO]    Verbose: True
+2026-03-26 18:05:07,964 [INFO]    Started: 2026-03-26 18:05:07
+2026-03-26 18:05:07,968 [INFO] 📚 Loaded previous results from endurance_results_20260326_120307.json (58 learnings)
+2026-03-26 18:05:07,968 [INFO] 🔍 Pre-flight health check...
+2026-03-26 18:05:10,038 [INFO]   ✅ Server status=ok, cache=1296, emotion=excited
+2026-03-26 18:05:10,038 [INFO] 
+======================================================================
+2026-03-26 18:05:10,038 [INFO] 🔁 RALPH MODE — Continuous improvement until 3 perfect cycles
+2026-03-26 18:05:10,038 [INFO]    Cycle length: 30 min
+2026-03-26 18:05:10,038 [INFO]    Perfect = >95.0% pass, <30.0s avg, 0 errors
+2026-03-26 18:05:10,038 [INFO]    Guests per wave: 5
+2026-03-26 18:05:10,038 [INFO]    Server: http://localhost:8765
+2026-03-26 18:05:10,038 [INFO] ======================================================================
+
+2026-03-26 18:05:10,048 [INFO] 
+==================================================
+2026-03-26 18:05:10,048 [INFO] 🔄 RALPH CYCLE 1 (perfect streak: 0/3)
+2026-03-26 18:05:10,048 [INFO] ==================================================
+2026-03-26 18:05:10,048 [INFO] 
+🌊 Wave 1: 5 guests incoming
+2026-03-26 18:05:10,048 [INFO]   👤 ChainChomp (aggressive) entering — will send 4 msgs + game
+2026-03-26 18:05:42,104 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:05:42,104 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=4 emotion=excited
+2026-03-26 18:06:11,718 [INFO]     💬 ChainChomp: "Hey Mario! What's going on?" → "Let me think about that. WOOHOO! EVERYTHING'S-A GOING ON, MY FRIEND! THE PARTY'S" (29.6s)
+2026-03-26 18:06:14,164 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.2s > 5.0s
+2026-03-26 18:06:14,164 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:06:14,164 [INFO]   ✅ Health: status=ok rt=5.2s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:06:32,904 [INFO]     💬 ChainChomp: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (18.7s)
+2026-03-26 18:06:46,242 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:06:46,242 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 18:06:47,433 [INFO]     💬 ChainChomp: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (12.0s)
+2026-03-26 18:07:04,646 [INFO]     💬 ChainChomp: "Sing me a song!" → "♪ Toad's Turnpike! Beep beep! Watch out for the trucks! ♪ Can you teach-a Mario " (14.7s)
+2026-03-26 18:07:18,298 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:07:18,298 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 3 checks
+2026-03-26 18:07:18,298 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=8 emotion=confused
+2026-03-26 18:07:50,354 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:07:50,354 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 4 checks
+2026-03-26 18:07:50,354 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:07:58,952 [INFO]   ⚠️ ChainChomp done: 6/6 responses, avg_rt=18.9s, errors=1, duration=169s
+2026-03-26 18:07:58,952 [INFO]   ⏳ Waiting 6s between guests...
+2026-03-26 18:08:04,997 [INFO]   👤 Peach (polite) entering — will send 5 msgs + game
+2026-03-26 18:08:22,404 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:08:22,404 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 5 checks
+2026-03-26 18:08:22,404 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:08:54,460 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:08:54,467 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 6 checks
+2026-03-26 18:08:54,467 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 18:08:55,335 [INFO]     💬 Peach: "I wish every night was this fun" → "Alrighty, one moment! WOOHOOO! You want-a know what's even more FUN than a party" (20.6s)
+2026-03-26 18:09:12,634 [INFO]     💬 Peach: "Do you know any jokes?" → "Fantastico! Why did the soap go to the Mushroom Kingdom? It wanted to get-a SQUE" (14.8s)
+2026-03-26 18:09:26,526 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:09:26,526 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 7 checks
+2026-03-26 18:09:26,526 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 18:09:55,303 [INFO]     💬 Peach: "How do you stay so cheerful?" → "Here we go! Mama mia, it's because I'M-A MARIO! WOOHOOO! ♪ Victory dance! Spinni" (40.2s)
+2026-03-26 18:09:58,568 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:09:58,568 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 8 checks
+2026-03-26 18:09:58,568 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:10:25,346 [INFO]     💬 Peach: "Do you miss the old days of stomping goombas?" → "Let me think about that. WOOOOWWWW! Oh, yeah-a! I mean... Old times were da bes'" (26.8s)
+2026-03-26 18:10:30,638 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.1s > 5.0s
+2026-03-26 18:10:30,638 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:10:30,638 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 9 checks
+2026-03-26 18:10:30,638 [INFO]   ✅ Health: status=ok rt=5.1s cache=52% responses=50 conv_len=4 emotion=loving
+2026-03-26 18:10:55,314 [INFO]     💬 Peach: "Who's the best dancer at this party?" → "I'm-a ready! WOOOOWWWWWW! Dat-a Luigi, he da BEST DANCER HERE-A! I mean..." (27.5s)
+2026-03-26 18:11:02,690 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:11:02,690 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 10 checks
+2026-03-26 18:11:02,690 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=12 emotion=mischievous
+2026-03-26 18:11:11,181 [INFO]     🎮 Peach: Game 'truth or dare' started!
+2026-03-26 18:11:34,829 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:11:34,832 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 11 checks
+2026-03-26 18:11:34,832 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=18 emotion=happy
+2026-03-26 18:12:06,861 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:12:06,861 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 12 checks
+2026-03-26 18:12:06,861 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:12:17,351 [INFO]   ✅ Peach done: 10/9 responses, avg_rt=25.9s, errors=0, duration=252s
+2026-03-26 18:12:17,351 [INFO]   ⏳ Waiting 6s between guests...
+2026-03-26 18:12:23,504 [INFO]   👤 KingBoo (chaotic) entering — will send 10 msgs + game
+2026-03-26 18:12:38,926 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:12:38,926 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 13 checks
+2026-03-26 18:12:38,926 [INFO]   ✅ Health: status=ok rt=4.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:13:10,975 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:13:10,975 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 14 checks
+2026-03-26 18:13:10,975 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 18:13:15,100 [INFO]     💬 KingBoo: "Marioooo you're my best friendddd" → "Super! AwwWWWWW, MAMA MIAAAAOOOWOOO! BEST FRIENDDDD?!" (21.6s)
+2026-03-26 18:13:43,007 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:13:43,007 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 15 checks
+2026-03-26 18:13:43,007 [INFO]   ✅ Health: status=ok rt=4.3s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 18:13:52,107 [WARNING]     ⚠️ KingBoo: "Is the Mushroom Kingdom real?" → EMPTY (34.5s)
+2026-03-26 18:14:15,051 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:14:15,051 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 16 checks
+2026-03-26 18:14:15,051 [INFO]   ✅ Health: status=ok rt=4.1s cache=52% responses=50 conv_len=12 emotion=confused
+2026-03-26 18:14:15,051 [INFO]     💬 KingBoo: "What happened at the last castle?" → "Say 'rock', 'paper', or 'scissors'! Let's-a battle!" (20.4s)
+2026-03-26 18:14:47,111 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:14:47,111 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 17 checks
+2026-03-26 18:14:47,111 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=16 emotion=surprised
+2026-03-26 18:14:52,120 [WARNING]     ⚠️ KingBoo: "What's behind that pipe over there?" → EMPTY (34.6s)
+2026-03-26 18:15:14,105 [INFO]     💬 KingBoo: "What does a fire flower taste like?" → "Oh yeah! FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't" (19.5s)
+2026-03-26 18:15:19,171 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:15:19,171 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 18 checks
+2026-03-26 18:15:19,171 [INFO]   ✅ Health: status=ok rt=4.1s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:15:44,120 [INFO]     💬 KingBoo: "Wait which bathroom am I in?" → "♪ Thank you Mario! But our princess is in another castle! The story of my LIFE! " (27.5s)
+2026-03-26 18:15:47,237 [INFO]     💬 KingBoo: "What's the name of Mario's dinosaur friend?" → "Let me think about that." (0.6s)
+2026-03-26 18:15:51,202 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:15:51,202 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 19 checks
+2026-03-26 18:15:51,202 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=0 emotion=confused
+2026-03-26 18:15:58,732 [INFO]   ⚠️ KingBoo done: 6/8 responses, avg_rt=18.4s, errors=6, duration=215s
+2026-03-26 18:15:58,732 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:16:07,178 [INFO]   👤 Luigi (casual) entering — will send 6 msgs
+2026-03-26 18:16:23,242 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:16:23,242 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 20 checks
+2026-03-26 18:16:23,242 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=0 emotion=worried
+2026-03-26 18:16:55,300 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:16:55,300 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 21 checks
+2026-03-26 18:16:55,300 [INFO]   ✅ Health: status=ok rt=4.3s cache=52% responses=50 conv_len=6 emotion=confused
+2026-03-26 18:16:59,304 [INFO]     💬 Luigi: "Tell me about your adventures!" → "Super! OH BOY-O-BOY-BOY! Let me tell you about the time I rescued Princess Peach" (21.5s)
+2026-03-26 18:17:27,356 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:17:27,356 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 22 checks
+2026-03-26 18:17:27,356 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=10 emotion=excited
+2026-03-26 18:17:28,097 [INFO]     💬 Luigi: "Are you having fun at the party?" → "Alrighty, one moment! Okie dokie! WAHHHH-OHO-HO! I'M HAVING THE TIME OF MY LIFE-" (26.3s)
+2026-03-26 18:17:45,735 [INFO]     💬 Luigi: "Do you know any jokes?" → "Why don't mushrooms ever go to the bathroom? They're-a already FUNGUS... full of" (15.1s)
+2026-03-26 18:17:59,433 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:17:59,433 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 23 checks
+2026-03-26 18:17:59,433 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=16 emotion=excited
+2026-03-26 18:18:00,291 [INFO]     💬 Luigi: "What's behind that pipe over there?" → "Did someone say PIPE?! *examines nearest pipe* This is-a beautiful craftsmanship" (12.0s)
+2026-03-26 18:18:14,828 [INFO]     💬 Luigi: "Is it true you used to be a plumber?" → "As a licensed plumber, I can confirm: this pipe network is amateur hour compared" (12.0s)
+2026-03-26 18:18:31,480 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:18:31,480 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 24 checks
+2026-03-26 18:18:31,480 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=22 emotion=happy
+2026-03-26 18:18:39,501 [INFO]     💬 Luigi: "Hey Mario! What's going on?" → "Hmm, let me think! Bellissimo! WOOHOOO! *high-fives* Oh-a boy, it's-a you!" (22.2s)
+2026-03-26 18:18:57,718 [INFO]   ✅ Luigi done: 8/7 responses, avg_rt=17.9s, errors=0, duration=171s
+2026-03-26 18:18:57,718 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 18:19:03,524 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:19:03,524 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 25 checks
+2026-03-26 18:19:03,524 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:19:04,797 [INFO]   👤 ShyGuy (shy) entering — will send 3 msgs
+2026-03-26 18:19:35,571 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:19:35,571 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 26 checks
+2026-03-26 18:19:35,571 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 18:19:58,552 [INFO]     💬 ShyGuy: "What's your favorite food?" → "Here we go! WOOHOO! FAVORITE FOOD?! IT'S-A MUSHROOM PIZZA, OF COURSE!" (27.5s)
+2026-03-26 18:20:07,597 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:20:07,597 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 27 checks
+2026-03-26 18:20:07,597 [INFO]   ✅ Health: status=ok rt=3.8s cache=52% responses=50 conv_len=8 emotion=confused
+2026-03-26 18:20:28,589 [INFO]     💬 ShyGuy: "Hey Mario! What's going on?" → "Wahoo! WHA-LO?! YOU'RE TALKING TO ME NOW! I'M-A GUARDIAN OF THIS BATHROOM AND NO" (27.5s)
+2026-03-26 18:20:39,653 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:20:39,653 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 28 checks
+2026-03-26 18:20:39,653 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=14 emotion=mischievous
+2026-03-26 18:20:58,572 [INFO]     💬 ShyGuy: "Do you know any jokes?" → "Why is the bathroom like-a Bowser's Castle? Because sometimes it's-a scary and f" (27.5s)
+2026-03-26 18:21:11,692 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:21:11,692 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 29 checks
+2026-03-26 18:21:11,692 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:21:16,274 [INFO]   ✅ ShyGuy done: 5/4 responses, avg_rt=23.6s, errors=0, duration=131s
+2026-03-26 18:21:43,749 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:21:43,749 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 30 checks
+2026-03-26 18:21:43,749 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 18:21:56,648 [INFO] 
+🌊 Wave 2: 5 guests incoming
+2026-03-26 18:21:56,648 [INFO]   👤 Peach (polite) entering — will send 9 msgs
+2026-03-26 18:22:15,820 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:22:15,820 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 31 checks
+2026-03-26 18:22:15,820 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:22:47,860 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:22:47,860 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 32 checks
+2026-03-26 18:22:47,860 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:22:47,860 [INFO]     💬 Peach: "Hey Mario! What's going on?" → "Here we go! Oh yeah! WOOHOOO! Oh boy, you wanna know what's-a goin' on?!" (19.6s)
+2026-03-26 18:23:17,166 [INFO]     💬 Peach: "What's your favorite power-up?" → "I'm-a ready! WOOHOOO! OH BOY, POWER-Ups-a the BEST! Mama mia, I gotta tell ya..." (26.8s)
+2026-03-26 18:23:19,923 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:23:19,930 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 33 checks
+2026-03-26 18:23:19,930 [INFO]   ✅ Health: status=ok rt=4.1s cache=52% responses=50 conv_len=4 emotion=excited
+2026-03-26 18:23:31,981 [INFO]     💬 Peach: "Have you seen Toad around?" → "Toad! That little guy is-a always telling me the princess is in another castle! " (12.1s)
+2026-03-26 18:23:51,994 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:23:51,994 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 34 checks
+2026-03-26 18:23:52,001 [INFO]   ✅ Health: status=ok rt=3.9s cache=52% responses=50 conv_len=12 emotion=excited
+2026-03-26 18:23:56,085 [INFO]     💬 Peach: "What's the craziest thing that happened today?" → "Fantastic! OH-MY-STAR-POWER! IT'S-A BEEN A DAY, FOLKS!" (21.6s)
+2026-03-26 18:24:24,153 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:24:24,153 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 35 checks
+2026-03-26 18:24:24,153 [INFO]   ✅ Health: status=ok rt=4.0s cache=52% responses=50 conv_len=16 emotion=confused
+2026-03-26 18:24:24,153 [INFO]     💬 Peach: "This bathroom is really something!" → "Let me think about that. Oh! WOOOOWWWW! THIS BATHROOM?! I'VE SEEN SOME CRAZY THI" (25.6s)
+2026-03-26 18:24:47,172 [INFO]     💬 Peach: "What kind of music do you like?" → "♪ Green Hill Zone! Wait, wrong game! But it's-a catchy! ♪" (20.5s)
+2026-03-26 18:24:56,212 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:24:56,212 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 36 checks
+2026-03-26 18:24:56,212 [INFO]   ✅ Health: status=ok rt=4.1s cache=52% responses=50 conv_len=24 emotion=excited
+2026-03-26 18:25:01,734 [INFO]     💬 Peach: "Is it true you used to be a plumber?" → "My plumbing credentials: Saved Princess Peach 47 times. Fixed zero toilets. But " (12.1s)
+2026-03-26 18:25:18,526 [INFO]     💬 Peach: "Sing me a song!" → "♪ Bathroom Party Mix! Untz untz, flush flush, wahoo wahoo! ♪" (14.3s)
+2026-03-26 18:25:28,261 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:25:28,261 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 37 checks
+2026-03-26 18:25:28,261 [INFO]   ✅ Health: status=ok rt=4.2s cache=52% responses=50 conv_len=28 emotion=mischievous
+2026-03-26 18:25:53,781 [INFO]     💬 Peach: "I'm having a really rough day, Mario" → "I'm-a ready! Okie dokie! AWWWWWW, SORRY TO HEAR THAT, BUDDY!! WAAAAAAAHHHOOOOWWW" (32.8s)
+2026-03-26 18:26:00,289 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:26:00,289 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 38 checks
+2026-03-26 18:26:00,289 [INFO]   ✅ Health: status=ok rt=4.3s cache=52% responses=50 conv_len=32 emotion=happy
+2026-03-26 18:26:13,167 [INFO]   ✅ Peach done: 11/10 responses, avg_rt=19.5s, errors=0, duration=257s
+2026-03-26 18:26:13,167 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:26:21,010 [INFO]   👤 Bowser (aggressive) entering — will send 6 msgs
+2026-03-26 18:26:32,358 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:26:32,359 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 39 checks
+2026-03-26 18:26:32,359 [INFO]   ✅ Health: status=ok rt=4.2s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:27:04,402 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:27:04,402 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 40 checks
+2026-03-26 18:27:04,402 [INFO]   ✅ Health: status=ok rt=4.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:27:12,431 [INFO]     💬 Bowser: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (21.3s)
+2026-03-26 18:27:28,229 [INFO]     💬 Bowser: "Tell me about Princess Peach" → "♪ Coconut Mall! Beep beep! Coming through-a! ♪ Princess Peach! *sighs dreamily* " (13.3s)
+2026-03-26 18:27:36,450 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:27:36,450 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 41 checks
+2026-03-26 18:27:36,450 [INFO]   ✅ Health: status=ok rt=4.2s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 18:27:45,371 [INFO]     💬 Bowser: "Sing me a song!" → "♪ Fossils Falls! Da da da-da da! Jumping through time! ♪" (14.6s)
+2026-03-26 18:28:08,489 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:28:08,489 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 42 checks
+2026-03-26 18:28:08,489 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 18:28:12,504 [INFO]     💬 Bowser: "Hey Mario! What's going on?" → "Fantastic! WOOHOO! Oh, Mama mia! So many things-a happening at once!" (24.6s)
+2026-03-26 18:28:40,569 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:28:40,569 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 43 checks
+2026-03-26 18:28:40,569 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=12 emotion=confused
+2026-03-26 18:28:41,597 [INFO]     💬 Bowser: "This party is kind of boring honestly" → "Wahoo! Oh! WOOHOO, WHAT-A YOU TALKING ABOUT? THIS PARTY IS THE MOST EPIC ONE EVE" (26.6s)
+2026-03-26 18:28:58,693 [INFO]     💬 Bowser: "Do you know any jokes?" → "What's Luigi's bathroom hack? He always leaves-a the seat down! Responsible dude" (14.6s)
+2026-03-26 18:29:12,633 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:29:12,634 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 44 checks
+2026-03-26 18:29:12,634 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:29:20,661 [INFO]   ✅ Bowser done: 8/7 responses, avg_rt=17.2s, errors=0, duration=180s
+2026-03-26 18:29:20,661 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:29:28,206 [INFO]   👤 NokiSurf (polite) entering — will send 4 msgs
+2026-03-26 18:29:44,654 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:29:44,655 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 45 checks
+2026-03-26 18:29:44,655 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=confused
+2026-03-26 18:30:16,701 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:30:16,701 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 46 checks
+2026-03-26 18:30:16,701 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=6 emotion=excited
+2026-03-26 18:30:20,716 [INFO]     💬 NokiSurf: "I'm having a really rough day, Mario" → "That's-a good question! Awwwww, poor guy! Mama Mia! You're havin' a bad one? Wah" (21.5s)
+2026-03-26 18:30:48,742 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:30:48,742 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 47 checks
+2026-03-26 18:30:48,742 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=8 emotion=mischievous
+2026-03-26 18:30:48,742 [INFO]     💬 NokiSurf: "Do you know any jokes?" → "Why does Mario make-a great bathroom guide? He PIPES down when it's quiet time! " (25.5s)
+2026-03-26 18:31:18,311 [INFO]     💬 NokiSurf: "I wish every night was this fun" → "Let me think about that. WOOHOOO, YOU WANT-A TO PARTY ALL NIGHT?!" (27.0s)
+2026-03-26 18:31:20,811 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:31:20,811 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 48 checks
+2026-03-26 18:31:20,811 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=14 emotion=excited
+2026-03-26 18:31:48,313 [INFO]     💬 NokiSurf: "Do you miss the old days of stomping goombas?" → "Hmm, let me think! OH, YA KNOW-A WHAT?! THOSE WERE THE DAYS!" (27.5s)
+2026-03-26 18:31:52,875 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:31:52,877 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 49 checks
+2026-03-26 18:31:52,877 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=20 emotion=happy
+2026-03-26 18:32:09,635 [INFO]   ✅ NokiSurf done: 6/5 responses, avg_rt=22.0s, errors=0, duration=161s
+2026-03-26 18:32:09,635 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:32:17,949 [INFO]   👤 ProfGoom (intellectual) entering — will send 7 msgs
+2026-03-26 18:32:24,904 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:32:24,910 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 50 checks
+2026-03-26 18:32:24,910 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:32:57,210 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:32:57,210 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 51 checks
+2026-03-26 18:32:57,210 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=2 emotion=confused
+2026-03-26 18:33:09,246 [INFO]     💬 ProfGoom: "What happened at the last castle?" → "That's-a good question! WOOHOOO! Oh mama mia, you wanna know about-a da LAST CAS" (21.2s)
+2026-03-26 18:33:29,251 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:33:29,251 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 52 checks
+2026-03-26 18:33:29,251 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 18:33:41,271 [INFO]     💬 ProfGoom: "How many worlds are in the original game?" → "Wahoo! OH BOY OH BOY! The ORIGINAL GAME, YOU SAY?! Wahooo! There's-A 8 WORLDs, B" (29.5s)
+2026-03-26 18:34:01,299 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:34:01,299 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 53 checks
+2026-03-26 18:34:01,299 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=6 emotion=mischievous
+2026-03-26 18:34:09,304 [INFO]     💬 ProfGoom: "Do you know any jokes?" → "What do you call a Piranha Plant in the bathroom? A BIDET threat! Hehehehe!" (25.5s)
+2026-03-26 18:34:23,860 [INFO]     💬 ProfGoom: "Is the Mushroom Kingdom real?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (12.1s)
+2026-03-26 18:34:33,371 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:34:33,371 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 54 checks
+2026-03-26 18:34:33,371 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=10 emotion=confused
+2026-03-26 18:34:47,235 [INFO]     💬 ProfGoom: "What's it like in the Darklands?" → "Here we go! OH NO-O-O! THE DARKLANDS?! Mama mia! It's-a dark, scary, and full of" (20.9s)
+2026-03-26 18:35:05,431 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:35:05,431 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 55 checks
+2026-03-26 18:35:05,431 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=12 emotion=loving
+2026-03-26 18:35:09,515 [INFO]     💬 ProfGoom: "How did you and Peach meet?" → "Hmm, let me think! WAHOOO! "It was a beautiful day in the Mushroom Kingdom..." W" (19.8s)
+2026-03-26 18:35:24,072 [INFO]     💬 ProfGoom: "Tell me about the Star Festival" → "A STAR?! *sparkles* I'm invincible! Da da da DA da da! ...For about 10 seconds!" (12.0s)
+2026-03-26 18:35:37,470 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:35:37,470 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 56 checks
+2026-03-26 18:35:37,470 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:35:41,471 [INFO]   ✅ ProfGoom done: 9/8 responses, avg_rt=19.1s, errors=0, duration=204s
+2026-03-26 18:35:41,471 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:35:49,698 [INFO]   👤 Yoshi (shy) entering — will send 5 msgs
+2026-03-26 18:36:09,530 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:36:09,530 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 57 checks
+2026-03-26 18:36:09,531 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:36:41,575 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:36:41,575 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 58 checks
+2026-03-26 18:36:41,575 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 18:36:41,575 [INFO]     💬 Yoshi: "Sing me a song!" → "Magnifico! ♪ Steam Gardens! Boop boop boop, robot flowers! Wooded Kingdom! ♪" (21.5s)
+2026-03-26 18:36:57,615 [INFO]     💬 Yoshi: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 314 bathroom visits from 1 dif" (13.5s)
+2026-03-26 18:37:13,614 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:37:13,614 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 59 checks
+2026-03-26 18:37:13,614 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=6 emotion=excited
+2026-03-26 18:37:13,614 [INFO]     💬 Yoshi: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (13.5s)
+2026-03-26 18:37:40,493 [INFO]     💬 Yoshi: "Hey Mario! What's going on?" → "Here we go! Mama mia! Wahoo! NOTHING'S GOING ON?! WE'RE IN THE MIDDLE OF A PARTY" (24.4s)
+2026-03-26 18:37:45,634 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:37:45,634 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 60 checks
+2026-03-26 18:37:45,635 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=8 emotion=surprised
+2026-03-26 18:38:10,496 [INFO]     💬 Yoshi: "This bathroom is really something!" → "Here we go! WOOHOOO! YOU THINK THIS BATHROOM'S SOMETHING?!" (27.5s)
+2026-03-26 18:38:17,691 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:38:17,691 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 61 checks
+2026-03-26 18:38:17,691 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=10 emotion=happy
+2026-03-26 18:38:25,849 [INFO]   ✅ Yoshi done: 7/6 responses, avg_rt=18.9s, errors=0, duration=156s
+2026-03-26 18:38:25,849 [INFO]   ❌ Not perfect: pass=108.6%, avg_rt=19.9s, errors=7
+2026-03-26 18:38:25,849 [INFO] 
+  ⚠️ Cycle 1 Summary:
+2026-03-26 18:38:25,849 [INFO]      Guests: 10
+2026-03-26 18:38:25,849 [INFO]      Messages: 70 sent, 76 received
+2026-03-26 18:38:25,849 [INFO]      Pass rate: 108.6%
+2026-03-26 18:38:25,849 [INFO]      Avg response time: 19.89s
+2026-03-26 18:38:25,849 [INFO]      Errors: 7
+2026-03-26 18:38:25,857 [INFO] 💾 Results saved to C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 18:38:25,857 [INFO]   🩺 Inter-cycle health check...
+2026-03-26 18:38:25,857 [INFO] 🔍 Pre-flight health check...
+2026-03-26 18:38:27,909 [INFO]   ✅ Server status=ok, cache=1295, emotion=happy
+2026-03-26 18:38:27,909 [INFO] 
+==================================================
+2026-03-26 18:38:27,909 [INFO] 🔄 RALPH CYCLE 2 (perfect streak: 0/3)
+2026-03-26 18:38:27,909 [INFO] ==================================================
+2026-03-26 18:38:27,909 [INFO]    📈 Increasing test density: 7 guests/wave
+2026-03-26 18:38:27,909 [INFO] 
+🌊 Wave 1: 7 guests incoming
+2026-03-26 18:38:27,909 [INFO]   👤 ToadBro (game-player) entering — will send 5 msgs + game
+2026-03-26 18:38:49,741 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:38:49,741 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 62 checks
+2026-03-26 18:38:49,741 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:39:18,493 [INFO]     💬 ToadBro: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (20.9s)
+2026-03-26 18:39:21,792 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:39:21,799 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 63 checks
+2026-03-26 18:39:21,799 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 18:39:48,479 [INFO]     💬 ToadBro: "Do you know any jokes?" → "Why did the Shy Guy finally use the bathroom? Because nobody was-a watching! Per" (26.7s)
+2026-03-26 18:39:53,835 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:39:53,835 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 64 checks
+2026-03-26 18:39:53,835 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 18:40:18,482 [INFO]     💬 ToadBro: "Hey Mario! What's going on?" → "Super! WOOHOOO! NOTHING'S-A GOING ON, MY FRIEND!" (27.5s)
+2026-03-26 18:40:25,893 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:40:25,893 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 65 checks
+2026-03-26 18:40:25,899 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 18:40:35,590 [INFO]     🎮 ToadBro: Game 'simon says' started!
+2026-03-26 18:40:57,947 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:40:57,954 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 66 checks
+2026-03-26 18:40:57,954 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=12 emotion=excited
+2026-03-26 18:41:23,765 [INFO]   ✅ ToadBro done: 8/7 responses, avg_rt=22.3s, errors=0, duration=176s
+2026-03-26 18:41:23,765 [INFO]   ⏳ Waiting 9s between guests...
+2026-03-26 18:41:29,999 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:41:29,999 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 67 checks
+2026-03-26 18:41:29,999 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:41:32,359 [INFO]   👤 BooGuest (spooky) entering — will send 7 msgs + game
+2026-03-26 18:42:02,042 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:42:02,042 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 68 checks
+2026-03-26 18:42:02,042 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:42:23,308 [INFO]     💬 BooGuest: "What happened at the last castle?" → "Fantastic! WOOHOO! Oh boy, oh boy! The LAST CASTLE?!" (21.0s)
+2026-03-26 18:42:34,091 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:42:34,091 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 69 checks
+2026-03-26 18:42:34,091 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=4 emotion=excited
+2026-03-26 18:42:39,285 [INFO]     💬 BooGuest: "I bet Luigi is better than you" → "Yippee! Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell hi" (13.5s)
+2026-03-26 18:42:54,904 [INFO]     💬 BooGuest: "Is the Mushroom Kingdom real?" → "Wow! A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a reg" (13.1s)
+2026-03-26 18:43:06,151 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:43:06,151 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 70 checks
+2026-03-26 18:43:06,158 [INFO]   ✅ Health: status=ok rt=4.2s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 18:43:10,164 [INFO]     💬 BooGuest: "Bowser told me you're scared of him" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.7s)
+2026-03-26 18:43:33,635 [INFO]     💬 BooGuest: "This party is kind of boring honestly" → "I'm-a ready! OH NOOOO! Not-a the parteeee! How could it be so... normal?" (21.0s)
+2026-03-26 18:43:38,179 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:43:38,179 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 71 checks
+2026-03-26 18:43:38,188 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=10 emotion=excited
+2026-03-26 18:43:55,331 [INFO]     💬 BooGuest: "Are you just a robot?" → "That's-a good question! NO WAY, JOSE! I'm MARIO, the greatest plumber this side " (19.2s)
+2026-03-26 18:44:10,265 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:44:10,265 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 72 checks
+2026-03-26 18:44:10,265 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=14 emotion=mischievous
+2026-03-26 18:44:23,315 [INFO]     💬 BooGuest: "Can you say something actually funny?" → "Wahoo! OH-YEAH?! Why did Goomba go to the doctor?" (25.5s)
+2026-03-26 18:44:37,878 [INFO]     🎮 BooGuest: Game 'rock paper scissors' started!
+2026-03-26 18:44:42,310 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:44:42,310 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 73 checks
+2026-03-26 18:44:42,310 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=16 emotion=excited
+2026-03-26 18:45:14,337 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:45:14,337 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 74 checks
+2026-03-26 18:45:14,337 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:45:19,320 [INFO]   ✅ BooGuest done: 11/10 responses, avg_rt=16.2s, errors=0, duration=227s
+2026-03-26 18:45:19,320 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:45:27,177 [INFO]   👤 HammerBro (loud) entering — will send 8 msgs
+2026-03-26 18:45:46,410 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:45:46,416 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 75 checks
+2026-03-26 18:45:46,416 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:46:18,456 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:46:18,456 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 76 checks
+2026-03-26 18:46:18,456 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=2 emotion=worried
+2026-03-26 18:46:22,471 [INFO]     💬 HammerBro: "Do you miss the old days of stomping goombas?" → "Alrighty, one moment! "OH BOY-A DO I MISS THOSE DAYS?! Stompin' Goombas like it'" (21.5s)
+2026-03-26 18:46:50,521 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:46:50,521 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 77 checks
+2026-03-26 18:46:50,521 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=4 emotion=worried
+2026-03-26 18:46:50,521 [INFO]     💬 HammerBro: "Are you just a robot?" → "Super! "WOOOAH, NO WAY-A! Me? A ROBOT?! Ha ha ha! Can't be serious." (25.5s)
+2026-03-26 18:47:19,913 [INFO]     💬 HammerBro: "Do you believe in ghosts?" → "Alrighty! "OH BOY-OH-BOI, GHOSTS-YEAHOUSING-TIME-SQUARE-MAGIC-HAPPENIN' RIGHT" (26.9s)
+2026-03-26 18:47:22,577 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:47:22,577 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 78 checks
+2026-03-26 18:47:22,577 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=6 emotion=worried
+2026-03-26 18:47:36,249 [INFO]     💬 HammerBro: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 317 bathroom visits from 1 dif" (13.7s)
+2026-03-26 18:47:50,810 [INFO]     💬 HammerBro: "What does a fire flower taste like?" → "FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't burn the" (12.0s)
+2026-03-26 18:47:54,649 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:47:54,649 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 79 checks
+2026-03-26 18:47:54,649 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=10 emotion=excited
+2026-03-26 18:48:19,934 [INFO]     💬 HammerBro: "Do you know any jokes?" → "What's Bowser's bathroom strategy? ROOOAAARRR to establish dominance! Establish-" (25.3s)
+2026-03-26 18:48:26,687 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:48:26,687 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 80 checks
+2026-03-26 18:48:26,687 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=14 emotion=excited
+2026-03-26 18:48:34,699 [INFO]     💬 HammerBro: "Is Luigi here tonight?" → "Yippee! Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell hi" (12.2s)
+2026-03-26 18:48:58,728 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:48:58,728 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 81 checks
+2026-03-26 18:48:58,728 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=16 emotion=excited
+2026-03-26 18:49:02,740 [INFO]     💬 HammerBro: "How do you stay so cheerful?" → "Alrighty, one moment! Fantastico! WAHOOO! It's because I'M-A MARIO, of course! Y" (25.5s)
+2026-03-26 18:49:18,755 [INFO]   ✅ HammerBro done: 10/9 responses, avg_rt=18.7s, errors=0, duration=232s
+2026-03-26 18:49:18,755 [INFO]   ⏳ Waiting 6s between guests...
+2026-03-26 18:49:24,795 [INFO]   👤 Luigi (casual) entering — will send 5 msgs
+2026-03-26 18:49:30,779 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:49:30,779 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 82 checks
+2026-03-26 18:49:30,779 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:50:02,807 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:50:02,807 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 83 checks
+2026-03-26 18:50:02,807 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=2 emotion=loving
+2026-03-26 18:50:17,231 [INFO]     💬 Luigi: "Who's the best dancer at this party?" → "Here we go! WOOHOO! Oh mama mia, I gotta tell ya, it's-a me, your buddy Luigi!" (20.8s)
+2026-03-26 18:50:31,778 [INFO]     💬 Luigi: "Have you seen Toad around?" → "Toad! That little guy is-a always telling me the princess is in another castle! " (12.0s)
+2026-03-26 18:50:34,858 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:50:34,858 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 84 checks
+2026-03-26 18:50:34,858 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 18:50:55,342 [INFO]     💬 Luigi: "What's your favorite food?" → "I'm-a ready! OOOH-OHOH! You wanna know my fave dish?! IT'S-A PASTA, OF COURSE!" (20.5s)
+2026-03-26 18:51:06,927 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:51:06,927 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 85 checks
+2026-03-26 18:51:06,927 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=8 emotion=happy
+2026-03-26 18:51:18,961 [INFO]     💬 Luigi: "What kind of music do you like?" → "♪ Mount Volbono! Spicy pasta! Hot hot hot! Da da da! ♪" (21.1s)
+2026-03-26 18:51:38,994 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:51:38,994 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 86 checks
+2026-03-26 18:51:38,994 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=10 emotion=happy
+2026-03-26 18:51:47,478 [INFO]     💬 Luigi: "How do you stay so cheerful?" → "Hmm, let me think! WOOHOOO, IT'S-A THE POWER OF MUSHROOMS!! (Just kidding!" (26.0s)
+2026-03-26 18:52:11,041 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:52:11,041 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 87 checks
+2026-03-26 18:52:11,041 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:52:11,041 [INFO]   ✅ Luigi done: 7/6 responses, avg_rt=18.4s, errors=0, duration=166s
+2026-03-26 18:52:11,041 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 18:52:18,734 [INFO]   👤 PartyAnimal (drunk) entering — will send 8 msgs
+2026-03-26 18:52:43,081 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:52:43,081 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 88 checks
+2026-03-26 18:52:43,081 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:53:09,423 [INFO]     💬 PartyAnimal: "I love you man... no seriously" → "Alrighty! OH BOY-OH-BOY-AH!! THANK YOU SO MUCHA MY FRIEND!" (19.8s)
+2026-03-26 18:53:15,125 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:53:15,125 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 89 checks
+2026-03-26 18:53:15,125 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=2 emotion=confused
+2026-03-26 18:53:39,236 [INFO]     💬 PartyAnimal: "You know what... you're alright, Mario" → "Alrighty, one moment! WOO-HOHO-WOWZA!! I'M AWESOME?! WE'RE GOING TO HAVE THE BES" (27.3s)
+2026-03-26 18:53:47,176 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:53:47,176 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 90 checks
+2026-03-26 18:53:47,176 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=6 emotion=mischievous
+2026-03-26 18:53:56,496 [INFO]     💬 PartyAnimal: "Do you know any jokes?" → "Why is the bathroom the best power-up location? Because you come out feeling SUP" (14.8s)
+2026-03-26 18:54:11,049 [INFO]     💬 PartyAnimal: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (12.1s)
+2026-03-26 18:54:19,218 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:54:19,218 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 91 checks
+2026-03-26 18:54:19,218 [INFO]   ✅ Health: status=ok rt=4.2s cache=53% responses=50 conv_len=10 emotion=excited
+2026-03-26 18:54:39,245 [INFO]     💬 PartyAnimal: "One more drink and I'll fight Bowser myself!" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (25.7s)
+2026-03-26 18:54:51,274 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:54:51,274 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 92 checks
+2026-03-26 18:54:51,274 [INFO]   ✅ Health: status=ok rt=4.2s cache=53% responses=50 conv_len=12 emotion=confused
+2026-03-26 18:55:09,258 [INFO]     💬 PartyAnimal: "Hey Mario! What's going on?" → "Alrighty! WOOHOO! You're talking to ME, it's-a me MARIO! I'm guarding the bathro" (27.5s)
+2026-03-26 18:55:23,320 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:55:23,320 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 93 checks
+2026-03-26 18:55:23,320 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=14 emotion=loving
+2026-03-26 18:55:39,295 [INFO]     💬 PartyAnimal: "This party is AMAZINGGGG" → "Here we go! OH BOY OH BOY IT'S-A THE BEST PARTY EVER!! Wahoooo! The food, the dr" (27.5s)
+2026-03-26 18:55:55,391 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:55:55,391 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 94 checks
+2026-03-26 18:55:55,391 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=16 emotion=excited
+2026-03-26 18:55:55,391 [INFO]     💬 PartyAnimal: "Hey hey hey... you're a mushroom right?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (13.6s)
+2026-03-26 18:56:10,845 [INFO]   ✅ PartyAnimal done: 10/9 responses, avg_rt=20.3s, errors=0, duration=232s
+2026-03-26 18:56:10,845 [INFO]   ⏳ Waiting 9s between guests...
+2026-03-26 18:56:19,614 [INFO]   👤 Peach (polite) entering — will send 9 msgs
+2026-03-26 18:56:27,470 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:56:27,470 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 95 checks
+2026-03-26 18:56:27,470 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 18:56:59,513 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:56:59,513 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 96 checks
+2026-03-26 18:56:59,513 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 18:57:11,536 [INFO]     💬 Peach: "I feel like nobody listens to me" → "Super! Ha! "Aww, poor-a you! Nobody listenin' to ya? Feh feh feh!" (21.5s)
+2026-03-26 18:57:28,420 [INFO]     💬 Peach: "What kind of music do you like?" → "♪ Shiveria! Brrrr! Bouncy bouncy! Da dum da dum! ♪" (14.4s)
+2026-03-26 18:57:31,559 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:57:31,559 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 97 checks
+2026-03-26 18:57:31,559 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=4 emotion=happy
+2026-03-26 18:57:43,604 [INFO]     💬 Peach: "Have you seen Toad around?" → "Toad! That little guy is-a always telling me the princess is in another castle! " (12.0s)
+2026-03-26 18:58:03,615 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 18:58:03,615 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 98 checks
+2026-03-26 18:58:03,615 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=8 emotion=confused
+2026-03-26 18:58:11,629 [INFO]     💬 Peach: "What's the craziest thing that happened today?" → "Alrighty, one moment! OH BOY, OH BOY! So I was guarding da bathroom door, and su" (25.5s)
+2026-03-26 18:58:35,651 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:58:35,651 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 99 checks
+2026-03-26 18:58:35,651 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=10 emotion=loving
+2026-03-26 18:58:41,122 [INFO]     💬 Peach: "Who's the best dancer at this party?" → "Fantastic! Here we go! WHA-AAT?! IT'S ME, MARIO! Of course, it is-a me who can b" (27.0s)
+2026-03-26 18:59:07,703 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:59:07,703 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 100 checks
+2026-03-26 18:59:07,703 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=12 emotion=surprised
+2026-03-26 18:59:11,717 [INFO]     💬 Peach: "I'm having a really rough day, Mario" → "I'm-a ready! AWWWWWW, Mama mia! You're havin' a tough one? That's-a no good at a" (28.1s)
+2026-03-26 18:59:27,459 [INFO]     💬 Peach: "You always cheer me up!" → "You're-a the kind of person Mario would save twice!" (13.2s)
+2026-03-26 18:59:39,741 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 18:59:39,741 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 101 checks
+2026-03-26 18:59:39,741 [INFO]   ✅ Health: status=ok rt=4.4s cache=52% responses=50 conv_len=16 emotion=confused
+2026-03-26 18:59:51,737 [INFO]     💬 Peach: "What's your opinion on pineapple pizza?" → "Still here? Must be-a comfy in here! Fantastic! OH NO, OH NO, IT'S-A A CRIME AGA" (21.8s)
+2026-03-26 19:00:11,784 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:00:11,784 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 102 checks
+2026-03-26 19:00:11,784 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=18 emotion=confused
+2026-03-26 19:00:11,784 [INFO]     💬 Peach: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 320 bathroom visits from 1 dif" (17.5s)
+2026-03-26 19:00:27,642 [INFO]   ✅ Peach done: 11/10 responses, avg_rt=19.4s, errors=0, duration=248s
+2026-03-26 19:00:27,642 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:00:35,649 [INFO]   👤 Birdo (flirty) entering — will send 4 msgs
+2026-03-26 19:00:43,808 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:00:43,808 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 103 checks
+2026-03-26 19:00:43,808 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:01:15,869 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:01:15,869 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 104 checks
+2026-03-26 19:01:15,869 [INFO]   ✅ Health: status=ok rt=4.5s cache=52% responses=50 conv_len=2 emotion=mischievous
+2026-03-26 19:01:27,897 [INFO]     💬 Birdo: "Do you know any jokes?" → "What did the mirror tell Mario? 'You're looking sharp today!' Squeaky clean plum" (23.1s)
+2026-03-26 19:01:47,927 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:01:47,927 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 105 checks
+2026-03-26 19:01:47,927 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=4 emotion=mischievous
+2026-03-26 19:01:55,937 [INFO]     💬 Birdo: "I feel like nobody listens to me" → "Here we go! Magnifico! WOOHOO! Ahahahaha, oh noooo! You mean-a like when Bowser " (25.5s)
+2026-03-26 19:02:19,973 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:02:19,973 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 106 checks
+2026-03-26 19:02:19,973 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=6 emotion=surprised
+2026-03-26 19:02:25,903 [INFO]     💬 Birdo: "I'm having a really rough day, Mario" → "Here we go! Oh-no-o-oh NOO! Mama mia! Donkey Kong-ing tough times can be, eh?" (27.5s)
+2026-03-26 19:02:52,014 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:02:52,014 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 107 checks
+2026-03-26 19:02:52,014 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=8 emotion=loving
+2026-03-26 19:02:56,017 [INFO]     💬 Birdo: "This party is the best thing that happened to me t" → "Here we go! WOOHOO-A-LICIOUSNESS! You're-a having a Power Star of fun, amico?! T" (27.6s)
+2026-03-26 19:03:13,198 [INFO]   ✅ Birdo done: 6/5 responses, avg_rt=23.2s, errors=0, duration=158s
+2026-03-26 19:03:24,062 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:03:24,062 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 108 checks
+2026-03-26 19:03:24,062 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:03:43,779 [INFO] 
+🌊 Wave 2: 7 guests incoming
+2026-03-26 19:03:43,779 [INFO]   👤 PiantaJoe (casual) entering — will send 4 msgs
+2026-03-26 19:03:56,103 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:03:56,103 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 109 checks
+2026-03-26 19:03:56,103 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:04:28,140 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:04:28,140 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 110 checks
+2026-03-26 19:04:28,140 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=2 emotion=happy
+2026-03-26 19:04:36,146 [INFO]     💬 PiantaJoe: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 322 bathroom visits from 1 dif" (22.6s)
+2026-03-26 19:05:00,206 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:05:00,206 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 111 checks
+2026-03-26 19:05:00,206 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=4 emotion=worried
+2026-03-26 19:05:04,599 [INFO]     💬 PiantaJoe: "Do you miss the old days of stomping goombas?" → "Super! Mama mia, those were-a crazy times! I mean, don't get me wrong, it was-a " (25.9s)
+2026-03-26 19:05:19,123 [INFO]     💬 PiantaJoe: "What does a fire flower taste like?" → "FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't burn the" (12.0s)
+2026-03-26 19:05:32,276 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:05:32,276 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 112 checks
+2026-03-26 19:05:32,276 [INFO]   ✅ Health: status=ok rt=4.7s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 19:05:45,420 [INFO]     💬 PiantaJoe: "Are you having fun at the party?" → "Alrighty, one moment! WOOHOOO! You wanna know if I'm havin' FUN?! Let me tell ya" (23.8s)
+2026-03-26 19:06:04,318 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:06:04,318 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 113 checks
+2026-03-26 19:06:04,325 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:06:04,541 [INFO]   ✅ PiantaJoe done: 6/5 responses, avg_rt=20.7s, errors=0, duration=141s
+2026-03-26 19:06:04,541 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:06:12,278 [INFO]   👤 Luigi (casual) entering — will send 5 msgs
+2026-03-26 19:06:36,389 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:06:36,389 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 114 checks
+2026-03-26 19:06:36,389 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:07:02,944 [INFO]     💬 Luigi: "Tell me about your adventures!" → "Super! WOOHOOO! Oh man-o, where do I even start?!" (20.0s)
+2026-03-26 19:07:08,445 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:07:08,445 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 115 checks
+2026-03-26 19:07:08,445 [INFO]   ✅ Health: status=ok rt=4.9s cache=52% responses=50 conv_len=2 emotion=worried
+2026-03-26 19:07:32,941 [INFO]     💬 Luigi: "Do you ever get lonely in here?" → "Wahoo! Ah, Mama mia... Yeah-a, sometimes it can be a little tough being the bath" (27.5s)
+2026-03-26 19:07:40,503 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:07:40,503 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 116 checks
+2026-03-26 19:07:40,503 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:08:02,943 [INFO]     💬 Luigi: "What's your favorite power-up?" → "That's-a good question! OH BOY-O! Super Mushroom, of course! Wahooo! Nothing bea" (27.5s)
+2026-03-26 19:08:12,559 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.2s > 5.0s
+2026-03-26 19:08:12,559 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:08:12,559 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 117 checks
+2026-03-26 19:08:12,559 [INFO]   ✅ Health: status=ok rt=5.2s cache=52% responses=50 conv_len=8 emotion=confused
+2026-03-26 19:08:32,946 [INFO]     💬 Luigi: "What's your opinion on pineapple pizza?" → "Super! Wow! Oh no-no-no! Pineapple on pizza?! That-a is a CRIME against Italy! Y" (27.5s)
+2026-03-26 19:08:44,579 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:08:44,579 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:08:44,579 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 118 checks
+2026-03-26 19:08:44,579 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=10 emotion=confused
+2026-03-26 19:09:02,937 [INFO]     💬 Luigi: "What's your favorite food?" → "Super! WOOHOOO! IT'S-A PIZZA, OF COURSE!! Wahooo!" (27.5s)
+2026-03-26 19:09:16,650 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:09:16,650 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:09:16,650 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 119 checks
+2026-03-26 19:09:16,657 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:09:24,940 [INFO]   ✅ Luigi done: 7/6 responses, avg_rt=23.3s, errors=0, duration=193s
+2026-03-26 19:09:24,940 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:09:33,398 [INFO]   👤 ChainChomp (aggressive) entering — will send 4 msgs
+2026-03-26 19:09:48,706 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:09:48,708 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:09:48,708 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 120 checks
+2026-03-26 19:09:48,708 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:10:20,763 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.4s > 5.0s
+2026-03-26 19:10:20,763 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:10:20,763 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 121 checks
+2026-03-26 19:10:20,763 [INFO]   ✅ Health: status=ok rt=5.4s cache=52% responses=50 conv_len=2 emotion=mischievous
+2026-03-26 19:10:25,877 [INFO]     💬 ChainChomp: "Do you know any jokes?" → "Bellissimo! Why do Bullet Bills never clog the toilet? They just-a BLAST RIGHT T" (20.8s)
+2026-03-26 19:10:52,802 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.6s > 5.0s
+2026-03-26 19:10:52,802 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:10:52,802 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 122 checks
+2026-03-26 19:10:52,802 [INFO]   ✅ Health: status=ok rt=5.6s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:10:56,816 [INFO]     💬 ChainChomp: "What's your favorite food?" → "Here we go! OH BOY, FOOD-A TIME! You're talkin' to Mario here, and you know what" (28.4s)
+2026-03-26 19:11:24,851 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:11:24,851 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:11:24,857 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 123 checks
+2026-03-26 19:11:24,857 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=6 emotion=confused
+2026-03-26 19:11:25,904 [INFO]     💬 ChainChomp: "Hey Mario! What's going on?" → "That's-a good question! WOOHOO! Not much-a happening around these parts..." (26.6s)
+2026-03-26 19:11:56,891 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:11:56,891 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:11:56,897 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 124 checks
+2026-03-26 19:11:56,897 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=8 emotion=confused
+2026-03-26 19:11:56,898 [INFO]     💬 ChainChomp: "You're not the real Mario, are you?" → "Super! Magnifico! WAIT-A MINUTE! WHO'S SAYIN' I'M NOT THE REAL MARIO?! IT'S-A ME" (28.5s)
+2026-03-26 19:12:12,009 [INFO]   ✅ ChainChomp done: 6/5 responses, avg_rt=23.4s, errors=0, duration=159s
+2026-03-26 19:12:12,009 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:12:19,882 [INFO]   👤 Wario (drunk) entering — will send 10 msgs + game
+2026-03-26 19:12:28,958 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:12:28,958 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:12:28,958 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 125 checks
+2026-03-26 19:12:28,958 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:13:01,015 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:13:01,015 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:13:01,016 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 126 checks
+2026-03-26 19:13:01,016 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=2 emotion=proud
+2026-03-26 19:13:13,064 [INFO]     💬 Wario: "I can't feel my legs hahaha" → "Hmm, let me think! WOOHOO! Mama mia! You think you CAN'T FEEL YOUR LEGS? Ha ha h" (21.7s)
+2026-03-26 19:13:27,818 [INFO]     💬 Wario: "One more drink and I'll fight Bowser myself!" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.2s)
+2026-03-26 19:13:33,070 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:13:33,070 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:13:33,070 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 127 checks
+2026-03-26 19:13:33,070 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:13:52,761 [INFO]     💬 Wario: "Hey Mario! What's going on?" → "Super! Hmm! WOOHOO! IT'S-A YOUR TURN TO KNOW WHAT'S GOING ON, AMICO!* Ahahaha!" (22.4s)
+2026-03-26 19:14:05,105 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.7s > 5.0s
+2026-03-26 19:14:05,105 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:14:05,105 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 128 checks
+2026-03-26 19:14:05,105 [INFO]   ✅ Health: status=ok rt=5.7s cache=52% responses=50 conv_len=8 emotion=loving
+2026-03-26 19:14:17,135 [INFO]     💬 Wario: "Marioooo you're my best friendddd" → "That's-a good question! MY BEST FRIEND?! Aw shucks-a, buddy..." (21.9s)
+2026-03-26 19:14:37,152 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.6s > 5.0s
+2026-03-26 19:14:37,152 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:14:37,152 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 129 checks
+2026-03-26 19:14:37,152 [INFO]   ✅ Health: status=ok rt=5.6s cache=52% responses=50 conv_len=10 emotion=excited
+2026-03-26 19:14:41,212 [INFO]     💬 Wario: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (21.6s)
+2026-03-26 19:14:58,098 [INFO]     💬 Wario: "Do you know any jokes?" → "What's-a Peach's bathroom rule? 'A princess must always keep-a composure!' Even " (14.4s)
+2026-03-26 19:15:09,203 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.6s > 5.0s
+2026-03-26 19:15:09,203 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:15:09,203 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 130 checks
+2026-03-26 19:15:09,203 [INFO]   ✅ Health: status=ok rt=5.6s cache=52% responses=50 conv_len=14 emotion=loving
+2026-03-26 19:15:21,225 [INFO]     💬 Wario: "This party is AMAZINGGGG" → "Alrighty, one moment! Magnifico! WOOHOOO, IT'S-A PARTY TIME!! I KNEW THIS WOULD " (20.6s)
+2026-03-26 19:15:41,260 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.8s > 5.0s
+2026-03-26 19:15:41,260 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:15:41,260 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 131 checks
+2026-03-26 19:15:41,260 [INFO]   ✅ Health: status=ok rt=5.8s cache=52% responses=50 conv_len=16 emotion=loving
+2026-03-26 19:15:45,258 [INFO]     💬 Wario: "Wait which bathroom am I in?" → "Alrighty, one moment! Mama mia! You're-a standin' right next to the throne... er" (21.5s)
+2026-03-26 19:16:11,199 [INFO]     💬 Wario: "I love you man... no seriously" → "Alrighty! Aww, grazie mille! That means so much coming from a friend like YOU! *" (23.4s)
+2026-03-26 19:16:13,309 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.9s > 5.0s
+2026-03-26 19:16:13,309 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:16:13,309 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 132 checks
+2026-03-26 19:16:13,309 [INFO]   ✅ Health: status=ok rt=5.9s cache=52% responses=50 conv_len=18 emotion=loving
+2026-03-26 19:16:28,558 [INFO]     💬 Wario: "Sing me a song!" → "♪ Lost Kingdom! Boing boing! Poison everywhere! Watch out! ♪" (14.8s)
+2026-03-26 19:16:45,360 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.8s > 5.0s
+2026-03-26 19:16:45,360 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:16:45,360 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 133 checks
+2026-03-26 19:16:45,360 [INFO]   ✅ Health: status=ok rt=5.8s cache=52% responses=50 conv_len=22 emotion=mischievous
+2026-03-26 19:16:45,360 [INFO]     🎮 Wario: Game 'riddles' started!
+2026-03-26 19:17:17,399 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.7s > 5.0s
+2026-03-26 19:17:17,399 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:17:17,399 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 134 checks
+2026-03-26 19:17:17,399 [INFO]   ✅ Health: status=ok rt=5.7s cache=52% responses=50 conv_len=24 emotion=happy
+2026-03-26 19:17:33,192 [INFO]   ✅ Wario done: 14/13 responses, avg_rt=18.4s, errors=0, duration=313s
+2026-03-26 19:17:33,192 [INFO]   ⏳ Waiting 9s between guests...
+2026-03-26 19:17:41,792 [INFO]   👤 ProfGoom (intellectual) entering — will send 7 msgs + game
+2026-03-26 19:17:49,437 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.7s > 5.0s
+2026-03-26 19:17:49,437 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:17:49,437 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 135 checks
+2026-03-26 19:17:49,437 [INFO]   ✅ Health: status=ok rt=5.7s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:18:21,494 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.7s > 5.0s
+2026-03-26 19:18:21,494 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:18:21,494 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 136 checks
+2026-03-26 19:18:21,494 [INFO]   ✅ Health: status=ok rt=5.7s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 19:18:34,256 [INFO]     💬 ProfGoom: "Tell me about the Star Festival" → "A STAR?! *sparkles* I'm invincible! Da da da DA da da! ...For about 10 seconds!" (20.4s)
+2026-03-26 19:18:51,384 [INFO]     💬 ProfGoom: "Do you know any jokes?" → "Why did Mario go to the doctor? Because he had too many extra lives! Ha ha!" (14.6s)
+2026-03-26 19:18:53,537 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:18:53,537 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:18:53,537 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 137 checks
+2026-03-26 19:18:53,537 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=4 emotion=mischievous
+2026-03-26 19:19:05,932 [INFO]     💬 ProfGoom: "What year did Super Mario Bros come out?" → "Super Mario Bros! The game that started it ALL! 1985! I was so young and pixelat" (12.0s)
+2026-03-26 19:19:25,600 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:19:25,600 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:19:25,600 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 138 checks
+2026-03-26 19:19:25,600 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=8 emotion=loving
+2026-03-26 19:19:34,244 [INFO]     💬 ProfGoom: "How did you and Peach meet?" → "I'm-a ready! Peach-a my heart is skipping beats just thinking about it! We met i" (25.8s)
+2026-03-26 19:19:57,678 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:19:57,678 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:19:57,678 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 139 checks
+2026-03-26 19:19:57,678 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=10 emotion=loving
+2026-03-26 19:20:05,691 [INFO]     💬 ProfGoom: "How many worlds are in the original game?" → "Let me think about that. Wow! The classic Super Mario Bros. has 8 WORLDS! Whoa-w" (28.9s)
+2026-03-26 19:20:29,725 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:20:29,725 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:20:29,732 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 140 checks
+2026-03-26 19:20:29,732 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=12 emotion=loving
+2026-03-26 19:20:34,279 [INFO]     💬 ProfGoom: "Who is Mario's nemesis?" → "That's-a good question! BOWSER, THE KING OF KOOPAS! He's-a always causin' troubl" (26.1s)
+2026-03-26 19:20:48,837 [INFO]     💬 ProfGoom: "Is the Mushroom Kingdom real?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (12.1s)
+2026-03-26 19:21:01,787 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:21:01,788 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:21:01,788 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 141 checks
+2026-03-26 19:21:01,788 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=16 emotion=mischievous
+2026-03-26 19:21:10,706 [INFO]     🎮 ProfGoom: Game '20 questions' started!
+2026-03-26 19:21:33,859 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.5s > 5.0s
+2026-03-26 19:21:33,859 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:21:33,859 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 142 checks
+2026-03-26 19:21:33,868 [INFO]   ✅ Health: status=ok rt=5.5s cache=52% responses=50 conv_len=18 emotion=mischievous
+2026-03-26 19:22:05,922 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:22:05,922 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:22:05,922 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 143 checks
+2026-03-26 19:22:05,922 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:22:11,863 [INFO]   ✅ ProfGoom done: 12/11 responses, avg_rt=19.3s, errors=0, duration=270s
+2026-03-26 19:22:11,863 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:22:19,970 [INFO]   👤 LakituCam (casual) entering — will send 3 msgs
+2026-03-26 19:22:37,967 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:22:37,967 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:22:37,967 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 144 checks
+2026-03-26 19:22:37,967 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:23:10,016 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.3s > 5.0s
+2026-03-26 19:23:10,016 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:23:10,016 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 145 checks
+2026-03-26 19:23:10,016 [INFO]   ✅ Health: status=ok rt=5.3s cache=52% responses=50 conv_len=2 emotion=confused
+2026-03-26 19:23:10,509 [INFO]     💬 LakituCam: "Are you having fun at the party?" → "Here we go! WOOHOOO! I'm-a HAVIN' THE TIME OF MY LIFE! This party is CRAZY TOWN!" (21.2s)
+2026-03-26 19:23:25,049 [INFO]     💬 LakituCam: "What's behind that pipe over there?" → "Did someone say PIPE?! *examines nearest pipe* This is-a beautiful craftsmanship" (12.0s)
+2026-03-26 19:23:42,060 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.1s > 5.0s
+2026-03-26 19:23:42,060 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:23:42,060 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 146 checks
+2026-03-26 19:23:42,060 [INFO]   ✅ Health: status=ok rt=5.1s cache=52% responses=50 conv_len=6 emotion=excited
+2026-03-26 19:23:42,060 [INFO]     💬 LakituCam: "Have you seen Toad around?" → "Toad! That little guy is-a always telling me the princess is in another castle! " (14.5s)
+2026-03-26 19:23:57,389 [INFO]   ✅ LakituCam done: 5/4 responses, avg_rt=15.5s, errors=0, duration=97s
+2026-03-26 19:23:57,391 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:24:05,010 [INFO]   👤 Waluigi (chaotic) entering — will send 9 msgs
+2026-03-26 19:24:14,130 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.1s > 5.0s
+2026-03-26 19:24:14,132 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:24:14,132 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 147 checks
+2026-03-26 19:24:14,132 [INFO]   ✅ Health: status=ok rt=5.1s cache=52% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:24:46,188 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:24:46,188 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 148 checks
+2026-03-26 19:24:46,188 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=2 emotion=excited
+2026-03-26 19:24:55,032 [INFO]     💬 Waluigi: "What's behind that pipe over there?" → "Did someone say PIPE?! *examines nearest pipe* This is-a beautiful craftsmanship" (20.9s)
+2026-03-26 19:25:18,226 [WARNING] 🚨 ALERT [SLOW_RESPONSE]: Avg response time 5.2s > 5.0s
+2026-03-26 19:25:18,226 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:25:18,226 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 149 checks
+2026-03-26 19:25:18,226 [INFO]   ✅ Health: status=ok rt=5.2s cache=52% responses=50 conv_len=4 emotion=surprised
+2026-03-26 19:25:26,249 [INFO]     💬 Waluigi: "This bathroom is really something!" → "Let me think about that. WOOHOOO! BATHROOM OF DREAMS, RIGHT HERE!!" (28.7s)
+2026-03-26 19:25:40,778 [INFO]     💬 Waluigi: "One more drink and I'll fight Bowser myself!" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.0s)
+2026-03-26 19:25:50,277 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:25:50,284 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 150 checks
+2026-03-26 19:25:50,284 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=8 emotion=excited
+2026-03-26 19:25:55,330 [INFO]     💬 Waluigi: "How many coins for a 1-UP?" → "A COIN! *bling* Only 99 more and I get an extra life! Keep 'em coming!" (12.0s)
+2026-03-26 19:26:09,910 [INFO]     💬 Waluigi: "Hey hey hey... you're a mushroom right?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (12.1s)
+2026-03-26 19:26:22,338 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:26:22,338 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 151 checks
+2026-03-26 19:26:22,338 [INFO]   ✅ Health: status=ok rt=4.6s cache=52% responses=50 conv_len=12 emotion=embarrassed
+2026-03-26 19:26:35,849 [INFO]     💬 Waluigi: "I love you man... no seriously" → "Alrighty! Ah-ah-a, it's okay buddy-o! I'm flattered by the compliment, but don't" (23.4s)
+2026-03-26 19:26:54,396 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:26:54,396 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 152 checks
+2026-03-26 19:26:54,396 [INFO]   ✅ Health: status=ok rt=4.8s cache=52% responses=50 conv_len=14 emotion=worried
+2026-03-26 19:26:58,408 [INFO]     💬 Waluigi: "Do you ever get lonely in here?" → "That's-a good question! Ah-ah-a... Loneliness is my WORST enemy!" (20.1s)
+2026-03-26 19:27:26,448 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 52% < 80.0%
+2026-03-26 19:27:26,448 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 153 checks
+2026-03-26 19:27:26,448 [INFO]   ✅ Health: status=ok rt=5.0s cache=52% responses=50 conv_len=16 emotion=confused
+2026-03-26 19:27:26,607 [INFO]     💬 Waluigi: "What's the name of Mario's dinosaur friend?" → "Let me think about that. WOOHOO, IT'S-A DINO-MITE! You're talking about Yoshi?! " (25.7s)
+2026-03-26 19:27:42,413 [INFO]     💬 Waluigi: "What year did Super Mario Bros come out?" → "Super Mario Bros! The game that started it ALL! 1985! I was so young and pixelat" (13.3s)
+2026-03-26 19:27:58,514 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:27:58,514 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 154 checks
+2026-03-26 19:27:58,514 [INFO]   ✅ Health: status=ok rt=4.9s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:27:58,514 [INFO]   ✅ Waluigi done: 11/10 responses, avg_rt=18.9s, errors=0, duration=234s
+2026-03-26 19:27:58,514 [INFO]   ✨ PERFECT CYCLE! Streak: 1/3
+2026-03-26 19:27:58,514 [INFO] 
+  ✅ Cycle 2 Summary:
+2026-03-26 19:27:58,524 [INFO]      Guests: 14
+2026-03-26 19:27:58,524 [INFO]      Messages: 110 sent, 124 received
+2026-03-26 19:27:58,524 [INFO]      Pass rate: 112.7%
+2026-03-26 19:27:58,524 [INFO]      Avg response time: 19.62s
+2026-03-26 19:27:58,524 [INFO]      Errors: 0
+2026-03-26 19:27:58,543 [INFO] 💾 Results saved to C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 19:27:58,543 [INFO]   🩺 Inter-cycle health check...
+2026-03-26 19:27:58,543 [INFO] 🔍 Pre-flight health check...
+2026-03-26 19:28:00,583 [INFO]   ✅ Server status=ok, cache=1295, emotion=happy
+2026-03-26 19:28:00,583 [INFO] 
+==================================================
+2026-03-26 19:28:00,583 [INFO] 🔄 RALPH CYCLE 3 (perfect streak: 1/3)
+2026-03-26 19:28:00,583 [INFO] ==================================================
+2026-03-26 19:28:00,583 [INFO] 
+🌊 Wave 1: 5 guests incoming
+2026-03-26 19:28:00,590 [INFO]   👤 DonkeyKong (loud) entering — will send 6 msgs + game
+2026-03-26 19:28:30,551 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:28:30,551 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 155 checks
+2026-03-26 19:28:30,551 [INFO]   ✅ Health: status=ok rt=4.9s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:28:51,121 [INFO]     💬 DonkeyKong: "Bowser told me you're scared of him" → "Ha! Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (20.3s)
+2026-03-26 19:29:02,605 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:29:02,605 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 156 checks
+2026-03-26 19:29:02,605 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 19:29:06,612 [INFO]     💬 DonkeyKong: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (13.0s)
+2026-03-26 19:29:30,078 [INFO]     💬 DonkeyKong: "What's your favorite power-up?" → "Super! WOOHOOO! Super Leaf, of course-a! It gives me those sweet wings and makes" (21.0s)
+2026-03-26 19:29:34,686 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:29:34,686 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 157 checks
+2026-03-26 19:29:34,686 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=6 emotion=confused
+2026-03-26 19:29:54,824 [INFO]     💬 DonkeyKong: "What's your favorite food?" → "Super! Mama mia! You're asking the right Mario about his appetite! What's-a your" (22.2s)
+2026-03-26 19:30:06,730 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:30:06,730 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 158 checks
+2026-03-26 19:30:06,730 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=10 emotion=confused
+2026-03-26 19:30:21,134 [INFO]     💬 DonkeyKong: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 329 bathroom visits from 1 dif" (23.8s)
+2026-03-26 19:30:35,677 [INFO]     💬 DonkeyKong: "What do you think about Bowser?" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.0s)
+2026-03-26 19:30:38,801 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:30:38,801 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 159 checks
+2026-03-26 19:30:38,801 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 19:30:51,131 [INFO]     🎮 DonkeyKong: Game 'rock paper scissors' started!
+2026-03-26 19:31:10,835 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:31:10,835 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 160 checks
+2026-03-26 19:31:10,837 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=16 emotion=happy
+2026-03-26 19:31:23,651 [INFO]   ✅ DonkeyKong done: 10/9 responses, avg_rt=18.9s, errors=0, duration=203s
+2026-03-26 19:31:23,651 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 19:31:30,494 [INFO]   👤 DiddyKong (energetic) entering — will send 9 msgs
+2026-03-26 19:31:42,889 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:31:42,891 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 161 checks
+2026-03-26 19:31:42,891 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:32:14,959 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:32:14,959 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 162 checks
+2026-03-26 19:32:14,959 [INFO]   ✅ Health: status=ok rt=4.2s cache=53% responses=50 conv_len=2 emotion=happy
+2026-03-26 19:32:22,986 [INFO]     💬 DiddyKong: "What kind of music do you like?" → "♪ Lake Lamode! Zip zip zip! Fast swimming! Wahoo! ♪" (22.0s)
+2026-03-26 19:32:37,515 [INFO]     💬 DiddyKong: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (12.0s)
+2026-03-26 19:32:47,007 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:32:47,007 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 163 checks
+2026-03-26 19:32:47,007 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=6 emotion=happy
+2026-03-26 19:32:55,076 [INFO]     💬 DiddyKong: "Sing me a song!" → "♪ 64 File Select! Da da DA! Picking a save file! Nostalgia! ♪ Can you teach-a Ma" (15.0s)
+2026-03-26 19:33:19,055 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:33:19,055 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 164 checks
+2026-03-26 19:33:19,055 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=8 emotion=confused
+2026-03-26 19:33:23,059 [INFO]     💬 DiddyKong: "What's your opinion on pineapple pizza?" → "I'm-a ready! OH NOOOO, PINESAPPLE ON PIZZA?! FIGHTING WORDS!" (25.5s)
+2026-03-26 19:33:38,753 [INFO]     💬 DiddyKong: "Bowser told me you're scared of him" → "Wow! Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (13.2s)
+2026-03-26 19:33:51,111 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:33:51,111 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 165 checks
+2026-03-26 19:33:51,111 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=12 emotion=worried
+2026-03-26 19:34:04,327 [INFO]     💬 DiddyKong: "Do you ever get lonely in here?" → "That's-a good question! Let's-a go! Oh, mama mia... So many people coming and go" (23.1s)
+2026-03-26 19:34:23,174 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:34:23,174 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 166 checks
+2026-03-26 19:34:23,174 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=14 emotion=worried
+2026-03-26 19:34:23,174 [INFO]     💬 DiddyKong: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 330 bathroom visits from 1 dif" (16.3s)
+2026-03-26 19:34:55,229 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:34:55,229 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 167 checks
+2026-03-26 19:34:55,229 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=16 emotion=confused
+2026-03-26 19:34:55,229 [INFO]     💬 DiddyKong: "What's your favorite food?" → "Here we go! OH, IT'S-A PIZZA TIME! You gotta try-a the anchovies on top. Pineapp" (29.5s)
+2026-03-26 19:35:21,192 [INFO]     💬 DiddyKong: "I bet Luigi is better than you" → "Okie dokie! Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tel" (23.5s)
+2026-03-26 19:35:27,282 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:35:27,282 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 168 checks
+2026-03-26 19:35:27,282 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=18 emotion=happy
+2026-03-26 19:35:36,349 [INFO]   ✅ DiddyKong done: 11/10 responses, avg_rt=19.0s, errors=0, duration=246s
+2026-03-26 19:35:36,349 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 19:35:43,724 [INFO]   👤 Luigi (casual) entering — will send 3 msgs
+2026-03-26 19:35:59,332 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:35:59,332 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 169 checks
+2026-03-26 19:35:59,332 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:36:31,380 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:36:31,380 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 170 checks
+2026-03-26 19:36:31,380 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=2 emotion=worried
+2026-03-26 19:36:35,392 [INFO]     💬 Luigi: "Do you miss the old days of stomping goombas?" → "Let me think about that. WOOHOO! Ah-ma-zing question-a my friend!" (21.5s)
+2026-03-26 19:37:03,423 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:37:03,423 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 171 checks
+2026-03-26 19:37:03,423 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:37:03,773 [INFO]     💬 Luigi: "What's your favorite power-up?" → "Fantastic! OH BOY-A, IT'S GOTTA BE THE MUSHROOMS-A!" (25.9s)
+2026-03-26 19:37:35,490 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:37:35,490 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 172 checks
+2026-03-26 19:37:35,490 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=6 emotion=confused
+2026-03-26 19:37:35,490 [INFO]     💬 Luigi: "What's your opinion on pineapple pizza?" → "Alrighty! MAMA MIA, PINEAPPLE ON PIZZA IS A CRIME AGAINST-ITALIAN-CUISINE?!" (29.2s)
+2026-03-26 19:37:55,766 [INFO]   ✅ Luigi done: 5/4 responses, avg_rt=22.0s, errors=0, duration=132s
+2026-03-26 19:37:55,766 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:38:04,028 [INFO]   👤 Rosalina (mysterious) entering — will send 3 msgs + game
+2026-03-26 19:38:07,567 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:38:07,567 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 173 checks
+2026-03-26 19:38:07,574 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:38:39,630 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:38:39,630 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 174 checks
+2026-03-26 19:38:39,630 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=loving
+2026-03-26 19:38:56,242 [INFO]     💬 Rosalina: "This party is the best thing that happened to me t" → "Fantastic! WOOHOOO! YOU'RE HAVING THE TIME OF YOUR LIFE-A?! Mama mia!" (21.1s)
+2026-03-26 19:39:11,677 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:39:11,677 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 175 checks
+2026-03-26 19:39:11,677 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:39:26,258 [INFO]     💬 Rosalina: "What's it like in the Darklands?" → "Fantastic! OH BOY, THE DARKLANDS?! You mean Bowser's Kingdom?! WAAAHHHH!!" (27.5s)
+2026-03-26 19:39:43,717 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:39:43,717 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 176 checks
+2026-03-26 19:39:43,717 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=6 emotion=confused
+2026-03-26 19:39:56,263 [INFO]     💬 Rosalina: "What happened at the last castle?" → "Fantastic! OOOHHH YEAH! The LAST CASTLE?! That was-a CRAZY-TOWN-BUSINESS-A!!" (27.5s)
+2026-03-26 19:40:10,845 [INFO]     🎮 Rosalina: Game 'rock paper scissors' started!
+2026-03-26 19:40:15,761 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:40:15,761 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 177 checks
+2026-03-26 19:40:15,761 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=10 emotion=excited
+2026-03-26 19:40:47,817 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:40:47,817 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 178 checks
+2026-03-26 19:40:47,817 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 19:41:19,859 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:41:19,859 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 179 checks
+2026-03-26 19:41:19,859 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:41:23,876 [INFO]   ✅ Rosalina done: 9/8 responses, avg_rt=22.6s, errors=0, duration=200s
+2026-03-26 19:41:23,876 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:41:32,201 [INFO]   👤 Waluigi (chaotic) entering — will send 9 msgs + game
+2026-03-26 19:41:51,926 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:41:51,926 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 180 checks
+2026-03-26 19:41:51,926 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:42:23,984 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:42:23,984 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 181 checks
+2026-03-26 19:42:23,984 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=2 emotion=happy
+2026-03-26 19:42:24,875 [INFO]     💬 Waluigi: "How do you stay so cheerful?" → "Wahoo! "WOOHOO!" Oh, it's-a because I'm MARIO, duh!" (21.1s)
+2026-03-26 19:42:39,431 [INFO]     💬 Waluigi: "What does a fire flower taste like?" → "FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't burn the" (12.0s)
+2026-03-26 19:42:56,010 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:42:56,010 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 182 checks
+2026-03-26 19:42:56,010 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=6 emotion=excited
+2026-03-26 19:42:56,010 [INFO]     💬 Waluigi: "Have you seen Toad around?" → "Toad! That little guy is-a always telling me the princess is in another castle! " (14.1s)
+2026-03-26 19:43:12,015 [INFO]     💬 Waluigi: "You always cheer me up!" → "Even Bowser would stop being evil for someone as cool as you!" (13.5s)
+2026-03-26 19:43:28,060 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:43:28,060 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 183 checks
+2026-03-26 19:43:28,060 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=10 emotion=worried
+2026-03-26 19:43:36,080 [INFO]     💬 Waluigi: "Do you ever get lonely in here?" → "Alrighty, one moment! Lonely?! Me, Mario?! Never-a! I've got my mushroom friends" (21.5s)
+2026-03-26 19:44:00,098 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:44:00,098 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 184 checks
+2026-03-26 19:44:00,098 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=12 emotion=loving
+2026-03-26 19:44:00,098 [INFO]     💬 Waluigi: "Who's the best dancer at this party?" → "Alrighty, one moment! OH BOY-A-BOY! IT'S ME, MARIO! Nobody spins a mean pirouett" (21.5s)
+2026-03-26 19:44:24,898 [INFO]     💬 Waluigi: "What kind of music do you like?" → "♪ Paper Mario! Flip flip flat! 2D adventure! Ha! ♪" (22.3s)
+2026-03-26 19:44:32,164 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:44:32,164 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 185 checks
+2026-03-26 19:44:32,164 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=16 emotion=excited
+2026-03-26 19:44:40,188 [INFO]     💬 Waluigi: "What do you think about Bowser?" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.8s)
+2026-03-26 19:45:04,222 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:45:04,222 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 186 checks
+2026-03-26 19:45:04,222 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=18 emotion=confused
+2026-03-26 19:45:05,882 [INFO]     💬 Waluigi: "You know what... you're alright, Mario" → "I'm-a ready! WOOHOO-A-WHO! THANK YOU, BUDDY-GUY! You think I'm-a okay? I once sp" (23.2s)
+2026-03-26 19:45:25,332 [INFO]     🎮 Waluigi: Game 'riddles' started!
+2026-03-26 19:45:36,271 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:45:36,271 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 187 checks
+2026-03-26 19:45:36,271 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=22 emotion=confused
+2026-03-26 19:46:08,334 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:46:08,334 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 188 checks
+2026-03-26 19:46:08,334 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:46:17,318 [INFO]   ✅ Waluigi done: 14/13 responses, avg_rt=17.3s, errors=0, duration=285s
+2026-03-26 19:46:40,389 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:46:40,389 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 189 checks
+2026-03-26 19:46:40,389 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:46:52,186 [INFO] 
+🌊 Wave 2: 5 guests incoming
+2026-03-26 19:46:52,186 [INFO]   👤 DonkeyKong (loud) entering — will send 5 msgs + game
+2026-03-26 19:47:12,433 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:47:12,433 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 190 checks
+2026-03-26 19:47:12,433 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:47:44,491 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:47:44,491 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 191 checks
+2026-03-26 19:47:44,491 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=2 emotion=confused
+2026-03-26 19:47:44,491 [INFO]     💬 DonkeyKong: "What's the weirdest thing a guest has said tonight" → "Super! "WOOHOO!" Oh boy, it gets better every minute-a! So, this guy comes in he" (21.5s)
+2026-03-26 19:48:12,416 [INFO]     💬 DonkeyKong: "What's the craziest thing that happened today?" → "Hmm, let me think! "Mama mia! It was like a pipe dream come true!" You won't bel" (25.4s)
+2026-03-26 19:48:16,541 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:48:16,541 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 192 checks
+2026-03-26 19:48:16,541 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:48:28,586 [INFO]     💬 DonkeyKong: "Bowser told me you're scared of him" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.0s)
+2026-03-26 19:48:45,182 [INFO]     💬 DonkeyKong: "Is it true you used to be a plumber?" → "Plumbing? That's-a my specialty! Did you know I've traveled through more pipes t" (14.1s)
+2026-03-26 19:48:48,590 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:48:48,590 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 193 checks
+2026-03-26 19:48:48,590 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=8 emotion=excited
+2026-03-26 19:49:12,413 [INFO]     💬 DonkeyKong: "You're not the real Mario, are you?" → "Super! Whaaaat?! You think there's another Mario out there? Ha! Who could be as " (23.8s)
+2026-03-26 19:49:20,636 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:49:20,636 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 194 checks
+2026-03-26 19:49:20,636 [INFO]   ✅ Health: status=ok rt=4.1s cache=53% responses=50 conv_len=12 emotion=mischievous
+2026-03-26 19:49:28,652 [INFO]     🎮 DonkeyKong: Game 'riddles' started!
+2026-03-26 19:49:52,680 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:49:52,680 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 195 checks
+2026-03-26 19:49:52,680 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=16 emotion=confused
+2026-03-26 19:50:24,738 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:50:24,738 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 196 checks
+2026-03-26 19:50:24,738 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=18 emotion=happy
+2026-03-26 19:50:38,386 [INFO]   ✅ DonkeyKong done: 11/10 responses, avg_rt=18.4s, errors=0, duration=226s
+2026-03-26 19:50:38,386 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 19:50:46,789 [INFO]   👤 Rosalina (mysterious) entering — will send 6 msgs + game
+2026-03-26 19:50:56,787 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:50:56,787 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 197 checks
+2026-03-26 19:50:56,787 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:51:28,855 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:51:28,855 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 198 checks
+2026-03-26 19:51:28,855 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=2 emotion=happy
+2026-03-26 19:51:37,234 [INFO]     💬 Rosalina: "I wish every night was this fun" → "Alrighty, one moment! WOOHOO! Ahahaha, you think tonight is-a the most FUN?! Mam" (20.3s)
+2026-03-26 19:52:00,904 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:52:00,904 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 199 checks
+2026-03-26 19:52:00,904 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=4 emotion=surprised
+2026-03-26 19:52:08,901 [INFO]     💬 Rosalina: "I'm having a really rough day, Mario" → "Super! OH NO-A! Your DAY was RUFF? WAAAAAAAHHHOOO-oh noooo!" (29.2s)
+2026-03-26 19:52:32,961 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:52:32,961 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 200 checks
+2026-03-26 19:52:32,961 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=6 emotion=surprised
+2026-03-26 19:52:37,052 [INFO]     💬 Rosalina: "I feel like nobody listens to me" → "I'm-a ready! AWWWWWW-MANNNN!! You're FEELING LIKE EVERYBODY'S IGNORED YA?!" (25.6s)
+2026-03-26 19:52:51,618 [INFO]     💬 Rosalina: "Is the Mushroom Kingdom real?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (12.1s)
+2026-03-26 19:53:05,021 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:53:05,021 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 201 checks
+2026-03-26 19:53:05,021 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=10 emotion=excited
+2026-03-26 19:53:09,016 [INFO]     💬 Rosalina: "Tell me about the Star Festival" → "A STAR?! *sparkles* I'm invincible! Da da da DA da da! ...For about 10 seconds!" (14.9s)
+2026-03-26 19:53:37,063 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:53:37,063 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 202 checks
+2026-03-26 19:53:37,063 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=12 emotion=loving
+2026-03-26 19:53:37,063 [INFO]     💬 Rosalina: "How did you and Peach meet?" → "Alrighty! OH BOY, PEACH-a-nia! We met under a BOWSER-ful circumstance... HE kidn" (25.6s)
+2026-03-26 19:53:51,640 [INFO]     🎮 Rosalina: Game 'riddles' started!
+2026-03-26 19:54:09,106 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:54:09,106 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 203 checks
+2026-03-26 19:54:09,106 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=16 emotion=confused
+2026-03-26 19:54:41,157 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:54:41,157 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 204 checks
+2026-03-26 19:54:41,157 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:54:41,841 [INFO]   ✅ Rosalina done: 11/10 responses, avg_rt=20.2s, errors=0, duration=235s
+2026-03-26 19:54:41,841 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 19:54:49,013 [INFO]   👤 Toad (energetic) entering — will send 6 msgs
+2026-03-26 19:55:13,194 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:55:13,194 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 205 checks
+2026-03-26 19:55:13,194 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:55:39,770 [INFO]     💬 Toad: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (20.1s)
+2026-03-26 19:55:45,250 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:55:45,250 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 206 checks
+2026-03-26 19:55:45,250 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 19:55:54,323 [INFO]     💬 Toad: "Bowser told me you're scared of him" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (12.0s)
+2026-03-26 19:56:17,301 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:56:17,301 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 207 checks
+2026-03-26 19:56:17,301 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=6 emotion=excited
+2026-03-26 19:56:17,301 [INFO]     💬 Toad: "This party is kind of boring honestly" → "Let me think about that. WOOHOO, IT'S-A NOT BORING ENOUGH FOR MARIO YET!! How ca" (20.5s)
+2026-03-26 19:56:39,766 [INFO]     💬 Toad: "Sing me a song!" → "♪ Comet Observatory! So peaceful... so many stars... ♪" (19.9s)
+2026-03-26 19:56:49,356 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:56:49,356 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 208 checks
+2026-03-26 19:56:49,356 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=10 emotion=happy
+2026-03-26 19:57:09,788 [INFO]     💬 Toad: "Do you believe in ghosts?" → "Wahoo! Mama mia! OH, GHOSTS?! WOOHOO, MARIO BELIEVES IN-A ALL KIND OF SPIRITS AN" (27.5s)
+2026-03-26 19:57:21,416 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:57:21,416 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 209 checks
+2026-03-26 19:57:21,416 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=12 emotion=confused
+2026-03-26 19:57:39,816 [INFO]     💬 Toad: "What's your favorite food?" → "Hmm, let me think! OH BOY-O-GOING CRAZY OVER PASTA-WISE CHOICES!! You know what " (27.5s)
+2026-03-26 19:57:53,452 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:57:53,458 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 210 checks
+2026-03-26 19:57:53,458 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:58:01,773 [INFO]   ✅ Toad done: 8/7 responses, avg_rt=20.1s, errors=0, duration=193s
+2026-03-26 19:58:01,773 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 19:58:08,836 [INFO]   👤 NokiSurf (polite) entering — will send 4 msgs
+2026-03-26 19:58:25,502 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:58:25,502 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 211 checks
+2026-03-26 19:58:25,502 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 19:58:57,562 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:58:57,562 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 212 checks
+2026-03-26 19:58:57,562 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=2 emotion=mischievous
+2026-03-26 19:58:57,562 [INFO]     💬 NokiSurf: "Do you know any jokes?" → "What do you call a mushroom who's the life of the party? A fun-gi! Get it?!" (20.4s)
+2026-03-26 19:59:29,630 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 19:59:29,630 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 213 checks
+2026-03-26 19:59:29,638 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 19:59:29,638 [INFO]     💬 NokiSurf: "What's the weirdest thing a guest has said tonight" → "Fantastic! WOOOOWWWW, I gotta tell ya, this one guy came in and he was like..." (29.6s)
+2026-03-26 19:59:44,181 [INFO]     💬 NokiSurf: "What's behind that pipe over there?" → "Did someone say PIPE?! *examines nearest pipe* This is-a beautiful craftsmanship" (12.0s)
+2026-03-26 19:59:59,508 [INFO]     💬 NokiSurf: "What does a fire flower taste like?" → "FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't burn the" (12.8s)
+2026-03-26 20:00:01,714 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:00:01,714 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 214 checks
+2026-03-26 20:00:01,714 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=8 emotion=happy
+2026-03-26 20:00:21,512 [INFO]   ✅ NokiSurf done: 6/5 responses, avg_rt=17.3s, errors=0, duration=133s
+2026-03-26 20:00:21,512 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 20:00:29,992 [INFO]   👤 DiddyKong (energetic) entering — will send 6 msgs + game
+2026-03-26 20:00:33,776 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:00:33,776 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 215 checks
+2026-03-26 20:00:33,776 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:01:05,837 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:01:05,837 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 216 checks
+2026-03-26 20:01:05,837 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:01:22,436 [INFO]     💬 DiddyKong: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (20.9s)
+2026-03-26 20:01:37,876 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:01:37,876 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 217 checks
+2026-03-26 20:01:37,876 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=4 emotion=mischievous
+2026-03-26 20:01:52,430 [INFO]     💬 DiddyKong: "Do you believe in ghosts?" → "Let me think about that. OH BOO! GHOSTS?! WOOHOO! OF COURSE, I BELIEVE IN GHOooo" (27.5s)
+2026-03-26 20:02:09,943 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:02:09,943 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 218 checks
+2026-03-26 20:02:09,943 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=6 emotion=excited
+2026-03-26 20:02:22,414 [INFO]     💬 DiddyKong: "Are you having fun at the party?" → "Alrighty! WAAAAAAAHOOOO! THIS PARTY IS-A THE MOST FUN EVER! YOU'RE HAVING A GOOD" (27.5s)
+2026-03-26 20:02:36,950 [INFO]     💬 DiddyKong: "What does a fire flower taste like?" → "FIRE FLOWER! *shoots fireball* Pew pew! Watch out, I'm-a on FIRE! Don't burn the" (12.0s)
+2026-03-26 20:02:42,003 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:02:42,003 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 219 checks
+2026-03-26 20:02:42,003 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=8 emotion=excited
+2026-03-26 20:02:59,224 [INFO]     💬 DiddyKong: "Are you just a robot?" → "Hmm, let me think! ROBOT?! NAAAAAH-NAH NA-NANA-AH NO WAY JOSE! I'M MARIO!" (19.8s)
+2026-03-26 20:03:14,065 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:03:14,065 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 220 checks
+2026-03-26 20:03:14,065 [INFO]   ✅ Health: status=ok rt=3.4s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 20:03:22,415 [INFO]     💬 DiddyKong: "What's behind that pipe over there?" → "Did someone say PIPE?! *examines nearest pipe* This is-a beautiful craftsmanship" (20.7s)
+2026-03-26 20:03:36,961 [INFO]     🎮 DiddyKong: Game 'rock paper scissors' started!
+2026-03-26 20:03:46,121 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:03:46,121 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 221 checks
+2026-03-26 20:03:46,127 [INFO]   ✅ Health: status=ok rt=3.4s cache=53% responses=50 conv_len=16 emotion=excited
+2026-03-26 20:04:18,184 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:04:18,184 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 222 checks
+2026-03-26 20:04:18,184 [INFO]   ✅ Health: status=ok rt=3.4s cache=53% responses=50 conv_len=18 emotion=excited
+2026-03-26 20:04:50,248 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:04:50,248 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 223 checks
+2026-03-26 20:04:50,248 [INFO]   ✅ Health: status=ok rt=3.4s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:04:54,877 [INFO]   ✅ DiddyKong done: 12/11 responses, avg_rt=20.7s, errors=0, duration=265s
+2026-03-26 20:04:54,877 [INFO]   ✨ PERFECT CYCLE! Streak: 2/3
+2026-03-26 20:04:54,877 [INFO] 
+  ✅ Cycle 3 Summary:
+2026-03-26 20:04:54,877 [INFO]      Guests: 10
+2026-03-26 20:04:54,877 [INFO]      Messages: 87 sent, 97 received
+2026-03-26 20:04:54,877 [INFO]      Pass rate: 111.5%
+2026-03-26 20:04:54,877 [INFO]      Avg response time: 19.37s
+2026-03-26 20:04:54,877 [INFO]      Errors: 0
+2026-03-26 20:04:54,899 [INFO] 💾 Results saved to C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 20:04:54,899 [INFO]   🩺 Inter-cycle health check...
+2026-03-26 20:04:54,899 [INFO] 🔍 Pre-flight health check...
+2026-03-26 20:04:56,944 [INFO]   ✅ Server status=ok, cache=1295, emotion=happy
+2026-03-26 20:04:56,944 [INFO] 
+==================================================
+2026-03-26 20:04:56,944 [INFO] 🔄 RALPH CYCLE 4 (perfect streak: 2/3)
+2026-03-26 20:04:56,944 [INFO] ==================================================
+2026-03-26 20:04:56,944 [INFO] 
+🌊 Wave 1: 5 guests incoming
+2026-03-26 20:04:56,944 [INFO]   👤 Bowser (aggressive) entering — will send 6 msgs + game
+2026-03-26 20:05:22,311 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:05:22,311 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 224 checks
+2026-03-26 20:05:22,311 [INFO]   ✅ Health: status=ok rt=3.4s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:05:46,995 [INFO]     💬 Bowser: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (20.9s)
+2026-03-26 20:05:54,365 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:05:54,365 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 225 checks
+2026-03-26 20:05:54,365 [INFO]   ✅ Health: status=ok rt=3.2s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:06:17,010 [INFO]     💬 Bowser: "This party is kind of boring honestly" → "I'm-a ready! WOOOAH, WOOHOO! YOU THINK THIS PARTY IS BORING?! Mama mia, you must" (27.5s)
+2026-03-26 20:06:26,444 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:06:26,444 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 226 checks
+2026-03-26 20:06:26,444 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=6 emotion=proud
+2026-03-26 20:06:47,052 [INFO]     💬 Bowser: "What's your favorite food?" → "Alrighty, one moment! OH BOY, FOOD! IT'S-A MARIO FAVORITE TIME! I mean... PASTA!" (27.5s)
+2026-03-26 20:06:58,505 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:06:58,505 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 227 checks
+2026-03-26 20:06:58,505 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=8 emotion=proud
+2026-03-26 20:07:17,026 [INFO]     💬 Bowser: "You're not the real Mario, are you?" → "Hmm, let me think! WHOAH WHOAH WHOAH! YOU THINK I'M NOT THE REAL MARIO?! Mama mi" (27.5s)
+2026-03-26 20:07:30,551 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:07:30,551 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 228 checks
+2026-03-26 20:07:30,551 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=10 emotion=happy
+2026-03-26 20:07:34,570 [INFO]     💬 Bowser: "Sing me a song!" → "Bellissimo! ♪ Honeyhive Galaxy! Buzz buzz! Bee Mario! La la la! ♪ What's the mos" (15.0s)
+2026-03-26 20:07:57,614 [INFO]     💬 Bowser: "Can you say something actually funny?" → "Alrighty! OH HOHO, FUNNY TIME IS MARIO-TIME! Okay okay, why did Toad go to thera" (20.5s)
+2026-03-26 20:08:02,620 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:08:02,620 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 229 checks
+2026-03-26 20:08:02,620 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=14 emotion=mischievous
+2026-03-26 20:08:17,243 [INFO]     🎮 Bowser: Game 'riddles' started!
+2026-03-26 20:08:34,685 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:08:34,685 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 230 checks
+2026-03-26 20:08:34,685 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=16 emotion=happy
+2026-03-26 20:08:48,398 [INFO]   ✅ Bowser done: 10/9 responses, avg_rt=21.8s, errors=0, duration=231s
+2026-03-26 20:08:48,398 [INFO]   ⏳ Waiting 6s between guests...
+2026-03-26 20:08:54,607 [INFO]   👤 ToadBro (game-player) entering — will send 6 msgs + game
+2026-03-26 20:09:06,731 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:09:06,731 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 231 checks
+2026-03-26 20:09:06,731 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:09:38,786 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:09:38,786 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 232 checks
+2026-03-26 20:09:38,786 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=2 emotion=mischievous
+2026-03-26 20:09:44,625 [INFO]     💬 ToadBro: "Do you know any jokes?" → "Why does Bowser have such bad breath? Because he keeps eating fire flowers! Waho" (21.3s)
+2026-03-26 20:10:10,832 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:10:10,832 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 233 checks
+2026-03-26 20:10:10,832 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 20:10:14,835 [INFO]     💬 ToadBro: "Hey Mario! What's going on?" → "Super! Mama mia! OH BOY-OH BOY-IT'S-A A PARTY IN HERE!! Oh, yeah!" (27.7s)
+2026-03-26 20:10:29,380 [INFO]     💬 ToadBro: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (12.0s)
+2026-03-26 20:10:42,894 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:10:42,894 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 234 checks
+2026-03-26 20:10:42,894 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=8 emotion=mischievous
+2026-03-26 20:10:46,903 [INFO]     🎮 ToadBro: Game 'truth or dare' started!
+2026-03-26 20:11:14,950 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:11:14,950 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 235 checks
+2026-03-26 20:11:14,950 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:11:22,949 [INFO]   ✅ ToadBro done: 7/6 responses, avg_rt=18.6s, errors=0, duration=148s
+2026-03-26 20:11:22,949 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 20:11:30,718 [INFO]   👤 Toad (energetic) entering — will send 9 msgs
+2026-03-26 20:11:46,999 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:11:46,999 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 236 checks
+2026-03-26 20:11:46,999 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:12:19,060 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:12:19,060 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 237 checks
+2026-03-26 20:12:19,060 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=2 emotion=worried
+2026-03-26 20:12:19,060 [INFO]     💬 Toad: "Do you miss the old days of stomping goombas?" → "Here we go! "WOOOOWWWWWW!! Ahhh-aahh-MAAAAARIO misses those DAYS?!" (17.5s)
+2026-03-26 20:12:35,825 [INFO]     💬 Toad: "Do you know any jokes?" → "What's a plumber's favorite vegetable? A leek! And trust me, I know leeks!" (14.3s)
+2026-03-26 20:12:51,096 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:12:51,096 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 238 checks
+2026-03-26 20:12:51,096 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=6 emotion=confused
+2026-03-26 20:12:59,122 [INFO]     💬 Toad: "What's your opinion on pineapple pizza?" → "Here we go! Oh yeah! "OH MY MUSHROOMS!! PINEAPPLE ON PIZZA?! IT'S-A AN ABOMINATI" (20.8s)
+2026-03-26 20:13:21,015 [INFO]     💬 Toad: "How long have you been guarding this bathroom?" → "Wahoo! Let me-a check my notes! Tonight we've had 341 bathroom visits from 1 dif" (19.4s)
+2026-03-26 20:13:23,148 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:13:23,148 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 239 checks
+2026-03-26 20:13:23,148 [INFO]   ✅ Health: status=ok rt=3.5s cache=53% responses=50 conv_len=8 emotion=confused
+2026-03-26 20:13:37,864 [INFO]     💬 Toad: "Is it true you used to be a plumber?" → "People always ask me to fix their plumbing. I'm like, I fight DRAGONS! But sure," (14.3s)
+2026-03-26 20:13:52,417 [INFO]     💬 Toad: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (12.0s)
+2026-03-26 20:13:55,199 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:13:55,199 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 240 checks
+2026-03-26 20:13:55,199 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 20:14:21,048 [INFO]     💬 Toad: "Sing me a song!" → "♪ Wario's Gold Mine! Ka-ching ka-ching! Mine cart madness! ♪ How long have you b" (25.8s)
+2026-03-26 20:14:27,258 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:14:27,258 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 241 checks
+2026-03-26 20:14:27,258 [INFO]   ✅ Health: status=ok rt=3.6s cache=53% responses=50 conv_len=14 emotion=happy
+2026-03-26 20:14:52,215 [INFO]     💬 Toad: "Are you just a robot?" → "Alrighty! Bellissimo! Whoa, who-who-would think such-a thing?! Me, Mario, roboti" (28.7s)
+2026-03-26 20:14:59,315 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:14:59,317 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 242 checks
+2026-03-26 20:14:59,317 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=16 emotion=happy
+2026-03-26 20:15:21,047 [INFO]     💬 Toad: "Tell me about your adventures!" → "Fantastic! OH BOY-OH BOY! Let me tell ya, I've had some WILD RIDE-A experiences " (26.3s)
+2026-03-26 20:15:31,388 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:15:31,388 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 243 checks
+2026-03-26 20:15:31,388 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:15:36,750 [INFO]   ✅ Toad done: 11/10 responses, avg_rt=18.8s, errors=0, duration=246s
+2026-03-26 20:15:36,750 [INFO]   ⏳ Waiting 6s between guests...
+2026-03-26 20:15:43,035 [INFO]   👤 Wario (drunk) entering — will send 9 msgs
+2026-03-26 20:16:03,434 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:16:03,434 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 244 checks
+2026-03-26 20:16:03,434 [INFO]   ✅ Health: status=ok rt=3.8s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:16:35,476 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:16:35,476 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 245 checks
+2026-03-26 20:16:35,476 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:16:35,476 [INFO]     💬 Wario: "One more drink and I'll fight Bowser myself!" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (21.5s)
+2026-03-26 20:17:03,579 [INFO]     💬 Wario: "What's your favorite food?" → "Fantastic! OOH-OHO-HO! You're talking-a my language now, friendo!" (25.6s)
+2026-03-26 20:17:07,518 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:17:07,518 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 246 checks
+2026-03-26 20:17:07,518 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=4 emotion=confused
+2026-03-26 20:17:33,566 [INFO]     💬 Wario: "Do you know any jokes?" → "Why did the toilet paper roll down the hill? To get to the bottom! Classic!" (26.0s)
+2026-03-26 20:17:39,574 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:17:39,574 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 247 checks
+2026-03-26 20:17:39,574 [INFO]   ✅ Health: status=ok rt=3.7s cache=53% responses=50 conv_len=6 emotion=mischievous
+2026-03-26 20:18:03,564 [INFO]     💬 Wario: "I can't feel my legs hahaha" → "Super! Wow! HA-HA-HEH?! Oh no, amico, it's-a not that kind of humor..." (27.5s)
+2026-03-26 20:18:11,599 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:18:11,609 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 248 checks
+2026-03-26 20:18:11,609 [INFO]   ✅ Health: status=ok rt=4.0s cache=53% responses=50 conv_len=8 emotion=loving
+2026-03-26 20:18:33,568 [INFO]     💬 Wario: "Marioooo you're my best friendddd" → "Hmm, let me think! Oh yeah! WHOA-WHOA-WHOA! Best friends? Mama mia! That means s" (27.5s)
+2026-03-26 20:18:43,660 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:18:43,661 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 249 checks
+2026-03-26 20:18:43,661 [INFO]   ✅ Health: status=ok rt=3.9s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 20:18:48,136 [INFO]     💬 Wario: "Hey hey hey... you're a mushroom right?" → "A mushroom! *grows bigger* WAHOO! Super Mario! ...Wait, that was just a regular " (12.1s)
+2026-03-26 20:19:13,248 [INFO]     💬 Wario: "This party is AMAZINGGGG" → "Here we go! WOWZA! You think so too?! I'M-A SO GLAD YOU'RE HAVING FUN! I once sp" (22.6s)
+2026-03-26 20:19:15,735 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:19:15,735 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 250 checks
+2026-03-26 20:19:15,735 [INFO]   ✅ Health: status=ok rt=4.1s cache=53% responses=50 conv_len=14 emotion=loving
+2026-03-26 20:19:36,379 [INFO]     💬 Wario: "You know what... you're alright, Mario" → "I'm-a ready! OH-YEAH-OH YEAH OH YA-YA! That means the world to me-o!" (20.6s)
+2026-03-26 20:19:47,783 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:19:47,783 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 251 checks
+2026-03-26 20:19:47,783 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=18 emotion=excited
+2026-03-26 20:20:03,589 [INFO]     💬 Wario: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (24.7s)
+2026-03-26 20:20:19,832 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:20:19,832 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 252 checks
+2026-03-26 20:20:19,832 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:20:21,328 [INFO]   ✅ Wario done: 11/10 responses, avg_rt=21.7s, errors=0, duration=278s
+2026-03-26 20:20:21,328 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 20:20:28,554 [INFO]   👤 LakituCam (casual) entering — will send 6 msgs
+2026-03-26 20:20:51,886 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:20:51,886 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 253 checks
+2026-03-26 20:20:51,886 [INFO]   ✅ Health: status=ok rt=4.3s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:21:18,787 [INFO]     💬 LakituCam: "Tell me about your adventures!" → "Let me think about that. Wahoo! Oh boy, I've had some-a crazy adventures in the " (20.4s)
+2026-03-26 20:21:23,925 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:21:23,925 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 254 checks
+2026-03-26 20:21:23,925 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:21:48,788 [INFO]     💬 LakituCam: "Are you having fun at the party?" → "Super! WAHOOO! This party is CRAZY TOWN! It's like Bowser threw a bash and nobod" (27.5s)
+2026-03-26 20:21:55,979 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:21:55,979 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 255 checks
+2026-03-26 20:21:55,979 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=6 emotion=excited
+2026-03-26 20:22:04,392 [INFO]     💬 LakituCam: "What do you think about Bowser?" → "Okie dokie! Bowser?! Where?! *looks around nervously* Don't scare Mario like tha" (13.1s)
+2026-03-26 20:22:28,017 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:22:28,017 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 256 checks
+2026-03-26 20:22:28,017 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=8 emotion=confused
+2026-03-26 20:22:28,926 [INFO]     💬 LakituCam: "What's the craziest thing that happened today?" → "Wahoo! Mama mia! So, I was guarding this bathroom door and suddenly, a Koopa Tro" (22.0s)
+2026-03-26 20:22:51,352 [INFO]     💬 LakituCam: "What's your favorite food?" → "I'm-a ready! OOOHHH! PASTA-BALLS! No wait, FETTUCCINE AL FRESCO!" (19.9s)
+2026-03-26 20:23:00,050 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:23:00,050 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 257 checks
+2026-03-26 20:23:00,050 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=12 emotion=worried
+2026-03-26 20:23:18,774 [INFO]     💬 LakituCam: "Do you ever get lonely in here?" → "I'm-a ready! Ahhh, mama mia... Yeah, sometimes it gets a little quiet and I'm st" (24.9s)
+2026-03-26 20:23:32,085 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:23:32,085 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 258 checks
+2026-03-26 20:23:32,085 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:23:33,868 [INFO]   ✅ LakituCam done: 8/7 responses, avg_rt=19.5s, errors=0, duration=185s
+2026-03-26 20:24:04,143 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:24:04,143 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 259 checks
+2026-03-26 20:24:04,143 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:24:04,143 [INFO] 
+🌊 Wave 2: 5 guests incoming
+2026-03-26 20:24:04,143 [INFO]   👤 ProfGoom (intellectual) entering — will send 8 msgs
+2026-03-26 20:24:36,181 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:24:36,181 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 260 checks
+2026-03-26 20:24:36,181 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:24:54,627 [INFO]     💬 ProfGoom: "What color is Yoshi?" → "YOSHI! My best friend! Did you know Yoshi can eat ANYTHING? Don't test him at th" (21.6s)
+2026-03-26 20:25:08,241 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:25:08,241 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 261 checks
+2026-03-26 20:25:08,241 [INFO]   ✅ Health: status=ok rt=4.4s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 20:25:09,175 [INFO]     💬 ProfGoom: "Tell me about the Star Festival" → "A STAR?! *sparkles* I'm invincible! Da da da DA da da! ...For about 10 seconds!" (12.0s)
+2026-03-26 20:25:24,630 [INFO]     💬 ProfGoom: "How many coins for a 1-UP?" → "A COIN! *bling* Only 99 more and I get an extra life! Keep 'em coming!" (12.9s)
+2026-03-26 20:25:40,293 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:25:40,293 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 262 checks
+2026-03-26 20:25:40,293 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=8 emotion=confused
+2026-03-26 20:25:54,623 [INFO]     💬 ProfGoom: "What's Mario's full name?" → "That's-a good question! MAMA MIA! You want to know my FULL NAME?! It's-a... (dra" (27.5s)
+2026-03-26 20:26:12,361 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:26:12,361 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 263 checks
+2026-03-26 20:26:12,361 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=10 emotion=confused
+2026-03-26 20:26:24,637 [INFO]     💬 ProfGoom: "What happened at the last castle?" → "Let me think about that. OH NOOOO! The Koopa King Bowser kidnapped Princess Peac" (27.5s)
+2026-03-26 20:26:44,409 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:26:44,409 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 264 checks
+2026-03-26 20:26:44,409 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=12 emotion=confused
+2026-03-26 20:26:56,428 [INFO]     💬 ProfGoom: "What's the name of Mario's dinosaur friend?" → "Wahoo! WOOHOOO! You're talking about my buddy Yoshi! He's-a a Dinosaur, not just" (29.3s)
+2026-03-26 20:27:16,449 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:27:16,449 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 265 checks
+2026-03-26 20:27:16,449 [INFO]   ✅ Health: status=ok rt=4.7s cache=53% responses=50 conv_len=14 emotion=confused
+2026-03-26 20:27:28,970 [INFO]     💬 ProfGoom: "Hey Mario! What's going on?" → "Hmm, let me think! Wow! OH BOY-O-BEANS! EVERYTHING'S-A GOING ON! The party's jum" (30.0s)
+2026-03-26 20:27:48,495 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:27:48,495 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 266 checks
+2026-03-26 20:27:48,495 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=16 emotion=happy
+2026-03-26 20:27:56,511 [INFO]     💬 ProfGoom: "Sing me a song!" → "♪ Mario Paint! Click click click! Making art-a! ♪" (25.0s)
+2026-03-26 20:28:20,577 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:28:20,577 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 267 checks
+2026-03-26 20:28:20,577 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:28:20,577 [INFO]   ✅ ProfGoom done: 10/9 responses, avg_rt=22.7s, errors=0, duration=256s
+2026-03-26 20:28:20,577 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 20:28:27,653 [INFO]   👤 NokiSurf (polite) entering — will send 6 msgs + game
+2026-03-26 20:28:52,642 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:28:52,642 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 268 checks
+2026-03-26 20:28:52,642 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:29:17,272 [INFO]     💬 NokiSurf: "I'm having a really rough day, Mario" → "Super! WAAAAAAAHHHOOO! Oh nooo-a! Rough daaaay?! Mama mia! That's-a terrible new" (20.8s)
+2026-03-26 20:29:24,683 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:29:24,683 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 269 checks
+2026-03-26 20:29:24,683 [INFO]   ✅ Health: status=ok rt=4.8s cache=53% responses=50 conv_len=4 emotion=happy
+2026-03-26 20:29:33,140 [INFO]     💬 NokiSurf: "You always cheer me up!" → "You've got the confidence of a plumber with a golden wrench!" (13.4s)
+2026-03-26 20:29:56,724 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:29:56,724 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 270 checks
+2026-03-26 20:29:56,724 [INFO]   ✅ Health: status=ok rt=4.9s cache=53% responses=50 conv_len=6 emotion=loving
+2026-03-26 20:29:56,724 [INFO]     💬 NokiSurf: "This party is the best thing that happened to me t" → "Super! WOO-HOO-AH-TOO-CATASTROPHE! You're having an amazing time?" (21.1s)
+2026-03-26 20:30:17,274 [INFO]     💬 NokiSurf: "Do you know any jokes?" → "What did one toilet say to the other? You look flushed! Ba dum tss!" (18.0s)
+2026-03-26 20:30:28,788 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:30:28,788 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 271 checks
+2026-03-26 20:30:28,788 [INFO]   ✅ Health: status=ok rt=4.9s cache=53% responses=50 conv_len=10 emotion=excited
+2026-03-26 20:30:32,781 [INFO]     💬 NokiSurf: "What do you think about Bowser?" → "Bowser?! Where?! *looks around nervously* Don't scare Mario like that!" (13.0s)
+2026-03-26 20:30:47,336 [INFO]     💬 NokiSurf: "Is it true you used to be a plumber?" → "My plumbing credentials: Saved Princess Peach 47 times. Fixed zero toilets. But " (12.0s)
+2026-03-26 20:31:00,846 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:31:00,852 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 272 checks
+2026-03-26 20:31:00,852 [INFO]   ✅ Health: status=ok rt=4.7s cache=53% responses=50 conv_len=14 emotion=excited
+2026-03-26 20:31:04,853 [INFO]     🎮 NokiSurf: Game 'rock paper scissors' started!
+2026-03-26 20:31:32,910 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:31:32,910 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 273 checks
+2026-03-26 20:31:32,910 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:31:43,284 [INFO]   ✅ NokiSurf done: 10/9 responses, avg_rt=15.4s, errors=0, duration=196s
+2026-03-26 20:31:43,288 [INFO]   ⏳ Waiting 7s between guests...
+2026-03-26 20:31:50,554 [INFO]   👤 Bowser (aggressive) entering — will send 6 msgs + game
+2026-03-26 20:32:04,967 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:32:04,967 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 274 checks
+2026-03-26 20:32:04,967 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:32:37,020 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:32:37,020 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 275 checks
+2026-03-26 20:32:37,020 [INFO]   ✅ Health: status=ok rt=4.5s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:32:41,032 [INFO]     💬 Bowser: "This party is kind of boring honestly" → "Super! WAHOO! Boring?! No way-a, my friend! This party's got some serious mojo g" (21.3s)
+2026-03-26 20:33:09,074 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:33:09,074 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 276 checks
+2026-03-26 20:33:09,074 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 20:33:10,863 [INFO]     💬 Bowser: "You're not the real Mario, are you?" → "Fantastic! Mama mia! Of course I'm da REAL MARIO! Who else could guard this bath" (27.3s)
+2026-03-26 20:33:41,140 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:33:41,140 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 277 checks
+2026-03-26 20:33:41,140 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=6 emotion=confused
+2026-03-26 20:33:41,140 [INFO]     💬 Bowser: "Hey Mario! What's going on?" → "Alrighty! WAHOOO! EVERYTHING'S GOING ON, MY FRIEND! Party's poppin', people are " (27.8s)
+2026-03-26 20:33:55,680 [INFO]     💬 Bowser: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (12.0s)
+2026-03-26 20:34:13,191 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:34:13,191 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 278 checks
+2026-03-26 20:34:13,191 [INFO]   ✅ Health: status=ok rt=4.8s cache=53% responses=50 conv_len=10 emotion=confused
+2026-03-26 20:34:21,220 [INFO]     💬 Bowser: "What's your favorite food?" → "That's-a good question! OH, IT'S-A PASTA, OF COURSE! You can put anything on pas" (23.0s)
+2026-03-26 20:34:40,928 [INFO]     💬 Bowser: "Tell me about Princess Peach" → "Princess Peach! *sighs dreamily* She's-a so wonderful! Don't tell her I said tha" (17.2s)
+2026-03-26 20:34:45,258 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:34:45,258 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 279 checks
+2026-03-26 20:34:45,258 [INFO]   ✅ Health: status=ok rt=4.8s cache=53% responses=50 conv_len=12 emotion=excited
+2026-03-26 20:34:58,457 [INFO]     🎮 Bowser: Game '20 questions' started!
+2026-03-26 20:35:17,291 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:35:17,291 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 280 checks
+2026-03-26 20:35:17,291 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=16 emotion=mischievous
+2026-03-26 20:35:49,344 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:35:49,344 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 281 checks
+2026-03-26 20:35:49,344 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:36:02,899 [INFO]   ✅ Bowser done: 11/10 responses, avg_rt=20.3s, errors=0, duration=252s
+2026-03-26 20:36:02,899 [INFO]   ⏳ Waiting 9s between guests...
+2026-03-26 20:36:11,528 [INFO]   👤 ChainChomp (aggressive) entering — will send 3 msgs
+2026-03-26 20:36:21,408 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:36:21,408 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 282 checks
+2026-03-26 20:36:21,408 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:36:53,457 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:36:53,457 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 283 checks
+2026-03-26 20:36:53,457 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=2 emotion=excited
+2026-03-26 20:37:01,675 [INFO]     💬 ChainChomp: "I bet Luigi is better than you" → "Luigi! My brother! He's-a taller but I'm-a the famous one! Don't tell him I said" (20.6s)
+2026-03-26 20:37:25,497 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:37:25,497 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 284 checks
+2026-03-26 20:37:25,497 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=4 emotion=excited
+2026-03-26 20:37:33,525 [INFO]     💬 ChainChomp: "This party is kind of boring honestly" → "Alrighty! Boring?! WAHOO! You're telling me this party is BORING? Mama mia, we g" (29.3s)
+2026-03-26 20:37:57,583 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:37:57,583 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 285 checks
+2026-03-26 20:37:57,583 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=6 emotion=mischievous
+2026-03-26 20:38:01,685 [INFO]     💬 ChainChomp: "Do you know any jokes?" → "Yahoo! Why don't scientists trust atoms? Because they make up everything! Even p" (25.7s)
+2026-03-26 20:38:18,559 [INFO]   ✅ ChainChomp done: 5/4 responses, avg_rt=23.3s, errors=0, duration=127s
+2026-03-26 20:38:18,559 [INFO]   ⏳ Waiting 8s between guests...
+2026-03-26 20:38:26,686 [INFO]   👤 KoopaTroopa (nervous) entering — will send 3 msgs
+2026-03-26 20:38:29,632 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:38:29,632 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 286 checks
+2026-03-26 20:38:29,632 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:39:01,733 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:39:01,733 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 287 checks
+2026-03-26 20:39:01,733 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:39:17,779 [INFO]     💬 KoopaTroopa: "I wish every night was this fun" → "Super! "WOOHOOO!" Ahahahaha, you think THIS is FUN?!" (21.0s)
+2026-03-26 20:39:33,795 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:39:33,795 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 288 checks
+2026-03-26 20:39:33,795 [INFO]   ✅ Health: status=ok rt=4.6s cache=53% responses=50 conv_len=4 emotion=happy
+2026-03-26 20:39:33,795 [INFO]     💬 KoopaTroopa: "You always cheer me up!" → "You're-a so cool, you make-a my mustache curl!" (13.5s)
+2026-03-26 20:39:55,395 [INFO]     💬 KoopaTroopa: "What's your favorite food?" → "Alrighty, one moment! "Mama mia! You want to know what I love most in the world " (19.1s)
+2026-03-26 20:40:05,846 [WARNING] 🚨 ALERT [LOW_CACHE_HIT]: TTS cache hit rate 53% < 80.0%
+2026-03-26 20:40:05,846 [WARNING] 🚨 ALERT [STAGNANT_RESPONSES]: total_responses stuck at 50 for 289 checks
+2026-03-26 20:40:05,846 [INFO]   ✅ Health: status=ok rt=4.7s cache=53% responses=50 conv_len=0 emotion=happy
+2026-03-26 20:40:13,873 [INFO]   ✅ KoopaTroopa done: 5/4 responses, avg_rt=16.2s, errors=0, duration=107s
+2026-03-26 20:40:13,873 [INFO]   ✨ PERFECT CYCLE! Streak: 3/3
+2026-03-26 20:40:13,873 [INFO] 
+  ✅ Cycle 4 Summary:
+2026-03-26 20:40:13,873 [INFO]      Guests: 10
+2026-03-26 20:40:13,873 [INFO]      Messages: 78 sent, 88 received
+2026-03-26 20:40:13,873 [INFO]      Pass rate: 112.8%
+2026-03-26 20:40:13,873 [INFO]      Avg response time: 20.21s
+2026-03-26 20:40:13,873 [INFO]      Errors: 0
+2026-03-26 20:40:13,896 [INFO] 💾 Results saved to C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 20:40:13,922 [INFO] 💾 Results saved to C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 20:40:13,922 [INFO] 
+======================================================================
+2026-03-26 20:40:13,922 [INFO] 🏁 ENDURANCE TEST — FINAL REPORT
+2026-03-26 20:40:13,922 [INFO] ======================================================================
+2026-03-26 20:40:13,922 [INFO]   Duration:          2.58 hours (9304s)
+2026-03-26 20:40:13,922 [INFO]   Total guests:      44
+2026-03-26 20:40:13,922 [INFO]   Total messages:    345
+2026-03-26 20:40:13,922 [INFO]   Total responses:   385
+2026-03-26 20:40:13,922 [INFO]   Pass rate:         111.6%
+2026-03-26 20:40:13,922 [INFO] 
+  Response Times:
+2026-03-26 20:40:13,922 [INFO]     Average:  19.76s
+2026-03-26 20:40:13,922 [INFO]     Median:   21.19s
+2026-03-26 20:40:13,922 [INFO]     P95:      29.15s
+2026-03-26 20:40:13,922 [INFO]     Max:      40.17s
+2026-03-26 20:40:13,922 [INFO] 
+  Errors:            7
+2026-03-26 20:40:13,922 [INFO]     send_error: 3
+2026-03-26 20:40:13,928 [INFO]     empty_response: 2
+2026-03-26 20:40:13,928 [INFO]     game_not_started: 1
+2026-03-26 20:40:13,928 [INFO]     game_error: 1
+2026-03-26 20:40:13,928 [INFO] 
+  Games:             15 started, 15 completed
+2026-03-26 20:40:13,928 [INFO] 
+  Health Checks:     290/290 passed
+2026-03-26 20:40:13,928 [INFO]   Alerts:            611
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [SLOW_RESPONSE] Avg response time 5.2s > 5.0s
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [STAGNANT_RESPONSES] total_responses stuck at 50 for 3 checks
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [STAGNANT_RESPONSES] total_responses stuck at 50 for 4 checks
+2026-03-26 20:40:13,928 [INFO]     [LOW_CACHE_HIT] TTS cache hit rate 52% < 80.0%
+2026-03-26 20:40:13,928 [INFO]     [STAGNANT_RESPONSES] total_responses stuck at 50 for 5 checks
+2026-03-26 20:40:13,928 [INFO]     ... and 601 more
+2026-03-26 20:40:13,928 [INFO] 
+  Cycles:            4
+2026-03-26 20:40:13,928 [INFO]   Perfect cycles:    3/4
+2026-03-26 20:40:13,928 [INFO] 
+  Learnings (59):
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Sing me a song!" avg=20.2s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Tell me about Princess Peach" avg=17.4s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Do you know any jokes?" avg=21.1s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Hey Mario! What's going on?" avg=26.9s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "What's your favorite food?" avg=23.0s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "What's the craziest thing that happened today?" avg=24.3s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Is it true you used to be a plumber?" avg=12.9s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "I bet Luigi is better than you" avg=18.0s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "Marioooo you're my best friendddd" avg=23.6s
+2026-03-26 20:40:13,928 [INFO]     🐢 Slow msg: "How long have you been guarding this bathroom?" avg=19.9s
+2026-03-26 20:40:13,928 [INFO] 
+  Results: C:\Users\Vketh\Desktop\Mario_AI\endurance_results_20260326_183825.json
+2026-03-26 20:40:13,928 [INFO]   Log:     C:\Users\Vketh\Desktop\Mario_AI\stress_test_logs\endurance_20260326_180507.log
+2026-03-26 20:40:13,937 [INFO] ======================================================================
+2026-03-26 20:40:13,937 [INFO] ⚠️ VERDICT: FAIR — Some issues need attention
+2026-03-26 20:40:13,937 [INFO] 
+🏆 RALPH SUCCESS: 3 consecutive perfect cycles achieved!
