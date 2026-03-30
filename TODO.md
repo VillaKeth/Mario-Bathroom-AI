@@ -1,5 +1,17 @@
 # Mario AI — Task Tracking
 
+## TTS Preprocessing & Idle Variety (2026-03-30)
+- [x] TTS text preprocessing: strip musical notes (♪♫🎵), convert Italian -a tics, remove gibberish onomatopoeia, convert em-dashes
+- [x] Idle time comments expanded from 2 to 6-12 phrases per time slot with deduplication
+- [x] PANNs real audio testing: 1/8 freesound.org vomit files detected (fundamental limitation)
+- [x] TTS preprocessing unit tests (9 test cases passing)
+- [x] Server restarted and browser-tested with new preprocessing
+- [x] Committed and pushed to remote (710be1b)
+- [ ] Fix TTS cache key collision (case-insensitive .lower() makes "WAHOO!" and "wahoo!" share cache)
+- [ ] Add request-level isolation to prevent TTS race conditions
+- [ ] Improve PANNs vomit detection or accept text-based as sufficient
+- [ ] Create reusable stress test skill for repeated testing
+
 ## Comprehensive E2E Browser Test (2026-03-27)
 - [x] 40/45 tests PASSED across all categories (53+ min session, 107 audio clips)
 - [x] Entry/Exit: enter, leave, re-enter as different guest — all working
@@ -12,7 +24,7 @@
 - [x] Health panel: status/RT/cache/emotion all accurate and updating
 - [x] Rapid-fire: 5 messages in quick succession — all 5 responded, no crashes
 - [x] 53+ min uptime: server stable, status ok throughout
-- [ ] Minor: "Afternoon break!" idle message repeated too often (needs variety)
+- [x] Minor: "Afternoon break!" idle message repeated too often — FIXED: expanded to 6-12 per slot + dedup
 - [ ] Minor: Trivia not structured as interactive Q&A (just facts)
 - [x] Vomit comfort messages rewritten — deadpan/funny/caring tone (NOT corny)
 - [x] Recovery detection: "feeling better" clears sick mood with funny response
