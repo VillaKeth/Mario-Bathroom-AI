@@ -440,8 +440,11 @@ def handle_special_commands(
         )
 
     # Name learning — register voice when user says their name
-    if any(w in lower for w in ["my name is", "i'm called", "call me", "i am "]):
-        match = re.search(r"(?:my name is|i'm called|call me|i am)\s+([A-Za-z]+)", lower)
+    if any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
+        match = re.search(
+            r"(?:my name is|i'm called|call me|i am|i'm|it'?s|it is)\s+([A-Za-z]+)",
+            lower,
+        )
         if match:
             raw_name = match.group(1)
             # Filter out stop words that aren't names
