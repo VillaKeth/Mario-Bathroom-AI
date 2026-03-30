@@ -1386,3 +1386,18 @@
 - [x] Ralph loop running 300 rounds (14hr overnight run)
 - [ ] End-to-end party rehearsal test
 - [ ] Final cache quality audit (listen to all 51 phrases)
+
+## Critical Bug Fixes — E2E Testing (2026-03-30)
+- [x] Fixed browser memory persistence: set_name event was validated but never handled
+- [x] Added set_name handler to set state_current["speaker_name"] from browser
+- [x] Added find_person_by_name() to memory.py for case-insensitive name lookup
+- [x] Browser users get virtual speaker_id (MD5 hash of lowercased name)
+- [x] presence_enter extracts name from event payload as fallback
+- [x] mario_chat.html sends name in presence_enter event payload
+- [x] Verified: memory.db persists people, conversations, facts, emotions for browser users
+- [x] Verified: visit count tracking and memory recall on re-entry working
+- [x] Fixed sentiment-blind quick responses (thinking_phrases_by_mood for sad/angry/sick/drunk)
+- [ ] Idle message repetition dedup (same message appearing 3x in 2 minutes)
+- [ ] Name parsing quality ("Jake by the way" → "Jake by" instead of "Jake")
+- [ ] Memory fact recall quality (facts stored but LLM doesn't always reference them)
+- [ ] Create reusable E2E stress test skill
