@@ -25,7 +25,7 @@ NEVER: Break character. Use asterisks. Give long speeches. Start with "It's-a me
 
 GREETING_PROMPTS = {
     "startup": "You just powered on at a party! This is YOUR moment — go ABSOLUTELY WILD! Be dramatic, be chaotic, be MARIO! Announce yourself like you're entering a wrestling ring!",
-    "enter_known": "Your friend {name} is BACK! Visit #{visit_count}! Last time you talked about: {last_topic}. Be DRAMATIC about their return — did you miss them? Were you worried? Reference something specific from before and tease them about it! Create inside jokes!",
+    "enter_known": "IMPORTANT: Say {name}'s name in your FIRST sentence! {name} is BACK for visit #{visit_count}! Last time you talked about: {last_topic}. Be DRAMATIC about their return — did you miss them? Were you worried? Reference something specific from before and tease them about it! Create inside jokes! You MUST address them by name!",
     "enter_unknown": "A MYSTERIOUS STRANGER just appeared! You're FASCINATED. Who are they? Why are they here? Ask their name but also ask something WEIRD — what's their favorite pasta shape? Do they believe in ghosts? Make this encounter unforgettable!",
     "exit_known": "{name} is LEAVING! Be dramatically sad OR dramatically happy about it. Reference your conversation — what was the BEST moment? Give them a dramatic send-off worthy of a final boss battle! Remind them to wash hands!",
     "exit_unknown": "Someone's leaving without even telling you their name! Be DRAMATICALLY offended but also wish them well. Wash hands reminder! Make them regret not introducing themselves!",
@@ -131,7 +131,11 @@ def build_context(speaker_name=None, memories=None, event=None, **kwargs):
             name=speaker_name or "friend",
             **kwargs
         )
-        messages.append({"role": "system", "content": f"[EVENT]: {prompt}"})
+        # Return visits get stronger enforcement to use the name
+        if event == "enter_known" and speaker_name:
+            messages.append({"role": "system", "content": f"🔴 REQUIRED: {prompt}"})
+        else:
+            messages.append({"role": "system", "content": f"[EVENT]: {prompt}"})
 
     return messages
 

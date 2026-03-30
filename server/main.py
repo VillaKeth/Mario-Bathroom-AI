@@ -1863,13 +1863,43 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx.append({"role": "system", "content": conv_hint})
 
         # --- GOSSIP SYSTEM: Cross-visitor social dynamics ---
+        # Detect if user is explicitly asking about other guests/gossip
+        lower_text = text.lower() if text else ""
+        gossip_keywords = ("who was here", "who else", "anyone else", "other people",
+                           "other guest", "gossip", "tell me about", "who came",
+                           "who visited", "who's been", "what happened", "any drama",
+                           "what did they", "earlier tonight", "before me")
+        gossip_requested = any(kw in lower_text for kw in gossip_keywords)
+
         gossip_hints = party_gossip.get_gossip_for_guest(
             current_speaker_id=state_current.get("speaker_id"),
             current_name=state_current.get("speaker_name"),
-            count=1,
+            count=3 if gossip_requested else 1,
         )
-        if gossip_hints and random.random() < 0.35:
-            ctx.append({"role": "system", "content": f"[GOSSIP]: {gossip_hints[0]}"})
+        # Always inject gossip when explicitly requested, otherwise 35% chance
+        if gossip_hints and (gossip_requested or random.random() < 0.35):
+            gossip_ctx = " ".join(gossip_hints) if gossip_requested else gossip_hints[0]
+            ctx.append({"role": "system", "content": f"[GOSSIP]: {gossip_ctx}"})
+            if gossip_requested:
+                ctx.append({"role": "system", "content": "The guest is ASKING for gossip — give them ALL the juicy details! Share names, quotes, drama!"})
+
+        # Visitor list fallback — inject known guest names when gossip is requested
+        # This ensures Mario knows WHO was here even if no gossip entries exist
+        if gossip_requested:
+            known_names = party_gossip.get_known_guest_names(
+                exclude_id=state_current.get("speaker_id"))
+            # Also check party_stats for visitors not captured by gossip system
+            try:
+                all_visitors = party_stats.get_all_visitors()
+                stat_names = [v.get("name", "") for v in all_visitors
+                              if v.get("name") and
+                              v.get("name", "").lower() != (state_current.get("speaker_name") or "").lower()]
+                combined_names = list(set(known_names + stat_names))
+            except Exception:
+                combined_names = known_names
+            if combined_names:
+                ctx.append({"role": "system", "content":
+                    f"[VISITORS TONIGHT]: {', '.join(combined_names)}. Reference these people by name when sharing gossip!"})
 
         # Guest comparison — if they said something another guest also talked about
         comparison = party_gossip.get_comparison_hint(
@@ -2507,7 +2537,7 @@ async def handle_event(ws: WebSocket, event: dict):
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
             # Idle acknowledgment — reference what Mario was doing before they arrived
             last_idle = state_current.get("_last_idle_action", "")
-            if last_idle and not state_current.get("presence"):
+            if last_idle:
                 ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})

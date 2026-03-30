@@ -414,6 +414,11 @@ class PartyGossip:
         """How many unique guests have been tracked."""
         return len(set(g["speaker_id"] for g in self._gossip_log))
 
+    def get_known_guest_names(self, exclude_id: str = None) -> list[str]:
+        """Get names of all guests who have interacted (excluding current speaker)."""
+        return [name for gid, name in self._guest_names.items()
+                if gid != exclude_id and name]
+
     def get_gossip_count(self) -> int:
         """Total gossip entries collected."""
         return len(self._gossip_log)

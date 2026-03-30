@@ -440,7 +440,8 @@ def handle_special_commands(
         )
 
     # Name learning — register voice when user says their name
-    if any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
+    # Skip if we already know their name (prevents false positives from casual speech)
+    if not state.get("speaker_name") and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
         match = re.search(
             r"(?:my name is|i'm called|call me|i am|i'm|it'?s|it is)\s+([A-Za-z]+)",
             lower,
@@ -448,7 +449,11 @@ def handle_special_commands(
         if match:
             raw_name = match.group(1)
             # Filter out stop words that aren't names
-            stop_words = {"a", "the", "an", "not", "so", "just", "very", "really", "also", "here", "there", "like", "kinda"}
+            stop_words = {"a", "the", "an", "not", "so", "just", "very", "really",
+                          "also", "here", "there", "like", "kinda", "my", "your",
+                          "me", "that", "this", "what", "been", "about", "gonna",
+                          "great", "fine", "good", "bad", "nice", "cool", "true",
+                          "okay", "time", "all", "over", "done", "going", "getting"}
             if raw_name.lower() not in stop_words:
                 name = raw_name[:50].capitalize()
                 # Register this voice with the name
