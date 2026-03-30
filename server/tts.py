@@ -782,7 +782,7 @@ def precache_phrases():
         for phrase in priority_phrases:
             _rate = "+0%"
             _pitch = "+0Hz"
-            cache_key = f"{EDGE_VOICE}:{phrase.strip().lower()}:{_rate}:{_pitch}"
+            cache_key = f"{EDGE_VOICE}:{phrase.strip()}:{_rate}:{_pitch}"
             with _cache_lock:
                 if cache_key in _audio_cache and _is_disk_cached(cache_key):
                     continue
@@ -836,7 +836,7 @@ def _start_idle_precache():
 
             _rate = "+0%"
             _pitch = "+0Hz"
-            cache_key = f"{EDGE_VOICE}:{tts_text.strip().lower()}:{_rate}:{_pitch}"
+            cache_key = f"{EDGE_VOICE}:{tts_text.strip()}:{_rate}:{_pitch}"
             with _cache_lock:
                 if cache_key in _audio_cache:
                     skipped += 1
@@ -870,7 +870,7 @@ def get_cached(text: str, rate: str = None, pitch: str = None) -> bytes | None:
     """Fast cache-only lookup — no generation, no locks that block. Returns None on miss."""
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
-    cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
+    cache_key = f"{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
     return _audio_cache.get(cache_key)
 
 
@@ -891,7 +891,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # Check cache first for instant playback (key includes voice params)
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
-    cache_key = f"{EDGE_VOICE}:{text.strip().lower()}:{_rate}:{_pitch}"
+    cache_key = f"{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
     global _cache_hits, _cache_misses
     if not nocache:
         with _cache_lock:
