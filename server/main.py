@@ -1922,11 +1922,30 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently
         # These short phrases should be cache hits (instant)
-        thinking_phrases = [
+        thinking_phrases_by_mood = {
+            "sad": [
+                "Oh no...", "I hear you...", "That's-a tough...",
+                "Mama mia...", "Let me think...", "I'm-a listening...",
+            ],
+            "angry": [
+                "Whoa!", "Okay okay...", "I get it!", "Let me think...",
+                "Hold on-a sec!", "Mama mia...",
+            ],
+            "sick": [
+                "Oh no, hang in there!", "Breathe, breathe!", "I'm-a here!",
+                "Take it easy...", "Don't worry!", "One sec...",
+            ],
+            "drunk": [
+                "Haha okay!", "Whoa there!", "Let me think...",
+                "Interesting!", "Okay buddy!", "One moment-a!",
+            ],
+        }
+        detected_mood = state_current.get("_detected_mood")
+        thinking_phrases = thinking_phrases_by_mood.get(detected_mood, [
             "Let me think about that.", "Hmm, let me think!", "Alrighty, one moment!",
             "Wahoo!", "Here we go!", "Alrighty!", "That's-a good question!",
             "I'm-a ready!", "Super!", "Fantastic!",
-        ]
+        ])
         thinking_text = random.choice(thinking_phrases)
 
         async def _send_thinking_audio():
@@ -2396,6 +2415,11 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_gratitude()
 
         try:
+            # Extract name from event payload if not already set (browser fallback)
+            if state_current["speaker_name"] is None and event.get("name"):
+                state_current["speaker_name"] = event["name"].strip()
+                logger.info(f"[BROWSER_MEMORY] Got name from presence_enter payload: '{state_current['speaker_name']}'")
+
             # Try to identify by audio
             if event.get("audio"):
                 audio_data = base64.b64decode(event["audio"])
@@ -2404,6 +2428,21 @@ async def handle_event(ws: WebSocket, event: dict):
                     state_current["speaker_name"] = info["name"]
                     state_current["speaker_id"] = info["speaker_id"]
                     memory.record_visit(info["speaker_id"])
+
+            # Browser fallback: look up or create speaker_id by name if not identified by voice
+            if state_current["speaker_id"] is None and state_current["speaker_name"]:
+                person = memory.find_person_by_name(state_current["speaker_name"])
+                if person:
+                    state_current["speaker_id"] = person["id"]
+                    memory.record_visit(person["id"])
+                    logger.info(f"[BROWSER_MEMORY] Matched '{state_current['speaker_name']}' to speaker_id={person['id']} (visits={person['visit_count']})")
+                else:
+                    # Create a virtual speaker_id for browser users (name-based hash)
+                    import hashlib
+                    virtual_id = int(hashlib.md5(state_current["speaker_name"].lower().encode()).hexdigest()[:8], 16)
+                    state_current["speaker_id"] = virtual_id
+                    memory.register_person(virtual_id, state_current["speaker_name"])
+                    logger.info(f"[BROWSER_MEMORY] Created virtual speaker_id={virtual_id} for '{state_current['speaker_name']}'")
 
             # Record visit in party stats
             visit_id = party_stats.record_enter(
@@ -2682,6 +2721,12 @@ async def handle_event(ws: WebSocket, event: dict):
             except Exception as e:
                 logger.error(f"Registration celebration TTS failed: {e}")
                 await send_response(ws, celebrate, None, sound="oneup", emotion="excited")
+
+    elif event_type == "set_name":
+        name = event.get("name", "").strip()
+        if name:
+            state_current["speaker_name"] = name
+            logger.info(f"[BROWSER_MEMORY] set_name: '{name}'")
 
     elif event_type == "vad_start":
         state_current["is_speaking"] = True

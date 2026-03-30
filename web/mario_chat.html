@@ -850,7 +850,7 @@ function enterParty() {
   initAudioContext();
   const name = document.getElementById('guestName').value.trim() || 'Guest';
   ws.send(JSON.stringify({ type: 'set_name', name }));
-  ws.send(JSON.stringify({ type: 'presence_enter' }));
+  ws.send(JSON.stringify({ type: 'presence_enter', name }));
   isPresent = true;
   lastSendTime = Date.now();
   addSystemMsg(`🚪 ${name} entered the bathroom`);

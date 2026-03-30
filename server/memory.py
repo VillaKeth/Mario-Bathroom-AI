@@ -99,6 +99,25 @@ def register_person(speaker_id: int, name: str):
     conn.commit()
 
 
+def find_person_by_name(name: str) -> dict | None:
+    """Look up a person by name (case-insensitive). Returns dict with id, name, visit_count or None."""
+    if not name:
+        return None
+    try:
+        conn = _get_conn()
+        row = conn.execute(
+            "SELECT id, name, visit_count FROM people WHERE LOWER(name) = LOWER(?) ORDER BY last_seen DESC LIMIT 1",
+            (name,),
+        ).fetchone()
+        if row:
+            if DEBUG_MEMORY:
+                logger.info(f"[DEBUG_MEMORY] find_person_by_name: '{name}' -> id={row[0]} visits={row[2]}")
+            return {"id": row[0], "name": row[1], "visit_count": row[2]}
+    except Exception as e:
+        logger.error(f"find_person_by_name failed: {e}")
+    return None
+
+
 def record_visit(person_id: int):
     """Record that a person visited the bathroom."""
     if DEBUG_MEMORY:
