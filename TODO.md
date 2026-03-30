@@ -7,9 +7,9 @@
 - [x] TTS preprocessing unit tests (9 test cases passing)
 - [x] Server restarted and browser-tested with new preprocessing
 - [x] Committed and pushed to remote (710be1b)
-- [ ] Fix TTS cache key collision (case-insensitive .lower() makes "WAHOO!" and "wahoo!" share cache)
+- [x] Fix TTS cache key collision (case-insensitive .lower() makes "WAHOO!" and "wahoo!" share cache)
 - [ ] Add request-level isolation to prevent TTS race conditions
-- [ ] Improve PANNs vomit detection or accept text-based as sufficient
+- [x] Improve PANNs vomit detection — added spectral analysis: 8/8 detected, 0/5 false positives
 - [ ] Create reusable stress test skill for repeated testing
 
 ## Comprehensive E2E Browser Test (2026-03-27)
