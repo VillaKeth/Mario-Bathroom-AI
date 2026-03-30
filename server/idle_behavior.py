@@ -729,6 +729,8 @@ class IdleBehavior:
         self._used_trivia = set()
         self._recently_used = []  # Track last N choices to avoid repeats
         self._used_items = {}  # pool_name -> set of recently used items
+        self._global_recent = []  # Global dedup: tracks last 15 messages sent regardless of pool
+        self._last_time_comment_at = 0  # Cooldown for time-based comments
         # Per-category rotation tracking
         self._joke_index = random.randint(0, max(1, len(MARIO_JOKES)) - 1)
         self._trivia_index = random.randint(0, max(1, len(MARIO_TRIVIA)) - 1)
@@ -738,12 +740,14 @@ class IdleBehavior:
         self._hand_wash_index = random.randint(0, max(1, len(HAND_WASH_REMINDERS)) - 1)
 
     def _pick_unique(self, pool: list, pool_name: str = None) -> str:
-        """Pick a random item from pool, avoiding recent repeats."""
+        """Pick a random item from pool, avoiding recent repeats (per-pool + global)."""
         if not pool:
             return "..."
         if pool_name is None:
             # Legacy behavior for callers that don't pass pool_name
-            fresh = [o for o in pool if o not in self._recently_used]
+            fresh = [o for o in pool if o not in self._recently_used and o not in self._global_recent]
+            if not fresh:
+                fresh = [o for o in pool if o not in self._global_recent]
             if not fresh:
                 self._recently_used.clear()
                 fresh = pool
@@ -751,19 +755,31 @@ class IdleBehavior:
             self._recently_used.append(choice)
             if len(self._recently_used) > 25:
                 self._recently_used = self._recently_used[-25:]
+            self._global_recent.append(choice)
+            if len(self._global_recent) > 15:
+                self._global_recent = self._global_recent[-15:]
             return choice
         used = self._used_items.get(pool_name, set())
-        available = [item for item in pool if item not in used]
+        # Exclude both pool-used AND globally-recent items
+        available = [item for item in pool if item not in used and item not in self._global_recent]
+        if not available:
+            available = [item for item in pool if item not in used]
         if not available:
             self._used_items[pool_name] = set()
+            available = [item for item in pool if item not in self._global_recent]
+        if not available:
             available = pool
         choice = random.choice(available)
         if pool_name not in self._used_items:
             self._used_items[pool_name] = set()
         self._used_items[pool_name].add(choice)
-        # Reset when 60% of pool has been used
-        if len(self._used_items[pool_name]) >= len(pool) * 0.6:
+        # Reset when 90% of pool has been used (was 60%, too aggressive for small pools)
+        if len(self._used_items[pool_name]) >= len(pool) * 0.9:
             self._used_items[pool_name] = set()
+        # Track in global recent
+        self._global_recent.append(choice)
+        if len(self._global_recent) > 15:
+            self._global_recent = self._global_recent[-15:]
         return choice
 
     def get_idle_action(self) -> str:
@@ -1002,7 +1018,11 @@ class IdleBehavior:
         return random.choice(observations)
 
     def get_time_comment(self) -> str:
-        """Get a comment based on the current time of day, with deduplication."""
+        """Get a comment based on the current time of day, with deduplication and cooldown."""
+        # Enforce 90-second cooldown between time comments
+        now = time.time()
+        if now - self._last_time_comment_at < 90:
+            return None
         hour = datetime.now().hour
         if 0 <= hour < 4:
             pool = [
@@ -1077,7 +1097,9 @@ class IdleBehavior:
             ]
         else:
             return None
-        return self._pick_unique(pool, "time_comments")
+        result = self._pick_unique(pool, "time_comments")
+        self._last_time_comment_at = time.time()
+        return result
 
     def get_party_stage(self, party_minutes: float) -> str:
         """Get a comment about the current party stage."""

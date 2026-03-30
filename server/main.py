@@ -1139,7 +1139,7 @@ async def _idle_loop(ws: WebSocket):
                 state_current["_last_idle_action"] = action
         # Occasionally inject time-aware comments
         time_comment = idle_behavior.get_time_comment()
-        if time_comment and random.random() < 0.15:
+        if time_comment and random.random() < 0.08:
             action = time_comment
         if action:
             emotion_system.update()

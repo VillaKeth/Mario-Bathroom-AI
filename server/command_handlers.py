@@ -441,20 +441,24 @@ def handle_special_commands(
 
     # Name learning — register voice when user says their name
     if any(w in lower for w in ["my name is", "i'm called", "call me", "i am "]):
-        match = re.search(r"(?:my name is|i'm called|call me|i am)\s+([A-Za-z]+(?:\s[A-Za-z]+)?)", lower)
+        match = re.search(r"(?:my name is|i'm called|call me|i am)\s+([A-Za-z]+)", lower)
         if match:
-            name = match.group(1)[:50].capitalize()  # Cap at 50 chars
-            # Register this voice with the name
-            if state.get("_last_audio_chunk"):
-                new_id = speaker_id.register_speaker(name, state["_last_audio_chunk"])
-                memory_module.register_person(new_id, name)
-                state["speaker_name"] = name
-                state["speaker_id"] = new_id
-                emotion_system.current = "excited"
-                return f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice from now on! Let's-a go!"
-            else:
-                state["speaker_name"] = name
-                return f"Nice to meet-a you, {name}! Wahoo! I'll remember you!"
+            raw_name = match.group(1)
+            # Filter out stop words that aren't names
+            stop_words = {"a", "the", "an", "not", "so", "just", "very", "really", "also", "here", "there", "like", "kinda"}
+            if raw_name.lower() not in stop_words:
+                name = raw_name[:50].capitalize()
+                # Register this voice with the name
+                if state.get("_last_audio_chunk"):
+                    new_id = speaker_id.register_speaker(name, state["_last_audio_chunk"])
+                    memory_module.register_person(new_id, name)
+                    state["speaker_name"] = name
+                    state["speaker_id"] = new_id
+                    emotion_system.current = "excited"
+                    return f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice from now on! Let's-a go!"
+                else:
+                    state["speaker_name"] = name
+                    return f"Nice to meet-a you, {name}! Wahoo! I'll remember you!"
 
     # What time is it
     if any(w in lower for w in ["what time", "how late"]):
