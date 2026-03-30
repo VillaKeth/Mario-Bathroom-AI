@@ -1,5 +1,31 @@
 # Mario AI — Task Tracking
 
+## Hardware Auto-Detection & Performance Optimization (2026-03-30)
+- [x] Created server/hardware.py — auto-detects CPU cores, RAM, GPU VRAM
+- [x] Performance tiers: ultra (Threadripper+3090Ti), high, medium, low
+- [x] Config values set to "auto" resolve to hardware-appropriate defaults
+- [x] TTS workers scaled by tier (1/2/4/8 threads)
+- [x] TTS concurrency scaled by tier (1/1/2/4 simultaneous)
+- [x] GPU idle threshold scaled (3.0s/2.0s/1.0s/0.5s)
+- [x] Precache pause scaled (2.0s/1.5s/1.0s/0.5s)
+- [x] Background task limit scaled (10/15/25/50)
+- [x] LLM num_predict scaled (25/30/40/50 tokens)
+- [x] Conversation history scaled (28/40/60/100 messages)
+- [x] In-memory cache size scaled (100/200/300/500 entries)
+- [x] STT model auto-selects: base/base/medium/large-v3
+- [x] Health endpoint shows hardware info + performance tier
+- [x] All settings overridable via config.json (set explicit values instead of "auto")
+
+## Remote Access / Tailscale Support (2026-03-30)
+- [x] mario_chat.html: dynamic WebSocket URL via location.host
+- [x] leaderboard.html: dynamic API URL via location.host
+- [x] tts_test.html: dynamic server URL via location.host
+- [x] tts_cache_preview.html: dynamic server URL via location.host
+- [x] Zero hardcoded localhost references in web/ files
+- [x] Server already binds to 0.0.0.0 (all interfaces)
+- [x] CORS fully open for cross-origin access
+- [ ] Document Tailscale setup instructions for party day
+
 ## TTS Preprocessing & Idle Variety (2026-03-30)
 - [x] TTS text preprocessing: strip musical notes (♪♫🎵), convert Italian -a tics, remove gibberish onomatopoeia, convert em-dashes
 - [x] Idle time comments expanded from 2 to 6-12 phrases per time slot with deduplication

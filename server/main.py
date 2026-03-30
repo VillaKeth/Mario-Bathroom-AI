@@ -33,6 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 import stt
 import tts
 import llm
+import hardware
 import speaker_id
 import memory
 import mario_prompt
@@ -59,9 +60,22 @@ else:
     logger.warning(f"Config not found at {CONFIG_PATH} — using defaults")
 server_config = config.get("server", {})
 
+# Hardware auto-detection for performance tuning
+hw_info = hardware.get_hardware()
+_perf_tier = hardware.get_tier()
+
 DEBUG_SERVER = os.environ.get("DEBUG_MODE", "").lower() == "true" or server_config.get("debug_server", True)
 DEBUG_STREAM = server_config.get("debug_tts", True)
 TTS_STREAMING_ENABLED = server_config.get("tts_streaming", True)
+
+# Performance settings (auto-detected from hardware when set to "auto")
+_PERF = {
+    "tts_workers": hardware.resolve("tts_workers", server_config.get("tts_workers", "auto")),
+    "tts_concurrency": hardware.resolve("tts_concurrency", server_config.get("tts_concurrency", "auto")),
+    "max_background_tasks": hardware.resolve("max_background_tasks", server_config.get("max_background_tasks", "auto")),
+    "conversation_history_limit": hardware.resolve("conversation_history_limit", server_config.get("conversation_history_limit", "auto")),
+}
+hardware.log_resolved_settings(_PERF)
 
 # Game configuration from config.json (with defaults)
 GAME_CONFIG = {
@@ -71,7 +85,7 @@ GAME_CONFIG = {
     "riddle_max_attempts": server_config.get("game_max_attempts_riddle", 5),
     "word_chain_max_rounds": server_config.get("game_max_rounds_word_chain", 10),
     "rapid_fire_max_rounds": server_config.get("game_max_rounds_rapid_fire", 15),
-    "conversation_history_limit": server_config.get("conversation_history_limit", 28),
+    "conversation_history_limit": _PERF["conversation_history_limit"],
     "command_cooldown": server_config.get("command_cooldown_seconds", 1.0),
     "text_input_cooldown": server_config.get("text_input_cooldown_seconds", 2.0),
     "llm_timeout": server_config.get("llm_timeout_seconds", 30),
@@ -176,12 +190,12 @@ state_current = {
     "_last_idle_action": None,  # What Mario was doing before someone entered
 }
 
-# Dedicated single-thread executor for TTS (prevents GPU contention)
-_tts_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tts")
+# Dedicated executor for TTS (scaled by hardware auto-detection)
+_tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
 
 # Background task limiter (prevents unbounded memory growth from fact extraction)
 _bg_tasks: set = set()
-MAX_BG_TASKS = 10
+MAX_BG_TASKS = _PERF["max_background_tasks"]
 
 # Idle loop error backoff counter
 _idle_error_count = 0
@@ -211,8 +225,14 @@ async def lifespan(app: FastAPI):
     logger.info("=== Mario AI Server Starting ===")
 
     logger.info("Loading speech-to-text model...")
+    _stt_model = server_config.get("stt_model_size", "base")
+    if _stt_model == "auto":
+        # Auto-detect: use larger model on powerful hardware
+        _tier = hardware.get_tier()
+        _stt_model = {"ultra": "large-v3", "high": "medium", "medium": "base", "low": "base"}.get(_tier, "base")
+        logger.info(f"[HARDWARE] STT model auto-selected: {_stt_model} (tier={_tier})")
     stt.init_model(
-        model_size=server_config.get("stt_model_size", "base"),
+        model_size=_stt_model,
         device=server_config.get("stt_device", "auto"),
     )
 
@@ -299,6 +319,9 @@ async def health():
         "last_timing": state_current.get("_last_timing", {}),
         "gossip_entries": party_gossip.get_gossip_count(),
         "gossip_guests": party_gossip.get_guest_count(),
+        "hardware": hardware.get_hardware(),
+        "performance_tier": hardware.get_tier(),
+        "perf_settings": _PERF,
     }
 
 
@@ -612,7 +635,7 @@ async def admin_announce(request_body: dict = {}):
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
-_tts_semaphore = asyncio.Semaphore(1)  # Only 1 TTS request at a time
+_tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")
 async def tts_endpoint(text: str = "", nocache: bool = False):

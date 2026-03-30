@@ -28,6 +28,7 @@ import soundfile as sf
 from scipy import signal as scipy_signal
 from scipy.io import wavfile
 from contextlib import nullcontext
+import hardware
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ _sovits_worker_thread = None  # Single worker consuming from queue
 _gpu_busy = threading.Event()  # Set = GPU free, Clear = GPU busy
 _gpu_busy.set()  # Start as free
 _last_synth_time = 0.0  # Timestamp of last Edge+RVC synthesis completion
-_GPU_IDLE_THRESHOLD = 3.0  # Seconds of idle before bg worker can use GPU
+# _GPU_IDLE_THRESHOLD set above via hardware.resolve()
 
 # Precache state — allows user requests to preempt precache
 _precache_done = threading.Event()  # Set when precache completes
@@ -125,6 +126,7 @@ SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_serve
 _tts_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 _tts_config_fast = True
 _tts_mode = "hybrid"
+_tts_cfg = {}
 if os.path.exists(_tts_config_path):
     try:
         import json as _json
@@ -136,6 +138,12 @@ if os.path.exists(_tts_config_path):
         pass
 FAST_MODE = _tts_config_fast
 TTS_MODE = _tts_mode  # "hybrid", "sovits", "edge", or "xtts"
+
+# Hardware-aware performance settings
+_GPU_IDLE_THRESHOLD = hardware.resolve("gpu_idle_threshold", _tts_cfg.get("gpu_idle_threshold", "auto"))
+_PRECACHE_PAUSE = hardware.resolve("precache_pause_seconds", _tts_cfg.get("precache_pause_seconds", "auto"))
+_MAX_CACHE = hardware.resolve("max_cache_memory", _tts_cfg.get("max_cache_memory", "auto"))
+logger.info(f"[TTS] Performance: gpu_idle={_GPU_IDLE_THRESHOLD}s, precache_pause={_PRECACHE_PAUSE}s, max_cache={_MAX_CACHE}")
 
 # --- XTTS inference params (defaults — natural sounding) ---
 XTTS_TEMPERATURE = 0.65
@@ -153,7 +161,7 @@ PITCH_OFFSET = "+0Hz"
 # --- Audio cache for instant playback (LRU with max entries) ---
 _audio_cache = {}
 _cache_order = []
-MAX_CACHE_SIZE = 200
+MAX_CACHE_SIZE = _MAX_CACHE
 _cache_hits = 0
 _cache_misses = 0
 _rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
@@ -759,7 +767,7 @@ def precache_phrases():
     # Retry failed phrases once after a brief delay
     if failed:
         logger.info(f"[DEBUG_TTS] precache: retrying {len(failed)} failed phrases...")
-        time.sleep(2)
+        time.sleep(_PRECACHE_PAUSE)
         for phrase in failed:
             if _user_tts_waiting.is_set():
                 while _user_tts_waiting.is_set():
@@ -857,8 +865,8 @@ def _start_idle_precache():
                     logger.warning(f"[DEBUG_TTS] idle_precache: {consecutive_fails} consecutive failures, waiting 30s...")
                     time.sleep(30)
 
-            # Pause between phrases to avoid GPU monopoly
-            time.sleep(2.0)
+            # Pause between phrases (scaled by hardware tier)
+            time.sleep(_PRECACHE_PAUSE)
 
         logger.info(f"[DEBUG_TTS] idle_precache: DONE — {cached_count} generated, {skipped} already cached/skipped")
 

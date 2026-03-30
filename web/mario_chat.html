@@ -661,13 +661,16 @@ function initAudioContext() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
+const _wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const _wsUrl = `${_wsProto}//${location.host}/ws`;
+
 function connect() {
   const dot = document.getElementById('statusDot');
   const status = document.getElementById('connStatus');
   dot.className = 'status-dot connecting';
   status.textContent = 'Connecting...';
 
-  ws = new WebSocket('ws://localhost:8765/ws');
+  ws = new WebSocket(_wsUrl);
   ws.binaryType = 'arraybuffer';
 
   ws.onopen = () => {

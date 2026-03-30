@@ -11,6 +11,7 @@ import os
 import random
 import re
 import time
+import hardware
 
 DEBUG_LLM = True
 logger = logging.getLogger(__name__)
@@ -27,6 +28,8 @@ OLLAMA_URL = "http://localhost:11434"
 MODEL_NAME = _config.get("llm_model", "llama3")
 MODEL_FALLBACK = "qwen2:1.5b"
 LLM_TIMEOUT = float(_config.get("llm_timeout_seconds", 30))
+LLM_NUM_PREDICT = hardware.resolve("llm_num_predict", _config.get("llm_num_predict", "auto"))
+logger.info(f"[LLM] num_predict={LLM_NUM_PREDICT} (hardware tier: {hardware.get_tier()})")
 
 _warmup_task = None
 
@@ -179,7 +182,7 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
         "options": {
             "temperature": round(temp, 2),
             "top_p": 0.9,
-            "num_predict": 30,
+            "num_predict": LLM_NUM_PREDICT,
             "repeat_penalty": 1.3,
             "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
         },
