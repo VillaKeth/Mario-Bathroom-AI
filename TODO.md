@@ -1397,7 +1397,10 @@
 - [x] Verified: memory.db persists people, conversations, facts, emotions for browser users
 - [x] Verified: visit count tracking and memory recall on re-entry working
 - [x] Fixed sentiment-blind quick responses (thinking_phrases_by_mood for sad/angry/sick/drunk)
-- [ ] Idle message repetition dedup (same message appearing 3x in 2 minutes)
-- [ ] Name parsing quality ("Jake by the way" → "Jake by" instead of "Jake")
-- [ ] Memory fact recall quality (facts stored but LLM doesn't always reference them)
-- [ ] Create reusable E2E stress test skill
+- [x] Idle message repetition dedup: global tracking (last 15), 90s time comment cooldown, 8% injection rate
+- [x] Name parsing: single-word regex + stop words + added "it's [name]" and "I'm [name]" patterns
+- [x] Memory fact recall: memories[:3] → [:10] so facts reach LLM prompt
+- [x] Created E2E party guest test suite (tests/e2e_party_guest_test.py)
+- [x] E2E test: 11 suites, 53 checks, --quick/--ralph/--feature modes
+- [x] Created superpowers skill (mario-e2e-test) for easy reuse
+- [x] E2E result: 50/53 (94%), 0 critical failures, 9/11 features at 100%
