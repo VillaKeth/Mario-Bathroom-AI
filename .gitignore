@@ -86,3 +86,7 @@ client/assets/variants
 config.json
 
 quadrant.db/
+
+# Test audio files (freesound.org downloads)
+tests/*.wav
+tests/*.mp3

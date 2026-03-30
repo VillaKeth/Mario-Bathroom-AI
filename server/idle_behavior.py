@@ -1002,45 +1002,82 @@ class IdleBehavior:
         return random.choice(observations)
 
     def get_time_comment(self) -> str:
-        """Get a comment based on the current time of day."""
+        """Get a comment based on the current time of day, with deduplication."""
         hour = datetime.now().hour
         if 0 <= hour < 4:
-            return random.choice([
+            pool = [
                 "Mama mia, it's-a so late! The party animals are still going!",
                 "It's-a past midnight! Mario needs his beauty sleep... but duty calls!",
                 "So late at night! Only the bravest use the bathroom at this hour!",
-            ])
+                "The stars are out! Just like in Rainbow Road!",
+                "Midnight bathroom crew! You're all legends!",
+                "Even Bowser is asleep by now! But not Mario!",
+                "Late night bathroom vibes hit different, am I right?",
+                "Three AM party people are the real MVPs!",
+            ]
         elif 4 <= hour < 7:
-            return random.choice([
+            pool = [
                 "Is that... the sun coming up?! This party is-a legendary!",
                 "Almost morning! You're-a still here? Impressive dedication!",
-            ])
+                "The early bird catches the mushroom! Or something like that!",
+                "Dawn patrol! The bathroom looks magical at sunrise!",
+                "I can hear the birds! They sound like the music from Yoshi's Island!",
+                "Who's up this early? Champions, that's who!",
+            ]
         elif 7 <= hour < 12:
-            return random.choice([
+            pool = [
                 "Morning bathroom visit! A great way to start-a the day!",
                 "Good morning! Hope you slept-a well! Wahoo!",
-            ])
+                "Morning already? Time flies when you're having fun in the bathroom!",
+                "Good morning! Wait, are we still partying or is this a new party? Either way, WAHOO!",
+                "Rise and shine! Mario's been guarding this bathroom all-a night!",
+                "Breakfast of champions: mushrooms! But not the bathroom kind!",
+                "Who needs coffee when you've got star power? WAHOO!",
+                "The morning light through the bathroom window is-a beautiful!",
+                "Fun fact! Mario wakes up at 6 AM every day! Pipe maintenance never sleeps!",
+                "Ah, the morning crowd! The bathroom is-a ready for you!",
+                "Top of the morning! That's what Toad says, right?",
+                "A new day, a new adventure! Even if it starts in the bathroom!",
+            ]
         elif 12 <= hour < 14:
-            return random.choice([
+            pool = [
                 "Lunchtime bathroom break! Classic-a move!",
                 "It's-a noon! The bathroom sees peak traffic at this hour!",
-            ])
+                "Lunch hour! Did someone mention mushroom soup?",
+                "High noon! This is like a showdown, but with plumbing!",
+                "Midday check-in! How's the party going out there?",
+                "Lunch break! Even heroes need to refuel!",
+            ]
         elif 14 <= hour < 17:
-            return random.choice([
+            pool = [
                 "Afternoon break! Good-a time to recharge!",
                 "Afternoon already! Time flies-a when you're having fun!",
-            ])
+                "The afternoon slump? Not on Mario's watch! WAHOO!",
+                "Halfway through the day! Or halfway to another party!",
+                "Afternoon vibes! The bathroom is perfectly climate-controlled!",
+                "This is peak relaxation hour! Even the pipes are chill!",
+            ]
         elif 17 <= hour < 20:
-            return random.choice([
+            pool = [
                 "Early evening! The party is about to start! Or is it already going?",
                 "Sunset bathroom visit! The golden hour is-a upon us!",
-            ])
+                "Evening is here! The best parties happen after dark!",
+                "Dinner time! But first, bathroom time!",
+                "The evening shift begins! Mario is refreshed and ready!",
+                "Golden hour lighting in the bathroom! Instagram worthy!",
+            ]
         elif 20 <= hour <= 23:
-            return random.choice([
+            pool = [
                 "The party is-a in full swing! What a night!",
                 "Evening bathroom visits are-a the best! The lighting is so dramatic!",
-            ])
-        return None
+                "Night time! The real party people are arriving now!",
+                "This is prime party hour! The bathroom is buzzing!",
+                "Late night energy! Mushroom Kingdom never sleeps, and neither does Mario!",
+                "The dance floor is calling! But first, bathroom break!",
+            ]
+        else:
+            return None
+        return self._pick_unique(pool, "time_comments")
 
     def get_party_stage(self, party_minutes: float) -> str:
         """Get a comment about the current party stage."""

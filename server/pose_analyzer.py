@@ -559,6 +559,23 @@ def analyze_text(text: str) -> dict:
     # TTS-safe cleanup: collapse repeated characters that cause letter-by-letter speech
     tts_text = re.sub(r'(.)\1{2,}', r'\1\1', tts_text)
 
+    # Strip musical notes and special symbols TTS can't pronounce
+    tts_text = tts_text.replace('♪', '').replace('♫', '').replace('🎵', '')
+    tts_text = re.sub(r'\s+', ' ', tts_text).strip()
+
+    # Strip gibberish onomatopoeia patterns (caps/mixed with 3+ hyphens like WHA-LOL-WHOA-OHH)
+    tts_text = re.sub(r'\b[A-Za-z]+(?:-[A-Za-z]+){3,}\b', '', tts_text)
+    # Clean up leftover punctuation from removed gibberish
+    tts_text = re.sub(r'\s*!\s*!', '!', tts_text)
+    tts_text = re.sub(r'\s+', ' ', tts_text).strip()
+
+    # Convert Italian "-a" accent tics to flow naturally in TTS
+    # "It's-a me" → "It'sa me", "start-a the" → "starta the"
+    tts_text = re.sub(r"(\w)-a\b", r"\1a", tts_text)
+
+    # Remove em-dashes and long dashes that cause TTS pauses
+    tts_text = tts_text.replace('—', ', ').replace('–', ', ')
+
     # Find pose hint from actions first (highest priority)
     pose_hint = None
     if actions:
