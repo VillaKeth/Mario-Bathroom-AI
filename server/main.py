@@ -14,6 +14,7 @@ Handles all heavy AI processing:
 
 import asyncio
 import base64
+import gc
 import json
 import logging
 import os
@@ -27,7 +28,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from contextlib import asynccontextmanager
-from collections import deque
+from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
 import stt
@@ -51,9 +52,23 @@ import audio_distress
 from party_gossip import PartyGossip
 from llm_router import LLMRouter, RoutingDecision
 from night_progression import NightProgression, Phase
+from dashboard import router as dashboard_router, init_dashboard
+from watchdog import DegradationTier
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
+
+# Server start time for uptime tracking
+_SERVER_START_TIME = time.time()
+
+# Current degradation tier (updated by health checks)
+_degradation_tier = DegradationTier.FULL
+
+# Error counter for health reporting
+_error_count = 0
+
+# TTS cache cap for memory leak prevention
+TTS_CACHE_MAX = 2000
 
 # Load config
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
@@ -238,6 +253,60 @@ async def _llm_keepalive():
             pass  # Non-critical, just keepalive
 
 
+async def _memory_maintenance_loop():
+    """Periodic memory leak prevention: gc.collect, WAL checkpoint, TTS cache LRU eviction."""
+    _gc_interval = 600       # 10 minutes
+    _wal_interval = 1800     # 30 minutes
+    _last_gc = time.time()
+    _last_wal = time.time()
+
+    while True:
+        try:
+            await asyncio.sleep(60)  # Check every minute
+            now = time.time()
+
+            # gc.collect every 10 minutes
+            if now - _last_gc >= _gc_interval:
+                collected = gc.collect()
+                try:
+                    rss = _get_rss_mb()
+                except Exception:
+                    rss = 0
+                logger.info("[MEMORY] gc.collect() freed %d objects, RSS=%.0fMB", collected, rss)
+                _last_gc = now
+
+            # SQLite WAL checkpoint every 30 minutes
+            if now - _last_wal >= _wal_interval:
+                try:
+                    import sqlite3
+                    db_path = party_stats._db_path()
+                    with sqlite3.connect(db_path) as conn:
+                        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    logger.info("[MEMORY] SQLite WAL checkpoint completed")
+                except Exception as e:
+                    logger.warning("[MEMORY] WAL checkpoint failed: %s", e)
+                _last_wal = now
+
+            # TTS cache LRU eviction when over cap
+            try:
+                cache = tts._audio_cache
+                if len(cache) > TTS_CACHE_MAX:
+                    excess = len(cache) - TTS_CACHE_MAX
+                    # Evict oldest entries (dict preserves insertion order in Python 3.7+)
+                    keys_to_evict = list(cache.keys())[:excess]
+                    for k in keys_to_evict:
+                        cache.pop(k, None)
+                    logger.info("[MEMORY] Evicted %d TTS cache entries (was %d, cap %d)",
+                                excess, excess + len(cache), TTS_CACHE_MAX)
+            except Exception as e:
+                logger.warning("[MEMORY] TTS cache eviction failed: %s", e)
+
+        except asyncio.CancelledError:
+            return
+        except Exception as e:
+            logger.warning("[MEMORY] Maintenance loop error: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize all AI models on startup."""
@@ -389,9 +458,14 @@ async def lifespan(app: FastAPI):
     _keepalive_task = asyncio.create_task(_llm_keepalive())
     logger.info("Started LLM keepalive ping (every 4min, keep_alive=30m)")
 
+    # Memory leak prevention tasks
+    _memory_task = asyncio.create_task(_memory_maintenance_loop())
+    logger.info("Started memory maintenance loop (gc every 10min, WAL every 30min, cache cap=%d)", TTS_CACHE_MAX)
+
     logger.info("=== Mario AI Server Ready! Let's-a go! ===")
     yield
     _keepalive_task.cancel()
+    _memory_task.cancel()
     logger.info("=== Mario AI Server Shutting Down ===")
     _tts_executor.shutdown(wait=False)
     if tts._edge_executor:
@@ -402,16 +476,118 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Mario AI Server", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# Mount dashboard routes
+app.include_router(dashboard_router)
+init_dashboard(health_fn=None, server_start_time=_SERVER_START_TIME)  # health_fn wired below
+
+
+def _get_rss_mb() -> float:
+    """Get current process RSS in MB."""
+    try:
+        import psutil
+        return psutil.Process().memory_info().rss / (1024 * 1024)
+    except Exception:
+        pass
+    try:
+        # Fallback for Windows without psutil
+        import ctypes
+        import ctypes.wintypes
+        class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+            _fields_ = [("cb", ctypes.wintypes.DWORD),
+                        ("PageFaultCount", ctypes.wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t),
+                        ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t),
+                        ("PeakPagefileUsage", ctypes.c_size_t)]
+        pmc = PROCESS_MEMORY_COUNTERS()
+        pmc.cb = ctypes.sizeof(pmc)
+        handle = ctypes.windll.kernel32.GetCurrentProcess()
+        ctypes.windll.psapi.GetProcessMemoryInfo(handle, ctypes.byref(pmc), pmc.cb)
+        return pmc.WorkingSetSize / (1024 * 1024)
+    except Exception:
+        return 0.0
+
+
+def _get_gpu_temp() -> float:
+    """Get GPU temperature in °C (best-effort)."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return float(result.stdout.strip().split("\n")[0])
+    except Exception:
+        return 0.0
+
+
+def _get_component_status(component: str) -> str:
+    """Determine component health status: ok / slow / failed."""
+    try:
+        if component == "llm":
+            resp_times = state_current.get("_response_times", deque())
+            if not resp_times:
+                return "ok"
+            avg_ms = (sum(resp_times) / len(resp_times)) * 1000
+            if avg_ms > 15000:
+                return "slow"
+            return "ok"
+        elif component == "tts":
+            if hasattr(tts, '_precache_done') and not tts._precache_done.is_set() and tts._precache_active:
+                return "ok"  # Still warming up
+            return "ok"
+        elif component == "stt":
+            return "ok"
+    except Exception:
+        return "failed"
+    return "ok"
+
 
 @app.get("/health")
 async def health():
+    global _degradation_tier
     stats = party_stats.get_stats()
     total_cache_requests = tts._cache_hits + tts._cache_misses
     cache_hit_rate = (tts._cache_hits / max(1, total_cache_requests)) * 100
     resp_times = state_current["_response_times"]
     avg_response = sum(resp_times) / max(1, len(resp_times)) if resp_times else 0
+    avg_response_ms = avg_response * 1000
+
+    llm_status = _get_component_status("llm")
+    tts_status = _get_component_status("tts")
+    stt_status = _get_component_status("stt")
+
+    # Determine degradation tier from component statuses
+    if tts_status == "failed" or stt_status == "failed":
+        _degradation_tier = DegradationTier.MINIMAL
+    elif llm_status == "slow" or tts_status == "slow":
+        _degradation_tier = DegradationTier.DEGRADED
+    else:
+        _degradation_tier = DegradationTier.FULL
+
+    uptime = time.time() - _SERVER_START_TIME
+    phase = night_progression.current_phase
+
     return {
         "status": "ok",
+        "uptime_seconds": round(uptime),
+        "llm": llm_status,
+        "tts": tts_status,
+        "stt": stt_status,
+        "memory_mb": round(_get_rss_mb()),
+        "gpu_temp_c": round(_get_gpu_temp()),
+        "guests_served": stats.get("total_visits", 0),
+        "current_phase": phase.name if hasattr(phase, 'name') else str(phase),
+        "degradation_tier": _degradation_tier.name,
+        "active_games": 1 if state_current.get("_active_game") else 0,
+        "tts_cache_size": len(tts._audio_cache),
+        "avg_response_time_ms": round(avg_response_ms),
+        "error_count": _error_count,
+        # Legacy fields preserved for backward compatibility
         "message": "It's-a me, Mario!",
         "emotion": emotion_system.current,
         "emotion_intensity": emotion_system.intensity,
@@ -419,7 +595,6 @@ async def health():
         "unique_visitors": stats["unique_visitors"],
         "party_duration": stats["party_duration"],
         "current_hour": stats["current_hour"],
-        "tts_cache_size": len(tts._audio_cache),
         "tts_cache_hits": tts._cache_hits,
         "tts_cache_misses": tts._cache_misses,
         "tts_cache_hit_rate": f"{cache_hit_rate:.0f}%",
@@ -441,6 +616,10 @@ async def health():
         "llm_fast_model": llm_router._fast_model,
         "llm_quality_model": llm_router._quality_model,
     }
+
+# Wire the health function into the dashboard router after definition
+from dashboard import init_dashboard as _rewire_dashboard
+_rewire_dashboard(health_fn=health, server_start_time=_SERVER_START_TIME)
 
 
 @app.post("/config/reload")

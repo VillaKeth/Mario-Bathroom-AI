@@ -1,5 +1,16 @@
 # Mario AI — Task Tracking
 
+## Reliability Layer (Watchdog + Dashboard + Health)
+- [x] Created server/watchdog.py — independent health monitor with DegradationTier enum and auto-restart
+- [x] Created server/dashboard.py — FastAPI router for /dashboard, /api/health, /api/reload
+- [x] Created web/dashboard.html — phone-friendly dark-theme dashboard with 5s auto-refresh
+- [x] Created tests/test_watchdog.py — 6 passing tests for tier logic and failure tracking
+- [x] Enhanced /health endpoint with uptime, component statuses, degradation tier, memory, GPU temp
+- [x] Added memory leak prevention: gc.collect every 10min, WAL checkpoint every 30min, TTS LRU eviction at 2000 cap
+- [x] Added alert_webhook_url to config.json
+- [ ] Configure alert_webhook_url for production notifications
+- [ ] Run watchdog standalone during party: python server/watchdog.py
+
 ## Dual-Model LLM Router (2026-07-17)
 - [x] Created server/llm_router.py — classifies requests as FAST or QUALITY
 - [x] FAST types: greeting, one_liner, roast, acknowledgment, idle → Mixtral 8x7B

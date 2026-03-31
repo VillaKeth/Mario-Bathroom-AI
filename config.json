@@ -50,5 +50,6 @@
     "audio_send_interval": 0.25,
     "audio_gain": 1.0
   },
-  "elevenlabs_api_key": ""
+  "elevenlabs_api_key": "",
+  "alert_webhook_url": ""
 }
