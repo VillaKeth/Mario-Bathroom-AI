@@ -1541,3 +1541,27 @@
 - [x] Tracker reset after comfort response sent
 - [x] Breadcrumb logging throughout (DEBUG_DISTRESS)
 - [x] 9 passing tests in tests/test_vomit_enhancements.py
+
+## Birthday VIP System (Task 9)
+- [x] Created server/birthday_vip.py — BirthdayVIP class with fuzzy name matching
+- [x] VIP prompt injection with escalating warmth based on interaction count
+- [x] Special greeting generation for birthday person
+- [x] Integrated into main.py greeting + conversation contexts
+- [x] Added birthday_person_name to config.json
+- [x] 6 passing tests
+
+## Sound Effects (Task 10)
+- [x] Created server/sound_events.py — SoundEventManager class
+- [x] Event→SFX mapping: greeting→coin, game_start→powerup, roast→fireball, vomit→pipe, farewell→star, birthday→1up
+- [x] Non-blocking playback via pygame.mixer (graceful if unavailable)
+- [x] Created assets/sfx/ directory with README
+- [x] Integrated into main.py send_response for server-side SFX
+- [x] 4 passing tests
+
+## Catchphrase Mirroring (Task 11)
+- [x] Created server/catchphrase_mirror.py — CatchphraseMirror class
+- [x] Per-guest word frequency tracking with stop word exclusion
+- [x] Mario-ified callout when word repeated 3+ times
+- [x] Party-wide catchphrase report for end-of-night summary
+- [x] Integrated into main.py response pipeline
+- [x] 6 passing tests

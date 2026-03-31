@@ -55,6 +55,9 @@ from night_progression import NightProgression, Phase
 from dashboard import router as dashboard_router, init_dashboard
 from hot_reload import LiveConfig
 from watchdog import DegradationTier
+from birthday_vip import BirthdayVIP
+from sound_events import SoundEventManager
+from catchphrase_mirror import CatchphraseMirror
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -195,6 +198,18 @@ night_progression = NightProgression(
     start_time=_party_start_cfg if isinstance(_party_start_cfg, (int, float)) and _party_start_cfg > 0 else None
 )
 logger.info(f"Night progression initialized (start_time={night_progression.start_time:.0f})")
+
+# Birthday VIP system — special treatment for the guest of honor
+_birthday_name = server_config.get("birthday_person_name", "")
+birthday_vip = BirthdayVIP(name=_birthday_name)
+if birthday_vip.is_configured():
+    logger.info(f"Birthday VIP mode: '{_birthday_name}'")
+
+# Sound event manager — Nintendo-style SFX
+sound_events = SoundEventManager()
+
+# Catchphrase mirroring — tracks repeated words per guest
+catchphrase_mirror = CatchphraseMirror()
 
 # Lock for state_current to prevent race conditions across async handlers
 _state_lock = asyncio.Lock()
@@ -1659,6 +1674,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx.append({"role": "system", "content": personality_mod})
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
 
+        # Birthday VIP — inject special context when the birthday person speaks
+        if birthday_vip.is_configured() and birthday_vip.is_birthday_person(
+                state_current.get("speaker_name", "")):
+            vip_ctx = birthday_vip.get_vip_prompt_injection()
+            if vip_ctx:
+                ctx.append({"role": "system", "content": vip_ctx})
+            sound_events.trigger("birthday")
+
+        # Catchphrase mirroring — feed guest text and check for repeated phrases
+        _speaker = state_current.get("speaker_name", "")
+        if _speaker:
+            catchphrase_mirror.feed(_speaker, text)
+            mirror_phrase = catchphrase_mirror.get_mirror_phrase(_speaker)
+            if mirror_phrase:
+                ctx.append({"role": "system", "content": f"[MIRROR]: {mirror_phrase}"})
+
         # Live config personality overrides (hot reload)
         _chaos = live_config.get("chaos_level", 5)
         _roast = live_config.get("roast_cap", 2)
@@ -2992,6 +3023,16 @@ async def handle_event(ws: WebSocket, event: dict):
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})
 
+            # Birthday VIP — inject special greeting context
+            _greeting_name = state_current.get("speaker_name", "")
+            if birthday_vip.is_configured() and birthday_vip.is_birthday_person(_greeting_name):
+                vip_greeting = birthday_vip.get_special_greeting(_greeting_name)
+                if vip_greeting:
+                    ctx.append({"role": "system", "content": f"🎂 {vip_greeting} Make your greeting EXTRA celebratory!"})
+                vip_ctx = birthday_vip.get_vip_prompt_injection()
+                if vip_ctx:
+                    ctx.append({"role": "system", "content": vip_ctx})
+
             # Register guest in gossip system so later guests know who visited
             if state_current.get("speaker_id") and state_current.get("speaker_name"):
                 party_gossip._guest_names[state_current["speaker_id"]] = state_current["speaker_name"]
@@ -3310,6 +3351,9 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None):
     """Send Mario's response (text + audio + metadata) to the client."""
+    # Trigger server-side sound effect (non-blocking, fire-and-forget)
+    if sound:
+        sound_events.trigger(sound)
     msg = {
         "type": "mario_response",
         "text": text,
