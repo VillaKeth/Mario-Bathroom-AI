@@ -88,6 +88,9 @@ _TIER_DEFAULTS = {
         "max_cache_memory": 500,
         "llm_num_predict": 50,
         "conversation_history_limit": 100,
+        "llm_quality_model": "llama3.1:70b-q4_k_m",
+        "llm_fast_model": "mixtral:8x7b",
+        "stt_device": "cpu",
     },
     "high": {
         "tts_workers": 4,
@@ -98,6 +101,9 @@ _TIER_DEFAULTS = {
         "max_cache_memory": 300,
         "llm_num_predict": 40,
         "conversation_history_limit": 60,
+        "llm_quality_model": "llama3:8b",
+        "llm_fast_model": "llama3:8b",
+        "stt_device": "cpu",
     },
     "medium": {
         "tts_workers": 2,
@@ -108,6 +114,9 @@ _TIER_DEFAULTS = {
         "max_cache_memory": 200,
         "llm_num_predict": 30,
         "conversation_history_limit": 40,
+        "llm_quality_model": "llama3:8b",
+        "llm_fast_model": "llama3:8b",
+        "stt_device": "cpu",
     },
     "low": {
         "tts_workers": 1,
@@ -118,6 +127,9 @@ _TIER_DEFAULTS = {
         "max_cache_memory": 100,
         "llm_num_predict": 25,
         "conversation_history_limit": 28,
+        "llm_quality_model": "llama3:8b",
+        "llm_fast_model": "llama3:8b",
+        "stt_device": "cpu",
     },
 }
 

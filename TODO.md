@@ -1,5 +1,24 @@
 # Mario AI — Task Tracking
 
+## Dual-Model LLM Router (2026-07-17)
+- [x] Created server/llm_router.py — classifies requests as FAST or QUALITY
+- [x] FAST types: greeting, one_liner, roast, acknowledgment, idle → Mixtral 8x7B
+- [x] QUALITY types: gossip, game, story, complex, vomit_comfort, farewell_meaningful → Llama 3.1 70B-Q4_K_M
+- [x] "MUST mention" in system prompt forces QUALITY path
+- [x] Word count heuristic for unknown types (≤5 words → FAST)
+- [x] Auto-fallback to FAST model on quality timeout (>15s)
+- [x] Stats tracking (fast/quality/fallback counts) exposed on /health
+- [x] hardware.py: ULTRA tier gets 70B-Q4_K_M + Mixtral, other tiers get llama3:8b
+- [x] hardware.py: Whisper forced to CPU for all tiers (save GPU VRAM)
+- [x] llm.py: generate_response() accepts optional model parameter
+- [x] main.py: Router initialized at startup, wired into _generate_and_send_response()
+- [x] main.py: _infer_response_type() detects gossip, game, sick, greeting, etc.
+- [x] config.json: Added llm_quality_model, llm_fast_model, stt_device=cpu
+- [x] 22 passing tests in tests/test_llm_router.py
+- [ ] Pull and run Mixtral 8x7B model on server: ollama pull mixtral:8x7b
+- [ ] Pull 70B-Q4_K_M model on server: ollama pull llama3.1:70b-q4_k_m
+- [ ] Integration test with both models loaded simultaneously
+
 ## ULTRA Overhaul Design Spec Review (2026-03-31)
 - [ ] CRITICAL: Resolve VRAM budget — 70B-Q5_K_M (22GB) + RVC + Whisper + Fish Speech exceeds 24GB RTX 3090 Ti
 - [ ] CRITICAL: Add MoSCoW priority ordering to spec — no cut list if time runs out

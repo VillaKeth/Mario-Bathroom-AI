@@ -45,6 +45,7 @@ from pose_analyzer import analyze_text
 import command_handlers
 import audio_distress
 from party_gossip import PartyGossip
+from llm_router import LLMRouter, RoutingDecision
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -76,6 +77,12 @@ _PERF = {
     "conversation_history_limit": hardware.resolve("conversation_history_limit", server_config.get("conversation_history_limit", "auto")),
 }
 hardware.log_resolved_settings(_PERF)
+
+# LLM Router — dual-model selection (fast vs quality)
+_llm_quality_model = hardware.resolve("llm_quality_model", server_config.get("llm_quality_model", "auto"))
+_llm_fast_model = hardware.resolve("llm_fast_model", server_config.get("llm_fast_model", "auto"))
+llm_router = LLMRouter(fast_model=_llm_fast_model, quality_model=_llm_quality_model)
+logger.info(f"[ROUTER] Dual-model router: fast={_llm_fast_model} quality={_llm_quality_model} tier={_perf_tier}")
 
 # Game configuration from config.json (with defaults)
 GAME_CONFIG = {
@@ -322,6 +329,9 @@ async def health():
         "hardware": hardware.get_hardware(),
         "performance_tier": hardware.get_tier(),
         "perf_settings": _PERF,
+        "llm_router_stats": llm_router.stats,
+        "llm_fast_model": llm_router._fast_model,
+        "llm_quality_model": llm_router._quality_model,
     }
 
 
@@ -1221,6 +1231,56 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         state_current["_user_request_active"] = False
 
 
+def _infer_response_type(text: str, state: dict) -> str:
+    """Infer the response type from user input and current state for router classification."""
+    if not text or not text.strip():
+        return "idle"
+    lower = text.lower().strip()
+
+    # Active game → complex game logic
+    if state.get("_active_game"):
+        return "game"
+
+    # Sick/vomit mood
+    if state.get("_detected_mood") == "sick":
+        return "vomit_comfort"
+
+    # Gossip keywords
+    gossip_keywords = ("who was here", "who else", "gossip", "tell me about",
+                       "who came", "who visited", "any drama", "what happened")
+    if any(kw in lower for kw in gossip_keywords):
+        return "gossip"
+
+    # Very short acknowledgments
+    ack_words = {"ok", "okay", "sure", "yes", "no", "yeah", "yep", "nah",
+                 "nope", "cool", "nice", "thanks", "alright", "right", "haha",
+                 "lol", "hah", "ha", "hmm", "oh", "wow", "k", "yea"}
+    if lower in ack_words or (len(lower.split()) == 1 and lower.rstrip("!?.") in ack_words):
+        return "acknowledgment"
+
+    # Greetings
+    greeting_words = {"hi", "hey", "hello", "yo", "sup", "howdy", "hiya", "heya",
+                      "what's up", "whats up", "wassup"}
+    if lower.rstrip("!?.") in greeting_words or any(lower.startswith(g) for g in greeting_words):
+        return "greeting"
+
+    # Short roasts
+    roast_words = ("roast me", "insult me", "burn me", "diss me")
+    if any(kw in lower for kw in roast_words):
+        return "roast"
+
+    # Story requests
+    story_words = ("tell me a story", "once upon", "story time", "bedtime story")
+    if any(kw in lower for kw in story_words):
+        return "story"
+
+    # Short one-liners (≤5 words, no complex question)
+    if len(text.split()) <= 5:
+        return "one_liner"
+
+    return "complex"
+
+
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
     """Shared response pipeline for both audio and text input.
 
@@ -2006,24 +2066,57 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Run thinking TTS + LLM concurrently (with timeout fallback)
         _LLM_TIMEOUT = GAME_CONFIG.get("llm_timeout", 30)
+        _ROUTER_FALLBACK_TIMEOUT = 15  # Retry with fast model if quality takes >15s
         _t_llm = time.time()
+
+        # Infer response type for router
+        _response_type = _infer_response_type(text, state_current)
+        # Collect system prompt text for "MUST mention" detection
+        _sys_prompt = " ".join(
+            m["content"] for m in ctx if m.get("role") == "system"
+        )
+        _routing = llm_router.classify(text, response_type=_response_type, system_prompt=_sys_prompt)
+        _routed_model = llm_router.get_model(_routing)
+        if DEBUG_SERVER:
+            logger.info(f"[ROUTER] type={_response_type} decision={_routing.value} model={_routed_model}")
+
         try:
             _, response_text = await asyncio.gather(
                 _send_thinking_audio(),
-                asyncio.wait_for(llm.generate_response(ctx, text), timeout=_LLM_TIMEOUT),
+                asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model), timeout=_LLM_TIMEOUT),
             )
         except asyncio.TimeoutError:
-            logger.error(f"LLM timed out after {_LLM_TIMEOUT}s — using fallback response")
-            _llm_fallback_responses = [
-                "Mama mia, my brain went on vacation! What were we talking about?",
-                "Whoa, I totally blanked out for a second! Say that again?",
-                "Ha ha! My thoughts got lost in a warp pipe! One more time?",
-                "Oops! I was thinking SO hard my brain did a blue screen! What was that?",
-                "Wait wait wait — I was having the most AMAZING thought but it escaped! What did you say?",
-            ]
-            response_text = random.choice(_llm_fallback_responses)
-            emotion_system.current = Emotion.CONFUSED
-            emotion_system.intensity = 0.7
+            _llm_elapsed = time.time() - _t_llm
+            # If quality model timed out, retry with fast model
+            if _routing == RoutingDecision.QUALITY and _llm_elapsed >= _ROUTER_FALLBACK_TIMEOUT:
+                _fallback_routing = llm_router.get_fallback(_routing)
+                _fallback_model = llm_router.get_model(_fallback_routing)
+                logger.warning(
+                    f"[ROUTER] Quality model timed out after {_llm_elapsed:.1f}s — retrying with fast model {_fallback_model}"
+                )
+                try:
+                    response_text = await asyncio.wait_for(
+                        llm.generate_response(ctx, text, model=_fallback_model),
+                        timeout=_LLM_TIMEOUT,
+                    )
+                except (asyncio.TimeoutError, Exception):
+                    logger.error(f"[ROUTER] Fast model fallback also failed")
+                    response_text = None
+            else:
+                response_text = None
+
+            if not response_text:
+                logger.error(f"LLM timed out after {_LLM_TIMEOUT}s — using fallback response")
+                _llm_fallback_responses = [
+                    "Mama mia, my brain went on vacation! What were we talking about?",
+                    "Whoa, I totally blanked out for a second! Say that again?",
+                    "Ha ha! My thoughts got lost in a warp pipe! One more time?",
+                    "Oops! I was thinking SO hard my brain did a blue screen! What was that?",
+                    "Wait wait wait — I was having the most AMAZING thought but it escaped! What did you say?",
+                ]
+                response_text = random.choice(_llm_fallback_responses)
+                emotion_system.current = Emotion.CONFUSED
+                emotion_system.intensity = 0.7
         _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)
 
     _t_filter = time.time()

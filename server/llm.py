@@ -146,14 +146,16 @@ async def check_ollama():
         return False
 
 
-async def generate_response(messages: list[dict], transcript: str = None) -> str:
+async def generate_response(messages: list[dict], transcript: str = None, model: str = None) -> str:
     """Send messages to Ollama and get Mario's response.
 
     Uses streaming internally for faster first-token, but returns complete text.
     Dynamic temperature: higher for humor/fun, lower for questions/facts.
+    Optional model parameter overrides the default MODEL_NAME for dual-model routing.
     """
+    use_model = model or MODEL_NAME
     if DEBUG_LLM:
-        logger.info(f"[DEBUG_LLM] generate_response: START, transcript={transcript}")
+        logger.info(f"[DEBUG_LLM] generate_response: START, transcript={transcript}, model={use_model}")
 
     start = time.time()
 
@@ -172,10 +174,10 @@ async def generate_response(messages: list[dict], transcript: str = None) -> str
             base_temp = 0.70  # More careful/empathetic for emotional topics
     temp = base_temp + random.uniform(-0.05, 0.05)
     if DEBUG_LLM:
-        logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, base={base_temp}, model={MODEL_NAME}")
+        logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, base={base_temp}, model={use_model}")
 
     payload = {
-        "model": MODEL_NAME,
+        "model": use_model,
         "messages": messages,
         "stream": True,
         "keep_alive": "30m",
