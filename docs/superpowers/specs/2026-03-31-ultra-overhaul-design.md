@@ -8,38 +8,83 @@
 
 ---
 
-## 1. Voice Quality — Dual TTS with A/B Comparison
+## VRAM Budget
+
+All GPU-resident components must fit within 24GB:
+
+| Component | VRAM | Notes |
+|-----------|------|-------|
+| Llama 3.1 70B-**Q4_K_M** | ~18 GB | Downgraded from Q5 to fit budget |
+| Fish Speech v2.2+ | ~1-2 GB | Primary TTS |
+| RVC v2 (Mario TITAN) | ~1-2 GB | Voice conversion |
+| CUDA overhead + buffers | ~2 GB | PyTorch allocator |
+| **Total** | **~22-24 GB** | Fits within 24GB |
+
+**Not on GPU**: Whisper runs on CPU (int8) to save ~1GB VRAM. Adds ~1s STT latency, acceptable.
+**Not live**: GPT-SoVITS runs as offline-only subprocess for pre-rendering comparison samples. NOT loaded during party.
+
+---
+
+## Priority Ordering (MoSCoW)
+
+| Priority | Section | Feature | Justification |
+|----------|---------|---------|---------------|
+| **Must** | §2 | LLM 70B upgrade | Core quality, fixes gossip |
+| **Must** | §1 | Fish Speech TTS | Voice quality + speed |
+| **Must** | §3 | Night progression | Core party experience arc |
+| **Must** | §4 | Reliability layer | 8-hour uptime requirement |
+| **Must** | §5 | Pygame hardening | Crash prevention |
+| **Should** | §12 | Pre-party canary | Risk reduction |
+| **Should** | §13 | Hot reload | Mid-party adjustability |
+| **Should** | §6 | Vomit enhancements | Incremental improvement |
+| **Should** | §9 | Birthday VIP | Party personalization |
+| **Could** | §11 | Sound effects | Polish/immersion |
+| **Could** | §10 | Catchphrase mirroring | Nice-to-have |
+| **Could** | §8 | Party report card | Post-party, not urgent |
+| **Won't** | §7 | Image gen hooks | Explicitly deferred to v2 |
+
+If time runs out, cut from bottom up. Everything above the line marked "Should" ships no matter what.
+
+---
+
+## 1. Voice Quality — Fish Speech Primary + Offline A/B Comparison
 
 ### Problem
 GPT-SoVITS produces decent Mario voice but has 3-10s latency and fails on some words ("Bowser", "Koopa"). The Italian "-a-" vocal tic doesn't always generate naturally.
 
 ### Solution
-Develop **both** TTS engines in parallel. User compares output by ear and picks the winner for the party.
+**Fish Speech v2.2+** is the live TTS engine. GPT-SoVITS is used **offline only** to pre-render comparison samples (VRAM constraint: both cannot be loaded simultaneously with 70B LLM).
 
-**Engine A — GPT-SoVITS (existing)**
-- Keep current implementation with Mario-e20.ckpt + TITAN RVC model
-- Optimize: reduce latency where possible, fix pronunciation guides
-- Known ceiling: ~78% quality (from 220-iteration ralph TTS loop)
-
-**Engine B — Fish Speech v2.2+ (new)**
+**Primary Engine — Fish Speech v2.2+ (live)**
 - Zero-shot Mario voice clone from existing `mario_reference_sentences.wav`
 - Native accent/style control for Italian "-a-" tics
 - Expected latency: 0.3-0.8s on RTX 3090 Ti
 - MIT license, single `pip install fish-speech`
+- ~1-2GB VRAM (fits alongside 70B LLM)
 
-**A/B Test Mode**
-- `/api/voice-compare` endpoint: same phrase → both engines → two audio files
-- User listens, picks winner
-- Winner becomes primary, loser becomes first fallback
+**Comparison Engine — GPT-SoVITS (offline only)**
+- Keep current implementation with Mario-e20.ckpt + TITAN RVC model
+- Run as subprocess ONLY when 70B LLM is unloaded (e.g., during setup/testing)
+- Known ceiling: ~78% quality (from 220-iteration ralph TTS loop)
+- Used to pre-render 20 test phrases for user to compare against Fish Speech
+
+**Offline A/B Comparison Workflow**
+1. Before party: unload 70B, load GPT-SoVITS, render 20 test phrases
+2. Unload GPT-SoVITS, render same 20 phrases via Fish Speech
+3. User listens side-by-side, picks winner engine
+4. Winner is confirmed as live engine, loser stays offline
+5. At party: only the winner + RVC + Whisper(CPU) are loaded
 
 **Pre-recorded Catchphrase Bank**
-- Source high-quality Mario clips for: "Wahoo!", "Mama mia!", "Let's-a go!", "It's-a me, Mario!", "Yahoo!", "Okie dokie!", "Here we go!"
+- Generate via TTS and hand-pick the best renditions for: "Wahoo!", "Mama mia!", "Let's-a go!", "It's-a me, Mario!", "Yahoo!", "Okie dokie!", "Here we go!"
+- Source: render 10 variations each via Fish Speech + GPT-SoVITS, user picks best
 - These play INSTEAD of TTS for exact-match phrases — always perfect, instant playback
 - Works with either TTS engine
+- Stored in `assets/catchphrases/` as WAV files
 
-**Never-Silent Fallback Chain**
+**Never-Silent Fallback Chain** (ordered by latency, fastest first)
 ```
-Fish Speech / GPT-SoVITS (winner) → Loser engine → XTTS v2 → Edge TTS + RVC → Pre-recorded clips
+Fish Speech (0.3-0.8s) → Edge TTS + RVC (0.4-1.2s) → XTTS v2 (0.8-2s) → Pre-recorded clips (instant)
 ```
 If ALL fail: play a sound effect + show speech bubble on pygame.
 
@@ -56,11 +101,12 @@ Llama3 8B is fast but can't follow complex instructions. Gossip system fails bec
 
 ### Solution
 
-**Primary Model: Llama 3.1 70B-Q5_K_M**
-- 22GB VRAM (fits RTX 3090 Ti with 2GB headroom)
-- Estimated 95% gossip name compliance
+**Primary Model: Llama 3.1 70B-Q4_K_M**
+- ~18GB VRAM (leaves 6GB for TTS + RVC + buffers)
+- Estimated 90%+ gossip name compliance (massive improvement over 8B's 20%)
 - Superior humor, personality consistency, game hosting
 - ~2-4s for 25-50 token responses
+- Marginal quality difference vs Q5_K_M; fits VRAM budget
 
 **Router: Fast path + Quality path**
 ```
@@ -75,6 +121,7 @@ Gossip, games, stories, complex → 70B-Q5_K_M (~3s)
 - If 70B hangs >15s → retry with Mixtral
 - If Ollama crashes → restart service + use canned responses
 - Config stays `"auto"` — hardware tier resolves model choice
+- Whisper runs on CPU (int8) to preserve GPU VRAM for LLM + TTS
 
 ---
 
@@ -110,6 +157,14 @@ Mario's personality escalates over the 8-hour party in 4 phases. Energy also sca
 - Roast level: 8/10
 - System prompt modifier: `personality_warmth=low, chaos=extreme, gossip_aggression=extreme`
 
+### Phase 3 Content Guardrails
+Even at UNHINGED, Mario has hard safety rails:
+- **Banned roast topics**: Physical appearance, weight, relationships, employment, mental health
+- **Drama must be absurd/Mario-themed**: "Sarah is secretly working for Bowser" NOT "Sarah is a bad person"
+- **Emergency de-escalation**: If guest says "stop", "that's not funny", "too far" → immediately drop to Phase 2 energy for rest of that visit
+- **Roast level 8/10 defined**: Pointed but clearly jokes. Think comedy roast, not personal attack. Always end with love: "I kid! You're one of the best guests tonight!"
+- **No targeting the same guest repeatedly**: Max 2 roasts per guest per visit before moving on
+
 ### Phase 4 — WIND DOWN (Hours 7-8)
 - Nostalgic, sentimental Mario
 - Callback system: pulls specific quotes from earlier conversations via memory DB
@@ -118,11 +173,34 @@ Mario's personality escalates over the 8-hour party in 4 phases. Energy also sca
 - Roast level: 3/10
 - System prompt modifier: `personality_warmth=extreme, chaos=low, gossip_aggression=low`
 
-### Guest Count Awareness
+### Guest Count Awareness (merged from former §14)
 - Phase transitions require BOTH time threshold AND minimum guest count
 - Don't go UNHINGED at hour 5 if only 3 guests visited
 - Fast escalation if 20+ guests in 2 hours
 - Formula: `effective_phase = min(time_phase, guest_energy_phase)`
+
+```python
+def get_effective_phase(hours_elapsed, unique_guests):
+    time_phase = get_time_phase(hours_elapsed)  # 1-4
+    
+    if unique_guests < 5:
+        guest_energy = 1  # Keep it calm
+    elif unique_guests < 15:
+        guest_energy = 2  # Getting lively
+    elif unique_guests < 25:
+        guest_energy = 3  # Full party
+    else:
+        guest_energy = 4  # Absolute madness
+    
+    return min(time_phase, guest_energy)
+```
+
+### Obsession Lock Mechanics (Phase 3)
+- Topic selected: random pick from guest's `conversation_topics` in memory DB
+- Duration: 3 exchanges or 2 minutes (whichever comes first), then releases
+- Resets on new guest visit (fresh obsession each time)
+- Mario refers back to it naturally: "But back to my point about pineapple pizza..."
+- If guest has no recorded topics, Mario picks from a pre-set list of absurd topics
 
 ### Implementation
 - `party_phase` module: calculates current phase from `server_start_time` + `total_unique_guests`
@@ -372,36 +450,11 @@ class ComfyUIProvider(ImageProvider):
 - Idle message frequency
 
 ### Implementation
-- `/api/reload` POST endpoint (authenticated with simple key)
-- Reads updated config from `config_live.json` (separate from main config)
-- No server restart required
-- Dashboard UI: sliders and toggles for each parameter
-
----
-
-## 14. Guest Count Scaling
-
-### Formula
-```python
-def get_effective_phase(hours_elapsed, unique_guests):
-    time_phase = get_time_phase(hours_elapsed)  # 1-4
-    
-    if unique_guests < 5:
-        guest_energy = 1  # Keep it calm
-    elif unique_guests < 15:
-        guest_energy = 2  # Getting lively
-    elif unique_guests < 25:
-        guest_energy = 3  # Full party
-    else:
-        guest_energy = 4  # Absolute madness
-    
-    return min(time_phase, guest_energy)
-```
-
-### Behavior
-- Low turnout (< 5 guests by hour 5) → stays in Party Mode, never goes Unhinged
-- High turnout (25+ guests by hour 3) → can escalate to Unhinged early
-- Prevents awkward high energy with empty room
+- `/api/reload` POST endpoint (authenticated via `config.json` key: `"reload_key": "your-secret"`)
+- `config_live.json` created at server startup as a copy of relevant personality fields from `config.json`
+- Schema: `{ "chaos_level": 5, "roast_cap": 8, "gossip_aggression": 7, "phase_override": null, "idle_frequency_seconds": 30, "tts_engine": "fish_speech" }`
+- Changes to `config_live.json` take effect on next response (no restart)
+- Dashboard UI: sliders and toggles that POST to `/api/reload`
 
 ---
 
@@ -418,16 +471,19 @@ def get_effective_phase(hours_elapsed, unique_guests):
 - 3 consecutive passes required before deployment
 - Run on party machine hardware before Friday
 
-### Voice A/B Test
-- Generate 20 test phrases through both engines
-- User listens and selects winner
+### Voice A/B Test (Offline)
+- Unload 70B LLM, load GPT-SoVITS subprocess
+- Generate 20 test phrases, save to `docs/voice-comparison/sovits/`
+- Unload GPT-SoVITS, load Fish Speech
+- Generate same 20 phrases, save to `docs/voice-comparison/fish/`
+- User listens side-by-side, picks winner
 - Document results in `docs/voice-comparison.md`
 
 ---
 
 ## Deployment Checklist (Party Day)
 
-1. Install Ollama models on party machine (`llama3.1:70b-q5_k_m`, `mixtral:8x7b`)
+1. Install Ollama models on party machine (`llama3.1:70b-q4_k_m`, `mixtral:8x7b`)
 2. Install Fish Speech v2.2+ and verify Mario voice clone
 3. Run canary self-test → all green
 4. Run ralph loop → 3/3 passes
@@ -436,4 +492,5 @@ def get_effective_phase(hours_elapsed, unique_guests):
 7. Verify fullscreen pygame on party monitor
 8. Test mic + speaker + webcam
 9. Set `birthday_person` in config
-10. Start the party 🎉
+10. Set `reload_key` in config
+11. Start the party 🎉
