@@ -23,6 +23,10 @@ h1{text-align:center;font-size:1.4em;margin-bottom:10px;color:#e94560}
 .section-title{font-size:.85em;color:#e94560;text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;padding-left:4px}
 .error-box{background:#2d1b1b;border:1px solid #d50000;border-radius:8px;padding:10px;margin-top:8px;font-size:.8em;color:#ff6b6b;display:none}
 .refresh-indicator{position:fixed;top:4px;right:8px;font-size:.7em;color:#555}
+.sliders{background:#16213e;border-radius:10px;padding:14px;border:1px solid #0f3460}
+.slider-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.slider-row label{font-size:.8em;min-width:120px}
+.slider-row input[type=range]{flex:1;margin-left:10px;accent-color:#e94560}
 </style>
 </head>
 <body>
@@ -54,6 +58,15 @@ h1{text-align:center;font-size:1.4em;margin-bottom:10px;color:#e94560}
 </div>
 
 <div class="error-box" id="errorBox"></div>
+
+<div class="section-title">🎛️ Personality Tuning</div>
+<div class="sliders" id="sliderSection">
+  <div class="slider-row"><label>🎲 Chaos <span id="valChaos">5</span>/10</label><input type="range" min="1" max="10" value="5" id="sliderChaos"></div>
+  <div class="slider-row"><label>🔥 Roast <span id="valRoast">2</span>/5</label><input type="range" min="0" max="5" value="2" id="sliderRoast"></div>
+  <div class="slider-row"><label>🗣️ Gossip <span id="valGossip">5</span>/10</label><input type="range" min="1" max="10" value="5" id="sliderGossip"></div>
+  <div class="slider-row"><label>💖 Warmth <span id="valWarmth">7</span>/10</label><input type="range" min="1" max="10" value="7" id="sliderWarmth"></div>
+</div>
+
 <div class="refresh-indicator" id="refreshIndicator">●</div>
 
 <script>
@@ -143,6 +156,44 @@ async function refresh() {
 }
 
 refresh();
+
+// ── Personality Sliders ──
+const sliderMap = {
+  sliderChaos: { key: 'chaos_level', display: 'valChaos' },
+  sliderRoast: { key: 'roast_cap', display: 'valRoast' },
+  sliderGossip: { key: 'gossip_intensity', display: 'valGossip' },
+  sliderWarmth: { key: 'warmth', display: 'valWarmth' },
+};
+
+// Load current values
+fetch('/api/live-config').then(r => r.json()).then(d => {
+  if (d.config) {
+    for (const [sliderId, info] of Object.entries(sliderMap)) {
+      const val = d.config[info.key];
+      if (val != null) {
+        document.getElementById(sliderId).value = val;
+        document.getElementById(info.display).textContent = val;
+      }
+    }
+  }
+}).catch(() => {});
+
+// Wire slider change events
+for (const [sliderId, info] of Object.entries(sliderMap)) {
+  const el = document.getElementById(sliderId);
+  el.addEventListener('input', function() {
+    document.getElementById(info.display).textContent = this.value;
+  });
+  el.addEventListener('change', function() {
+    const payload = {};
+    payload[info.key] = parseInt(this.value);
+    fetch('/api/reload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(e => console.warn('Reload failed:', e));
+  });
+}
 </script>
 </body>
 </html>

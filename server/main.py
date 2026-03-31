@@ -53,6 +53,7 @@ from party_gossip import PartyGossip
 from llm_router import LLMRouter, RoutingDecision
 from night_progression import NightProgression, Phase
 from dashboard import router as dashboard_router, init_dashboard
+from hot_reload import LiveConfig
 from watchdog import DegradationTier
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -80,6 +81,11 @@ if os.path.exists(CONFIG_PATH):
 else:
     logger.warning(f"Config not found at {CONFIG_PATH} — using defaults")
 server_config = config.get("server", {})
+
+# Live config for hot-reloadable personality settings
+LIVE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_live.json")
+live_config = LiveConfig(LIVE_CONFIG_PATH)
+logger.info(f"Live config initialized at {LIVE_CONFIG_PATH}")
 
 # Hardware auto-detection for performance tuning
 hw_info = hardware.get_hardware()
@@ -486,7 +492,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # Mount dashboard routes
 app.include_router(dashboard_router)
-init_dashboard(health_fn=None, server_start_time=_SERVER_START_TIME)  # health_fn wired below
+init_dashboard(health_fn=None, server_start_time=_SERVER_START_TIME, live_config=live_config)  # health_fn wired below
 
 
 def _get_rss_mb() -> float:
@@ -627,7 +633,7 @@ async def health():
 
 # Wire the health function into the dashboard router after definition
 from dashboard import init_dashboard as _rewire_dashboard
-_rewire_dashboard(health_fn=health, server_start_time=_SERVER_START_TIME)
+_rewire_dashboard(health_fn=health, server_start_time=_SERVER_START_TIME, live_config=live_config)
 
 
 @app.post("/config/reload")
@@ -1652,6 +1658,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if personality_mod:
             ctx.append({"role": "system", "content": personality_mod})
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
+
+        # Live config personality overrides (hot reload)
+        _chaos = live_config.get("chaos_level", 5)
+        _roast = live_config.get("roast_cap", 2)
+        _gossip = live_config.get("gossip_intensity", 5)
+        _warmth = live_config.get("warmth", 7)
+        if _chaos != 5 or _roast != 2 or _gossip != 5 or _warmth != 7:
+            live_hint = (
+                f"Personality tuning: chaos={_chaos}/10, roast_limit={_roast}/5, "
+                f"gossip={_gossip}/10, warmth={_warmth}/10."
+            )
+            ctx.append({"role": "system", "content": live_hint})
 
         # Mood context (short hints only — small model can't process long instructions)
         detected_mood = state_current.get("_detected_mood")

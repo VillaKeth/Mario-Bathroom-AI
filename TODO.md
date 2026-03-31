@@ -1461,6 +1461,21 @@
 - [x] Fixed browser memory persistence: set_name event was validated but never handled
 - [x] Added set_name handler to set state_current["speaker_name"] from browser
 - [x] Added find_person_by_name() to memory.py for case-insensitive name lookup
+
+## Pre-Party Canary Self-Test (Task 6)
+- [x] Created server/canary.py — Canary class with 10 smoke tests and confidence scoring
+- [x] Added /api/canary endpoint to dashboard.py
+- [x] Created tests/test_canary.py — 4 passing tests
+- [ ] Run canary against live server before party: python server/canary.py
+
+## Hot Reload System (Task 7)
+- [x] Created server/hot_reload.py — LiveConfig class with get/set/reload
+- [x] Created config_live.json with personality fields (chaos, roast, gossip, warmth)
+- [x] Wired LiveConfig into main.py response pipeline
+- [x] POST /api/reload updates config_live.json via dashboard
+- [x] Dashboard sliders for chaos/roast/gossip/warmth with live POST
+- [x] GET /api/live-config returns current slider values
+- [x] Created tests/test_hot_reload.py — 3 passing tests
 - [x] Browser users get virtual speaker_id (MD5 hash of lowercased name)
 - [x] presence_enter extracts name from event payload as fallback
 - [x] mario_chat.html sends name in presence_enter event payload
