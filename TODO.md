@@ -1,5 +1,15 @@
 # Mario AI — Task Tracking
 
+## Pygame Hardening (Task 5)
+- [x] F11 fullscreen toggle with proportional scaling (render buffer approach)
+- [x] F12 panic button — mutes audio, shows "Technical Difficulties" overlay
+- [x] Auto-reconnect UI — friendly message, countdown timer, progress bar
+- [x] Crash recovery wrapper in main.py — never shows Python traceback on party monitor
+- [x] Sprite crossfade duration increased to 0.5s for smooth transitions
+- [x] ws_client.py reconnect_info includes started timestamp for countdown
+- [ ] Manual test: verify F11 fullscreen on target party monitor
+- [ ] Manual test: verify F12 panic mode mutes all audio and shows overlay
+
 ## Reliability Layer (Watchdog + Dashboard + Health)
 - [x] Created server/watchdog.py — independent health monitor with DegradationTier enum and auto-restart
 - [x] Created server/dashboard.py — FastAPI router for /dashboard, /api/health, /api/reload

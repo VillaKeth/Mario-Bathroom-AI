@@ -375,5 +375,96 @@ def main():
     client.start()
 
 
+def _show_error_screen(error_msg: str, duration: float = 3.0):
+    """Show a friendly error screen via Pygame instead of a raw traceback."""
+    try:
+        pygame_available = False
+        try:
+            import pygame as _pg
+            if _pg.display.get_init():
+                pygame_available = True
+        except Exception:
+            pass
+
+        if pygame_available:
+            screen = _pg.display.get_surface()
+            if screen:
+                w, h = screen.get_size()
+                screen.fill((30, 10, 10))
+                font_big = _pg.font.Font(None, 44)
+                font_sm = _pg.font.Font(None, 26)
+
+                line1 = font_big.render("Oops! Mario tripped on a Goomba!", True, (255, 80, 80))
+                line2 = font_sm.render("Restarting automatically...", True, (200, 200, 200))
+                # Truncate long error messages
+                err_short = error_msg[:80] + ("..." if len(error_msg) > 80 else "")
+                line3 = font_sm.render(err_short, True, (150, 150, 180))
+
+                screen.blit(line1, (w // 2 - line1.get_width() // 2, h // 2 - 40))
+                screen.blit(line2, (w // 2 - line2.get_width() // 2, h // 2 + 10))
+                screen.blit(line3, (w // 2 - line3.get_width() // 2, h // 2 + 45))
+                _pg.display.flip()
+
+                # Hold the screen for `duration` seconds while draining events
+                start = time.time()
+                while time.time() - start < duration:
+                    for event in _pg.event.get():
+                        if event.type == _pg.QUIT:
+                            return
+                    _pg.time.wait(100)
+    except Exception:
+        pass  # Error screen itself failed — move on silently
+
+
+def main_with_recovery():
+    """Crash-recovery wrapper: never show a raw Python traceback on the party monitor."""
+    import argparse
+    parser = argparse.ArgumentParser(description="Mario AI Client")
+    parser.add_argument(
+        "--server",
+        default=SERVER_URL,
+        help=f"Server WebSocket URL (default: {SERVER_URL})",
+    )
+    parser.add_argument(
+        "--no-camera",
+        action="store_true",
+        help="Disable webcam presence detection",
+    )
+    args = parser.parse_args()
+
+    MAX_RAPID_CRASHES = 5
+    RAPID_WINDOW = 30  # seconds
+    crash_times = []
+
+    while True:
+        try:
+            client = MarioClient(server_url=args.server)
+            if args.no_camera:
+                client.presence = None
+                logger.info("Webcam presence detection disabled")
+            logger.info("=== Starting client (crash recovery active) ===")
+            client.start()
+            break  # Clean exit
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user — shutting down")
+            break
+        except Exception as e:
+            logger.error(f"Client crashed: {e}", exc_info=True)
+            crash_times.append(time.time())
+
+            # Prevent infinite crash loops
+            recent = [t for t in crash_times if time.time() - t < RAPID_WINDOW]
+            crash_times[:] = recent
+            if len(recent) >= MAX_RAPID_CRASHES:
+                logger.critical(f"Too many crashes ({MAX_RAPID_CRASHES} in {RAPID_WINDOW}s) — giving up")
+                _show_error_screen(f"Too many crashes. Giving up.\n{e}", duration=5.0)
+                break
+
+            _show_error_screen(str(e), duration=3.0)
+            logger.info("Restarting client in 2 seconds...")
+            time.sleep(2)
+            continue
+
+
 if __name__ == "__main__":
-    main()
+    main_with_recovery()

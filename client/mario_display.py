@@ -204,14 +204,20 @@ class MarioDisplay:
         self._visitor_count = 0
         self._speaking = False
 
-        # Fullscreen toggle
+        # Fullscreen toggle with proportional scaling
         self._fullscreen = False
+        self._display_scale = 1.0  # scale factor for fullscreen proportional scaling
+        self._native_width = WINDOW_WIDTH
+        self._native_height = WINDOW_HEIGHT
+
+        # Panic mode (F12) — "Technical Difficulties" overlay
+        self._panic_mode = False
 
         # --- Enhanced animation system (time-based, frame-independent) ---
         # Sprite crossfade
         self._crossfade_start = 0.0
         self._crossfade_from_surface = None
-        self._crossfade_duration = 0.3  # 300ms crossfade
+        self._crossfade_duration = 0.5  # 500ms crossfade for smooth transitions
         self._last_sprite_key = None
 
         # Talking word-bounce
@@ -304,6 +310,8 @@ class MarioDisplay:
         self._initialized = True
         pygame.display.set_caption("Mario AI \U0001f344")
         self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        # Render buffer: all drawing happens at 800x600, then scaled to screen
+        self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         self._clock = pygame.time.Clock()
         self._font = pygame.font.Font(None, 28)
         self._font_small = pygame.font.Font(None, 22)
@@ -345,11 +353,9 @@ class MarioDisplay:
                         if self._leaderboard_visible:
                             self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F11:
-                        self._fullscreen = not self._fullscreen
-                        if self._fullscreen:
-                            self._screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-                        else:
-                            self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                        self._toggle_fullscreen()
+                    elif event.key == pygame.K_F12:
+                        self._toggle_panic_mode()
                     elif not self.keyboard_mode and event.key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
                         if self.on_volume_change:
                             self.on_volume_change(0.1)
@@ -760,11 +766,176 @@ class MarioDisplay:
                 pygame.draw.line(self._screen, (*beam_color,), (ball_x, ball_y), (end_x, max(ball_y, end_y)), 1)
 
     # ==========================================
+    # FULLSCREEN, PANIC, RECONNECT
+    # ==========================================
+
+    def _toggle_fullscreen(self):
+        """Toggle between fullscreen and windowed mode with proportional scaling."""
+        self._fullscreen = not self._fullscreen
+        if self._fullscreen:
+            info = pygame.display.Info()
+            monitor_w, monitor_h = info.current_w, info.current_h
+            self._screen = pygame.display.set_mode((monitor_w, monitor_h), pygame.FULLSCREEN)
+            self._display_scale = min(monitor_w / WINDOW_WIDTH, monitor_h / WINDOW_HEIGHT)
+            self._native_width = monitor_w
+            self._native_height = monitor_h
+            if DEBUG_DISPLAY:
+                logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {monitor_w}x{monitor_h}, scale={self._display_scale:.2f}")
+        else:
+            self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+            self._display_scale = 1.0
+            self._native_width = WINDOW_WIDTH
+            self._native_height = WINDOW_HEIGHT
+            if DEBUG_DISPLAY:
+                logger.info("[DEBUG_DISPLAY] Fullscreen OFF: windowed 800x600")
+        # Invalidate cached background so it redraws at new size
+        self._bg_surface = None
+
+    def _toggle_panic_mode(self):
+        """Toggle panic mode — mute audio and show 'Technical Difficulties' screen."""
+        self._panic_mode = not self._panic_mode
+        try:
+            if self._panic_mode:
+                pygame.mixer.pause()
+                if DEBUG_DISPLAY:
+                    logger.info("[DEBUG_DISPLAY] PANIC MODE ON — audio paused, showing technical difficulties")
+            else:
+                pygame.mixer.unpause()
+                if DEBUG_DISPLAY:
+                    logger.info("[DEBUG_DISPLAY] PANIC MODE OFF — audio resumed")
+        except Exception as e:
+            logger.warning(f"[DEBUG_DISPLAY] Mixer pause/unpause error (no mixer?): {e}")
+
+    def _draw_panic_overlay(self):
+        """Draw 'Technical Difficulties' full-screen overlay when panic mode is active."""
+        w = self._screen.get_width()
+        h = self._screen.get_height()
+
+        # Dark background
+        overlay = pygame.Surface((w, h))
+        overlay.fill((15, 15, 35))
+        self._screen.blit(overlay, (0, 0))
+
+        # Sleeping Mario sprite (if available)
+        sleep_sprite = self._sprites.get("sleep/sleeping") or self._sprites.get("sleep/sleepy") or self._sprites.get("sleep")
+        if sleep_sprite:
+            sx = w // 2 - sleep_sprite.get_width() // 2
+            sy = h // 2 - sleep_sprite.get_height() // 2 - 40
+            # Gentle breathing bob
+            bob = int(math.sin(time.time() * 1.5) * 4)
+            self._screen.blit(sleep_sprite, (sx, sy + bob))
+
+        # "Technical Difficulties" text
+        big_font = pygame.font.Font(None, 52)
+        sub_font = pygame.font.Font(None, 32)
+
+        # Pulsing alpha for friendliness
+        pulse = 0.7 + 0.3 * abs(math.sin(time.time() * 1.2))
+        text_color = (int(255 * pulse), int(215 * pulse), int(0 * pulse + 80))
+
+        line1 = big_font.render("Technical Difficulties", True, text_color)
+        line2 = sub_font.render("Be Right Back!", True, (180, 180, 220))
+
+        self._screen.blit(line1, (w // 2 - line1.get_width() // 2, h // 2 + 80))
+        self._screen.blit(line2, (w // 2 - line2.get_width() // 2, h // 2 + 130))
+
+        # Floating ZZZ animation
+        zzz_font = pygame.font.Font(None, 36)
+        for i in range(3):
+            t = time.time() + i * 0.5
+            zx = w // 2 + 80 + int(math.sin(t * 0.8) * 20) + i * 25
+            zy = h // 2 - 60 - i * 30 + int(math.sin(t * 1.2) * 8)
+            z_alpha = max(80, int(200 - i * 50))
+            z_surf = zzz_font.render("Z", True, (100, 100, 200))
+            z_surf.set_alpha(z_alpha)
+            self._screen.blit(z_surf, (zx, zy))
+
+        # Hint at bottom
+        hint_surf = self._font_small.render("Press F12 to resume", True, (80, 80, 120))
+        self._screen.blit(hint_surf, (w // 2 - hint_surf.get_width() // 2, h - 40))
+
+    def _draw_reconnect_overlay(self):
+        """Draw reconnection UI when WebSocket is disconnected."""
+        w = self._screen.get_width()
+        h = self._screen.get_height()
+
+        # Semi-transparent overlay
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((10, 10, 30, 180))
+        self._screen.blit(overlay, (0, 0))
+
+        # Idle animation of Mario (if available)
+        idle_sprite = self._sprites.get("neutral/idle") or self._sprites.get("idle")
+        if idle_sprite:
+            bob = int(math.sin(time.time() * 2.0) * 6)
+            sx = w // 2 - idle_sprite.get_width() // 2
+            sy = h // 2 - idle_sprite.get_height() // 2 - 50 + bob
+            self._screen.blit(idle_sprite, (sx, sy))
+
+        # Friendly message
+        big_font = pygame.font.Font(None, 40)
+        sub_font = pygame.font.Font(None, 28)
+
+        msg = big_font.render("Mario is taking a bathroom break...", True, (255, 215, 0))
+        msg2 = sub_font.render("be right back!", True, (180, 220, 255))
+        self._screen.blit(msg, (w // 2 - msg.get_width() // 2, h // 2 + 60))
+        self._screen.blit(msg2, (w // 2 - msg2.get_width() // 2, h // 2 + 100))
+
+        # Reconnection status from ws_client
+        reconnect_info = self._reconnect_info
+        if reconnect_info and reconnect_info.get("attempting"):
+            attempt = reconnect_info.get("attempt", 0)
+            max_att = reconnect_info.get("max_attempts", 20)
+            delay = reconnect_info.get("delay", 0)
+            started = reconnect_info.get("started", 0)
+
+            # Countdown timer
+            if started > 0 and delay > 0:
+                elapsed = time.time() - started
+                remaining = max(0, delay - elapsed)
+                countdown_text = f"Reconnecting in {remaining:.0f}s..."
+            else:
+                countdown_text = "Reconnecting..."
+
+            attempt_text = f"Attempt {attempt} / {max_att}"
+
+            # Pulsing dots animation
+            dots = "." * ((int(time.time() * 2) % 3) + 1)
+
+            ct_surf = sub_font.render(f"{countdown_text}{dots}", True, (255, 180, 80))
+            at_surf = self._font_small.render(attempt_text, True, (150, 150, 180))
+            self._screen.blit(ct_surf, (w // 2 - ct_surf.get_width() // 2, h // 2 + 140))
+            self._screen.blit(at_surf, (w // 2 - at_surf.get_width() // 2, h // 2 + 170))
+
+            # Progress bar
+            bar_w = 300
+            bar_h = 8
+            bar_x = w // 2 - bar_w // 2
+            bar_y = h // 2 + 195
+            pygame.draw.rect(self._screen, (40, 40, 60), (bar_x, bar_y, bar_w, bar_h), border_radius=4)
+            if started > 0 and delay > 0:
+                fill = min(1.0, (time.time() - started) / delay)
+                fill_w = int(bar_w * fill)
+                if fill_w > 0:
+                    pygame.draw.rect(self._screen, (100, 200, 255), (bar_x, bar_y, fill_w, bar_h), border_radius=4)
+
+    # ==========================================
     # MAIN DRAW
     # ==========================================
 
     def _draw(self):
-        """Draw the full frame."""
+        """Draw the full frame. Uses render buffer for fullscreen scaling."""
+        # Panic mode: draw directly to real screen (full-res friendly text)
+        if self._panic_mode:
+            self._draw_panic_overlay()
+            pygame.display.flip()
+            return
+
+        # In fullscreen, redirect all drawing to the 800x600 render buffer
+        real_screen = self._screen
+        if self._fullscreen:
+            self._screen = self._render_buffer
+
         # Background scene instead of flat fill
         self._draw_background()
         self._update_particles()
@@ -863,7 +1034,7 @@ class MarioDisplay:
         self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
 
         # Hint for keyboard/party toggle
-        hint = "TAB: type | F5: party | +/-: vol | ESC: quit"
+        hint = "TAB: type | F5: party | F11: fullscreen | F12: panic | ESC: quit"
         hint_surf = self._font_small.render(hint, True, (100, 100, 120))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
 
@@ -875,6 +1046,17 @@ class MarioDisplay:
 
         # Screen edge glow for emotion changes
         self._draw_edge_glow()
+
+        # Reconnect overlay (drawn on top of everything when disconnected)
+        if not self.connected and self._reconnect_info:
+            self._draw_reconnect_overlay()
+
+        # Fullscreen: scale render buffer to real screen, then flip
+        if self._fullscreen:
+            self._screen = real_screen
+            scaled = pygame.transform.smoothscale(self._render_buffer,
+                                                  (self._native_width, self._native_height))
+            self._screen.blit(scaled, (0, 0))
 
         pygame.display.flip()
 

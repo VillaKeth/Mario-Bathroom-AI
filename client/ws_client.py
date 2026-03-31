@@ -41,6 +41,7 @@ class MarioWSClient:
         self._reconnect_attempt = 0
         self._reconnect_max_attempts = 20
         self._reconnect_current_delay = 0.0
+        self._reconnect_started_at = 0.0  # time.time() when delay sleep started
 
     def connect(self):
         """Connect to the server in a background thread."""
@@ -90,6 +91,7 @@ class MarioWSClient:
             with self._reconnect_lock:
                 self._reconnect_current_delay = delay
                 self._reconnecting = True
+                self._reconnect_started_at = time.time()
             if DEBUG_WS:
                 logger.info(f"[DEBUG_WS] reconnecting in {delay:.0f}s (attempt {attempt}/{MAX_RECONNECT_ATTEMPTS})...")
             time.sleep(delay)
@@ -103,6 +105,7 @@ class MarioWSClient:
             self._reconnecting = False
             self._reconnect_attempt = 0
             self._reconnect_current_delay = 0.0
+            self._reconnect_started_at = 0.0
         if self.on_connected:
             self.on_connected()
 
@@ -219,6 +222,7 @@ class MarioWSClient:
             "attempt": self._reconnect_attempt,
             "max_attempts": self._reconnect_max_attempts,
             "delay": self._reconnect_current_delay,
+            "started": self._reconnect_started_at,
         }
 
     def send_health_ping(self):
