@@ -1,4 +1,4 @@
-"""Dashboard — FastAPI router for /dashboard, /api/health, /api/reload, /api/canary."""
+"""Dashboard — FastAPI router for /dashboard, /api/health, /api/reload, /api/canary, /api/report."""
 
 import asyncio
 import gc
@@ -19,18 +19,21 @@ router = APIRouter()
 _health_fn = None
 _server_start_time = None
 _live_config = None  # Set by main.py for hot reload
+_report_deps = None  # Dict of module refs for party report
 
 
-def init_dashboard(health_fn, server_start_time: float, live_config=None):
-    """Wire up health function, start time, and live config from main.py."""
-    global _health_fn, _server_start_time, _live_config
+def init_dashboard(health_fn, server_start_time: float, live_config=None, report_deps: dict = None):
+    """Wire up health function, start time, live config, and report deps from main.py."""
+    global _health_fn, _server_start_time, _live_config, _report_deps
     _health_fn = health_fn
     _server_start_time = server_start_time
     if live_config is not None:
         _live_config = live_config
+    if report_deps is not None:
+        _report_deps = report_deps
     if DEBUG_DASHBOARD:
-        logger.debug("[DEBUG_DASHBOARD] init_dashboard: wired health_fn, start_time=%.0f, live_config=%s",
-                     server_start_time, "yes" if _live_config else "no")
+        logger.debug("[DEBUG_DASHBOARD] init_dashboard: wired health_fn, start_time=%.0f, live_config=%s, report_deps=%s",
+                     server_start_time, "yes" if _live_config else "no", "yes" if _report_deps else "no")
 
 
 @router.get("/dashboard")
@@ -102,4 +105,41 @@ async def api_canary():
         return {"status": "ok", **data}
     except Exception as e:
         logger.error("Canary tests failed: %s", e)
+        return {"status": "error", "message": str(e)}
+
+
+@router.get("/report")
+async def report_page():
+    """Serve the party report HTML page."""
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "report.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path, media_type="text/html")
+    return HTMLResponse("<h1>report.html not found</h1>", status_code=404)
+
+
+@router.get("/api/report")
+async def api_report():
+    """Generate and return party report JSON."""
+    if DEBUG_DASHBOARD:
+        logger.debug("[DEBUG_DASHBOARD] api_report: generating report")
+    try:
+        from party_report import PartyReport
+
+        deps = _report_deps or {}
+        report = PartyReport(
+            server_start_time=_server_start_time or time.time(),
+            party_gossip=deps.get("party_gossip"),
+            catchphrase_mirror=deps.get("catchphrase_mirror"),
+            birthday_vip=deps.get("birthday_vip"),
+            tts_router=deps.get("tts_router"),
+            night_progression=deps.get("night_progression"),
+            llm_router=deps.get("llm_router"),
+            party_stats=deps.get("party_stats"),
+            state_current=deps.get("state_current"),
+            error_count=deps.get("error_count", 0),
+        )
+        data = report.generate()
+        return {"status": "ok", "report": data}
+    except Exception as e:
+        logger.error("Report generation failed: %s", e)
         return {"status": "error", "message": str(e)}

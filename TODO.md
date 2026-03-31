@@ -1,5 +1,34 @@
 # Mario AI — Task Tracking
 
+## Party Report Card (Task 12)
+- [x] Created server/party_report.py — PartyReport class with generate() and to_html()
+- [x] Created web/report.html — Mario-themed report card with stats, awards, JS fetch
+- [x] Added GET /api/report and GET /report endpoints to dashboard.py
+- [x] Report integrates with party_gossip, catchphrase_mirror, birthday_vip, tts_router, llm_router, night_progression
+- [x] Awards display: duration, guests, interactions, games, funniest moment, hottest topic, birthday star, brain power
+
+## E2E Test Expansion (Task 13)
+- [x] Created tests/test_e2e_comprehensive.py — 52 offline tests covering all modules
+- [x] LLM Router: 7 tests (routing, fallback, stats, model names, response type inference)
+- [x] TTS Router: 6 tests (chain order, fallback, stats, unavailable skip, sentence splitting)
+- [x] Night Progression: 7 tests (phases, energy caps, modifiers, crossfade, guardrails, obsession)
+- [x] Watchdog: 4 tests (tier init, failure escalation, restart logic, tier change detection)
+- [x] Canary: 2 tests (format, confidence)
+- [x] Hot Reload: 4 tests (defaults, persistence, external changes, dict copy)
+- [x] Birthday VIP: 4 tests (name match, fuzzy, greeting, interaction tracking)
+- [x] Sound Events: 3 tests (graceful degradation, empty dir, websocket trigger)
+- [x] Catchphrase Mirror: 4 tests (threshold, mirror fire, once-only, party catchphrases)
+- [x] Vomit Detection: 3 tests (init, volume spike, false trigger suppression)
+- [x] Party Report: 5 tests (keys, duration, HTML, gossip integration, VIP integration)
+- [x] Cross-module: 3 tests (progression→gossip, MUST mention→QUALITY, full mock report)
+
+## Voice A/B Comparison (Task 14)
+- [x] Created scripts/voice_ab_compare.py — CLI tool for TTS engine comparison
+- [x] Auto-discovers available engines (edge_tts, fish_speech, pyttsx3, gtts)
+- [x] Saves WAV files to output/voice_comparison/
+- [x] Prints timing comparison table with averages
+- [x] Graceful skip for unavailable engines
+
 ## Pygame Hardening (Task 5)
 - [x] F11 fullscreen toggle with proportional scaling (render buffer approach)
 - [x] F12 panic button — mutes audio, shows "Technical Difficulties" overlay
