@@ -111,7 +111,7 @@ Llama3 8B is fast but can't follow complex instructions. Gossip system fails bec
 **Router: Fast path + Quality path**
 ```
 Greetings, one-liners, roasts → Mixtral 8x7B (~1s)
-Gossip, games, stories, complex → 70B-Q5_K_M (~3s)
+Gossip, games, stories, complex → 70B-Q4_K_M (~3s)
 ```
 - Classification by response_type in request pipeline
 - When "MUST mention" is in system prompt → force quality path
