@@ -1515,3 +1515,14 @@
 - [x] party_gossip.py: get_gossip_for_guest() accepts gossip_aggression for scaling
 - [x] config.json: Added party_start_time field
 - [x] 14 passing tests in tests/test_night_progression.py
+
+## Vomit Detection Enhancements (Task 8)
+- [x] Volume spike detection (RMS >3x baseline threshold)
+- [x] Temporal coherence (2+ distress frames within 5s window)
+- [x] DistressTracker class with EMA baseline, spike detection, event pruning
+- [x] Confidence scoring (0.0-1.0) combining spectral + volume + temporal
+- [x] False-trigger suppression for music, laughter, clinking glasses
+- [x] main.py updated to use DistressTracker with confidence threshold (>=0.35)
+- [x] Tracker reset after comfort response sent
+- [x] Breadcrumb logging throughout (DEBUG_DISTRESS)
+- [x] 9 passing tests in tests/test_vomit_enhancements.py

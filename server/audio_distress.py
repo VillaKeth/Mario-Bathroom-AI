@@ -5,11 +5,18 @@ Detects vomiting/retching/gagging sounds from raw audio bytes.
 PANNs: Uses Cnn14 model (AudioSet 527 classes) for class-based detection.
 Spectral: Analyzes energy bursts, spectral flatness, and bandwidth
           to catch vomiting sounds that PANNs misclassifies.
+
+Enhanced with:
+- Volume spike detection (RMS >3x baseline in <0.5s)
+- Temporal coherence (2+ distress frames within 5s window)
+- Confidence scoring (0.0-1.0) combining spectral + volume + temporal
+- False-trigger suppression for music, laughter, clinking glasses
 """
 
 import logging
 import numpy as np
 import time
+from collections import deque
 
 logger = logging.getLogger("audio_distress")
 
@@ -37,8 +44,196 @@ _COMBINED_THRESHOLD = 0.35
 # Classes that indicate normal conversation (suppress false positives)
 _SPEECH_CLASSES = {0, 1, 2, 3, 4}  # Speech, Child speech, Conversation, etc.
 
+# AudioSet classes that cause false triggers — music, laughter, glass sounds
+_FALSE_TRIGGER_CLASSES = {
+    132: "Music",
+    137: "Singing",
+    17:  "Laughter",
+    18:  "Baby laughter",
+    441: "Glass",
+    395: "Clinking",
+}
+_FALSE_TRIGGER_THRESHOLD = 0.30  # If any of these score above this, suppress
+
 _model = None
 _labels = None
+
+
+class DistressTracker:
+    """
+    Stateful tracker providing volume-spike detection and temporal coherence.
+
+    - Maintains a rolling RMS baseline (exponential moving average).
+    - Flags volume spikes when RMS jumps >3× baseline within a single frame.
+    - Requires 2+ distress frames within a 5-second window before confirming.
+    - Produces a combined confidence score (0.0–1.0).
+    - Resets after the coherence window expires with no new events.
+    """
+
+    SPIKE_MULTIPLIER = 3.0       # RMS must exceed baseline × this
+    COHERENCE_WINDOW = 5.0       # seconds
+    MIN_FRAMES_FOR_TRIGGER = 2   # distress frames required in window
+    BASELINE_ALPHA = 0.05        # EMA smoothing for RMS baseline
+
+    def __init__(self):
+        self._rms_baseline: float = 0.0
+        self._baseline_initialized: bool = False
+        self._distress_events: deque = deque()  # list of (timestamp, confidence)
+        self._last_reset: float = time.time()
+        if DEBUG_DISTRESS:
+            logger.debug("[DEBUG_DISTRESS] DistressTracker: __init__")
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def update(self, frame_result: dict, audio_bytes: bytes,
+               sample_rate: int = 16000) -> dict:
+        """
+        Feed a single-frame detection result and raw audio into the tracker.
+
+        Returns an enriched dict with:
+            - confirmed_distress: bool  (temporal-coherence gated)
+            - combined_confidence: float (0.0–1.0)
+            - volume_spike: bool
+            - distress_frame_count: int (events in current window)
+            - (plus everything from the original frame_result)
+        """
+        now = time.time()
+        if DEBUG_DISTRESS:
+            logger.debug("[DEBUG_DISTRESS] DistressTracker.update: START, "
+                         f"frame is_distress={frame_result.get('is_distress')}")
+
+        # --- Volume spike detection ---
+        rms = self._compute_rms(audio_bytes)
+        volume_spike = self._check_volume_spike(rms)
+        if DEBUG_DISTRESS:
+            logger.debug(f"[DEBUG_DISTRESS] DistressTracker.update: rms={rms:.5f}, "
+                         f"baseline={self._rms_baseline:.5f}, spike={volume_spike}")
+
+        # --- False-trigger suppression ---
+        suppressed = self._check_false_triggers(frame_result)
+        if suppressed and DEBUG_DISTRESS:
+            logger.debug("[DEBUG_DISTRESS] DistressTracker.update: "
+                         f"suppressed by false-trigger class: {suppressed}")
+
+        # --- Decide if this frame counts as distress ---
+        frame_is_distress = (
+            (frame_result.get("is_distress", False) or volume_spike)
+            and not suppressed
+        )
+
+        frame_confidence = frame_result.get("confidence", 0.0)
+        if volume_spike and not suppressed:
+            spike_conf = min(rms / (self._rms_baseline * self.SPIKE_MULTIPLIER + 1e-8), 1.0)
+            frame_confidence = max(frame_confidence, spike_conf * 0.6)
+
+        # --- Record event ---
+        if frame_is_distress:
+            self._distress_events.append((now, frame_confidence))
+            if DEBUG_DISTRESS:
+                logger.debug("[DEBUG_DISTRESS] DistressTracker.update: "
+                             f"recorded distress event, confidence={frame_confidence:.3f}")
+
+        # --- Prune old events ---
+        self._prune_events(now)
+
+        # --- Temporal coherence ---
+        frame_count = len(self._distress_events)
+        confirmed = frame_count >= self.MIN_FRAMES_FOR_TRIGGER
+
+        # --- Combined confidence ---
+        combined_confidence = self._compute_combined_confidence(
+            frame_confidence, volume_spike, frame_count
+        )
+
+        if DEBUG_DISTRESS:
+            logger.debug(f"[DEBUG_DISTRESS] DistressTracker.update: END, "
+                         f"confirmed={confirmed}, combined_conf={combined_confidence:.3f}, "
+                         f"events_in_window={frame_count}")
+
+        return {
+            **frame_result,
+            "confirmed_distress": confirmed,
+            "combined_confidence": combined_confidence,
+            "volume_spike": volume_spike,
+            "distress_frame_count": frame_count,
+            "suppressed_by": suppressed or None,
+        }
+
+    def reset(self):
+        """Clear distress event history (e.g. after comfort response sent)."""
+        self._distress_events.clear()
+        self._last_reset = time.time()
+        if DEBUG_DISTRESS:
+            logger.debug("[DEBUG_DISTRESS] DistressTracker.reset")
+
+    @property
+    def distress_frame_count(self) -> int:
+        self._prune_events(time.time())
+        return len(self._distress_events)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _compute_rms(self, audio_bytes: bytes) -> float:
+        """Compute RMS energy from raw int16 PCM bytes."""
+        audio = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        if len(audio) == 0:
+            return 0.0
+        return float(np.sqrt(np.mean(audio ** 2)))
+
+    def _check_volume_spike(self, rms: float) -> bool:
+        """Update EMA baseline and check for a >3× spike."""
+        if not self._baseline_initialized:
+            self._rms_baseline = rms
+            self._baseline_initialized = True
+            return False
+
+        spike = rms > (self._rms_baseline * self.SPIKE_MULTIPLIER) and self._rms_baseline > 0.001
+        # Update baseline with EMA (only when not spiking, to keep baseline stable)
+        if not spike:
+            self._rms_baseline = (
+                self.BASELINE_ALPHA * rms
+                + (1 - self.BASELINE_ALPHA) * self._rms_baseline
+            )
+        return spike
+
+    def _check_false_triggers(self, frame_result: dict) -> str | None:
+        """Return the name of a false-trigger class if it dominates, else None."""
+        top_classes = frame_result.get("top_classes", [])
+        for class_name, score in top_classes:
+            clean = class_name.strip("'\"")
+            for _, ft_name in _FALSE_TRIGGER_CLASSES.items():
+                if ft_name.lower() in clean.lower() and score >= _FALSE_TRIGGER_THRESHOLD:
+                    return clean
+        return None
+
+    def _prune_events(self, now: float):
+        """Remove events older than the coherence window."""
+        cutoff = now - self.COHERENCE_WINDOW
+        while self._distress_events and self._distress_events[0][0] < cutoff:
+            self._distress_events.popleft()
+
+    def _compute_combined_confidence(self, frame_conf: float,
+                                     volume_spike: bool,
+                                     frame_count: int) -> float:
+        """
+        Combine spectral/PANNs confidence + volume spike + temporal coherence
+        into a single 0.0–1.0 score.
+        """
+        # Spectral/PANNs component (max 0.5)
+        spectral_component = min(frame_conf, 1.0) * 0.5
+
+        # Volume spike component (0.2 bonus)
+        spike_component = 0.2 if volume_spike else 0.0
+
+        # Temporal coherence component — scales from 0 to 0.3
+        temporal_component = min(frame_count / 4.0, 1.0) * 0.3
+
+        combined = spectral_component + spike_component + temporal_component
+        return min(combined, 1.0)
 
 
 def init_detector(device: str = "cpu"):

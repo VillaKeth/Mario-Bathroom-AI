@@ -227,6 +227,9 @@ state_current = {
 # Dedicated executor for TTS (scaled by hardware auto-detection)
 _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
 
+# Distress tracker (initialized in startup, declared here for module scope)
+_distress_tracker: "audio_distress.DistressTracker | None" = None
+
 # Background task limiter (prevents unbounded memory growth from fact extraction)
 _bg_tasks: set = set()
 MAX_BG_TASKS = _PERF["max_background_tasks"]
@@ -436,6 +439,11 @@ async def lifespan(app: FastAPI):
         logger.info(f"Audio distress detector: {'ready' if audio_distress.is_available() else 'FAILED'}")
     except Exception as e:
         logger.warning(f"Audio distress detector unavailable: {e} — text detection still active")
+
+    # Stateful tracker for volume-spike + temporal-coherence gating
+    global _distress_tracker
+    _distress_tracker = audio_distress.DistressTracker()
+    logger.info("Audio distress tracker initialized (volume spike + temporal coherence)")
 
     logger.info("Initializing memory system...")
     memory.init_memory()
@@ -2653,31 +2661,42 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
         logger.error("[DEBUG_SERVER] STT + speaker ID timed out after 30s")
         return
 
-    # Audio-based vomit detection: if PANNs detects distress sounds (even without speech)
-    if distress_result and distress_result.get("is_distress"):
-        logger.info(f"[AUDIO_DISTRESS] PANNs detected distress: {distress_result['details']}")
-        _distress_audio_responses = [
-            "Okay, I can hear that. Nose breathing — in through the nose, not the mouth. You're alright.",
-            "Yeah, that sounds rough. Splash cold water on your face. Trust me on this one.",
-            "I hear you in there. It passes. It always passes. Cold water, back of the neck.",
-            "Been through worse pipes than this. You're doing fine. Just ride it out.",
-            "Hey, I've listened to Bowser sing karaoke. Whatever you're doing in there, I've heard worse.",
-        ]
-        _comfort = random.choice(_distress_audio_responses)
-        # Only respond if we haven't just checked in
-        last_checkin = state_current.get("_sick_checkin_time", 0.0)
-        if time.time() - last_checkin >= 20.0:
-            try:
-                state_current["_detected_mood"] = "sick"
-                analyzed = analyze_text(_comfort)
-                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
-                                    sound="coin", pose_hint="concerned/worried")
-                state_current["_last_user_msg_time"] = time.time()
-                state_current["_sick_checkin_time"] = time.time()
-            except Exception as e:
-                logger.error(f"Audio distress comfort failed: {e}")
-            return
+    # Audio-based vomit detection: feed frame through DistressTracker for
+    # volume-spike + temporal-coherence gating (requires 2+ frames in 5s)
+    if distress_result and _distress_tracker is not None:
+        tracked = _distress_tracker.update(distress_result, audio_chunk)
+        logger.debug(f"[AUDIO_DISTRESS] tracker: confirmed={tracked['confirmed_distress']}, "
+                     f"conf={tracked['combined_confidence']:.2f}, "
+                     f"frames={tracked['distress_frame_count']}, "
+                     f"spike={tracked['volume_spike']}")
+        if tracked.get("confirmed_distress") and tracked["combined_confidence"] >= 0.35:
+            logger.info(f"[AUDIO_DISTRESS] Confirmed distress (tracker): "
+                        f"conf={tracked['combined_confidence']:.2f}, "
+                        f"frames={tracked['distress_frame_count']}, "
+                        f"details={distress_result.get('details','')}")
+            _distress_audio_responses = [
+                "Okay, I can hear that. Nose breathing — in through the nose, not the mouth. You're alright.",
+                "Yeah, that sounds rough. Splash cold water on your face. Trust me on this one.",
+                "I hear you in there. It passes. It always passes. Cold water, back of the neck.",
+                "Been through worse pipes than this. You're doing fine. Just ride it out.",
+                "Hey, I've listened to Bowser sing karaoke. Whatever you're doing in there, I've heard worse.",
+            ]
+            _comfort = random.choice(_distress_audio_responses)
+            # Only respond if we haven't just checked in
+            last_checkin = state_current.get("_sick_checkin_time", 0.0)
+            if time.time() - last_checkin >= 20.0:
+                try:
+                    state_current["_detected_mood"] = "sick"
+                    analyzed = analyze_text(_comfort)
+                    audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                    await send_response(ws, analyzed["display_text"], audio,
+                                        sound="coin", pose_hint="concerned/worried")
+                    state_current["_last_user_msg_time"] = time.time()
+                    state_current["_sick_checkin_time"] = time.time()
+                    _distress_tracker.reset()
+                except Exception as e:
+                    logger.error(f"Audio distress comfort failed: {e}")
+                return
 
     if not transcript or transcript.strip() == "":
         if DEBUG_SERVER:
