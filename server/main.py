@@ -1231,54 +1231,8 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         state_current["_user_request_active"] = False
 
 
-def _infer_response_type(text: str, state: dict) -> str:
-    """Infer the response type from user input and current state for router classification."""
-    if not text or not text.strip():
-        return "idle"
-    lower = text.lower().strip()
-
-    # Active game → complex game logic
-    if state.get("_active_game"):
-        return "game"
-
-    # Sick/vomit mood
-    if state.get("_detected_mood") == "sick":
-        return "vomit_comfort"
-
-    # Gossip keywords
-    gossip_keywords = ("who was here", "who else", "gossip", "tell me about",
-                       "who came", "who visited", "any drama", "what happened")
-    if any(kw in lower for kw in gossip_keywords):
-        return "gossip"
-
-    # Very short acknowledgments
-    ack_words = {"ok", "okay", "sure", "yes", "no", "yeah", "yep", "nah",
-                 "nope", "cool", "nice", "thanks", "alright", "right", "haha",
-                 "lol", "hah", "ha", "hmm", "oh", "wow", "k", "yea"}
-    if lower in ack_words or (len(lower.split()) == 1 and lower.rstrip("!?.") in ack_words):
-        return "acknowledgment"
-
-    # Greetings
-    greeting_words = {"hi", "hey", "hello", "yo", "sup", "howdy", "hiya", "heya",
-                      "what's up", "whats up", "wassup"}
-    if lower.rstrip("!?.") in greeting_words or any(lower.startswith(g) for g in greeting_words):
-        return "greeting"
-
-    # Short roasts
-    roast_words = ("roast me", "insult me", "burn me", "diss me")
-    if any(kw in lower for kw in roast_words):
-        return "roast"
-
-    # Story requests
-    story_words = ("tell me a story", "once upon", "story time", "bedtime story")
-    if any(kw in lower for kw in story_words):
-        return "story"
-
-    # Short one-liners (≤5 words, no complex question)
-    if len(text.split()) <= 5:
-        return "one_liner"
-
-    return "complex"
+# Moved to server/llm_router.py as infer_response_type()
+from server.llm_router import infer_response_type as _infer_response_type
 
 
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
@@ -2099,8 +2053,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         llm.generate_response(ctx, text, model=_fallback_model),
                         timeout=_LLM_TIMEOUT,
                     )
-                except (asyncio.TimeoutError, Exception):
-                    logger.error(f"[ROUTER] Fast model fallback also failed")
+                except asyncio.TimeoutError:
+                    logger.error("[ROUTER] Fast model fallback also timed out")
+                    response_text = None
+                except Exception as e:
+                    logger.error(f"[ROUTER] Fast model fallback failed: {type(e).__name__}: {e}")
                     response_text = None
             else:
                 response_text = None
