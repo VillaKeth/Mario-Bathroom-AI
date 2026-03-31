@@ -50,6 +50,7 @@ import command_handlers
 import audio_distress
 from party_gossip import PartyGossip
 from llm_router import LLMRouter, RoutingDecision
+from night_progression import NightProgression, Phase
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -166,6 +167,13 @@ emotion_system = EmotionSystem()
 party_stats = PartyStats()
 idle_behavior = IdleBehavior()
 party_gossip = PartyGossip()
+
+# Night Progression — personality escalation across party phases
+_party_start_cfg = server_config.get("party_start_time")
+night_progression = NightProgression(
+    start_time=_party_start_cfg if isinstance(_party_start_cfg, (int, float)) and _party_start_cfg > 0 else None
+)
+logger.info(f"Night progression initialized (start_time={night_progression.start_time:.0f})")
 
 # Lock for state_current to prevent race conditions across async handlers
 _state_lock = asyncio.Lock()
@@ -860,7 +868,7 @@ async def websocket_endpoint(ws: WebSocket):
     # Send initial greeting (with 30s timeout to prevent blocking)
     loop = asyncio.get_event_loop()
     try:
-        greeting_ctx = mario_prompt.build_context(event="startup")
+        greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
         greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         greeting_text = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
         greeting_text = filter_response(greeting_text)
@@ -1229,8 +1237,15 @@ async def _idle_loop(ws: WebSocket):
                 continue
 
         # Try context-aware idle first (riffs on recent conversation topics)
+        # Get current night phase for phase-aware idle
+        try:
+            _idle_hours = night_progression.get_hours_elapsed()
+            _idle_guests = party_gossip.get_guest_count()
+            _idle_phase = night_progression.get_effective_phase(_idle_hours, _idle_guests)
+        except Exception:
+            _idle_phase = None
         contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
-        action = contextual or idle_behavior.get_idle_action()
+        action = contextual or idle_behavior.get_idle_action(phase=_idle_phase)
 
         # Gossip-based idle: occasionally reminisce about guests when alone
         if not action and party_gossip.get_gossip_count() > 0 and random.random() < 0.2:
@@ -1335,6 +1350,20 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
 from server.llm_router import infer_response_type as _infer_response_type
 
 
+def _get_night_phase_modifier() -> dict | None:
+    """Compute current night progression phase modifier for the prompt builder."""
+    try:
+        hours = night_progression.get_hours_elapsed()
+        unique_guests = party_gossip.get_guest_count()
+        phase = night_progression.get_effective_phase(hours, unique_guests)
+        modifier = night_progression.get_prompt_modifier(phase)
+        logger.debug(f"[NIGHT] phase={phase.name}, hours={hours:.1f}, guests={unique_guests}, modifier={modifier}")
+        return modifier
+    except Exception as e:
+        logger.warning(f"Night progression error: {e}")
+        return None
+
+
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
     """Shared response pipeline for both audio and text input.
 
@@ -1390,6 +1419,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         ctx = mario_prompt.build_context(
             speaker_name=state_current["speaker_name"],
             memories=memories,
+            phase_modifier=_get_night_phase_modifier(),
         )
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         # Add personality amplifier when emotion is intense
@@ -1993,6 +2023,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             current_speaker_id=state_current.get("speaker_id"),
             current_name=state_current.get("speaker_name"),
             count=3 if gossip_requested else 1,
+            gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
         )
         # Always inject gossip when explicitly requested, otherwise 35% chance
         if gossip_hints and (gossip_requested or random.random() < 0.35):
@@ -2716,6 +2747,7 @@ async def handle_event(ws: WebSocket, event: dict):
                 current_speaker_id=state_current.get("speaker_id"),
                 current_name=state_current.get("speaker_name"),
                 count=1,
+                gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
             )
             if greeting_gossip and random.random() < 0.5:
                 ctx.append({"role": "system", "content": f"[GOSSIP]: You have gossip! {greeting_gossip[0]} Weave it into your greeting naturally!"})

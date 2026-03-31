@@ -225,18 +225,29 @@ class PartyGossip:
         return new_gossip
 
     def get_gossip_for_guest(self, current_speaker_id: str = None,
-                             current_name: str = None, count: int = 2) -> list[str]:
+                             current_name: str = None, count: int = 2,
+                             gossip_aggression: float = 0.3) -> list[str]:
         """Get gossip hints about OTHER guests for the current visitor.
-        Returns formatted gossip strings ready for LLM context."""
+        Returns formatted gossip strings ready for LLM context.
+
+        Args:
+            gossip_aggression: 0.0-1.0 float from night progression. Higher values
+                increase gossip count and allow spicier gossip sharing.
+        """
         if not self._gossip_log:
             return []
+
+        # Scale effective count with aggression (1-4 gossip items)
+        effective_count = max(1, int(count + gossip_aggression * 2))
+        # Higher aggression allows more re-sharing
+        reshare_limit = 3 if gossip_aggression < 0.5 else 5
 
         # Filter out gossip FROM the current speaker (don't gossip about them TO them)
         available = [
             (i, g) for i, g in enumerate(self._gossip_log)
             if g["speaker_id"] != current_speaker_id
             and i not in self._used_gossip
-            and g["shared_count"] < 3  # Don't over-share the same gossip
+            and g["shared_count"] < reshare_limit
         ]
 
         if not available:
@@ -244,14 +255,14 @@ class PartyGossip:
             available = [
                 (i, g) for i, g in enumerate(self._gossip_log)
                 if g["speaker_id"] != current_speaker_id
-                and g["shared_count"] < 5
+                and g["shared_count"] < reshare_limit + 2
             ]
 
         if not available:
             return []
 
         # Pick the most interesting (recent + strong type)
-        selected = random.sample(available, min(count, len(available)))
+        selected = random.sample(available, min(effective_count, len(available)))
         results = []
 
         for idx, gossip in selected:

@@ -38,7 +38,8 @@
     "max_cache_memory": "auto",
     "llm_num_predict": "auto",
     "llm_quality_model": "auto",
-    "llm_fast_model": "auto"
+    "llm_fast_model": "auto",
+    "party_start_time": null
   },
   "client": {
     "server_url": "ws://localhost:8765/ws",

@@ -782,8 +782,13 @@ class IdleBehavior:
             self._global_recent = self._global_recent[-15:]
         return choice
 
-    def get_idle_action(self) -> str:
-        """Get an idle action/mumble if enough time has passed. Returns None if not time yet."""
+    def get_idle_action(self, phase=None) -> str:
+        """Get an idle action/mumble if enough time has passed. Returns None if not time yet.
+
+        Args:
+            phase: Optional Phase enum from night_progression. Adjusts tone:
+                1=WARM_UP (friendly), 2=PARTY_MODE (energetic), 3=UNHINGED (chaotic), 4=WIND_DOWN (nostalgic).
+        """
         now = time.time()
         if now - self._last_idle_action < self._idle_interval:
             return None
@@ -794,6 +799,9 @@ class IdleBehavior:
         self._idle_interval = min(90, 15 + self._action_count * 5)
 
         hour = time.localtime().tm_hour
+
+        # Phase-aware category weighting
+        phase_val = int(phase) if phase is not None else None
 
         # Rotate through categories for variety
         category = self._action_count % 5
@@ -808,6 +816,18 @@ class IdleBehavior:
         else:
             options = list(MARIO_CHALLENGES + MARIO_COMPLIMENTS)
 
+        # Phase-driven tone adjustments
+        if phase_val == 1:  # WARM_UP — heavier on compliments and friendly content
+            options.extend(MARIO_COMPLIMENTS * 2)
+        elif phase_val == 2:  # PARTY_MODE — more songs and energy
+            options.extend(MARIO_SONGS * 2)
+            options.extend(DJ_ANNOUNCEMENTS)
+        elif phase_val == 3:  # UNHINGED — jokes and wild mumbles dominate
+            options.extend(MARIO_JOKES * 3)
+        elif phase_val == 4:  # WIND_DOWN — trivia and sentimental content
+            options.extend(MARIO_TRIVIA * 2)
+            options.extend(MARIO_COMPLIMENTS)
+
         # Add time-appropriate comments
         if 18 <= hour < 21:
             options.extend(TIME_COMMENTS["early_evening"])
@@ -820,7 +840,7 @@ class IdleBehavior:
 
         choice = self._pick_unique(options)
         if DEBUG_IDLE:
-            logger.info(f"[DEBUG_IDLE] get_idle_action: '{choice[:50]}...'")
+            logger.info(f"[DEBUG_IDLE] get_idle_action: phase={phase_val} '{choice[:50]}...'")
         return choice
 
     def get_joke(self) -> str:

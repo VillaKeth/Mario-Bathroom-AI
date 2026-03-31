@@ -102,10 +102,35 @@ def _sanitize_input(text: str) -> str:
     return text.strip() or "friend"
 
 
-def build_context(speaker_name=None, memories=None, event=None, **kwargs):
-    """Build the conversation context for the LLM based on the current situation."""
+def build_context(speaker_name=None, memories=None, event=None, phase_modifier=None, **kwargs):
+    """Build the conversation context for the LLM based on the current situation.
+
+    Args:
+        phase_modifier: Optional dict from NightProgression.get_prompt_modifier() with keys
+            personality_warmth, chaos, gossip_aggression, roast_level (all 0.0-1.0).
+    """
     speaker_name = _sanitize_input(speaker_name) if speaker_name else None
     messages = [{"role": "system", "content": MARIO_SYSTEM_PROMPT}]
+
+    # Inject night progression phase personality if provided
+    if phase_modifier:
+        warmth = phase_modifier.get("personality_warmth", 0.5)
+        chaos = phase_modifier.get("chaos", 0.2)
+        gossip = phase_modifier.get("gossip_aggression", 0.2)
+        roast = phase_modifier.get("roast_level", 0.2)
+        phase_hints = []
+        if warmth > 0.7:
+            phase_hints.append("Be extra warm, welcoming, and friendly")
+        if chaos > 0.7:
+            phase_hints.append("Be UNHINGED and chaotic — wild tangents, absurd energy, maximum drama")
+        if gossip > 0.5:
+            phase_hints.append("Lean into gossip HARD — spill tea, stir drama, reference what others said")
+        if roast > 0.6:
+            phase_hints.append("Roast level HIGH — playful burns, savage but funny")
+        if warmth > 0.7 and chaos < 0.3:
+            phase_hints.append("Nostalgic vibes — reference earlier moments, sentimental callbacks")
+        if phase_hints:
+            messages.append({"role": "system", "content": f"[PARTY PHASE]: {'. '.join(phase_hints)}."})
 
     # Add time/day flavor for greetings
     if event in ("startup", "enter_known", "enter_unknown", "first_visitor", "party_peak"):
