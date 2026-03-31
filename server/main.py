@@ -2185,13 +2185,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                                 continue
                             if chunk_audio and len(chunk_audio) > 44:
                                 is_last = (i == total_chunks - 1)
-                                await ws.send_json({
-                                    "type": "audio_chunk",
-                                    "chunk_index": i,
-                                    "total_chunks": total_chunks,
-                                    "is_last": is_last,
-                                })
-                                await ws.send_bytes(chunk_audio)
+                                try:
+                                    await ws.send_json({
+                                        "type": "audio_chunk",
+                                        "chunk_index": i,
+                                        "total_chunks": total_chunks,
+                                        "is_last": is_last,
+                                    })
+                                    await ws.send_bytes(chunk_audio)
+                                except Exception as send_err:
+                                    logger.warning(f"[DEBUG_STREAM] WebSocket send failed on chunk {i+1}/{total_chunks}: {send_err}")
+                                    break
                                 if DEBUG_STREAM:
                                     logger.info(f"[DEBUG_STREAM] Sent chunk {i+1}/{total_chunks} ({len(chunk_audio)} bytes, is_last={is_last})")
                             else:
