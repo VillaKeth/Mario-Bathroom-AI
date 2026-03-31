@@ -1479,3 +1479,18 @@
 - [x] Farewell test passing consistently
 - [ ] Gossip test still LLM-dependent (llama3 ignores visitor list ~50% of time)
 - [ ] Memory greeting name test LLM-dependent (~50% pass rate)
+
+## Night Progression System (Task 3)
+- [x] Created server/night_progression.py — Phase enum + NightProgression class
+- [x] 4 phases: WARM_UP (0-2h), PARTY_MODE (2-5h), UNHINGED (5-7h), WIND_DOWN (7-8h)
+- [x] Guest energy caps phase escalation (<5 guests caps at phase 1)
+- [x] Prompt modifier with personality_warmth, chaos, gossip_aggression, roast_level
+- [x] Obsession lock mechanic with 20 absurd fallback topics
+- [x] Phase guardrails: banned_topics, max_roasts_per_guest, de_escalation_triggers
+- [x] 15-minute crossfade windows at phase boundaries
+- [x] mario_prompt.py: build_context() accepts phase_modifier dict
+- [x] main.py: NightProgression initialized at startup, phase passed to prompt builder
+- [x] idle_behavior.py: get_idle_action() accepts phase for tone adjustments
+- [x] party_gossip.py: get_gossip_for_guest() accepts gossip_aggression for scaling
+- [x] config.json: Added party_start_time field
+- [x] 14 passing tests in tests/test_night_progression.py

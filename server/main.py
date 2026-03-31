@@ -1356,12 +1356,50 @@ def _get_night_phase_modifier() -> dict | None:
         hours = night_progression.get_hours_elapsed()
         unique_guests = party_gossip.get_guest_count()
         phase = night_progression.get_effective_phase(hours, unique_guests)
-        modifier = night_progression.get_prompt_modifier(phase)
-        logger.debug(f"[NIGHT] phase={phase.name}, hours={hours:.1f}, guests={unique_guests}, modifier={modifier}")
+
+        # Get base modifier and apply crossfade blending if transitioning
+        blend_info = night_progression.get_phase_blend(hours)
+        if blend_info["transitioning"] and blend_info["blend"] > 0.0:
+            from_mod = night_progression.get_prompt_modifier(blend_info["from_phase"])
+            to_mod = night_progression.get_prompt_modifier(blend_info["to_phase"])
+            b = blend_info["blend"]
+            modifier = {
+                k: from_mod[k] * (1 - b) + to_mod[k] * b
+                for k in from_mod
+            }
+            logger.debug(f"[NIGHT] crossfade {blend_info['from_phase'].name}→{blend_info['to_phase'].name} blend={b:.2f}")
+        else:
+            modifier = night_progression.get_prompt_modifier(phase)
+
+        # Inject guardrails for all phases (especially UNHINGED)
+        guardrails = night_progression.get_guardrails(phase)
+        modifier["guardrails"] = guardrails
+
+        # Inject obsession topic during UNHINGED phase
+        if phase == Phase.UNHINGED:
+            guest_topics = _get_recent_guest_topics()
+            obsession = night_progression.get_obsession_topic(guest_topics)
+            modifier["obsession_topic"] = obsession
+            logger.debug(f"[NIGHT] Phase 3 obsession lock: '{obsession}'")
+
+        logger.debug(f"[NIGHT] phase={phase.name}, hours={hours:.1f}, guests={unique_guests}")
         return modifier
     except Exception as e:
         logger.warning(f"Night progression error: {e}")
         return None
+
+
+def _get_recent_guest_topics() -> list[str]:
+    """Extract recent conversation topics from party gossip for obsession lock."""
+    try:
+        topics = []
+        if hasattr(party_gossip, '_gossip_log'):
+            for entry in list(party_gossip._gossip_log)[-20:]:
+                if isinstance(entry, dict) and entry.get("text"):
+                    topics.append(entry["text"][:50])
+        return topics
+    except Exception:
+        return []
 
 
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):

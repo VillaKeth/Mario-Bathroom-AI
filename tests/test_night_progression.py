@@ -115,3 +115,30 @@ def test_crossfade_window(progression):
     assert blend["from_phase"] == Phase.WARM_UP
     assert blend["to_phase"] == Phase.PARTY_MODE
     assert 0.0 < blend["blend"] < 1.0
+
+
+# --- Boundary and edge case tests ---
+
+@pytest.mark.parametrize("hours,expected", [
+    (0.0, Phase.WARM_UP),
+    (2.0, Phase.PARTY_MODE),
+    (5.0, Phase.UNHINGED),
+    (7.0, Phase.WIND_DOWN),
+    (-1.0, Phase.WARM_UP),
+    (100.0, Phase.WIND_DOWN),
+])
+def test_phase_boundaries(progression, hours, expected):
+    """Exact boundary values and edge cases for phase calculation."""
+    assert progression.get_time_phase(hours) == expected
+
+
+def test_guest_energy_zero_guests(progression):
+    """Zero guests should return minimum energy."""
+    energy = progression.get_guest_energy(unique_guests=0)
+    assert energy >= 1
+
+
+def test_start_time_zero_not_replaced():
+    """start_time=0 (epoch) should be preserved, not replaced with time.time()."""
+    np = NightProgression(start_time=0)
+    assert np.start_time == 0

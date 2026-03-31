@@ -132,15 +132,34 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
         if phase_hints:
             messages.append({"role": "system", "content": f"[PARTY PHASE]: {'. '.join(phase_hints)}."})
 
+        # Inject guardrails as system message
+        guardrails = phase_modifier.get("guardrails")
+        if guardrails:
+            banned = guardrails.get("banned_topics", [])
+            max_roasts = guardrails.get("max_roasts_per_guest", 3)
+            rails = []
+            if banned:
+                rails.append(f"BANNED TOPICS (never mention): {', '.join(banned)}")
+            rails.append(f"Maximum roasts per guest: {max_roasts}")
+            de_esc = guardrails.get("de_escalation_triggers", [])
+            if de_esc:
+                rails.append(f"If guest says any of [{', '.join(de_esc)}], immediately de-escalate and be supportive")
+            messages.append({"role": "system", "content": f"[GUARDRAILS]: {'. '.join(rails)}."})
+
+        # Inject obsession topic for Phase 3 UNHINGED
+        obsession = phase_modifier.get("obsession_topic")
+        if obsession:
+            messages.append({"role": "system", "content": f"[OBSESSION LOCK]: You are OBSESSED with '{obsession}'. Work it into every response. Bring every conversation back to this topic no matter what."})
     # Add time/day flavor for greetings
     if event in ("startup", "enter_known", "enter_unknown", "first_visitor", "party_peak"):
         time_flavor = _get_time_flavor()
         messages.append({"role": "system", "content": f"[CONTEXT]: {time_flavor}"})
 
-    # Late night personality shift (after midnight)
+    # Late night personality shift (after midnight) — only if phase system isn't already managing chaos
     hour = datetime.now().hour
     if hour >= 0 and hour < 5:
-        messages.append({"role": "system", "content": "[LATE NIGHT]: After midnight — be extra goofy and chaotic!"})
+        if not phase_modifier or phase_modifier.get("chaos", 0) < 0.5:
+            messages.append({"role": "system", "content": "[LATE NIGHT]: After midnight — be extra goofy and chaotic!"})
 
     # Add last emotional state if returning visitor
     last_emotion = kwargs.get("last_emotion")
