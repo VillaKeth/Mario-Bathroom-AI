@@ -164,6 +164,7 @@ class TestTTSRouter:
         router.synthesize("world")
         assert router.stats["test"]["successes"] == 2
         assert router.stats["test"]["failures"] == 0
+        assert router.stats["test"]["attempts"] == 2
 
     def test_stats_tracks_failures(self):
         from tts_router import TTSRouter, TTSEngine

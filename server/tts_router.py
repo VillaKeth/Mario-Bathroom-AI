@@ -54,7 +54,7 @@ class TTSRouter:
         self._engines.append(engine)
         # Stable sort: engines with same priority keep registration order
         self._engines.sort(key=lambda e: e.priority)
-        self.stats.setdefault(engine.name, {"successes": 0, "failures": 0, "total_ms": 0})
+        self.stats.setdefault(engine.name, {"attempts": 0, "successes": 0, "failures": 0, "total_ms": 0})
         logger.debug(f"[tts_router] Registered engine: {engine.name} (priority={engine.priority})")
 
     def get_fallback_chain(self) -> list[TTSEngine]:
@@ -81,6 +81,7 @@ class TTSRouter:
 
         for engine in chain:
             t0 = time.monotonic()
+            self.stats[engine.name]["attempts"] += 1
             try:
                 result = engine.synthesize_fn(text, rate=rate, pitch=pitch, nocache=nocache, **kwargs)
                 elapsed_ms = (time.monotonic() - t0) * 1000
@@ -178,6 +179,7 @@ class TTSRouter:
             total = s["successes"] + s["failures"]
             avg_ms = s["total_ms"] / max(1, s["successes"])
             summary[name] = {
+                "attempts": s["attempts"],
                 "successes": s["successes"],
                 "failures": s["failures"],
                 "total_calls": total,

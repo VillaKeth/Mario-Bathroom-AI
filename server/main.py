@@ -293,6 +293,47 @@ async def lifespan(app: FastAPI):
     _tts_router.register(tts.register_as_engine())
     logger.info("  ✓ Edge TTS + RVC: registered as fallback engine")
 
+    # Priority 3: XTTS v2 (if model is loaded in tts module)
+    def _xtts_synthesize(text, **kw):
+        """Use XTTS v2 via tts.py internal path."""
+        if hasattr(tts, 'xtts_model') and tts.xtts_model is not None:
+            return tts._original_synthesize(text, **kw)
+        return None
+
+    def _xtts_available():
+        return hasattr(tts, 'xtts_model') and tts.xtts_model is not None
+
+    _tts_router.register(TTSEngine(
+        name="xtts", synthesize_fn=_xtts_synthesize,
+        is_available_fn=_xtts_available, priority=3,
+    ))
+    logger.info(f"  {'✓' if _xtts_available() else '○'} XTTS v2: {'available' if _xtts_available() else 'model not loaded (will activate if loaded later)'}")
+
+    # Priority 4: Pre-recorded generic fallback clips (absolute last resort)
+    _fallback_clips_dir = os.path.join(os.path.dirname(__file__), "assets", "fallback_clips")
+
+    def _prerecorded_synthesize(text, **kw):
+        """Return a random pre-recorded Mario clip as absolute last resort."""
+        import random as _rand
+        if not os.path.isdir(_fallback_clips_dir):
+            return None
+        clips = [f for f in os.listdir(_fallback_clips_dir) if f.endswith('.wav')]
+        if not clips:
+            return None
+        clip_path = os.path.join(_fallback_clips_dir, _rand.choice(clips))
+        with open(clip_path, 'rb') as f:
+            return f.read()
+
+    def _prerecorded_available():
+        return (os.path.isdir(_fallback_clips_dir) and
+                any(f.endswith('.wav') for f in os.listdir(_fallback_clips_dir)))
+
+    _tts_router.register(TTSEngine(
+        name="pre_recorded", synthesize_fn=_prerecorded_synthesize,
+        is_available_fn=_prerecorded_available, priority=4,
+    ))
+    logger.info(f"  {'✓' if _prerecorded_available() else '○'} Pre-recorded fallback: {'available' if _prerecorded_available() else 'no clips in assets/fallback_clips/'}")
+
     # Monkey-patch tts.synthesize and tts.synthesize_user to route through the router.
     # This ensures all 25+ call sites in main.py automatically use the fallback chain
     # without modifying each call site individually.
