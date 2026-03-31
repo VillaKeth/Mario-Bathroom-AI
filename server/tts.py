@@ -1132,6 +1132,34 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
                     pass
 
 
+# --- TTSRouter integration ---
+
+def _edge_rvc_is_available() -> bool:
+    """Check if Edge TTS + RVC pipeline is ready."""
+    try:
+        return _rvc_available or FAST_MODE
+    except Exception:
+        return False
+
+
+def register_as_engine():
+    """Register this module as the 'edge_rvc' engine in the TTSRouter.
+
+    Returns a TTSEngine dataclass ready for router.register().
+    """
+    from tts_router import TTSEngine
+
+    def _synth_for_router(text, rate=None, pitch=None, nocache=False, **kwargs):
+        return synthesize(text, rate=rate, pitch=pitch, nocache=nocache)
+
+    return TTSEngine(
+        name="edge_rvc",
+        synthesize_fn=_synth_for_router,
+        is_available_fn=_edge_rvc_is_available,
+        priority=2,
+    )
+
+
 def _synthesize_xtts_raw(text: str) -> bytes:
     """Generate speech using XTTS v2 (raw, without RVC — caller applies RVC)."""
     if DEBUG_TTS:

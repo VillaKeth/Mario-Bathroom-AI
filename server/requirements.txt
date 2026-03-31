@@ -8,3 +8,4 @@ numpy==1.26.4
 scipy==1.13.0
 httpx==0.27.0
 soundfile==0.12.1
+# fish-speech>=2.2.0  # Install separately if available: pip install fish-speech

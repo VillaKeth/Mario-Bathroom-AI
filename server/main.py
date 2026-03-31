@@ -37,6 +37,10 @@ import hardware
 import speaker_id
 import memory
 import mario_prompt
+import tts_router as tts_router_mod
+from fish_speech_tts import FishSpeechTTS
+from catchphrase_bank import CatchphraseBank
+from tts_router import TTSEngine
 from emotions import EmotionSystem, Emotion
 from party_stats import PartyStats
 from safety_filter import filter_response, check_input
@@ -249,6 +253,56 @@ async def lifespan(app: FastAPI):
     if server_config.get("tts_rate"):
         tts.RATE = server_config["tts_rate"]
     tts.init_tts()
+
+    # Initialize TTS Router with fallback chain
+    logger.info("Initializing TTS Router with fallback chain...")
+    _tts_router = tts_router_mod.init_router(
+        max_parallel=_PERF.get("tts_concurrency", 8) if isinstance(_PERF.get("tts_concurrency"), int) else 8
+    )
+
+    # Priority 0: Catchphrase bank (instant, pre-recorded)
+    catchphrase_bank = CatchphraseBank(
+        assets_dir=os.path.join(os.path.dirname(__file__), "assets", "catchphrases")
+    )
+    if catchphrase_bank.is_available():
+        _tts_router.register(TTSEngine(
+            name="catchphrase",
+            synthesize_fn=lambda text, **kw: catchphrase_bank.match(text),
+            is_available_fn=catchphrase_bank.is_available,
+            priority=0,
+        ))
+        logger.info(f"  ✓ Catchphrase bank: {len(catchphrase_bank.loaded_phrases())} phrases loaded")
+    else:
+        logger.info("  ○ Catchphrase bank: no WAV files found (skipped)")
+
+    # Priority 1: Fish Speech (voice cloning)
+    _ref_audio_path = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences.wav")
+    fish_speech = FishSpeechTTS(reference_audio=_ref_audio_path)
+    if fish_speech.is_available():
+        _tts_router.register(TTSEngine(
+            name="fish_speech",
+            synthesize_fn=fish_speech.synthesize_sync,
+            is_available_fn=fish_speech.is_available,
+            priority=1,
+        ))
+        logger.info("  ✓ Fish Speech: loaded and available")
+    else:
+        logger.info("  ○ Fish Speech: not available (package not installed or model load failed)")
+
+    # Priority 2: Edge TTS + RVC (existing pipeline)
+    _tts_router.register(tts.register_as_engine())
+    logger.info("  ✓ Edge TTS + RVC: registered as fallback engine")
+
+    # Monkey-patch tts.synthesize and tts.synthesize_user to route through the router.
+    # This ensures all 25+ call sites in main.py automatically use the fallback chain
+    # without modifying each call site individually.
+    tts._original_synthesize = tts.synthesize
+    tts._original_synthesize_user = tts.synthesize_user
+    tts.synthesize = _tts_router.synthesize
+    tts.synthesize_user = _tts_router.synthesize_user
+    logger.info("TTS Router active — fallback chain: " + " → ".join(
+        e.name for e in _tts_router.get_fallback_chain()
+    ))
 
     logger.info("Loading speaker identification...")
     speaker_id.init_speaker_id()

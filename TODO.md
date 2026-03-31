@@ -1403,6 +1403,22 @@
 - [x] leaderboard.html full-page TV display (dark theme, neon, auto-refresh 10s)
 - [x] Client WebSocket handler for leaderboard_update messages
 
+## Fish Speech TTS + Fallback Chain Router (2026-07-18)
+- [x] Created server/fish_speech_tts.py — Fish Speech v2.2+ wrapper (graceful if not installed)
+- [x] Created server/tts_router.py — TTSRouter with priority-based fallback chain
+- [x] Created server/catchphrase_bank.py — Pre-recorded catchphrase matcher
+- [x] TTSRouter fallback: catchphrase → Fish Speech → Edge+RVC → XTTS → pre-recorded
+- [x] 8 parallel TTS workers with asyncio.Semaphore for sentence-level streaming
+- [x] Sentence splitting for chunked audio delivery
+- [x] Per-engine stats tracking (successes, failures, avg_ms)
+- [x] tts.py: register_as_engine() exposes Edge+RVC as router engine
+- [x] main.py: Router initialized at startup, monkey-patches tts.synthesize/synthesize_user
+- [x] requirements.txt: fish-speech noted as optional dependency
+- [x] 27 passing tests in tests/test_fish_speech.py + tests/test_tts_router.py
+- [ ] Install fish-speech when available: pip install fish-speech
+- [ ] Add catchphrase WAV files to assets/catchphrases/ directory
+- [ ] Integration test with Fish Speech model loaded
+
 ## Sentence Streaming TTS
 - [x] split_into_sentences() in tts.py (merges short <15 char chunks)
 - [x] synthesize_streaming() async generator yields (index, total, audio) per sentence
