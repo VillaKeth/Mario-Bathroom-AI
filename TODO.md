@@ -1,5 +1,19 @@
 # Mario AI — Task Tracking
 
+## ULTRA Overhaul Design Spec Review (2026-03-31)
+- [ ] CRITICAL: Resolve VRAM budget — 70B-Q5_K_M (22GB) + RVC + Whisper + Fish Speech exceeds 24GB RTX 3090 Ti
+- [ ] CRITICAL: Add MoSCoW priority ordering to spec — no cut list if time runs out
+- [ ] MAJOR: Fix TTS fallback chain ordering — XTTS v2 (10-60s) before Edge TTS (1s) is backwards
+- [ ] MAJOR: Add API contracts for 6 new endpoints (voice-compare, dashboard, report, canary, reload, webhook)
+- [ ] MAJOR: Add Phase 3 UNHINGED content safety guardrails
+- [ ] MAJOR: Merge Section 14 (Guest Count Scaling) into Section 3 (Night Progression) — duplicated logic
+- [ ] MINOR: Consolidate Pre-Party Canary (duplicated in Section 4 and Section 12)
+- [ ] MINOR: Define Phase 3 obsession lock mechanics (topic selection, duration, reset)
+- [ ] MINOR: Document config_live.json schema and relationship to config.json
+- [ ] MINOR: Clarify pre-recorded catchphrase audio sourcing (copyright concerns)
+- [ ] MINOR: Verify pygame mixer channel allocation supports separate SFX channel
+- [ ] MINOR: Expand canary smoke tests to cover new features
+
 ## Hardware Auto-Detection & Performance Optimization (2026-03-30)
 - [x] Created server/hardware.py — auto-detects CPU cores, RAM, GPU VRAM
 - [x] Performance tiers: ultra (Threadripper+3090Ti), high, medium, low
