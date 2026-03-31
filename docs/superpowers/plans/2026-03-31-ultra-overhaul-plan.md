@@ -539,16 +539,26 @@ class TTSRouter:
 2. Replace direct `tts.synthesize()` calls with `tts_router.synthesize()`
 3. Keep `tts.py` functions intact as the "edge_rvc" engine
 
-- [ ] **Step 10: Update requirements.txt**
+- [ ] **Step 10: Implement 8 parallel TTS workers**
+
+In `server/tts_router.py`, add sentence-level parallel synthesis:
+- Split response text into sentences (split on `.!?`)
+- Dispatch first sentence immediately, queue rest
+- Use `asyncio.Semaphore(8)` for ULTRA tier (from hardware.py `tts_workers` config)
+- First sentence plays while remaining sentences generate in parallel
+- Client receives `audio_chunk` messages with `chunk_index` and `is_last` fields
+- Preserve existing streaming protocol from `server/tts.py`
+
+- [ ] **Step 11: Update requirements.txt**
 
 Add `fish-speech>=2.2.0` to `server/requirements.txt`
 
-- [ ] **Step 11: Run all TTS tests**
+- [ ] **Step 12: Run all TTS tests**
 
 Run: `python -m pytest tests/test_fish_speech.py tests/test_tts_router.py -v`
 Expected: All PASS
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 13: Commit**
 
 ```bash
 git add server/fish_speech_tts.py server/tts_router.py server/catchphrase_bank.py \
@@ -810,6 +820,9 @@ Implement `Watchdog` class:
 - Logs to `logs/watchdog.log`
 - Auto-restart via `subprocess.Popen(["python", "server/main.py"])`
 - `__main__` block so it runs standalone: `python server/watchdog.py`
+- Webhook push to configurable URL on tier change (for phone alerts)
+- Triggers: response time >10s (warning), >20s (critical), service restart, TTS fallback activated
+- Config: `"alert_webhook_url": ""` in config.json (empty = disabled)
 
 - [ ] **Step 4: Run watchdog tests**
 
