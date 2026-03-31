@@ -249,3 +249,64 @@ class TestTTSRouter:
         router.synthesize("hi", rate="+20%", pitch="+5Hz")
         assert captured["rate"] == "+20%"
         assert captured["pitch"] == "+5Hz"
+
+    def test_parallel_synthesize_partial_failures(self):
+        """Partial failures in parallel synthesis return successful results and log errors."""
+        import asyncio
+        from tts_router import TTSRouter, TTSEngine
+
+        call_count = 0
+
+        def flaky_synth(t, **kw):
+            nonlocal call_count
+            call_count += 1
+            if call_count % 2 == 0:
+                raise RuntimeError("GPU hiccup")
+            return f"audio:{t}".encode()
+
+        router = TTSRouter()
+        router.register(TTSEngine(name="flaky", synthesize_fn=flaky_synth, is_available_fn=lambda: True, priority=0))
+        results = asyncio.get_event_loop().run_until_complete(
+            router.parallel_synthesize("One. Two. Three.")
+        )
+        # Sentences 1 and 3 succeed (odd calls), sentence 2 fails (even call)
+        assert len(results) >= 1  # At least some succeed
+        assert all(isinstance(r, bytes) for r in results)
+
+    def test_synthesize_user_sets_and_clears_event(self):
+        """synthesize_user sets priority event before synthesis and clears after."""
+        import threading
+        from tts_router import TTSRouter, TTSEngine
+
+        event = threading.Event()
+        event_was_set_during_synth = False
+
+        def check_event_synth(text, **kw):
+            nonlocal event_was_set_during_synth
+            event_was_set_during_synth = event.is_set()
+            return b"audio"
+
+        router = TTSRouter(user_priority_event=event)
+        router.register(TTSEngine(name="checker", synthesize_fn=check_event_synth, is_available_fn=lambda: True, priority=0))
+
+        assert not event.is_set()
+        router.synthesize_user("hello")
+        assert event_was_set_during_synth, "Event should be set during synthesis"
+        assert not event.is_set(), "Event should be cleared after synthesis"
+
+    def test_synthesize_user_clears_event_on_exception(self):
+        """synthesize_user clears event even if all engines fail."""
+        import threading
+        from tts_router import TTSRouter, TTSEngine
+
+        event = threading.Event()
+
+        def failing_synth(text, **kw):
+            raise RuntimeError("fail")
+
+        router = TTSRouter(user_priority_event=event)
+        router.register(TTSEngine(name="fail", synthesize_fn=failing_synth, is_available_fn=lambda: True, priority=0))
+
+        result = router.synthesize_user("hello")
+        assert result is None
+        assert not event.is_set(), "Event must be cleared even on failure"

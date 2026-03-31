@@ -257,7 +257,8 @@ async def lifespan(app: FastAPI):
     # Initialize TTS Router with fallback chain
     logger.info("Initializing TTS Router with fallback chain...")
     _tts_router = tts_router_mod.init_router(
-        max_parallel=_PERF.get("tts_concurrency", 8) if isinstance(_PERF.get("tts_concurrency"), int) else 8
+        max_parallel=_PERF.get("tts_concurrency", 8) if isinstance(_PERF.get("tts_concurrency"), int) else 8,
+        user_priority_event=getattr(tts, '_user_tts_waiting', None),
     )
 
     # Priority 0: Catchphrase bank (instant, pre-recorded)
@@ -311,22 +312,26 @@ async def lifespan(app: FastAPI):
 
     # Priority 4: Pre-recorded generic fallback clips (absolute last resort)
     _fallback_clips_dir = os.path.join(os.path.dirname(__file__), "assets", "fallback_clips")
+    _cached_fallback_clips: list[bytes] = []
+    try:
+        if os.path.isdir(_fallback_clips_dir):
+            for fname in os.listdir(_fallback_clips_dir):
+                if fname.endswith('.wav'):
+                    clip_path = os.path.join(_fallback_clips_dir, fname)
+                    with open(clip_path, 'rb') as f:
+                        _cached_fallback_clips.append(f.read())
+    except OSError as e:
+        logger.warning(f"Failed to load fallback clips: {e}")
 
     def _prerecorded_synthesize(text, **kw):
         """Return a random pre-recorded Mario clip as absolute last resort."""
         import random as _rand
-        if not os.path.isdir(_fallback_clips_dir):
+        if not _cached_fallback_clips:
             return None
-        clips = [f for f in os.listdir(_fallback_clips_dir) if f.endswith('.wav')]
-        if not clips:
-            return None
-        clip_path = os.path.join(_fallback_clips_dir, _rand.choice(clips))
-        with open(clip_path, 'rb') as f:
-            return f.read()
+        return _rand.choice(_cached_fallback_clips)
 
     def _prerecorded_available():
-        return (os.path.isdir(_fallback_clips_dir) and
-                any(f.endswith('.wav') for f in os.listdir(_fallback_clips_dir)))
+        return len(_cached_fallback_clips) > 0
 
     _tts_router.register(TTSEngine(
         name="pre_recorded", synthesize_fn=_prerecorded_synthesize,

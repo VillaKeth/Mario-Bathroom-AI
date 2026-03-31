@@ -98,9 +98,9 @@ class FishSpeechTTS:
             logger.debug("[fish_speech_tts] synthesize: engine unavailable, returning None")
             return None
 
-        logger.debug(f"[fish_speech_tts] synthesize: text='{text[:60]}...'")
+        logger.debug(f"[fish_speech_tts] synthesize: text='{text[:60]}{'...' if len(text) > 60 else ''}'")
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             audio_bytes = await loop.run_in_executor(
                 None, lambda: self._synthesize_sync(text, rate, pitch, output_path)
             )

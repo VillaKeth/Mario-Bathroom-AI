@@ -13,6 +13,7 @@ Supports sentence-level parallel synthesis with configurable concurrency.
 import asyncio
 import logging
 import re
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -43,10 +44,12 @@ class TTSRouter:
     Tracks per-engine success/failure counts for observability.
     """
 
-    def __init__(self, max_parallel: int = 8):
+    def __init__(self, max_parallel: int = 8, user_priority_event=None):
         self._engines: list[TTSEngine] = []
         self.stats: dict[str, dict] = {}
+        self._stats_lock = threading.Lock()
         self._semaphore = asyncio.Semaphore(max_parallel)
+        self._user_priority_event = user_priority_event
         logger.debug(f"[tts_router] Initialized with max_parallel={max_parallel}")
 
     def register(self, engine: TTSEngine):
@@ -81,13 +84,15 @@ class TTSRouter:
 
         for engine in chain:
             t0 = time.monotonic()
-            self.stats[engine.name]["attempts"] += 1
+            with self._stats_lock:
+                self.stats[engine.name]["attempts"] += 1
             try:
                 result = engine.synthesize_fn(text, rate=rate, pitch=pitch, nocache=nocache, **kwargs)
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 if result is not None and result:  # Non-empty bytes
-                    self.stats[engine.name]["successes"] += 1
-                    self.stats[engine.name]["total_ms"] += elapsed_ms
+                    with self._stats_lock:
+                        self.stats[engine.name]["successes"] += 1
+                        self.stats[engine.name]["total_ms"] += elapsed_ms
                     logger.debug(
                         f"[tts_router] synthesize: {engine.name} succeeded in {elapsed_ms:.0f}ms "
                         f"({len(result)} bytes) for '{text[:40]}...'"
@@ -99,7 +104,8 @@ class TTSRouter:
                     continue
             except Exception as e:
                 elapsed_ms = (time.monotonic() - t0) * 1000
-                self.stats[engine.name]["failures"] += 1
+                with self._stats_lock:
+                    self.stats[engine.name]["failures"] += 1
                 logger.debug(f"[tts_router] synthesize: {engine.name} failed ({elapsed_ms:.0f}ms): {e}")
                 continue
 
@@ -110,25 +116,18 @@ class TTSRouter:
                         nocache: bool = False, **kwargs) -> Optional[bytes]:
         """User-priority synthesis. Wraps synthesize() with priority signaling.
 
-        If the original tts module's _user_tts_waiting event is available,
-        sets it to pause background precaching during user synthesis.
+        Uses the injected _user_priority_event (threading.Event) to pause
+        background precaching during user synthesis. Event is passed at init
+        to avoid fragile cross-module imports.
         """
-        try:
-            import tts as _tts_module
-            if hasattr(_tts_module, '_user_tts_waiting'):
-                _tts_module._user_tts_waiting.set()
-        except ImportError:
-            pass
+        if self._user_priority_event is not None:
+            self._user_priority_event.set()
 
         try:
             return self.synthesize(text, rate=rate, pitch=pitch, nocache=nocache, **kwargs)
         finally:
-            try:
-                import tts as _tts_module
-                if hasattr(_tts_module, '_user_tts_waiting'):
-                    _tts_module._user_tts_waiting.clear()
-            except ImportError:
-                pass
+            if self._user_priority_event is not None:
+                self._user_priority_event.clear()
 
     def split_sentences(self, text: str) -> list[str]:
         """Split text into speakable sentence chunks.
@@ -156,7 +155,7 @@ class TTSRouter:
 
         logger.debug(f"[tts_router] parallel_synthesize: {len(sentences)} sentences")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         results: list[Optional[bytes]] = [None] * len(sentences)
 
         async def _synth_one(index: int, sentence: str):
@@ -168,24 +167,28 @@ class TTSRouter:
                 results[index] = audio
 
         tasks = [_synth_one(i, s) for i, s in enumerate(sentences)]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        gathered = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, r in enumerate(gathered):
+            if isinstance(r, Exception):
+                logger.warning(f"[tts_router] parallel_synthesize: sentence {i} failed: {r}")
 
         return [r for r in results if r is not None]
 
     def get_engine_stats(self) -> dict:
         """Return per-engine statistics for observability."""
         summary = {}
-        for name, s in self.stats.items():
-            total = s["successes"] + s["failures"]
-            avg_ms = s["total_ms"] / max(1, s["successes"])
-            summary[name] = {
-                "attempts": s["attempts"],
-                "successes": s["successes"],
-                "failures": s["failures"],
-                "total_calls": total,
-                "avg_ms": round(avg_ms, 1),
-                "success_rate": f"{s['successes'] / max(1, total) * 100:.0f}%",
-            }
+        with self._stats_lock:
+            for name, s in self.stats.items():
+                total = s["successes"] + s["failures"]
+                avg_ms = s["total_ms"] / max(1, s["successes"])
+                summary[name] = {
+                    "attempts": s["attempts"],
+                    "successes": s["successes"],
+                    "failures": s["failures"],
+                    "total_calls": total,
+                    "avg_ms": round(avg_ms, 1),
+                    "success_rate": f"{s['successes'] / max(1, total) * 100:.0f}%",
+                }
         return summary
 
 
@@ -198,9 +201,9 @@ def get_router() -> Optional[TTSRouter]:
     return _router
 
 
-def init_router(max_parallel: int = 8) -> TTSRouter:
+def init_router(max_parallel: int = 8, user_priority_event=None) -> TTSRouter:
     """Initialize and return the global TTSRouter singleton."""
     global _router
-    _router = TTSRouter(max_parallel=max_parallel)
+    _router = TTSRouter(max_parallel=max_parallel, user_priority_event=user_priority_event)
     logger.debug(f"[tts_router] Global router initialized (max_parallel={max_parallel})")
     return _router
