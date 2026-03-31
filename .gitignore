@@ -90,3 +90,6 @@ quadrant.db/
 # Test audio files (freesound.org downloads)
 tests/*.wav
 tests/*.mp3
+
+# Superpowers brainstorm files
+.superpowers/
