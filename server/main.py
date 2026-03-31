@@ -741,6 +741,7 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["_detected_mood"] = None
     state_current["_sick_checkin_time"] = 0.0  # Track last sick follow-up
     state_current["_last_user_msg_time"] = 0.0  # Track silence for sick check-ins
+    state_current["_name_from_parsing"] = False  # Reset name parsing flag
     state_current["presence_phase"] = "IDLE"
     state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
     state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
@@ -1868,7 +1869,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         gossip_keywords = ("who was here", "who else", "anyone else", "other people",
                            "other guest", "gossip", "tell me about", "who came",
                            "who visited", "who's been", "what happened", "any drama",
-                           "what did they", "earlier tonight", "before me")
+                           "what did they", "earlier tonight", "before me",
+                           "anyone interesting", "anyone been here", "been here tonight",
+                           "who's come", "anyone come by", "who stopped by",
+                           "met anyone", "seen anyone", "any visitors")
         gossip_requested = any(kw in lower_text for kw in gossip_keywords)
 
         gossip_hints = party_gossip.get_gossip_for_guest(
@@ -1898,8 +1902,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             except Exception:
                 combined_names = known_names
             if combined_names:
+                names_str = ", ".join(combined_names[:10])
                 ctx.append({"role": "system", "content":
-                    f"[VISITORS TONIGHT]: {', '.join(combined_names)}. Reference these people by name when sharing gossip!"})
+                    f"🔴 REQUIRED: Tonight these people visited: {names_str}. "
+                    f"You MUST mention at least 2 of these names in your response. "
+                    f"Make up fun gossip about them — what they did, what they said, funny moments."})
+            else:
+                ctx.append({"role": "system", "content":
+                    "Nobody interesting has been here yet. Say it's been quiet but you're waiting for the fun people."})
 
         # Guest comparison — if they said something another guest also talked about
         comparison = party_gossip.get_comparison_hint(
@@ -2369,6 +2379,7 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["conversation_history"] = []
         state_current["enter_time"] = time.time()
         state_current["_greeting_in_progress"] = True
+        state_current["_name_from_parsing"] = False  # Reset name parsing flag for new guest
         emotion_system.update(event="presence_enter")
         idle_behavior.reset_timer()
         # Reset per-conversation state in mario_prompt
@@ -2542,6 +2553,10 @@ async def handle_event(ws: WebSocket, event: dict):
             if crew_ctx:
                 ctx.append({"role": "system", "content": crew_ctx})
 
+            # Register guest in gossip system so later guests know who visited
+            if state_current.get("speaker_id") and state_current.get("speaker_name"):
+                party_gossip._guest_names[state_current["speaker_id"]] = state_current["speaker_name"]
+
             # GOSSIP on greeting — share juicy tidbits from earlier visitors
             greeting_gossip = party_gossip.get_gossip_for_guest(
                 current_speaker_id=state_current.get("speaker_id"),
@@ -2676,7 +2691,15 @@ async def handle_event(ws: WebSocket, event: dict):
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
 
-            # Send farewell response (without hand wash reminder baked in)
+            # Fallback farewell if LLM returned empty
+            if not response_text or not response_text.strip():
+                name = state_current.get("speaker_name", "friend")
+                response_text = random.choice([
+                    f"Ciao, {name}! Thanks for hanging out with Mario!",
+                    f"See you next time, {name}! Don't forget to wash your hands!",
+                    f"Wahoo! Bye bye, {name}! Come back soon!",
+                    f"It's-a been fun, {name}! Until we meet again!",
+                ])
             analyzed = analyze_text(response_text)
             loop = asyncio.get_event_loop()
             voice_params = emotion_system.get_voice_params()
@@ -2700,6 +2723,15 @@ async def handle_event(ws: WebSocket, event: dict):
                 logger.warning(f"Hand wash reminder TTS failed: {wash_err}")
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_exit farewell failed: {e}")
+            # Emergency fallback farewell
+            try:
+                name = state_current.get("speaker_name", "friend")
+                fallback = f"Ciao, {name}! Thanks for visiting Mario!"
+                fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(fallback))
+                await send_response(ws, fallback, fallback_audio, sound="goodbye",
+                                    emotion="happy", pose_hint="greeting/farewell")
+            except Exception:
+                pass
 
         # Record dramatic exit moment for gossip
         exit_name = state_current.get("speaker_name", "someone")
@@ -2729,6 +2761,7 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["conversation_history"] = []
         state_current["current_visit_id"] = None
         state_current["enter_time"] = None
+        state_current["_name_from_parsing"] = False
         state_current["presence_phase"] = "IDLE"
 
     elif event_type == "register_speaker":

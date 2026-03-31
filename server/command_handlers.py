@@ -440,8 +440,9 @@ def handle_special_commands(
         )
 
     # Name learning — register voice when user says their name
-    # Skip if we already know their name (prevents false positives from casual speech)
-    if not state.get("speaker_name") and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
+    # Allow re-parsing if current name was set from presence event (not from prior parsing)
+    name_was_parsed = state.get("_name_from_parsing", False)
+    if not name_was_parsed and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
         match = re.search(
             r"(?:my name is|i'm called|call me|i am|i'm|it'?s|it is)\s+([A-Za-z]+)",
             lower,
@@ -462,10 +463,12 @@ def handle_special_commands(
                     memory_module.register_person(new_id, name)
                     state["speaker_name"] = name
                     state["speaker_id"] = new_id
+                    state["_name_from_parsing"] = True
                     emotion_system.current = "excited"
                     return f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice from now on! Let's-a go!"
                 else:
                     state["speaker_name"] = name
+                    state["_name_from_parsing"] = True
                     return f"Nice to meet-a you, {name}! Wahoo! I'll remember you!"
 
     # What time is it

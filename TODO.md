@@ -1404,3 +1404,29 @@
 - [x] E2E test: 11 suites, 53 checks, --quick/--ralph/--feature modes
 - [x] Created superpowers skill (mario-e2e-test) for easy reuse
 - [x] E2E result: 50/53 (94%), 0 critical failures, 9/11 features at 100%
+
+- [x] Fix memory greeting: strengthen enter_known template to MANDATE name usage
+- [x] Fix idle acknowledgment bug (presence check was always False after enter)
+- [x] Fix gossip injection: force context when user explicitly asks about guests
+- [x] Add visitor list fallback from party_stats for gossip queries
+- [x] Fix name parsing: skip when speaker_name already set (prevents "My" capture)
+- [x] Expand stop words list (my, your, me, that, this, etc.)
+- [x] Add get_known_guest_names() to PartyGossip
+- [x] E2E result: 47/52 (90%), 0 critical failures, 8/11 features at 100%
+- [ ] Overnight ralph loop endurance test
+- [ ] Document Tailscale setup for party day
+- [ ] Update CLAUDE.md with all new fixes
+
+## E2E Fixes — Name Parsing & Farewell (2026-03-30)
+- [x] Fix farewell empty response: added fallback phrases when LLM returns empty/whitespace
+- [x] Fix name parsing global state bug: `_name_from_parsing` flag persisted across guests
+- [x] Reset `_name_from_parsing` in client connect, presence_enter, and presence_exit
+- [x] Changed name parsing guard from `not state.get("speaker_name")` to `not state.get("_name_from_parsing")`
+- [x] Register guests in gossip system on presence_enter (not just during chat)
+- [x] Expand gossip keywords: "anyone interesting", "anyone been here", "who stopped by", etc.
+- [x] Strengthen gossip visitor list prompt with 🔴 REQUIRED tag for llama3
+- [x] E2E result: 50/53 (94%), 0 critical, 9/11 features at 100%
+- [x] All 4 name parsing tests passing consistently (jake, sarah, mike, alex)
+- [x] Farewell test passing consistently
+- [ ] Gossip test still LLM-dependent (llama3 ignores visitor list ~50% of time)
+- [ ] Memory greeting name test LLM-dependent (~50% pass rate)
