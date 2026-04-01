@@ -6,6 +6,7 @@ Privacy: only numerical vectors stored, never images.
 """
 import json
 import logging
+import os
 import sqlite3
 import threading
 from typing import Optional
@@ -26,6 +27,7 @@ class FaceMemory:
         self._init_db()
 
     def _init_db(self):
+        os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
         conn = sqlite3.connect(self._db_path)
         try:
             conn.execute("""

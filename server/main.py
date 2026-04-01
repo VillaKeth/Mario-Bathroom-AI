@@ -3078,6 +3078,11 @@ async def handle_event(ws: WebSocket, event: dict):
             total = stats.get("total_visits", 0)
             event_type_greeting = "enter_unknown"
 
+            # Webcam face recognition fallback — if we detected a face but don't have audio ID
+            if not state_current["speaker_name"] and state_current.get("detected_guest"):
+                state_current["speaker_name"] = state_current["detected_guest"]
+                logger.info(f"[WEBCAM] Using face-detected guest name: {state_current['speaker_name']}")
+
             if state_current["speaker_name"]:
                 event_type_greeting = "enter_known"
                 memories = memory.get_memories_for_context(state_current["speaker_id"], current_text="greeting returning guest")
