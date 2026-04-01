@@ -1,5 +1,13 @@
 # Mario AI — Task Tracking
 
+## Post-Setup Verification Script
+- [x] Created scripts/verify_setup.py — 20-check health verification
+- [x] Checks: Python, CUDA, hardware tier, Ollama, models, GPT-SoVITS, RVC, config, qdrant, Edge TTS
+- [x] ULTRA-only checks auto-skip on LOW/MID/HIGH tiers
+- [x] Color-coded output with pass/fail/warn/skip summary
+- [x] Exit codes: 0=all-pass, 1=critical-fail, 2=warnings-only
+- [x] --full-tts flag for GPT-SoVITS synthesis test
+
 ## ✅ ULTRA Overhaul v2.0 — COMPLETE (15/15 Tasks)
 - [x] Task 1: Dual-Model LLM Router (Mixtral fast + 70B quality)
 - [x] Task 2: Fish Speech TTS (5-level fallback chain)
