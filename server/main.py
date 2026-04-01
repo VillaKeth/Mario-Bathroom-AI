@@ -2366,8 +2366,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ]
             ctx.append({"role": "system", "content": f"[CHAOS]: {random.choice(chaos_hints)}"})
 
-        # Conversation history — 6 recent messages keeps context tight for speed
-        hist_window = min(6, len(state_current["conversation_history"]))
+        # Conversation history — use full history for maximum context retention
+        hist_window = min(30, len(state_current["conversation_history"]))
         for msg in state_current["conversation_history"][-hist_window:]:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)

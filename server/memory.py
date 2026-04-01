@@ -193,9 +193,9 @@ def get_person_info(person_id: int) -> dict:
 
             info = dict(person)
 
-            # Get recent conversations (last 10)
+        # Get recent conversations (last 25)
             convos = conn.execute(
-                "SELECT role, content, timestamp FROM conversations WHERE person_id = ? ORDER BY timestamp DESC LIMIT 10",
+                "SELECT role, content, timestamp FROM conversations WHERE person_id = ? ORDER BY timestamp DESC LIMIT 25",
                 (person_id,),
             ).fetchall()
             info["recent_conversations"] = [dict(c) for c in convos]
@@ -244,12 +244,12 @@ def get_memories_for_context(person_id: int) -> list[str]:
     for fact in info["facts"]:
         memories.append(f"You learned: {fact}")
 
-    # Include last 3 conversation lines for richer context
+    # Include last 10 conversation lines for richer context
     if info["recent_conversations"]:
         memories.append("Recent conversation snippets:")
-        for conv in info["recent_conversations"][:3]:
+        for conv in info["recent_conversations"][:10]:
             role = "They said" if conv['role'] == 'user' else "You said"
-            memories.append(f"  {role}: \"{conv['content'][:80]}\"")
+            memories.append(f"  {role}: \"{conv['content'][:120]}\"")
 
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] get_memories_for_context: {len(memories)} memories for person {person_id}")
