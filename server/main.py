@@ -278,7 +278,7 @@ async def _llm_keepalive():
                 await client.post(
                     "http://localhost:11434/api/chat",
                     json={"model": llm.MODEL_NAME, "messages": [{"role": "user", "content": "hi"}],
-                          "stream": False, "keep_alive": "30m", "options": {"num_predict": 1}},
+                          "stream": False, "keep_alive": "60m", "options": {"num_predict": 1}},
                     timeout=15.0
                 )
         except asyncio.CancelledError:
@@ -507,7 +507,7 @@ async def lifespan(app: FastAPI):
 
     # Start LLM keepalive to prevent Ollama from unloading model from VRAM
     _keepalive_task = asyncio.create_task(_llm_keepalive())
-    logger.info("Started LLM keepalive ping (every 4min, keep_alive=30m)")
+    logger.info("Started LLM keepalive ping (every 4min, keep_alive=60m)")
 
     # Memory leak prevention tasks
     _memory_task = asyncio.create_task(_memory_maintenance_loop())

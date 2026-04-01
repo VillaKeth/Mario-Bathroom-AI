@@ -280,6 +280,23 @@ CACHED_PHRASES = [
     # Thinking filler phrases (played while LLM generates response)
     "Hmm, let me think!",
     "Alrighty, one moment!",
+    # Party & birthday phrases
+    "Welcome to Mario's bathroom!",
+    "Oh yeah!",
+    "Mamma mia, what a party!",
+    "Happy birthday!",
+    "Take a shot!",
+    "Let's get this party started!",
+    "Who's next?",
+    "That's what I'm talking about!",
+    "You're a superstar!",
+    "Okie dokie!",
+    "Let's do this!",
+    "Time for some fun!",
+    "Welcome back!",
+    "Good to see you!",
+    "Ha ha ha!",
+    "Oh no!",
 ]
 
 
