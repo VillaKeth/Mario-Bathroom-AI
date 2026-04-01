@@ -46,23 +46,31 @@ A new user currently has to reverse-engineer what's needed from code comments an
 ```
 1. Print banner: "🍄 Mario AI Party Bot — Setup Wizard"
 2. Check Python 3.10+ → error if missing with install link
-3. Check/prompt for Ollama → error if missing with install link
+3. Check Ollama installed (`ollama --version`) AND running (`ollama list`)
+   - If installed but not running: print "Start Ollama with `ollama serve`"
 4. Detect hardware (GPU VRAM, RAM, CPU cores) → print tier
 5. Create Python venv `venv/` → install server + client deps
-6. Download models-v2.0.zip from GitHub Release → extract
-   - mario_models_new/GPT_SoVITS_Mario/ (checkpoints)
-   - server/data/rvc_model/ (RVC v2 model)  
-   - mario_ref_audio/ (reference audio)
-7. Clone GPT-SoVITS repo → create gpt_sovits_env → install deps
+6. Download models-v2.1.zip from GitHub Release → extract
+   - mario_models_new/GPT_SoVITS_Mario/ (Mario-e20.ckpt, Mario_e15_s255.pth, mario_ref.wav, tts_infer.yaml)
+   - server/data/rvc_model/ (RVC v2 voice conversion model)
+   - mario_ref_audio/ (reference sentences for Fish Speech)
+7. Clone GPT-SoVITS repo → run its install script (handles venv, PyTorch CUDA, pretrained models)
+   - Windows: `cd gpt_sovits_repo && pwsh -F install.ps1 --Device CU128 --Source HF`
+   - Downloads ~1-2GB pretrained models (chinese-roberta, chinese-hubert, G2PW, NLTK data)
+   - If install.ps1 fails: fall back to manual pip install + document model download URLs
 8. Pull Ollama models (tier-aware):
-   - ALL tiers: ollama pull llama3
-   - ULTRA: + ollama pull llama3.1:70b-instruct-q4_K_M
-   - ULTRA: + ollama pull mixtral:8x7b
-9. ULTRA only: pip install fish-speech in main venv
-10. Generate config.json from config.example.json if not exists
+   - ALL tiers: ollama pull llama3 (~4.7GB)
+   - ULTRA: + ollama pull llama3.1:70b-instruct-q4_K_M (~40GB)
+   - ULTRA: + ollama pull mixtral:8x7b (~26GB)
+9. ULTRA only: pip install fish-speech>=2.2.0 (test import; non-fatal if fails)
+10. Copy config.example.json → config.json if config.json doesn't exist
 11. Run scripts/verify_setup.py → report pass/fail for each component
 12. Print: "✅ Setup complete! Run start_server.bat to launch."
 ```
+
+**Total download sizes by tier:**
+- LOW/MED/HIGH: ~6GB (llama3 + models zip + GPT-SoVITS pretrained)
+- ULTRA: ~73GB (+ 70B model + Mixtral + Fish Speech)
 
 **Error handling:**
 - Each step has clear error message with fix instructions
@@ -96,35 +104,38 @@ Checks each component and prints pass/fail:
 🔍 Mario AI Setup Verification
 ================================
 [✅] Python 3.10+ .............. 3.11.9
+[✅] CUDA / GPU drivers ........ 12.4 (via nvidia-smi)
 [✅] Ollama reachable .......... http://localhost:11434
 [✅] llama3 model .............. 4.7GB
-[✅] llama3.1:70b-q4_k_m ...... 40GB (ULTRA)
-[✅] mixtral:8x7b .............. 26GB (ULTRA)
+[  ] llama3.1:70b-q4_k_m ...... SKIPPED (not ULTRA tier)
+[  ] mixtral:8x7b .............. SKIPPED (not ULTRA tier)
 [✅] GPT-SoVITS venv ........... gpt_sovits_env/Scripts/python.exe
 [✅] GPT-SoVITS models ......... Mario-e20.ckpt, Mario_e15_s255.pth
+[✅] GPT-SoVITS pretrained ..... chinese-roberta, chinese-hubert, G2PW
 [✅] RVC model ................. server/data/rvc_model/
 [✅] Mario ref audio ........... mario_ref_audio/
-[✅] Fish Speech ............... v2.2.0 (ULTRA only)
-[✅] config.json ............... Valid, 69 settings
+[⚠️] Fish Speech ............... NOT INSTALLED (ULTRA only, non-fatal)
+[✅] config.json ............... Valid
 [✅] Qdrant client ............. qdrant-client 1.9.0
 [✅] VIP profiles .............. 1 profile (Jacob Hoppenstedt)
 [✅] SFX WAV files ............. 6 files in assets/sfx/
 [✅] Server imports ............ All modules load
-[✅] Quick TTS test ............ Edge TTS synthesized OK (1.2s)
+[✅] Edge TTS test ............. Synthesized OK (1.2s)
 ================================
-16/16 checks passed — Ready to party! 🎉
-
-Hardware: ULTRA tier (24GB VRAM, 128GB RAM, 64 cores)
-Run: start_server.bat
+16/18 passed, 2 skipped — Ready to party! 🎉
 ```
 
-**Exit codes:** 0 = all pass, 1 = critical failures, 2 = warnings only
+**Notes:**
+- TTS quick test uses Edge TTS only (fast, no subprocess startup)
+- Full GPT-SoVITS pipeline test is optional (`--full-tts` flag, takes 10-15s)
+- CUDA driver check via `nvidia-smi` output or `torch.cuda.is_available()`
+- Tier-specific checks are skipped (not failed) for lower tiers
 
 ### 5. GitHub Release Asset: `models-v2.0.zip`
 
 **Contents:**
 ```
-models-v2.0.zip
+models-v2.1.zip
 ├── mario_models_new/
 │   └── GPT_SoVITS_Mario/
 │       ├── Mario-e20.ckpt          (~200MB GPT checkpoint)
@@ -139,8 +150,18 @@ models-v2.0.zip
     └── mario_reference_sentences.wav
 ```
 
-**Upload to:** GitHub Release tagged `v2.0` (or `v2.1` if v2.0 exists)
-**Download URL pattern:** `https://github.com/VillaKeth/Mario-Bathroom-AI/releases/download/v2.1/models-v2.0.zip`
+**NOT in the zip (auto-downloaded by GPT-SoVITS install script):**
+- `chinese-roberta-wwm-ext-large` (~1.3GB BERT model)
+- `chinese-hubert-base` (~400MB HuBERT model)
+- `G2PWModel.zip`, `nltk_data.zip` (~100MB total)
+
+**Auto-created at runtime (no setup needed):**
+- `quadrant.db/` — Qdrant vector DB storage (auto-created on first memory store)
+- `server/data/tts_cache/` — TTS audio cache (auto-created)
+- `server/data/memories.db` — SQLite memory DB (auto-created)
+
+**Upload to:** GitHub Release tagged `v2.1`
+**Download URL:** `https://github.com/VillaKeth/Mario-Bathroom-AI/releases/download/v2.1/models-v2.1.zip`
 
 ### 6. Updated README.md
 
