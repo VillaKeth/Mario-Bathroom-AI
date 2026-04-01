@@ -68,6 +68,108 @@ This gives you a full chat interface with audio, games, and health monitoring. W
 
 ---
 
+## 🔧 First Time Setup (New Machine)
+
+If this is your first time running Mario AI, use the setup wizard:
+
+### Windows
+```
+git clone https://github.com/VillaKeth/Mario-Bathroom-AI.git
+cd Mario-Bathroom-AI
+setup.bat
+```
+
+### Linux / Mac
+```
+git clone https://github.com/VillaKeth/Mario-Bathroom-AI.git
+cd Mario-Bathroom-AI
+chmod +x setup.sh && ./setup.sh
+```
+
+The setup wizard will:
+1. ✅ Create a Python virtual environment
+2. ✅ Download voice models (~930 MB)
+3. ✅ Install GPT-SoVITS (Mario voice cloning)
+4. ✅ Pull Ollama LLM models (tier-appropriate)
+5. ✅ Install Fish Speech (ULTRA tier only)
+6. ✅ Generate config.json
+7. ✅ Run verification checks
+
+### Hardware Tiers
+
+Mario auto-detects your hardware and adjusts features:
+
+| Tier | GPU VRAM | RAM | CPU Cores | LLM Models | TTS Workers | Features |
+|------|----------|-----|-----------|------------|-------------|----------|
+| **ULTRA** | ≥20 GB | ≥128 GB | ≥32 | 70B + Mixtral | 8 | All features + Fish Speech |
+| **HIGH** | ≥10 GB | ≥32 GB | ≥8 | llama3 | 4 | Full features |
+| **MEDIUM** | ≥6 GB | ≥16 GB | — | llama3 | 2 | Standard |
+| **LOW** | <6 GB | <16 GB | — | llama3 | 1 | Basic |
+
+### Prerequisites
+
+Before running setup, install:
+- **Python 3.10+** → https://python.org
+- **Ollama** → https://ollama.ai
+- **Git** → https://git-scm.com
+- **NVIDIA GPU drivers** (for CUDA) → https://nvidia.com/drivers
+
+### Verify Setup
+
+After setup, run anytime to check everything:
+```
+python scripts/verify_setup.py
+```
+
+### Manual Setup (if setup script fails)
+
+<details>
+<summary>Click to expand manual setup steps</summary>
+
+1. **Create venv and install deps:**
+   ```
+   python -m venv venv
+   venv\Scripts\activate  (Windows) or source venv/bin/activate (Linux/Mac)
+   pip install -r server/requirements.txt
+   pip install -r client/requirements.txt
+   ```
+
+2. **Download voice models:**
+   Download `models-v2.1.zip` from [Releases](https://github.com/VillaKeth/Mario-Bathroom-AI/releases) and extract to project root.
+
+3. **Install GPT-SoVITS:**
+   ```
+   git clone https://github.com/RVC-Boss/GPT-SoVITS.git gpt_sovits_repo
+   cd gpt_sovits_repo
+   powershell -ExecutionPolicy Bypass -File install.ps1 -Device CU128 -Source HF  (Windows)
+   # or: bash install.sh  (Linux/Mac)
+   cd ..
+   ```
+
+4. **Pull Ollama models:**
+   ```
+   ollama pull llama3
+   # ULTRA tier also needs:
+   ollama pull llama3.1:70b-q4_k_m
+   ollama pull mixtral:8x7b
+   ```
+
+5. **Create config.json:**
+   ```
+   copy config.example.json config.json  (Windows)
+   # or: cp config.example.json config.json  (Linux/Mac)
+   ```
+   Edit `config.json` to set `birthday_person_name` and `birthday_person_facts`.
+
+6. **Run verification:**
+   ```
+   python scripts/verify_setup.py
+   ```
+
+</details>
+
+---
+
 ## 🎮 What Mario Can Do
 
 | Feature | Description |
