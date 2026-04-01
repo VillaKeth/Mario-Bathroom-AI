@@ -4,6 +4,16 @@ echo   Mario AI Server - Starting Up!
 echo ===================================
 echo.
 
+REM Check config.json exists
+if not exist "%~dp0config.json" (
+    echo.
+    echo [ERROR] config.json not found!
+    echo         Run setup.bat first, or copy config.example.json to config.json
+    echo.
+    pause
+    exit /b 1
+)
+
 REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
