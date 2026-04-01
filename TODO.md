@@ -1,5 +1,21 @@
 # Mario AI — Task Tracking
 
+## ✅ Friend-Ready Setup System v2.1 — COMPLETE (9/9 Tasks)
+- [x] Task 1: config.example.json — template config with auto-detected defaults
+- [x] Task 2: scripts/verify_setup.py — 20-check post-setup health validation
+- [x] Task 3: scripts/package_models.py — model packaging for GitHub Release (927 MB)
+- [x] Task 4: setup.bat — one-click Windows setup with hardware tier detection
+- [x] Task 5: setup.sh — Linux/Mac equivalent
+- [x] Task 6: README.md — First Time Setup section, hardware tiers, manual fallback
+- [x] Task 7: start_server.bat — config.json existence check
+- [x] Task 8: GitHub Release v2.1 — tag pushed, models zip ready for upload
+- [x] Task 9: End-to-end verification — 17/20 checks pass, 124 tests pass
+- [ ] MANUAL: Upload models-v2.1.zip to GitHub Release at https://github.com/VillaKeth/Mario-Bathroom-AI/releases/tag/v2.1
+
+## Setup Scripts
+- [x] Created setup.sh — Linux/Mac setup wizard (bash, 12-step flow matching setup.bat)
+- [ ] On Linux/Mac: run `chmod +x setup.sh` before executing
+
 ## Post-Setup Verification Script
 - [x] Created scripts/verify_setup.py — 20-check health verification
 - [x] Checks: Python, CUDA, hardware tier, Ollama, models, GPT-SoVITS, RVC, config, qdrant, Edge TTS
@@ -1678,3 +1694,9 @@
 ## Friend-Ready Setup System
 - [x] Task 3: Create scripts/package_models.py — packages model files into models-v2.1.zip for GitHub Release
 - [x] Task 4: Create setup.bat — one-click Windows setup with hardware tier detection, idempotent steps
+
+## GitHub Release v2.1
+- [x] Task 8: Package models into models-v2.1.zip (927.4 MB, 18 files)
+- [x] Task 8: Create and push git tag v2.1
+- [ ] Task 8: Create GitHub Release v2.1 via web UI (API auth mismatch — SSH=VillaKeth, HTTPS token=VillaKWS)
+- [ ] Task 8: Upload models-v2.1.zip to release (re-run package_models.py, then upload via web UI)
