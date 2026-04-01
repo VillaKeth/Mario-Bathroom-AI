@@ -1556,6 +1556,19 @@
 - [x] Add get_known_guest_names() to PartyGossip
 - [x] E2E result: 47/52 (90%), 0 critical failures, 8/11 features at 100%
 - [ ] Overnight ralph loop endurance test
+
+## Advanced Memory System — Hybrid SQLite + Qdrant (2026-04-01)
+- [x] Task 1: Install qdrant-client[fastembed] dependency
+- [x] Task 2: Create memory_semantic.py — Qdrant wrapper with fastembed embeddings
+- [x] Task 3: Create vip_knowledge.py + Jacob Hoppenstedt VIP profile (74 memories)
+- [x] Task 3b: Jacob profile includes family (Carl, Stacy), Taylor & Francis publication, Lisa Webb memorial
+- [x] Task 4: Upgrade memory.py — dual-write (SQLite + Qdrant), semantic search in get_memories_for_context()
+- [x] Task 5: Increase mario_prompt.py memory cap 10 → 50
+- [x] Task 6: Wire Qdrant + VIP into main.py startup and response pipeline
+- [x] Task 7: Backfill existing SQLite memories into Qdrant (auto on first startup)
+- [ ] Task 8: Update .claude/CLAUDE.md with new architecture docs
+- [ ] Lisa Webb moment of silence + shot — timed idle event during party
+- [ ] Full integration test with server running
 - [ ] Document Tailscale setup for party day
 - [ ] Update CLAUDE.md with all new fixes
 
@@ -1622,3 +1635,13 @@
 - [x] Party-wide catchphrase report for end-of-night summary
 - [x] Integrated into main.py response pipeline
 - [x] 6 passing tests
+
+## Advanced Memory System (Plan Reviewed 2026-04-01)
+- [x] Implement Task 1: Install qdrant-client[fastembed] dependency
+- [x] Implement Task 2: Create memory_semantic.py (Qdrant wrapper + tests)
+- [x] Implement Task 3: Create vip_knowledge.py + Jacob Hoppenstedt profile JSON + tests
+- [x] Implement Task 4: Upgrade memory.py dual-write (SQLite + Qdrant)
+- [x] Implement Task 5: Increase mario_prompt.py memory cap 10 → 50
+- [x] Implement Task 6: Wire Qdrant + VIP into main.py startup and response pipeline
+- [x] Implement Task 7: Backfill existing SQLite memories into Qdrant
+- [ ] Implement Task 8: Update config + documentation

@@ -167,7 +167,7 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
         messages.append({"role": "system", "content": f"[MOOD]: Last time {speaker_name or 'they'} visited, the vibe was {last_emotion}. Factor this into your greeting!"})
 
     if memories:
-        memory_text = "Remember: " + "; ".join(memories[:10])
+        memory_text = "Remember: " + "; ".join(memories[:50])
         messages.append({"role": "system", "content": memory_text})
 
     if event and event in GREETING_PROMPTS:

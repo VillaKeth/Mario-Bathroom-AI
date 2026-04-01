@@ -1,0 +1,128 @@
+{
+  "name": "Jacob Hoppenstedt",
+  "aliases": ["Jacob", "Jake"],
+  "birthday": "2004-03-10",
+  "age": 22,
+  "hometown": "Saint Petersburg, Florida",
+  "state": "Florida",
+  "education": {
+    "university": "University of Florida",
+    "mascot": "Go Gators!",
+    "major": "Computer Science",
+    "honor_society": true
+  },
+  "titles": ["Software Engineer", "Digital Innovator", "Web Designer", "Published Researcher"],
+  "family": {
+    "father": "Carl Hoppenstedt",
+    "mother": "Stacy Hoppenstedt",
+    "aunt_deceased": "Lisa Webb (1968-2023)"
+  },
+  "contact": {
+    "email": "jacobhoppenstedt@gmail.com",
+    "phone": "727-688-7566",
+    "linkedin": "linkedin.com/in/jacob-hoppenstedt",
+    "github": "github.com/JacobHoppenstedt",
+    "portfolio": "jacobhoppenstedt.github.io"
+  },
+  "projects": [
+    {
+      "name": "GatorCommunities (CanvasCommunities)",
+      "year": 2026,
+      "tech": ["TypeScript", "Next.js", "PostgreSQL", "Python", "Docker", "Prisma"],
+      "description": "Campus club discovery platform with ML recommendation engine using Jaccard similarity and EASE collaborative filtering. His most recent and most starred GitHub project.",
+      "fun_fact": "Uses actual machine learning to match students with clubs — not just a search bar!"
+    },
+    {
+      "name": "CelebMax",
+      "year": 2025,
+      "tech": ["JavaScript", "Go", "Python", "Docker", "HairFastGAN-AI"],
+      "description": "Celebrity lookalike web app — upload a photo, AI matches against 25,000 celebrity images, then applies their hairstyle to your photo using HairFastGAN.",
+      "collaborators": ["Daniel Dovale", "Rohith Vellore", "Veeraj Reddy Talasani"],
+      "fun_fact": "Trained on 25,000 celebrities — your face in, famous hair out!"
+    },
+    {
+      "name": "Sweat Smart",
+      "year": 2024,
+      "tech": ["Flutter", "Dart", "Firebase", "ChatGPT API"],
+      "description": "Workout planner mobile app that uses ChatGPT to personalize exercise routines. Cross-platform Flutter build.",
+      "collaborators": ["Daniel Dovale"],
+      "fun_fact": "ChatGPT as your personal trainer — now THAT'S innovation!"
+    },
+    {
+      "name": "Profiteer",
+      "year": 2024,
+      "tech": ["MERN stack", "JavaScript", "D3.js", "MongoDB"],
+      "description": "Financial analytics platform visualizing spending history and savings goals with beautiful D3 charts. Led front-end improvements and Scrum ceremonies.",
+      "collaborators": ["Drewski2222"],
+      "fun_fact": "Turns your messy spending into fancy charts — like a financial makeover show!"
+    },
+    {
+      "name": "Normal Weather",
+      "year": 2024,
+      "tech": ["Godot", "C#"],
+      "description": "Earthquake-preparedness survival game. Choice-driven gameplay with state machines, physics/collision, inventory, HUD. Optimized to improve FPS by 25%. Shipped for Web and desktop.",
+      "collaborators": ["JonKissil"],
+      "fun_fact": "A game about EARTHQUAKES called 'Normal Weather' — the irony is chef's kiss!"
+    },
+    {
+      "name": "ImHungry",
+      "year": 2023,
+      "tech": ["Python", "PySimpleGUI"],
+      "description": "Recipe discovery app with 10,000+ recipes. Input your ingredients, get recipe suggestions sorted by rating or time.",
+      "collaborators": ["Eric Hengber", "Aryeh Bloom"],
+      "fun_fact": "10,000 recipes and STILL somehow hard to decide what to eat — relatable!"
+    },
+    {
+      "name": "AI & Classical Literary Texts (Published Chapter)",
+      "year": 2024,
+      "tech": ["AI", "NLP", "Classical Literature"],
+      "description": "Co-authored a chapter in a Taylor & Francis academic book about applying AI to classical literary texts. Published researcher as an undergrad!",
+      "collaborators": ["Eleni Bozia", "David Bowman", "David Chong", "Srija Dey", "Guhan Gnanam", "Aarushi Jain", "Mackenzie Morrison", "Connor Munjed", "Neema Owji", "Shae Robinson", "Gillian Rodgers", "Trey Slaten", "Austin Stein", "Nitai Stevens", "Jordan Wu"],
+      "fun_fact": "Most CS students just write code — Jacob got PUBLISHED in an actual academic book about AI and ancient literature. That's next level!"
+    }
+  ],
+  "skills": {
+    "languages": ["TypeScript", "JavaScript", "Python", "Go", "C#", "Dart", "HTML", "CSS"],
+    "frameworks": ["Next.js", "Flutter", "MERN stack", "Godot engine", "FastAPI"],
+    "tools": ["Docker", "PostgreSQL", "Firebase", "Prisma", "SQLAlchemy", "D3.js"],
+    "concepts": ["Machine Learning", "Microservices", "Scrum", "Collaborative Filtering", "AI/ML APIs"]
+  },
+  "friends_and_collaborators": [
+    "Daniel Dovale (Sweat Smart, CelebMax — frequent collaborator)",
+    "Rohith Vellore (CelebMax)",
+    "Veeraj Reddy Talasani (CelebMax)",
+    "Eric Hengber (ImHungry)",
+    "Aryeh Bloom (ImHungry)",
+    "JonKissil (Normal Weather)"
+  ],
+  "personality_notes": [
+    "Cross-platform web and app designer with a passion for making impactful technology",
+    "Florida boy his whole life — true sunshine state kid",
+    "Academic achiever — Honor Society member AND published researcher",
+    "Loves building things that help people — recipe apps, workout planners, financial tools",
+    "His best friend built the Mario AI bathroom bot just for his birthday party — that's real friendship!",
+    "His dad Carl and mom Stacy must be proud — published in a Taylor & Francis book as an undergrad!",
+    "Not just a coder — crosses into humanities with AI + classical literature research"
+  ],
+  "memorial": {
+    "person": "Lisa Webb",
+    "relationship": "Jacob's aunt",
+    "born": "August 17, 1968",
+    "passed": "March 23, 2023",
+    "note": "Jacob's beloved aunt Lisa Webb passed away in 2023. At some point during the party (ideally when Jacob is present), Mario should ask everyone for a moment of silence in her honor, then transition to a celebratory tone and ask everyone to take a shot for Aunt Lisa — honoring her memory with joy, not just sadness. The tone goes: respectful pause → heartfelt words → 'Now let's raise a glass to Aunt Lisa! Take a shot for her!' This is important to the party host."
+  },
+  "mario_conversation_hooks": [
+    "Ask about GatorCommunities — it's his latest and proudest project",
+    "Reference the 'Normal Weather' earthquake game name — the irony is funny",
+    "Ask if CelebMax ever matched HIM with a celebrity — who does he look like?",
+    "Joke that Profiteer should help Mario manage his coin collection",
+    "Reference ImHungry and ask what 10,000 recipes taught him about cooking",
+    "Ask about his UF classes — what's he studying this semester?",
+    "Tease him about having a Go backend AND a Python backend — pick a language, Jacob!",
+    "Reference his collaborators — 'Daniel Dovale seems like your Luigi!'",
+    "Ask about Flutter — does he prefer mobile or web development?",
+    "Birthday callback — this whole party bot exists because of him!",
+    "Ask about the published book chapter — 'AI and classical literature? You're like the Renaissance man of CS!'",
+    "Ask if his dad Carl or mom Stacy have tried out any of his apps"
+  ]
+}

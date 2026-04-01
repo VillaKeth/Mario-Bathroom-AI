@@ -48,6 +48,15 @@ from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior
 from pose_analyzer import analyze_text
 import command_handlers
+
+# Semantic memory & VIP knowledge (optional — graceful fallback)
+try:
+    import memory_semantic
+    import vip_knowledge
+    _HAS_SEMANTIC = True
+except ImportError:
+    _HAS_SEMANTIC = False
+    logger.warning("Semantic memory / VIP knowledge not available")
 import audio_distress
 from party_gossip import PartyGossip
 from llm_router import LLMRouter, RoutingDecision
@@ -469,6 +478,18 @@ async def lifespan(app: FastAPI):
 
     logger.info("Initializing memory system...")
     memory.init_memory()
+
+    # Initialize semantic memory (Qdrant) and VIP knowledge
+    if _HAS_SEMANTIC:
+        try:
+            memory_semantic.init_semantic_memory()
+            logger.info("Semantic memory (Qdrant) initialized")
+            vip_knowledge.load_all_vip_profiles()
+            logger.info("VIP profiles loaded into semantic memory")
+            # Backfill existing SQLite memories into Qdrant (first run only)
+            memory_semantic.backfill_from_sqlite()
+        except Exception as e:
+            logger.error(f"Semantic memory init failed (non-fatal): {e}")
 
     # Archive old conversations on startup
     memory.archive_old_conversations(days_old=30)
@@ -1661,7 +1682,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         _t_ctx = time.time()
         memories = []
         if state_current["speaker_id"]:
-            memories = memory.get_memories_for_context(state_current["speaker_id"])
+            memories = memory.get_memories_for_context(state_current["speaker_id"], current_text=text)
+
+        # VIP knowledge injection
+        vip_facts = []
+        if _HAS_SEMANTIC and state_current.get("speaker_name"):
+            vip_facts = vip_knowledge.get_vip_facts_for_prompt(state_current["speaker_name"])
 
         ctx = mario_prompt.build_context(
             speaker_name=state_current["speaker_name"],
@@ -1682,6 +1708,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if vip_ctx:
                 ctx.append({"role": "system", "content": vip_ctx})
             sound_events.trigger("birthday")
+
+        # VIP deep knowledge injection (semantic memory profiles)
+        if vip_facts:
+            vip_text = "🌟 VIP DEEP KNOWLEDGE:\n" + "\n".join(vip_facts)
+            ctx.append({"role": "system", "content": vip_text})
 
         # Catchphrase mirroring — feed guest text and check for repeated phrases
         _speaker = state_current.get("speaker_name", "")
@@ -2985,7 +3016,7 @@ async def handle_event(ws: WebSocket, event: dict):
 
             if state_current["speaker_name"]:
                 event_type_greeting = "enter_known"
-                memories = memory.get_memories_for_context(state_current["speaker_id"])
+                memories = memory.get_memories_for_context(state_current["speaker_id"], current_text="greeting returning guest")
                 person_info = memory.get_person_info(state_current["speaker_id"])
                 actual_visits = person_info["visit_count"] if person_info else 1
                 last_emotion = memory.get_last_emotion(state_current["speaker_id"])

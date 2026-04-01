@@ -15,6 +15,14 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "data", "memory.db")
 # Thread-local connection cache for SQLite connection pooling
 _local = threading.local()
 
+# Semantic memory integration (Qdrant)
+_HAS_SEMANTIC = False
+try:
+    import memory_semantic
+    _HAS_SEMANTIC = True
+except ImportError:
+    logger.warning("memory_semantic not available — running without semantic search")
+
 
 def _get_conn():
     if not hasattr(_local, 'conn') or _local.conn is None:
@@ -150,6 +158,13 @@ def save_conversation(person_id: int, role: str, content: str):
             )
         """, (person_id,))
         conn.commit()
+
+        # Dual-write to Qdrant for semantic search
+        if _HAS_SEMANTIC and role == "user":
+            try:
+                memory_semantic.store_memory(person_id, content, memory_type="conversation")
+            except Exception as e:
+                logger.error(f"save_conversation semantic write failed: {e}")
     except Exception as e:
         logger.error(f"save_conversation failed: {e}")
 
@@ -175,6 +190,13 @@ def save_fact(person_id: int, fact: str):
             (person_id, fact),
         )
         conn.commit()
+
+        # Dual-write to Qdrant for semantic search
+        if _HAS_SEMANTIC:
+            try:
+                memory_semantic.store_memory(person_id, fact, memory_type="fact")
+            except Exception as e:
+                logger.error(f"save_fact semantic write failed: {e}")
     except Exception as e:
         logger.error(f"save_fact failed: {e}")
 
@@ -218,8 +240,12 @@ def get_person_info(person_id: int) -> dict:
     return info
 
 
-def get_memories_for_context(person_id: int) -> list[str]:
-    """Get formatted memories for LLM context."""
+def get_memories_for_context(person_id: int, current_text: str = "") -> list[str]:
+    """Get formatted memories for LLM context.
+
+    When semantic search is available and current_text is provided,
+    augments SQLite memories with semantically relevant results.
+    """
     info = get_person_info(person_id)
     if not info:
         return []
@@ -250,6 +276,35 @@ def get_memories_for_context(person_id: int) -> list[str]:
         for conv in info["recent_conversations"][:10]:
             role = "They said" if conv['role'] == 'user' else "You said"
             memories.append(f"  {role}: \"{conv['content'][:120]}\"")
+
+    # Semantic search: add relevant memories from Qdrant
+    if _HAS_SEMANTIC and current_text and len(current_text.strip()) > 3:
+        try:
+            semantic_results = memory_semantic.search_memories(
+                query=current_text,
+                person_id=person_id,
+                limit=20,
+                score_threshold=0.30,
+            )
+            # Also search without person filter for VIP/global knowledge
+            global_results = memory_semantic.search_memories(
+                query=current_text,
+                person_id=None,
+                limit=10,
+                score_threshold=0.35,
+            )
+            # Merge, deduplicate, sort by score
+            seen_texts = {m.split(": ", 1)[-1] if ": " in m else m for m in memories}
+            all_semantic = semantic_results + global_results
+            all_semantic.sort(key=lambda x: x["score"], reverse=True)
+            for result in all_semantic:
+                text = result["text"]
+                if text not in seen_texts and len(text) > 5:
+                    label = "🧠" if result["memory_type"].startswith("vip") else "💭"
+                    memories.append(f"{label} {text}")
+                    seen_texts.add(text)
+        except Exception as e:
+            logger.error(f"semantic memory augment failed: {e}")
 
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] get_memories_for_context: {len(memories)} memories for person {person_id}")
