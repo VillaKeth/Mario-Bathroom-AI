@@ -82,6 +82,11 @@ _degradation_tier = DegradationTier.FULL
 # Error counter for health reporting
 _error_count = 0
 
+# Ollama health tracking
+_ollama_healthy = True
+_ollama_fail_count = 0
+_OLLAMA_MAX_FAILS = 3
+
 # TTS cache cap for memory leak prevention
 TTS_CACHE_MAX = 2000
 
@@ -285,6 +290,7 @@ _idle_error_count = 0
 
 async def _llm_keepalive():
     """Ping Ollama every 4 min to prevent model unloading from VRAM."""
+    global _ollama_healthy, _ollama_fail_count
     while True:
         try:
             await asyncio.sleep(240)
@@ -295,10 +301,16 @@ async def _llm_keepalive():
                           "stream": False, "keep_alive": "60m", "options": {"num_predict": 1}},
                     timeout=15.0
                 )
+            _ollama_healthy = True
+            _ollama_fail_count = 0
         except asyncio.CancelledError:
             return
-        except Exception:
-            pass  # Non-critical, just keepalive
+        except Exception as e:
+            logger.debug(f"Keepalive ping failed: {e}")
+            _ollama_fail_count += 1
+            if _ollama_fail_count >= _OLLAMA_MAX_FAILS:
+                _ollama_healthy = False
+                logger.error(f"[HEALTH] Ollama appears down after {_ollama_fail_count} failed pings")
 
 
 async def _memory_maintenance_loop():
@@ -318,7 +330,8 @@ async def _memory_maintenance_loop():
                 collected = gc.collect()
                 try:
                     rss = _get_rss_mb()
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Memory maintenance failed: {e}")  # Was: pass
                     rss = 0
                 logger.info("[MEMORY] gc.collect() freed %d objects, RSS=%.0fMB", collected, rss)
                 _last_gc = now
@@ -2572,6 +2585,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     "Wait wait wait — I was having the most AMAZING thought but it escaped! What did you say?",
                 ]
                 response_text = random.choice(_llm_fallback_responses)
+                logger.warning(f"[LLM] Using fallback response - LLM unavailable")
                 emotion_system.current = Emotion.CONFUSED
                 emotion_system.intensity = 0.7
         _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)

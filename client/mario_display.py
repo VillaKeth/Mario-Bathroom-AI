@@ -223,6 +223,9 @@ class MarioDisplay:
         # Panic mode (F12) — "Technical Difficulties" overlay
         self._panic_mode = False
 
+        # Connection status overlay for error recovery
+        self._connection_status = None
+
         # --- Enhanced animation system (time-based, frame-independent) ---
         # Sprite crossfade
         self._crossfade_start = 0.0
@@ -431,6 +434,18 @@ class MarioDisplay:
         """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
         self.subtitle_text = text
         self._subtitle_set_frame = self._frame
+
+    def set_connection_status(self, connected: bool, attempt: int = 0, max_attempts: int = 20):
+        """Update connection status display."""
+        if connected:
+            self._connection_status = None
+        else:
+            if attempt >= max_attempts:
+                self._connection_status = "Cannot reach server - restart Mario AI"
+            elif attempt > 0:
+                self._connection_status = f"Reconnecting... (attempt {attempt}/{max_attempts})"
+            else:
+                self._connection_status = "Connecting..."
 
     def set_state(self, state: str):
         """Set Mario's animation state."""
@@ -1097,6 +1112,15 @@ class MarioDisplay:
 
         # Screen edge glow for emotion changes
         self._draw_edge_glow()
+
+        # Connection status overlay (red text at top of screen)
+        if self._connection_status:
+            try:
+                status_font = self._font_small or pygame.font.SysFont("arial", 14)
+                status_surface = status_font.render(self._connection_status, True, (255, 80, 80))
+                self._screen.blit(status_surface, (10, 10))
+            except Exception:
+                pass
 
         # Reconnect overlay (drawn on top of everything when disconnected)
         if not self.connected and self._reconnect_info:

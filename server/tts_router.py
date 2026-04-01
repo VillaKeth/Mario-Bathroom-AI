@@ -110,7 +110,25 @@ class TTSRouter:
                 continue
 
         logger.debug(f"[tts_router] synthesize: all engines exhausted for '{text[:40]}...'")
-        return None
+        # All engines exhausted — generate emergency silence
+        logger.error(f"[tts_router] ALL TTS engines failed for: {text[:80]}")
+        try:
+            return self._emergency_silence()
+        except Exception:
+            return None
+
+    def _emergency_silence(self, duration_sec=1.5):
+        """Generate silent WAV as absolute last resort."""
+        import struct
+        sample_rate = 22050
+        num_samples = int(sample_rate * duration_sec)
+        # Build minimal WAV header + silent PCM data
+        data_size = num_samples * 2  # 16-bit mono
+        header = struct.pack('<4sI4s4sIHHIIHH4sI',
+            b'RIFF', 36 + data_size, b'WAVE',
+            b'fmt ', 16, 1, 1, sample_rate, sample_rate * 2, 2, 16,
+            b'data', data_size)
+        return header + b'\x00' * data_size
 
     def synthesize_user(self, text: str, rate: str = None, pitch: str = None,
                         nocache: bool = False, **kwargs) -> Optional[bytes]:
