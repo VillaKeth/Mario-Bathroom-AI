@@ -1,5 +1,16 @@
 # Mario AI — Task Tracking
 
+## ✅ ULTRA Performance Tuning — Task 7 COMPLETE
+- [x] Boosted ULTRA tier defaults (tts_concurrency=6, gpu_idle=0.3, cache=1000MB, bg_tasks=80, predict=250, history=150)
+- [x] Expanded precache phrase list (+16 party/birthday phrases)
+- [x] Increased LLM keepalive from 30m to 60m
+
+## ✅ VIP Profile Enrichment — Task 4 COMPLETE
+- [x] Enriched Jacob's profile: +5 personality_notes, +8 conversation_hooks
+- [x] Added appearance_hints field to Jacob profile (for future webcam integration)
+- [x] Created party_guests.json template for onboarding new guests
+- [x] Updated vip_knowledge.py to inject appearance_hints into Qdrant memories
+
 ## ✅ Friend-Ready Setup System v2.1 — COMPLETE (9/9 Tasks)
 - [x] Task 1: config.example.json — template config with auto-detected defaults
 - [x] Task 2: scripts/verify_setup.py — 20-check post-setup health validation
