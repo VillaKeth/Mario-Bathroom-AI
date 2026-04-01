@@ -1,6 +1,9 @@
 # Mario AI Party Bot - TODO
 
 ## Recently Added
+- [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
+- [ ] Manual test: birthday special questions award 2x bonus points
+- [ ] Manual test: game leaderboard shows in /leaderboard endpoint
 - [ ] Manual test: gossip idle behavior — verify Mario references real guest snippets when alone
 - [ ] Manual test: party info banner displays name, duration timer, and guest count
 - [ ] Manual test: connection status overlay no longer overlaps party banner

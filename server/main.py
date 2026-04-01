@@ -946,6 +946,13 @@ async def leaderboard_endpoint():
         rate = stats["total_visits"] / max(1, party_duration_secs / 3600)
         ticker_stats.append(f"Traffic: {rate:.1f} visits/hour!")
 
+    # Game leaderboard from memory module
+    game_leaderboard = []
+    try:
+        game_leaderboard = memory_module.get_game_leaderboard(limit=10)
+    except Exception:
+        pass
+
     return {
         "total_visits": stats.get("total_visits", 0),
         "unique_visitors": stats.get("unique_visitors", 0),
@@ -963,6 +970,7 @@ async def leaderboard_endpoint():
             "name": game_champion,
             "score": game_score,
         },
+        "game_leaderboard": game_leaderboard,
         "most_chatty": chatty_name,
         "funniest_moment": {
             "name": funniest_name,
@@ -1366,6 +1374,12 @@ async def _build_leaderboard_data() -> dict:
     except Exception:
         pass
 
+    game_leaderboard = []
+    try:
+        game_leaderboard = memory_module.get_game_leaderboard(limit=10)
+    except Exception:
+        pass
+
     return {
         "total_visits": stats.get("total_visits", 0),
         "unique_visitors": stats.get("unique_visitors", 0),
@@ -1382,6 +1396,7 @@ async def _build_leaderboard_data() -> dict:
             "minutes": round(stats.get("longest_visit_seconds", 0) / 60, 1),
         },
         "game_champion": {"name": game_champion, "score": game_score},
+        "game_leaderboard": game_leaderboard,
         "most_chatty": chatty_name,
         "current_emotion": emotion_system.current,
     }

@@ -1,0 +1,107 @@
+[
+    {
+        "question": "Which of Jacob's projects uses machine learning to match students with university clubs?",
+        "options": ["ImHungry", "GatorCommunities", "Normal Weather", "CelebMax"],
+        "answer": "GatorCommunities",
+        "accept": ["gatorcommunities", "gator communities"],
+        "fun_fact": "GatorCommunities uses a Random Forest classifier to help UF students find their perfect club!"
+    },
+    {
+        "question": "What academic publisher featured Jacob's chapter on AI and classical literary texts?",
+        "options": ["Springer", "Oxford University Press", "Taylor & Francis", "Cambridge University Press"],
+        "answer": "Taylor & Francis",
+        "accept": ["taylor", "francis", "taylor & francis", "taylor and francis"],
+        "fun_fact": "Jacob co-authored a chapter in a book about AI applications to classical literature!"
+    },
+    {
+        "question": "What's the name of Jacob's earthquake and natural disaster simulation game?",
+        "options": ["Quake Quest", "Normal Weather", "Disaster Dash", "Earth Shaker"],
+        "answer": "Normal Weather",
+        "accept": ["normal weather"],
+        "fun_fact": "Normal Weather - because earthquakes are totally normal weather, right?!"
+    },
+    {
+        "question": "What is Jacob's dad's name?",
+        "options": ["Carl", "David", "Mike", "Steve"],
+        "answer": "Carl",
+        "accept": ["carl"],
+        "fun_fact": "Carl Hoppenstedt raised a coding legend!"
+    },
+    {
+        "question": "What is Jacob's mom's name?",
+        "options": ["Jennifer", "Stacy", "Karen", "Lisa"],
+        "answer": "Stacy",
+        "accept": ["stacy"],
+        "fun_fact": "Stacy Hoppenstedt - proud mom of the birthday boy!"
+    },
+    {
+        "question": "Which of these is Jacob's celebrity look-alike matching app?",
+        "options": ["StarFace", "CelebMax", "FamousMe", "TwinStar"],
+        "answer": "CelebMax",
+        "accept": ["celebmax", "celeb max"],
+        "fun_fact": "CelebMax uses facial recognition to find your celebrity doppelganger!"
+    },
+    {
+        "question": "What company does Jacob work at that does property management?",
+        "options": ["Zillow", "GatorCommunities", "Redfin", "A property management company in Florida"],
+        "answer": "A property management company in Florida",
+        "accept": ["property management", "property", "florida"],
+        "fun_fact": "Jacob builds software solutions for real estate management!"
+    },
+    {
+        "question": "What university does Jacob attend?",
+        "options": ["UCF", "FSU", "University of Florida", "USF"],
+        "answer": "University of Florida",
+        "accept": ["florida", "uf", "university of florida", "gators"],
+        "fun_fact": "Go Gators! Jacob's a proud UF student!"
+    },
+    {
+        "question": "Jacob built a fitness tracking app. What's it called?",
+        "options": ["FitBuddy", "Sweat Smart", "GymRat", "WorkoutPro"],
+        "answer": "Sweat Smart",
+        "accept": ["sweat smart", "sweatsmart"],
+        "fun_fact": "Sweat Smart helps you track your fitness journey intelligently!"
+    },
+    {
+        "question": "What's the name of Jacob's stock portfolio optimization tool?",
+        "options": ["StockPicker", "WealthWise", "Profiteer", "MarketMaster"],
+        "answer": "Profiteer",
+        "accept": ["profiteer"],
+        "fun_fact": "Profiteer uses algorithms to help optimize your stock picks!"
+    },
+    {
+        "question": "How many live projects does Jacob have?",
+        "options": ["3", "5", "7", "10"],
+        "answer": "7",
+        "accept": ["7", "seven"],
+        "fun_fact": "Seven! GatorCommunities, CelebMax, Normal Weather, Sweat Smart, Profiteer, ImHungry, and more!"
+    },
+    {
+        "question": "What's Jacob's phone number's area code?",
+        "options": ["352", "727", "813", "904"],
+        "answer": "727",
+        "accept": ["727"],
+        "fun_fact": "727 represent! That's the St. Pete / Clearwater area code!"
+    },
+    {
+        "question": "Jacob co-authored a book chapter about AI applied to what type of texts?",
+        "options": ["Modern poetry", "Classical literary texts", "Scientific papers", "Social media posts"],
+        "answer": "Classical literary texts",
+        "accept": ["classical", "literary", "classical literary"],
+        "fun_fact": "AI meets ancient literature - Jacob helped write about using AI to analyze classical texts!"
+    },
+    {
+        "question": "Which food-related app did Jacob create?",
+        "options": ["FoodFinder", "ImHungry", "MealPrep", "SnackAttack"],
+        "answer": "ImHungry",
+        "accept": ["imhungry", "im hungry", "i'm hungry"],
+        "fun_fact": "ImHungry helps you find food when the hunger strikes!"
+    },
+    {
+        "question": "What major is Jacob studying?",
+        "options": ["Electrical Engineering", "Computer Science", "Data Science", "Information Systems"],
+        "answer": "Computer Science",
+        "accept": ["computer science", "cs", "comp sci"],
+        "fun_fact": "CS major cranking out projects like a machine!"
+    }
+]

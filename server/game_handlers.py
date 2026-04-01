@@ -4,9 +4,66 @@ Extracted from main.py to keep the server module focused on WebSocket handling.
 Each game mode has its content data, start logic, and input handling here.
 """
 
+import json
+import os
 import random
 import time
 from emotions import Emotion
+
+
+# ---------------------------------------------------------------------------
+# Jacob Birthday Trivia Loader
+# ---------------------------------------------------------------------------
+
+_jacob_trivia_cache = None
+
+def _load_jacob_trivia():
+    """Load Jacob-specific birthday trivia questions."""
+    global _jacob_trivia_cache
+    if _jacob_trivia_cache is not None:
+        return _jacob_trivia_cache
+    try:
+        trivia_path = os.path.join(os.path.dirname(__file__), "data", "jacob_trivia.json")
+        with open(trivia_path) as f:
+            _jacob_trivia_cache = json.load(f)
+        return _jacob_trivia_cache
+    except Exception:
+        return []
+
+
+def _mix_jacob_trivia(mario_questions, count=5):
+    """Mix Jacob birthday trivia into Mario trivia (1 Jacob per ~3 Mario).
+
+    Returns a list of *count* questions with Jacob questions tagged
+    ``is_birthday_special = True`` for bonus-point handling.
+    """
+    jacob_qs = _load_jacob_trivia()
+    if not jacob_qs:
+        return mario_questions[:count]
+
+    jacob_pool = list(jacob_qs)
+    random.shuffle(jacob_pool)
+    # Target: ~1 Jacob question per 3 regular questions
+    jacob_count = max(1, count // 3)
+    mario_count = count - jacob_count
+
+    mario_pool = list(mario_questions)
+    random.shuffle(mario_pool)
+
+    # Convert Jacob questions to the same format as Mario questions + tag them
+    selected_jacob = []
+    for jq in jacob_pool[:jacob_count]:
+        selected_jacob.append({
+            "q": f"BIRTHDAY SPECIAL! {jq['question']}  (Options: {', '.join(jq['options'])})",
+            "a": [jq["answer"]],
+            "accept": jq["accept"],
+            "fun_fact": jq.get("fun_fact", ""),
+            "is_birthday_special": True,
+        })
+
+    combined = mario_pool[:mario_count] + selected_jacob
+    random.shuffle(combined)
+    return combined
 
 
 # ---------------------------------------------------------------------------
@@ -539,19 +596,23 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     # --- Mario Trivia ---
     if game_name == "mario_trivia":
-        questions = list(MARIO_TRIVIA_QUESTIONS)
-        random.shuffle(questions)
         max_r = 5
+        questions = _mix_jacob_trivia(MARIO_TRIVIA_QUESTIONS, count=max_r)
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
-            "questions": questions[:max_r],
+            "questions": questions,
             "current": 0,
             "score": 0,
             "max_rounds": max_r,
         }
         emotion_sys.current = Emotion.EXCITED
         first_q = questions[0]["q"]
-        return f"MARIO TRIVIA TIME! 5 questions about the wonderful world of Mario! Let's-a see how smart you are! Question 1: {first_q}"
+        has_birthday = any(q.get("is_birthday_special") for q in questions)
+        intro = "MARIO TRIVIA TIME!"
+        if has_birthday:
+            intro += " With BIRTHDAY SPECIAL questions about our guest of honor!"
+        intro += f" 5 questions — let's-a see how smart you are! Question 1: {first_q}"
+        return intro
 
     # --- Name That Character ---
     if game_name == "name_that_character":
@@ -1119,27 +1180,49 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
 
         question = gs["questions"][current_idx]
         accepted = question["accept"]
+        is_birthday = question.get("is_birthday_special", False)
         got_it = any(a in lower for a in accepted)
 
         gs["current"] += 1
         next_idx = gs["current"]
 
+        fun_fact_line = ""
+        if is_birthday and question.get("fun_fact"):
+            fun_fact_line = f" Fun fact: {question['fun_fact']}"
+
         if got_it:
-            gs["score"] += 1
-            feedback = random.choice([
-                "CORRECT! Wahoo! You REALLY know your Mario!",
-                "YES! That's-a RIGHT! You're a true Mario fan!",
-                "MAMA MIA! You got it! Impressive!",
-                "WAHOO! Correct! Are you secretly a Toad scholar?!",
-            ])
+            # Birthday special questions award 2 points instead of 1
+            points = 2 if is_birthday else 1
+            gs["score"] += points
+            if is_birthday:
+                feedback = random.choice([
+                    f"CORRECT! BIRTHDAY BONUS — {points} points! You know Jacob well!",
+                    f"YES! That's RIGHT! Birthday bonus: {points} points! Wahoo!",
+                    f"MAMA MIA! You nailed the birthday question! {points} points!",
+                ])
+            else:
+                feedback = random.choice([
+                    "CORRECT! Wahoo! You REALLY know your Mario!",
+                    "YES! That's-a RIGHT! You're a true Mario fan!",
+                    "MAMA MIA! You got it! Impressive!",
+                    "WAHOO! Correct! Are you secretly a Toad scholar?!",
+                ])
+            feedback += fun_fact_line
             sfx = "correct"
         else:
             correct_answer = question["a"][0]
-            feedback = random.choice([
-                f"Ooh, not quite! The answer was '{correct_answer}'!",
-                f"Nope! It's '{correct_answer}'! Now you know!",
-                f"Sorry! The correct answer is '{correct_answer}'! Tricky one!",
-            ])
+            if is_birthday:
+                feedback = random.choice([
+                    f"Ooh! The birthday answer was '{correct_answer}'!",
+                    f"Not quite! It's '{correct_answer}'! Now you know about Jacob!",
+                ])
+            else:
+                feedback = random.choice([
+                    f"Ooh, not quite! The answer was '{correct_answer}'!",
+                    f"Nope! It's '{correct_answer}'! Now you know!",
+                    f"Sorry! The correct answer is '{correct_answer}'! Tricky one!",
+                ])
+            feedback += fun_fact_line
             sfx = "wrong"
 
         if next_idx >= len(gs["questions"]):

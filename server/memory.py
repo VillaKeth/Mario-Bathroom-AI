@@ -565,6 +565,53 @@ def save_game_result(person_id: int, game_type: str, score: int, max_score: int)
     conn.commit()
 
 
+def get_game_leaderboard(limit: int = 10) -> list:
+    """Get sorted game leaderboard across all players.
+
+    Returns a list of dicts sorted by total points descending:
+        [{"person_id": int, "name": str|None, "wins": int,
+          "games_played": int, "points": int}, ...]
+
+    A "win" is defined as scoring > 50% of max_score.  Points are the
+    cumulative raw score across all games.
+    """
+    conn = _get_conn()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS game_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER,
+            game_type TEXT,
+            score INTEGER,
+            max_score INTEGER,
+            played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    rows = conn.execute("""
+        SELECT
+            gr.person_id,
+            p.name,
+            SUM(CASE WHEN CAST(gr.score AS FLOAT) / MAX(gr.max_score, 1) > 0.5 THEN 1 ELSE 0 END) as wins,
+            COUNT(*) as games_played,
+            SUM(gr.score) as points
+        FROM game_results gr
+        LEFT JOIN people p ON gr.person_id = p.id
+        GROUP BY gr.person_id
+        ORDER BY points DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+    return [
+        {
+            "person_id": r[0],
+            "name": r[1] or f"Guest #{r[0]}",
+            "wins": r[2],
+            "games_played": r[3],
+            "points": r[4],
+        }
+        for r in rows
+    ]
+
+
 def archive_old_conversations(days_old=30):
     """Delete conversations older than N days to keep DB manageable."""
     conn = _get_conn()
