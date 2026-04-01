@@ -6,7 +6,7 @@ using subprocess calls, file checks, and pip queries. No server imports for
 the checks themselves (except check #3 hardware and #16 qdrant and #19 server).
 
 Usage:
-    python scripts/verify_setup.py            # Standard 22-check suite
+    python scripts/verify_setup.py            # Standard 26-check suite
     python scripts/verify_setup.py --full-tts  # Also test GPT-SoVITS synthesis
 
 Exit codes:
@@ -89,7 +89,7 @@ def fmt(result: CheckResult):
 
 
 # ---------------------------------------------------------------------------
-# Individual check functions (1-20)
+# Individual check functions (1-26)
 # ---------------------------------------------------------------------------
 
 def check_01_python_version():
@@ -400,6 +400,74 @@ def check_22_party_guests_template():
     return CheckResult("Party guests template exists", WARN, "party_guests.json not found", critical=False)
 
 
+def check_23_ollama_connectivity():
+    """23. Ollama API connectivity — check if Ollama is running and responsive."""
+    import urllib.request
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), "..", "config.json")
+        with open(config_path) as f:
+            cfg = json.load(f)
+        ollama_url = cfg.get("server", {}).get("ollama_url", "http://localhost:11434")
+    except Exception:
+        ollama_url = "http://localhost:11434"
+
+    try:
+        req = urllib.request.Request(f"{ollama_url}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+            models = [m["name"] for m in data.get("models", [])]
+            if models:
+                detail = f"{len(models)} models: {', '.join(models[:5])}"
+                return CheckResult("Ollama API connectivity", PASS, detail, critical=False)
+            else:
+                return CheckResult("Ollama API connectivity", WARN, "Running but no models installed", critical=False)
+    except Exception as e:
+        return CheckResult("Ollama API connectivity", WARN, f"Not reachable at {ollama_url}: {e}", critical=False)
+
+
+def check_24_qdrant_health():
+    """24. Qdrant health — check if Qdrant is running and responsive."""
+    import urllib.request
+    try:
+        req = urllib.request.Request("http://localhost:6333/healthz", method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return CheckResult("Qdrant health", PASS, "Running and healthy", critical=False)
+    except Exception as e:
+        return CheckResult("Qdrant health", WARN, f"Not reachable (optional): {e}", critical=False)
+
+
+def check_25_config_valid():
+    """25. Config validation — check required fields in config.json."""
+    required_server = ["host", "port", "llm_model", "stt_model_size"]
+    required_client = ["server_url"]
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), "..", "config.json")
+        with open(config_path) as f:
+            cfg = json.load(f)
+        missing = []
+        for key in required_server:
+            if key not in cfg.get("server", {}):
+                missing.append(f"server.{key}")
+        for key in required_client:
+            if key not in cfg.get("client", {}):
+                missing.append(f"client.{key}")
+        if missing:
+            return CheckResult("Config validation", WARN, f"Missing keys: {', '.join(missing)}", critical=False)
+        return CheckResult("Config validation", PASS, "All required fields present", critical=False)
+    except Exception as e:
+        return CheckResult("Config validation", WARN, f"config.json error: {e}", critical=False)
+
+
+def check_26_disk_space():
+    """26. Disk space — check if enough disk space is available."""
+    import shutil
+    total, used, free = shutil.disk_usage(os.path.dirname(__file__))
+    free_gb = free / (1024**3)
+    if free_gb < 5:
+        return CheckResult("Disk space", WARN, f"Low: {free_gb:.1f}GB free (need 5GB+)", critical=False)
+    return CheckResult("Disk space", PASS, f"{free_gb:.1f}GB free", critical=False)
+
+
 def check_bonus_gpt_sovits_synthesis():
     """Bonus (--full-tts): GPT-SoVITS subprocess synthesis test."""
     if platform.system() == "Windows":
@@ -435,7 +503,7 @@ def main():
     results: list[CheckResult] = []
     detected_tier = "LOW"  # default, updated by check 3
 
-    # ---- Run all 20 checks ----
+    # ---- Run all 26 checks ----
 
     # 1. Python version
     results.append(check_01_python_version())
@@ -506,6 +574,20 @@ def main():
 
     # 22. Party guests template
     results.append(check_22_party_guests_template())
+
+    # ---- Runtime connectivity checks (non-critical) ----
+
+    # 23. Ollama API connectivity
+    results.append(check_23_ollama_connectivity())
+
+    # 24. Qdrant health
+    results.append(check_24_qdrant_health())
+
+    # 25. Config validation
+    results.append(check_25_config_valid())
+
+    # 26. Disk space
+    results.append(check_26_disk_space())
 
     # Bonus: GPT-SoVITS synthesis (only with --full-tts)
     if args.full_tts:
