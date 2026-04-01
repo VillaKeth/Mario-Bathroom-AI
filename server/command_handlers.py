@@ -532,9 +532,9 @@ def handle_special_commands(
             if memories:
                 facts_text = ", ".join(memories[:4])
                 return f"Of course I remember-a you, {state['speaker_name'] or 'friend'}! I know that {facts_text}!"
-        if state["speaker_name"]:
-            return f"You're-a {state['speaker_name']}! But that's all I know so far. Tell me more!"
-        return "Hmm, I don't think we've-a met properly! What's your name, friend?"
+        # No SQLite memories — fall through to VIP-aware LLM pipeline
+        # This allows Qdrant VIP facts to be injected into the LLM context
+        return None
 
     # How do I look
     if any(w in lower for w in ["how do i look", "do i look good", "am i pretty", "am i handsome"]):

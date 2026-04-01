@@ -3353,6 +3353,9 @@ async def handle_event(ws: WebSocket, event: dict):
         try:
             await _handle_text_input(ws, text)
         finally:
+            # Match audio handler: keep guard active briefly after response
+            # to prevent idle TTS from firing immediately after text response
+            await asyncio.sleep(2.0)
             state_current["_user_request_active"] = False
 
     elif event_type == "health_ping":
