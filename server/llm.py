@@ -188,7 +188,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
             "num_predict": LLM_NUM_PREDICT,
             "num_ctx": LLM_NUM_CTX,
             "repeat_penalty": 1.3,
-            "stop": ["\n\n", "\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "[", "(OOC"],
+            "stop": ["\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "(OOC"],
         },
     }
 
@@ -216,6 +216,8 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                         continue
 
         response_text = "".join(chunks).strip()
+        if DEBUG_LLM:
+            logger.info(f"[DEBUG_LLM] RAW response ({len(response_text)} chars): {response_text[:500]}")
         if not response_text or len(response_text) < 3:
             logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
             return random.choice(LLM_FALLBACKS)
@@ -279,13 +281,11 @@ def _clean_response(text: str) -> str:
     # Ensure non-empty and meaningful (minimum 3 chars for a real word)
     if not text.strip() or len(text.strip()) < 3:
         text = "Wahoo! Let's-a go!"
-    # Cap response length for faster TTS (long text = very slow RVC on Quadro P1000)
-    # GPT-SoVITS handles its own 120-char truncation per sentence, so allow longer responses
-    # that get streamed as 2 sentences for better conversation quality
-    if len(text) > 120:
-        cut = text[:120]
+    # Cap response length for TTS streaming (each sentence sent individually)
+    if len(text) > 300:
+        cut = text[:300]
         last_end = max(cut.rfind('.'), cut.rfind('!'), cut.rfind('?'))
-        if last_end > 40:
+        if last_end > 80:
             text = cut[:last_end + 1]
         else:
             text = cut.rsplit(' ', 1)[0] + '!'

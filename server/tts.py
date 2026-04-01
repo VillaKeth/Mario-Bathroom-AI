@@ -1149,8 +1149,11 @@ def register_as_engine():
     """
     from tts_router import TTSEngine
 
+    # Capture the original function object so the monkey-patch in main.py
+    # (tts.synthesize = _tts_router.synthesize) doesn't cause infinite recursion.
+    _direct_synthesize = synthesize
     def _synth_for_router(text, rate=None, pitch=None, nocache=False, **kwargs):
-        return synthesize(text, rate=rate, pitch=pitch, nocache=nocache)
+        return _direct_synthesize(text, rate=rate, pitch=pitch, nocache=nocache)
 
     return TTSEngine(
         name="edge_rvc",

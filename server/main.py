@@ -621,7 +621,11 @@ async def health():
         _degradation_tier = DegradationTier.FULL
 
     uptime = time.time() - _SERVER_START_TIME
-    phase = night_progression.current_phase
+    try:
+        hours = night_progression.get_hours_elapsed()
+        phase = night_progression.get_time_phase(hours)
+    except Exception:
+        phase = "unknown"
 
     return {
         "status": "ok",
@@ -1593,7 +1597,7 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
 
 
 # Moved to server/llm_router.py as infer_response_type()
-from server.llm_router import infer_response_type as _infer_response_type
+from llm_router import infer_response_type as _infer_response_type
 
 
 def _get_night_phase_modifier() -> dict | None:
@@ -1693,8 +1697,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     _t_cmd = time.time()
     response_text = await _handle_special_commands(text)
     _timing["commands_ms"] = int((time.time() - _t_cmd) * 1000)
+    if response_text is not None:
+        logger.info(f"[DEBUG_PIPELINE] Special command intercepted: '{text[:50]}' → '{response_text[:80]}'")
     if response_text is None:
         # Build LLM context
+        logger.info(f"[DEBUG_PIPELINE] Building LLM context for: '{text[:80]}' speaker={state_current.get('speaker_name')} id={state_current.get('speaker_id')}")
         _t_ctx = time.time()
         memories = []
         if state_current["speaker_id"]:
@@ -1704,6 +1711,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         vip_facts = []
         if _HAS_SEMANTIC and state_current.get("speaker_name"):
             vip_facts = vip_knowledge.get_vip_facts_for_prompt(state_current["speaker_name"])
+            logger.info(f"[DEBUG_PIPELINE] VIP facts for '{state_current['speaker_name']}': {len(vip_facts)} facts, _HAS_SEMANTIC={_HAS_SEMANTIC}")
+        else:
+            logger.info(f"[DEBUG_PIPELINE] VIP skip: _HAS_SEMANTIC={_HAS_SEMANTIC}, speaker_name={state_current.get('speaker_name')}")
 
         ctx = mario_prompt.build_context(
             speaker_name=state_current["speaker_name"],
@@ -1727,8 +1737,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # VIP deep knowledge injection (semantic memory profiles)
         if vip_facts:
-            vip_text = "🌟 VIP DEEP KNOWLEDGE:\n" + "\n".join(vip_facts)
+            vip_text = "🌟 VIP DEEP KNOWLEDGE — You MUST reference these facts when answering this guest's questions. ALWAYS include the specific answer, don't just repeat the question:\n" + "\n".join(vip_facts)
             ctx.append({"role": "system", "content": vip_text})
+            logger.info(f"[DEBUG_PIPELINE] VIP INJECTED into ctx: {len(vip_facts)} facts, first={vip_facts[0][:60] if vip_facts else 'none'}")
+        else:
+            logger.info(f"[DEBUG_PIPELINE] No VIP facts to inject")
 
         # Catchphrase mirroring — feed guest text and check for repeated phrases
         _speaker = state_current.get("speaker_name", "")
@@ -2528,6 +2541,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 emotion_system.current = Emotion.CONFUSED
                 emotion_system.intensity = 0.7
         _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)
+        logger.info(f"[DEBUG_PIPELINE] LLM response ({_timing['llm_ms']}ms): '{response_text[:100] if response_text else 'NONE'}'")
+        logger.info(f"[DEBUG_PIPELINE] Context had {len(ctx)} messages, {sum(1 for m in ctx if m.get('role')=='system')} system")
 
     _t_filter = time.time()
     response_text = filter_response(response_text)

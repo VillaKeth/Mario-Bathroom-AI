@@ -58,7 +58,20 @@ def detect_hardware() -> dict:
                 torch.cuda.get_device_properties(0).total_memory / (1024**3)
             )
     except ImportError:
-        pass
+        # Fallback: nvidia-smi (no torch needed)
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                parts = result.stdout.strip().split(",")
+                if len(parts) >= 2:
+                    info["gpu_name"] = parts[0].strip()
+                    info["gpu_vram_gb"] = round(int(parts[1].strip()) / 1024)
+        except Exception:
+            pass
 
     return info
 
@@ -86,7 +99,7 @@ _TIER_DEFAULTS = {
         "precache_pause_seconds": 0.5,
         "max_background_tasks": 50,
         "max_cache_memory": 500,
-        "llm_num_predict": 80,
+        "llm_num_predict": 200,
         "llm_num_ctx": 8192,
         "conversation_history_limit": 100,
         "llm_quality_model": "llama3.1:70b-q4_k_m",
@@ -100,11 +113,11 @@ _TIER_DEFAULTS = {
         "precache_pause_seconds": 1.0,
         "max_background_tasks": 25,
         "max_cache_memory": 300,
-        "llm_num_predict": 40,
+        "llm_num_predict": 150,
         "llm_num_ctx": 4096,
         "conversation_history_limit": 60,
-        "llm_quality_model": "llama3:8b",
-        "llm_fast_model": "llama3:8b",
+        "llm_quality_model": "llama3",
+        "llm_fast_model": "llama3",
         "stt_device": "cpu",
     },
     "medium": {
@@ -114,11 +127,11 @@ _TIER_DEFAULTS = {
         "precache_pause_seconds": 1.5,
         "max_background_tasks": 15,
         "max_cache_memory": 200,
-        "llm_num_predict": 30,
-        "llm_num_ctx": 2048,
+        "llm_num_predict": 120,
+        "llm_num_ctx": 4096,
         "conversation_history_limit": 40,
-        "llm_quality_model": "llama3:8b",
-        "llm_fast_model": "llama3:8b",
+        "llm_quality_model": "llama3",
+        "llm_fast_model": "llama3",
         "stt_device": "cpu",
     },
     "low": {
@@ -128,11 +141,11 @@ _TIER_DEFAULTS = {
         "precache_pause_seconds": 2.0,
         "max_background_tasks": 10,
         "max_cache_memory": 100,
-        "llm_num_predict": 25,
-        "llm_num_ctx": 2048,
+        "llm_num_predict": 120,
+        "llm_num_ctx": 4096,
         "conversation_history_limit": 28,
-        "llm_quality_model": "llama3:8b",
-        "llm_fast_model": "llama3:8b",
+        "llm_quality_model": "llama3",
+        "llm_fast_model": "llama3",
         "stt_device": "cpu",
     },
 }
