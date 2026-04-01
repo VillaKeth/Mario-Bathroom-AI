@@ -1674,3 +1674,7 @@
 - [x] Task 6: Update CLAUDE.md with VIP system, hardware profile, recent fixes
 - [x] Task 7: Mark Fish Speech as hardware-deferred (P1000 4GB VRAM constraint)
 - [x] Task 8: Restart server + final verification
+
+## Friend-Ready Setup System
+- [x] Task 3: Create scripts/package_models.py — packages model files into models-v2.1.zip for GitHub Release
+- [x] Task 4: Create setup.bat — one-click Windows setup with hardware tier detection, idempotent steps
