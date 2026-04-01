@@ -201,7 +201,8 @@ logger.info(f"Night progression initialized (start_time={night_progression.start
 
 # Birthday VIP system — special treatment for the guest of honor
 _birthday_name = server_config.get("birthday_person_name", "")
-birthday_vip = BirthdayVIP(name=_birthday_name)
+_birthday_facts = server_config.get("birthday_person_facts", [])
+birthday_vip = BirthdayVIP(name=_birthday_name, birthday_facts=_birthday_facts)
 if birthday_vip.is_configured():
     logger.info(f"Birthday VIP mode: '{_birthday_name}'")
 

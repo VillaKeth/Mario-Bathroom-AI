@@ -75,8 +75,11 @@ class BirthdayVIP:
             )
 
         if self._facts:
-            facts_str = "; ".join(self._facts[:3])
-            base += f" Fun facts about them: {facts_str}."
+            facts_str = "; ".join(self._facts)
+            base += (
+                f" Here are things you know about {self._name} — weave these into conversation "
+                f"naturally, don't dump them all at once: {facts_str}."
+            )
 
         return base
 
