@@ -226,6 +226,11 @@ class MarioDisplay:
         # Connection status overlay for error recovery
         self._connection_status = None
 
+        # Party info banner
+        self._party_start_time = time.time()
+        self._party_name = "Jacob's Birthday Party"
+        self._guest_count = 0
+
         # --- Enhanced animation system (time-based, frame-independent) ---
         # Sprite crossfade
         self._crossfade_start = 0.0
@@ -454,6 +459,10 @@ class MarioDisplay:
                 self._connection_status = f"Reconnecting... (attempt {attempt}/{max_attempts})"
             else:
                 self._connection_status = "Connecting..."
+
+    def set_guest_count(self, count):
+        """Update the party guest count shown in the banner."""
+        self._guest_count = count
 
     def set_state(self, state: str):
         """Set Mario's animation state."""
@@ -1012,6 +1021,10 @@ class MarioDisplay:
 
         # Background scene instead of flat fill
         self._draw_background()
+
+        # Party info banner (top strip)
+        self._draw_party_banner(self._screen)
+
         self._update_particles()
         self._emotion_timer += 1
 
@@ -1121,12 +1134,12 @@ class MarioDisplay:
         # Screen edge glow for emotion changes
         self._draw_edge_glow()
 
-        # Connection status overlay (red text at top of screen)
+        # Connection status overlay (below party banner)
         if self._connection_status:
             try:
                 status_font = self._font_small or pygame.font.SysFont("arial", 14)
                 status_surface = status_font.render(self._connection_status, True, (255, 80, 80))
-                self._screen.blit(status_surface, (10, 10))
+                self._screen.blit(status_surface, (10, 40))
             except Exception:
                 pass
 
@@ -1153,6 +1166,41 @@ class MarioDisplay:
             self._screen.blit(scaled, (x_off, y_off))
 
         pygame.display.flip()
+
+    def _draw_party_banner(self, surface):
+        """Draw persistent party info banner at top of screen."""
+        try:
+            w = surface.get_width()
+            banner_h = 32
+
+            # Semi-transparent dark banner
+            banner = pygame.Surface((w, banner_h), pygame.SRCALPHA)
+            banner.fill((20, 10, 40, 160))
+            surface.blit(banner, (0, 0))
+
+            font = self._font_small or pygame.font.SysFont("arial", 14)
+
+            # Party name (left) — plain text (emoji unreliable in pygame)
+            name_text = self._party_name
+            name_surf = font.render(name_text, True, (255, 215, 0))
+            surface.blit(name_surf, (10, 8))
+
+            # Duration (center)
+            elapsed = time.time() - self._party_start_time
+            hours = int(elapsed // 3600)
+            mins = int((elapsed % 3600) // 60)
+            dur_text = f"Party: {hours}h {mins}m" if hours > 0 else f"Party: {mins}m"
+            dur_surf = font.render(dur_text, True, (180, 180, 255))
+            dur_rect = dur_surf.get_rect(center=(w // 2, 8 + font.get_height() // 2))
+            surface.blit(dur_surf, dur_rect)
+
+            # Guest count (right)
+            if self._guest_count > 0:
+                guest_text = f"Guests: {self._guest_count}"
+                guest_surf = font.render(guest_text, True, (100, 255, 100))
+                surface.blit(guest_surf, (w - guest_surf.get_width() - 10, 8))
+        except Exception:
+            pass  # Never crash the display for a banner
 
     def _draw_chat_history(self, surface):
         """Draw scrollable chat log on right side."""

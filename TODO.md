@@ -1,6 +1,9 @@
 # Mario AI Party Bot - TODO
 
 ## Recently Added
+- [ ] Manual test: gossip idle behavior — verify Mario references real guest snippets when alone
+- [ ] Manual test: party info banner displays name, duration timer, and guest count
+- [ ] Manual test: connection status overlay no longer overlaps party banner
 - [ ] Manual test: visit milestone callouts at 2/5/10/15+ visits during live party
 - [ ] Manual test: Jacob birthday greeting variants with real accomplishment references
 - [ ] Manual test: returning guest greetings reference last conversation topic

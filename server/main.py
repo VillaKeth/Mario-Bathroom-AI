@@ -1606,17 +1606,11 @@ async def _idle_loop(ws: WebSocket):
         contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
         action = contextual or idle_behavior.get_idle_action(phase=_idle_phase)
 
-        # Gossip-based idle: occasionally reminisce about guests when alone
-        if not action and party_gossip.get_gossip_count() > 0 and random.random() < 0.2:
-            gossip = party_gossip.get_gossip_for_guest(count=1)
-            if gossip:
-                gossip_idles = [
-                    f"You know, earlier tonight... {gossip[0]} Heh heh!",
-                    f"I can't stop thinking about what happened earlier! {gossip[0]}",
-                    f"The DRAMA tonight! {gossip[0]} This party is WILD!",
-                    f"If only someone were here to hear this gossip! {gossip[0]}",
-                ]
-                action = random.choice(gossip_idles)
+        # Gossip-based idle: occasionally reminisce about guests when alone (15% chance)
+        if not action and random.random() < 0.15:
+            gossip_msg = idle_behavior.get_gossip_idle()
+            if gossip_msg:
+                action = gossip_msg
 
         # Track last idle action for greeting acknowledgment
         if action:

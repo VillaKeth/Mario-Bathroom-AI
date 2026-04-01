@@ -1205,3 +1205,43 @@ class IdleBehavior:
                 "This party is ETERNAL! We've been at it for hours!",
                 "Are we... are we still partying? Mama mia, what a night!",
             ])
+
+    def get_gossip_idle(self) -> str | None:
+        """Mario gossips about earlier party guests when alone.
+
+        Pulls real conversation snippets from the memory DB and wraps them
+        in Mario-flavored gossip commentary. Returns None if no material.
+        """
+        try:
+            import memory as _mem
+            conn = _mem._get_conn()
+            rows = conn.execute(
+                "SELECT p.name, c.content FROM conversations c "
+                "JOIN people p ON c.person_id = p.id "
+                "WHERE c.role = 'user' AND length(c.content) >= 10 "
+                "ORDER BY c.timestamp DESC LIMIT 20"
+            ).fetchall()
+            if not rows:
+                return None
+
+            guest_name, content = random.choice(rows)
+            snippet = content[:60].rstrip()
+            if len(content) > 60:
+                snippet += "..."
+
+            templates = [
+                f"Earlier, {guest_name} told me '{snippet}' Can you BELIEVE that?!",
+                f"You know what {guest_name} said before? '{snippet}' WILD!",
+                f"Between you and me... {guest_name} was talking about some CRAZY stuff earlier!",
+                f"I've been thinking about what {guest_name} said... '{snippet}' Still processing that one!",
+                f"*whispers* {guest_name} told me something earlier... I probably shouldn't repeat it... but '{snippet}'",
+                f"Nobody's here so I can say it — {guest_name} really said '{snippet}' Ha!",
+                f"The things people tell Mario! {guest_name} goes '{snippet}' Mama mia!",
+            ]
+            choice = random.choice(templates)
+            if DEBUG_IDLE:
+                logger.info(f"[DEBUG_IDLE] get_gossip_idle: guest={guest_name} '{choice[:60]}...'")
+            return choice
+        except Exception as e:
+            logger.debug(f"Gossip idle failed: {e}")
+            return None
