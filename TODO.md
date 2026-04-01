@@ -1,5 +1,11 @@
 # Mario AI — Task Tracking
 
+## ✅ Personality Improvements — Task 5 COMPLETE
+- [x] Added PHASE_PROMPTS dict (WARM_UP, PARTY_MODE, UNHINGED, WIND_DOWN) to mario_prompt.py
+- [x] Added _infer_guest_type() function + GUEST_TYPE_HINTS dict for guest personality typing
+- [x] Injected phase prompt + guest type hints into LLM context in main.py (before conversation history)
+- [x] Enhanced roast handler with contextual roasting from conversation history in command_handlers.py
+
 ## ✅ ULTRA Performance Tuning — Task 7 COMPLETE
 - [x] Boosted ULTRA tier defaults (tts_concurrency=6, gpu_idle=0.3, cache=1000MB, bg_tasks=80, predict=250, history=150)
 - [x] Expanded precache phrase list (+16 party/birthday phrases)

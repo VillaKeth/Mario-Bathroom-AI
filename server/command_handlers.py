@@ -549,7 +549,19 @@ def handle_special_commands(
     if any(w in lower for w in ["roast me", "insult me", "make fun of", "burn me", "diss me"]):
         emotion_system.current = "mischievous"
         name = state.get("speaker_name") or "friend"
-        return random.choice([r.format(name=name) for r in ROASTS])
+        base_roast = random.choice([r.format(name=name) for r in ROASTS])
+
+        # Build contextual roast using guest's conversation history
+        try:
+            person_id = state.get("speaker_id")
+            recent_topics = memory_module.get_recent_conversations(person_id, limit=5) if person_id and memory_module else []
+            roast_context = ""
+            if recent_topics:
+                roast_context = f" You talked about {recent_topics[0]} earlier — I could roast THAT too!"
+        except Exception:
+            roast_context = ""
+
+        return base_roast + roast_context
 
     # Party stage / how's the party going
     if any(w in lower for w in ["how's the party", "party going", "party stage", "vibe check", "what's the vibe"]):

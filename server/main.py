@@ -38,6 +38,7 @@ import hardware
 import speaker_id
 import memory
 import mario_prompt
+from mario_prompt import PHASE_PROMPTS, _infer_guest_type, GUEST_TYPE_HINTS
 import tts_router as tts_router_mod
 from fish_speech_tts import FishSpeechTTS
 from catchphrase_bank import CatchphraseBank
@@ -2425,6 +2426,26 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 "Briefly speak in the third person. 'Mario thinks that's interesting. Mario agrees.' Then stop.",
             ]
             ctx.append({"role": "system", "content": f"[CHAOS]: {random.choice(chaos_hints)}"})
+
+        # Phase-specific personality prompt
+        try:
+            current_phase = night_progression.get_current_phase_name() if night_progression else "WARM_UP"
+        except Exception:
+            try:
+                _ph_hours = night_progression.get_hours_elapsed()
+                _ph_phase = night_progression.get_effective_phase(_ph_hours, party_gossip.get_guest_count())
+                current_phase = _ph_phase.name
+            except Exception:
+                current_phase = "WARM_UP"
+        phase_prompt = PHASE_PROMPTS.get(current_phase, "")
+        if phase_prompt:
+            ctx.append({"role": "system", "content": phase_prompt})
+
+        # Guest personality typing
+        guest_type = _infer_guest_type(state_current.get("conversation_history", []))
+        type_hint = GUEST_TYPE_HINTS.get(guest_type, "")
+        if type_hint:
+            ctx.append({"role": "system", "content": type_hint})
 
         # Conversation history — use full history for maximum context retention
         hist_window = min(30, len(state_current["conversation_history"]))
