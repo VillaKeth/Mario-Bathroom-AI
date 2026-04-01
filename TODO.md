@@ -1,5 +1,33 @@
 # Mario AI — Task Tracking
 
+## ✅ ULTRA Overhaul v2.0 — COMPLETE (15/15 Tasks)
+- [x] Task 1: Dual-Model LLM Router (Mixtral fast + 70B quality)
+- [x] Task 2: Fish Speech TTS (5-level fallback chain)
+- [x] Task 3: Night Progression (4 phases over 8 hours)
+- [x] Task 4: Reliability Layer (watchdog + dashboard + health)
+- [x] Task 5: Pygame Hardening (fullscreen, panic, crash recovery)
+- [x] Task 6: Pre-Party Canary (10 automated smoke tests)
+- [x] Task 7: Hot Reload (live config changes)
+- [x] Task 8: Vomit Detection Enhancements (volume spike + temporal coherence)
+- [x] Task 9: Birthday VIP (special treatment for birthday person)
+- [x] Task 10: Sound Effects (Nintendo SFX triggers)
+- [x] Task 11: Catchphrase Mirror (learns guest phrases)
+- [x] Task 12: Party Report Card (end-of-party stats)
+- [x] Task 13: E2E Test Suite (179 passing tests)
+- [x] Task 14: Voice A/B Comparison script
+- [x] Task 15: Deployment Guide + Pre-flight checks
+- [x] Tagged v2.0 and pushed to remote
+
+## Pre-Party Setup (Manual Steps)
+- [ ] Pull 70B model on party machine: `ollama pull llama3.1:70b-instruct-q4_K_M`
+- [ ] Pull Mixtral on party machine: `ollama pull mixtral:8x7b`
+- [ ] Install Fish Speech on party machine
+- [ ] Set birthday_person_name in config.json
+- [ ] Set alert_webhook_url in config.json
+- [ ] Place Mario voice reference audio in mario_ref_audio/
+- [ ] Run `python scripts/deploy_check.py` on party machine
+- [ ] Test fullscreen (F11) and panic (F12) on party monitor
+
 ## Party Report Card (Task 12)
 - [x] Created server/party_report.py — PartyReport class with generate() and to_html()
 - [x] Created web/report.html — Mario-themed report card with stats, awards, JS fetch
