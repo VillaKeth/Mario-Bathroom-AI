@@ -406,6 +406,8 @@ class MarioDisplay:
 
     def set_mario_text(self, text: str):
         """Set what Mario is saying (shown in speech bubble with typewriter effect)."""
+        if text is None:
+            text = ""
         self._typewriter_text = text
         self._typewriter_pos = 0
         self.current_text = ""
@@ -417,6 +419,10 @@ class MarioDisplay:
 
     def add_chat_message(self, role, text):
         """Add a message to chat history. role is 'mario' or 'user'."""
+        if not isinstance(text, str):
+            text = str(text) if text is not None else ""
+        if not isinstance(role, str):
+            role = str(role) if role is not None else "unknown"
         self._chat_history.append({"role": role, "text": text})
         if len(self._chat_history) > self._MAX_CHAT_HISTORY:
             self._chat_history.pop(0)

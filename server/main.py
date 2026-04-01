@@ -3413,17 +3413,22 @@ async def handle_event(ws: WebSocket, event: dict):
 
     elif event_type == "person_detected":
         face_enc = event.get("face_encoding")
-        if face_enc and _face_memory:
+        if face_enc and _face_memory and isinstance(face_enc, list) and len(face_enc) == 128:
             try:
                 enc_array = np.array(face_enc, dtype=np.float64)
-                match = _face_memory.find_match(enc_array)
-                if match:
-                    state_current["detected_guest"] = match["name"]
-                    state_current["guest_visits"] = match["visit_count"]
-                    logger.info(f"[WEBCAM] Recognized returning guest: {match['name']} (visits: {match['visit_count']})")
+                if np.any(np.isnan(enc_array)) or np.any(np.isinf(enc_array)):
+                    logger.warning("[WEBCAM] Invalid face encoding values (NaN/Inf)")
                 else:
-                    state_current["detected_guest"] = None
-                    logger.info("[WEBCAM] New guest detected (no face match)")
+                    match = _face_memory.find_match(enc_array)
+                    if match and match.get("name"):
+                        name = match["name"]
+                        visits = match.get("visit_count", 0)
+                        state_current["detected_guest"] = name
+                        state_current["guest_visits"] = visits
+                        logger.info(f"[WEBCAM] Recognized returning guest: {name} (visits: {visits})")
+                    else:
+                        state_current["detected_guest"] = None
+                        logger.info("[WEBCAM] New guest detected (no face match)")
             except Exception as e:
                 logger.error(f"[WEBCAM] Face matching error: {e}")
         else:

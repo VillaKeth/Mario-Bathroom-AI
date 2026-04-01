@@ -1,5 +1,24 @@
 # Mario AI — Task Tracking
 
+## ✅ Harden Edge Cases for Party Reliability
+- [x] Guard set_mario_text() and add_chat_message() against None input
+- [x] Validate face encoding shape (128) and values (NaN/Inf) in person_detected handler
+- [x] Guard presence detection loop against None camera (race with stop())
+- [x] Race-safe stop() method in PresenceDetector (nullify _cap before release)
+- [x] Guard random.choice() on roasts list against empty list
+- [x] Add frame validation (None, empty, wrong dims) in PersonDetector.detect_people()
+- [x] Add tests/test_edge_cases.py with 18 crash vector tests (all passing)
+- [x] Verified _infer_guest_type already safe against None/empty content (no change needed)
+
+## ✅ Harden 6 Fragile Patterns — Code Review Fixes COMPLETE
+- [x] Initialize detected_guest/guest_visits in state_current dict
+- [x] Use .get() for _response_times access in /health and /stats endpoints
+- [x] Guard _draw_chat_history against None font + wrap overlay in try/except
+- [x] Cache chat history fonts in init() (avoid per-frame SysFont allocation)
+- [x] Harden _infer_guest_type against missing/None message content
+- [x] Add None frame check before YOLO person detection
+
+
 ## ✅ v3 Integration Verification — Task 8 COMPLETE
 - [x] Syntax-checked all 11 modified files (py_compile pass)
 - [x] Verified all new imports (PersonDetector, FaceMemory, PHASE_PROMPTS, GUEST_TYPE_HINTS)

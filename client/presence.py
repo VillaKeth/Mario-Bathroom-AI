@@ -89,14 +89,18 @@ class PresenceDetector:
         self._running = False
         if self._thread:
             self._thread.join(timeout=3.0)
-        if self._cap:
-            self._cap.release()
-            self._cap = None
+        cap = self._cap
+        self._cap = None
+        if cap:
+            cap.release()
 
     def _detection_loop(self):
         """Background thread for continuous motion detection."""
         _consecutive_read_failures = 0
         while self._running:
+            if self._cap is None or not self._cap.isOpened():
+                time.sleep(1.0)
+                continue
             ret, frame = self._cap.read()
             if not ret:
                 _consecutive_read_failures += 1

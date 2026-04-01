@@ -79,9 +79,11 @@ class PersonDetector:
             except Exception as e:
                 logger.warning(f"[person_detector] YOLO load failed: {e}")
 
-    def detect_people(self, frame: np.ndarray) -> list:
+    def detect_people(self, frame) -> list:
         """Detect people in a frame. Returns list of DetectedPerson."""
         if not self.is_available or self._yolo is None:
+            return []
+        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0 or frame.ndim < 2:
             return []
 
         self._frame_count += 1

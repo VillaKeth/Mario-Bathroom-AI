@@ -549,7 +549,10 @@ def handle_special_commands(
     if any(w in lower for w in ["roast me", "insult me", "make fun of", "burn me", "diss me"]):
         emotion_system.current = "mischievous"
         name = state.get("speaker_name") or "friend"
-        base_roast = random.choice([r.format(name=name) for r in ROASTS])
+        roast_list = [r.format(name=name) for r in ROASTS]
+        if not roast_list:
+            return "Mario says: I-a got nothing to say about you!"
+        base_roast = random.choice(roast_list)
 
         # Build contextual roast using guest's conversation history
         try:
