@@ -72,6 +72,11 @@ class MarioClient:
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
 
+        # Enable person detection if configured
+        if client_config.get("enable_person_detection", False):
+            self.presence.enable_person_detection(client_config)
+            self.presence.on_person_detected = self._on_person_detected
+
         # Wire up keyboard input from display
         self.display.on_keyboard_submit = self._on_keyboard_submit
         self.display.on_volume_change = self._on_volume_change
@@ -318,6 +323,20 @@ class MarioClient:
         self.display.set_state(STATE_EXITING)
         self.display.set_subtitle("")
         self.sfx.play("goodbye")
+
+    def _on_person_detected(self, person):
+        """Send person detection event to server via WebSocket."""
+        try:
+            event = {
+                "type": "person_detected",
+                "confidence": person.confidence,
+                "has_face": person.face_encoding is not None,
+            }
+            if person.face_encoding is not None:
+                event["face_encoding"] = person.face_encoding.tolist()
+            self.ws.send_event(event)
+        except Exception as e:
+            logger.debug(f"Person detection event send failed: {e}")
 
     def _health_ping_loop(self):
         """Send periodic health pings to the server."""

@@ -54,7 +54,11 @@
     "window_width": 800,
     "window_height": 600,
     "audio_send_interval": 0.25,
-    "audio_gain": 1.0
+    "audio_gain": 1.0,
+    "enable_person_detection": true,
+    "yolo_model": "yolov8n.pt",
+    "face_match_tolerance": 0.6,
+    "person_detection_frame_skip": 3
   },
   "elevenlabs_api_key": "",
   "alert_webhook_url": ""

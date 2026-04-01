@@ -23,6 +23,7 @@ import re
 import time
 import threading
 import httpx
+import numpy as np
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -261,6 +262,16 @@ _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name
 
 # Distress tracker (initialized in startup, declared here for module scope)
 _distress_tracker: "audio_distress.DistressTracker | None" = None
+
+# Face memory for webcam guest identification
+_face_memory = None
+try:
+    from server.face_memory import FaceMemory
+    _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
+    _face_memory = FaceMemory(_face_db_path)
+    logger.info("[INIT] Face memory initialized")
+except Exception as e:
+    logger.warning(f"[INIT] Face memory unavailable: {e}")
 
 # Background task limiter (prevents unbounded memory growth from fact extraction)
 _bg_tasks: set = set()
@@ -2908,6 +2919,7 @@ async def handle_event(ws: WebSocket, event: dict):
         "set_name", "audio_level", "ping",
         "register_speaker", "vad_start", "vad_stop",
         "health_ping", "heartbeat",
+        "person_detected",
     }
     if event_type not in VALID_EVENT_TYPES:
         logger.warning(f"[VALIDATION] Unknown event type: {event_type}")
@@ -3391,6 +3403,25 @@ async def handle_event(ws: WebSocket, event: dict):
             })
         except Exception:
             pass
+
+    elif event_type == "person_detected":
+        face_enc = event.get("face_encoding")
+        if face_enc and _face_memory:
+            try:
+                enc_array = np.array(face_enc, dtype=np.float64)
+                match = _face_memory.find_match(enc_array)
+                if match:
+                    state_current["detected_guest"] = match["name"]
+                    state_current["guest_visits"] = match["visit_count"]
+                    logger.info(f"[WEBCAM] Recognized returning guest: {match['name']} (visits: {match['visit_count']})")
+                else:
+                    state_current["detected_guest"] = None
+                    logger.info("[WEBCAM] New guest detected (no face match)")
+            except Exception as e:
+                logger.error(f"[WEBCAM] Face matching error: {e}")
+        else:
+            if DEBUG_SERVER:
+                logger.debug(f"[WEBCAM] Person detected (no face encoding)")
 
 
 async def _handle_text_input(ws: WebSocket, text: str):

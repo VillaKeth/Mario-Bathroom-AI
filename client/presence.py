@@ -38,6 +38,26 @@ class PresenceDetector:
         self.on_enter = None  # Called when someone enters
         self.on_exit = None   # Called when someone leaves
 
+        # Person detection (optional — depends on ultralytics)
+        self.person_detector = None
+        self.on_person_detected = None  # callback(DetectedPerson)
+
+    def enable_person_detection(self, config: dict = None):
+        """Enable YOLO person detection. Call after __init__."""
+        config = config or {}
+        try:
+            from client.person_detector import PersonDetector
+            self.person_detector = PersonDetector(
+                yolo_model=config.get("yolo_model", "yolov8n.pt")
+            )
+            if self.person_detector.is_available:
+                logger.info("[DEBUG_PRESENCE] Person detection enabled (YOLO)")
+            else:
+                logger.info("[DEBUG_PRESENCE] Person detection unavailable (YOLO not installed)")
+        except Exception as e:
+            logger.warning(f"[DEBUG_PRESENCE] Person detection init failed: {e}")
+            self.person_detector = None
+
     def start(self):
         """Start presence detection."""
         if DEBUG_PRESENCE:
@@ -134,5 +154,15 @@ class PresenceDetector:
                         logger.info("[DEBUG_PRESENCE] === SOMEONE LEFT ===")
                     if self.on_exit:
                         self.on_exit()
+
+            # Person detection on the SAME frame (no separate camera)
+            if self.person_detector and self.person_detector.is_available:
+                try:
+                    people = self.person_detector.detect_people(frame)
+                    for person in people:
+                        if self.on_person_detected:
+                            self.on_person_detected(person)
+                except Exception as e:
+                    logger.debug(f"[DEBUG_PRESENCE] Person detection error: {e}")
 
             time.sleep(0.033)  # ~30fps max
