@@ -141,6 +141,8 @@ class MarioDisplay:
         self._font_small = None
         self._font_title = None
         self._font_input = None
+        self._chat_title_font = None
+        self._chat_msg_font = None
 
         # Sprite system
         self._sprites = {}
@@ -325,6 +327,8 @@ class MarioDisplay:
         self._font_small = pygame.font.Font(None, 22)
         self._font_title = pygame.font.Font(None, 48)
         self._font_input = pygame.font.Font(None, 32)
+        self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
+        self._chat_msg_font = pygame.font.SysFont("arial", 13)
         self._running = True
 
         self._load_sprites()
@@ -1110,22 +1114,25 @@ class MarioDisplay:
 
     def _draw_chat_history(self, surface):
         """Draw scrollable chat log on right side."""
-        if not self._show_chat_history or not self._chat_history:
+        if not self._show_chat_history or not self._chat_history or not self._font_small:
             return
         panel_w = 280
         panel_x = surface.get_width() - panel_w - 10
         panel_y = 60
         panel_h = surface.get_height() - 120
         # Semi-transparent background
-        overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 180))
-        surface.blit(overlay, (panel_x, panel_y))
+        try:
+            overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            surface.blit(overlay, (panel_x, panel_y))
+        except Exception:
+            return
         # Title
-        title_font = pygame.font.SysFont("arial", 16, bold=True)
+        title_font = self._chat_title_font or pygame.font.SysFont("arial", 16, bold=True)
         title = title_font.render("Chat History (F3)", True, (255, 215, 0))
         surface.blit(title, (panel_x + 10, panel_y + 5))
         # Messages (newest at bottom)
-        msg_font = pygame.font.SysFont("arial", 13)
+        msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 13)
         y_offset = panel_y + 30
         for msg in self._chat_history[-12:]:  # Show last 12
             color = (144, 238, 144) if msg["role"] == "mario" else (173, 216, 230)

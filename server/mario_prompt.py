@@ -46,7 +46,10 @@ def _infer_guest_type(messages: list) -> str:
     """Infer guest personality from their message patterns."""
     if not messages:
         return "unknown"
-    user_msgs = [m["content"] for m in messages if m.get("role") == "user"]
+    user_msgs = [
+        m.get("content", "") for m in messages
+        if m.get("role") == "user" and m.get("content")
+    ]
     if not user_msgs:
         return "unknown"
     total_words = sum(len(m.split()) for m in user_msgs)

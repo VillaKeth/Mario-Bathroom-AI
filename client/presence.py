@@ -156,7 +156,7 @@ class PresenceDetector:
                         self.on_exit()
 
             # Person detection on the SAME frame (no separate camera)
-            if self.person_detector and self.person_detector.is_available:
+            if self.person_detector and self.person_detector.is_available and frame is not None:
                 try:
                     people = self.person_detector.detect_people(frame)
                     for person in people:

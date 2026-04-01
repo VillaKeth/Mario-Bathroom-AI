@@ -255,6 +255,8 @@ state_current = {
     "_last_timing": {},  # Last response time breakdown (stt/llm/tts/total)
     "_session_topics": set(),  # Topics discussed in this session (for variety tracking)
     "_last_idle_action": None,  # What Mario was doing before someone entered
+    "detected_guest": None,
+    "guest_visits": 0,
 }
 
 # Dedicated executor for TTS (scaled by hardware auto-detection)
@@ -616,7 +618,7 @@ async def health():
     stats = party_stats.get_stats()
     total_cache_requests = tts._cache_hits + tts._cache_misses
     cache_hit_rate = (tts._cache_hits / max(1, total_cache_requests)) * 100
-    resp_times = state_current["_response_times"]
+    resp_times = state_current.get("_response_times", [])
     avg_response = sum(resp_times) / max(1, len(resp_times)) if resp_times else 0
     avg_response_ms = avg_response * 1000
 
@@ -809,7 +811,7 @@ def check_scheduled_events() -> str | None:
 async def stats_endpoint():
     """Analytics endpoint with detailed party stats."""
     stats = party_stats.get_stats()
-    resp_times = state_current["_response_times"]
+    resp_times = state_current.get("_response_times", [])
     avg_response = sum(resp_times) / max(1, len(resp_times)) if resp_times else 0
     trending = memory.get_trending_topics(limit=10)
     return {
