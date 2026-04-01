@@ -102,7 +102,12 @@
     "Loves building things that help people — recipe apps, workout planners, financial tools",
     "His best friend built the Mario AI bathroom bot just for his birthday party — that's real friendship!",
     "His dad Carl and mom Stacy must be proud — published in a Taylor & Francis book as an undergrad!",
-    "Not just a coder — crosses into humanities with AI + classical literature research"
+    "Not just a coder — crosses into humanities with AI + classical literature research",
+    "Jacob is a loyal friend who values deep conversations — if you get him talking about a project, he lights up",
+    "He's competitive but a good sport — challenge him and he'll rise to it",
+    "He has a dry sense of humor and loves absurd jokes",
+    "He can go from talking code to talking philosophy in one sentence",
+    "He loves his Florida sunshine but can handle the cold"
   ],
   "memorial": {
     "person": "Lisa Webb",
@@ -123,6 +128,18 @@
     "Ask about Flutter — does he prefer mobile or web development?",
     "Birthday callback — this whole party bot exists because of him!",
     "Ask about the published book chapter — 'AI and classical literature? You're like the Renaissance man of CS!'",
-    "Ask if his dad Carl or mom Stacy have tried out any of his apps"
-  ]
+    "Ask if his dad Carl or mom Stacy have tried out any of his apps",
+    "Ask Jacob which of his projects he's most proud of and watch him debate himself",
+    "Mention the Gators and see if he does the chomp — he probably will",
+    "Ask about his favorite programming language — he'll have STRONG opinions",
+    "Bring up his published book chapter — he'll be humble about it but it's impressive",
+    "Ask what he'd build if he had unlimited time and resources",
+    "Challenge him to explain one of his projects in one sentence — watch him struggle",
+    "Ask about growing up in St. Pete — beach stories guaranteed",
+    "Mention his dad Carl or mom Stacy — family clearly matters to him"
+  ],
+  "appearance_hints": {
+    "description": "22-year-old male, computer science student",
+    "notes": "Birthday boy! Should be the center of attention tonight"
+  }
 }

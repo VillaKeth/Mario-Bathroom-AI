@@ -143,6 +143,15 @@ def inject_vip_memories(profile: dict, person_id: int) -> int:
         memory_semantic.store_memory(person_id, mem_text, memory_type="vip_memorial")
         count += 1
 
+    # Appearance hints (for webcam integration)
+    appearance = profile.get("appearance_hints", {})
+    if appearance.get("description"):
+        memory_semantic.store_memory(person_id, f"{name} appearance: {appearance['description']}", "vip_profile")
+        count += 1
+    if appearance.get("notes"):
+        memory_semantic.store_memory(person_id, f"{name} note: {appearance['notes']}", "vip_profile")
+        count += 1
+
     # Conversation hooks (Mario can use these)
     for hook in profile.get("mario_conversation_hooks", []):
         memory_semantic.store_memory(
