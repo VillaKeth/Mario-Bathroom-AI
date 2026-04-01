@@ -48,7 +48,8 @@ def test_multiple_faces():
         enc_b = np.random.randn(128).astype(np.float64)
         fm.store_face(person_id=1, name="Alice", encoding=enc_a)
         fm.store_face(person_id=2, name="Bob", encoding=enc_b)
-        noisy_a = enc_a + np.random.randn(128) * 0.05
+        # Small noise (0.02 * sqrt(128) ≈ 0.23 distance, well under 0.6 tolerance)
+        noisy_a = enc_a + np.random.randn(128) * 0.02
         match = fm.find_match(noisy_a)
         assert match is not None
         assert match["name"] == "Alice"
