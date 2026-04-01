@@ -1656,3 +1656,13 @@
 - [x] Implement Task 8: Update config + documentation
 - [x] Fix LLM 404, TTS recursion, health endpoint, response truncation, token limits
 - [x] Verified VIP knowledge end-to-end: Mario answers Jacob's university, apps, etc.
+
+## Gap Closure Sprint (2026-04-01)
+- [x] Task 1: Create tests/test_memory_semantic.py — 19 tests, all passing
+- [x] Task 2: Create tests/test_vip_knowledge.py — 16 tests, all passing
+- [x] Task 3: Fix "know anything about me" bypassing VIP/LLM pipeline
+- [x] Task 4: Fix idle filler interleaving — text input path gets post-response guard
+- [x] Task 5: Generate 6 SFX WAV files (coin, powerup, fireball, pipe, star, 1up)
+- [x] Task 6: Update CLAUDE.md with VIP system, hardware profile, recent fixes
+- [x] Task 7: Mark Fish Speech as hardware-deferred (P1000 4GB VRAM constraint)
+- [x] Task 8: Restart server + final verification
