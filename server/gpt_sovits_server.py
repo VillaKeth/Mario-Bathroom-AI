@@ -134,6 +134,9 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\bKoopas\b', 'Coopers', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bKoopa\b', 'Cooper', clean_text, flags=_re.IGNORECASE)
     
+    # Guest name pronunciation — "stedt" sounds like "stead" (as in steadfast)
+    clean_text = _re.sub(r'\bHoppenstedt\b', 'Hoppenstead', clean_text)
+    
     # Strip leading punctuation/whitespace left after word removal
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
 

@@ -1566,11 +1566,20 @@
 - [x] Task 5: Increase mario_prompt.py memory cap 10 → 50
 - [x] Task 6: Wire Qdrant + VIP into main.py startup and response pipeline
 - [x] Task 7: Backfill existing SQLite memories into Qdrant (auto on first startup)
-- [ ] Task 8: Update .claude/CLAUDE.md with new architecture docs
-- [ ] Lisa Webb moment of silence + shot — timed idle event during party
-- [ ] Full integration test with server running
+- [x] Task 8: Update .claude/CLAUDE.md with new architecture docs
+- [x] Lisa Webb moment of silence + shot — timed idle event during party
+- [x] Full integration test — VIP answers verified (University of Florida, Sweat Smart, Profiteer)
 - [ ] Document Tailscale setup for party day
-- [ ] Update CLAUDE.md with all new fixes
+
+## Bug Fixes — LLM Response Quality (2026-04-01)
+- [x] Fix LLM 404: hardware.py llama3:8b → llama3 (Ollama model name mismatch)
+- [x] Fix TTS infinite recursion: capture original synthesize fn in closure before monkey-patch
+- [x] Fix health endpoint crash: NightProgression.current_phase → get_time_phase(hours)
+- [x] Fix response truncation: _clean_response 120-char cap → 300-char cap
+- [x] Fix stop sequences: removed \n\n and [ which cut off LLM mid-answer
+- [x] Bump llm_num_predict: low 25→120, med 30→120, high 40→150, ultra 80→200
+- [x] Add nvidia-smi fallback for GPU VRAM detection (Quadro P1000 = 4GB detected)
+- [x] Strengthen VIP injection instruction for LLM to use facts in answers
 
 ## E2E Fixes — Name Parsing & Farewell (2026-03-30)
 - [x] Fix farewell empty response: added fallback phrases when LLM returns empty/whitespace
@@ -1644,4 +1653,6 @@
 - [x] Implement Task 5: Increase mario_prompt.py memory cap 10 → 50
 - [x] Implement Task 6: Wire Qdrant + VIP into main.py startup and response pipeline
 - [x] Implement Task 7: Backfill existing SQLite memories into Qdrant
-- [ ] Implement Task 8: Update config + documentation
+- [x] Implement Task 8: Update config + documentation
+- [x] Fix LLM 404, TTS recursion, health endpoint, response truncation, token limits
+- [x] Verified VIP knowledge end-to-end: Mario answers Jacob's university, apps, etc.
