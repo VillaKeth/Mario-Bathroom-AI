@@ -6,7 +6,7 @@ using subprocess calls, file checks, and pip queries. No server imports for
 the checks themselves (except check #3 hardware and #16 qdrant and #19 server).
 
 Usage:
-    python scripts/verify_setup.py            # Standard 20-check suite
+    python scripts/verify_setup.py            # Standard 22-check suite
     python scripts/verify_setup.py --full-tts  # Also test GPT-SoVITS synthesis
 
 Exit codes:
@@ -343,8 +343,43 @@ def check_19_server_imports():
             sys.path.remove(server_dir)
 
 
-def check_20_edge_tts():
-    """20. Edge TTS quick test"""
+def check_20_webcam_deps():
+    """20. Webcam dependencies (ultralytics + face_recognition)"""
+    results = []
+    try:
+        import ultralytics  # noqa: F401
+        results.append(("ultralytics", True))
+    except ImportError:
+        results.append(("ultralytics", False))
+
+    try:
+        import face_recognition  # noqa: F401
+        results.append(("face_recognition", True))
+    except ImportError:
+        results.append(("face_recognition", False))
+
+    installed = [name for name, ok in results if ok]
+    missing = [name for name, ok in results if not ok]
+
+    if len(installed) == 2:
+        return CheckResult("Webcam deps (YOLO + face_recognition)", PASS, critical=False)
+    if installed:
+        return CheckResult(
+            "Webcam deps (YOLO + face_recognition)",
+            WARN,
+            f"Missing: {', '.join(missing)} — webcam features partially disabled",
+            critical=False,
+        )
+    return CheckResult(
+        "Webcam deps (YOLO + face_recognition)",
+        WARN,
+        "Not installed — webcam person detection disabled",
+        critical=False,
+    )
+
+
+def check_21_edge_tts():
+    """21. Edge TTS quick test"""
     null_path = "NUL" if platform.system() == "Windows" else "/dev/null"
     t0 = time.time()
     ok, _out = run_cmd(
@@ -355,6 +390,14 @@ def check_20_edge_tts():
     if ok:
         return CheckResult("Edge TTS quick test", PASS, f"{elapsed:.1f}s", critical=False)
     return CheckResult("Edge TTS quick test", WARN, "edge-tts command failed", critical=False)
+
+
+def check_22_party_guests_template():
+    """22. Party guests JSON template exists"""
+    tpl = PROJECT_ROOT / "server" / "data" / "vip_profiles" / "party_guests.json"
+    if tpl.exists():
+        return CheckResult("Party guests template exists", PASS, critical=False)
+    return CheckResult("Party guests template exists", WARN, "party_guests.json not found", critical=False)
 
 
 def check_bonus_gpt_sovits_synthesis():
@@ -455,8 +498,14 @@ def main():
     # 19. Server core imports
     results.append(check_19_server_imports())
 
-    # 20. Edge TTS
-    results.append(check_20_edge_tts())
+    # 20. Webcam dependencies
+    results.append(check_20_webcam_deps())
+
+    # 21. Edge TTS
+    results.append(check_21_edge_tts())
+
+    # 22. Party guests template
+    results.append(check_22_party_guests_template())
 
     # Bonus: GPT-SoVITS synthesis (only with --full-tts)
     if args.full_tts:

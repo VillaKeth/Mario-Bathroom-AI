@@ -1,5 +1,31 @@
 # Mario AI — Task Tracking
 
+## ✅ v3 Integration Verification — Task 8 COMPLETE
+- [x] Syntax-checked all 11 modified files (py_compile pass)
+- [x] Verified all new imports (PersonDetector, FaceMemory, PHASE_PROMPTS, GUEST_TYPE_HINTS)
+- [x] Validated all JSON files (config, VIP profiles, party_guests template)
+- [x] Ran 165 unit tests — all passing
+- [x] Added webcam dependency checks (ultralytics, face_recognition) to verify_setup.py
+- [x] Added party_guests.json template check to verify_setup.py (now 22 checks)
+- [x] Updated TODO.md with v3 completion status
+
+## ✅ Wire Webcam Person Detection — Task 3 COMPLETE
+- [x] Add person detection config fields to config.json and config.example.json
+- [x] Integrate PersonDetector into PresenceDetector._detection_loop() (reuses captured frame)
+- [x] Wire person detection callback in MarioClient, send events via WebSocket
+- [x] Handle person_detected events in server handle_event() with FaceMemory matching
+- [x] Add numpy import and FaceMemory init to server/main.py
+
+## ✅ Face Memory Server-Side Storage — Task 2 COMPLETE
+- [x] Create server/face_memory.py with SQLite-backed face encoding storage + matching
+- [x] Create tests/test_face_memory.py (6/6 tests passing)
+- [x] Fix Windows SQLite connection cleanup (explicit conn.close() instead of context manager)
+
+## ✅ Webcam Person Detection — Task 1 COMPLETE
+- [x] Create client/person_detector.py with YOLO person detection + face encoding
+- [x] Create tests/test_person_detector.py (6/6 tests passing)
+- [x] Append ultralytics and face_recognition to client/requirements.txt
+
 ## ✅ Client UI Polish — Task 6 COMPLETE
 - [x] Fix 4K fullscreen rendering with aspect-ratio-preserved scaling
 - [x] Add chat history sidebar (F3 toggle) showing last 12 messages
