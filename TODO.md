@@ -43,13 +43,14 @@
 - [x] Tagged v2.0 and pushed to remote
 
 ## Pre-Party Setup (Manual Steps)
-- [ ] Pull 70B model on party machine: `ollama pull llama3.1:70b-instruct-q4_K_M`
-- [ ] Pull Mixtral on party machine: `ollama pull mixtral:8x7b`
-- [ ] Install Fish Speech on party machine
+- [x] Pull 70B model on party machine — handled by setup.bat step 9
+- [x] Pull Mixtral on party machine — handled by setup.bat step 9
+- [x] Install Fish Speech on party machine — handled by setup.bat step 10 (ULTRA only)
+- [x] Fish Speech ref audio — already at server/data/mario_reference_sentences.wav (22.3 MB), included in models zip
 - [ ] Set birthday_person_name in config.json
 - [ ] Set alert_webhook_url in config.json
-- [ ] Place Mario voice reference audio in mario_ref_audio/
-- [ ] Run `python scripts/deploy_check.py` on party machine
+- [x] Reference audio in mario_ref_audio/ — NOT NEEDED, Fish Speech uses server/data/mario_reference_sentences.wav directly
+- [ ] Run `python scripts/verify_setup.py` on party machine (replaces deploy_check.py)
 - [ ] Test fullscreen (F11) and panic (F12) on party monitor
 
 ## Party Report Card (Task 12)
