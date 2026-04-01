@@ -1,5 +1,11 @@
 # Mario AI — Task Tracking
 
+## ✅ Client UI Polish — Task 6 COMPLETE
+- [x] Fix 4K fullscreen rendering with aspect-ratio-preserved scaling
+- [x] Add chat history sidebar (F3 toggle) showing last 12 messages
+- [x] Implement adaptive typewriter speed based on text length
+- [x] Update F-key help text to include F3:chat and F6:scores
+
 ## ✅ Personality Improvements — Task 5 COMPLETE
 - [x] Added PHASE_PROMPTS dict (WARM_UP, PARTY_MODE, UNHINGED, WIND_DOWN) to mario_prompt.py
 - [x] Added _infer_guest_type() function + GUEST_TYPE_HINTS dict for guest personality typing
