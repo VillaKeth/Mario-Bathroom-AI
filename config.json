@@ -37,6 +37,8 @@
     "max_background_tasks": "auto",
     "max_cache_memory": "auto",
     "llm_num_predict": "auto",
+    "llm_num_ctx": "auto",
+    "ollama_url": "http://localhost:11434",
     "llm_quality_model": "auto",
     "llm_fast_model": "auto",
     "party_start_time": null,

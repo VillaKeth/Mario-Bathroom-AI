@@ -297,6 +297,18 @@ CACHED_PHRASES = [
     "Good to see you!",
     "Ha ha ha!",
     "Oh no!",
+    # Lisa Webb memorial phrases
+    "Let's take a moment of silence for someone very special.",
+    "Now let's raise a glass to Aunt Lisa!",
+    "Take a shot in her honor!",
+    "To Aunt Lisa! She'll always be remembered.",
+    "What a beautiful tribute to a beautiful person.",
+    # Party-specific phrases
+    "Happy birthday Jacob!",
+    "The birthday boy is here!",
+    "Who wants to play another game?",
+    "That was a good one!",
+    "You guys are awesome!",
 ]
 
 

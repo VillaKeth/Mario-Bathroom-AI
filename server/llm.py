@@ -24,7 +24,14 @@ try:
 except Exception:
     _config = {}
 
-OLLAMA_URL = "http://localhost:11434"
+def _get_ollama_url():
+    """Get Ollama URL from config or environment."""
+    env_url = os.environ.get("OLLAMA_URL")
+    if env_url:
+        return env_url
+    return _config.get("ollama_url", "http://localhost:11434")
+
+OLLAMA_URL = _get_ollama_url()
 MODEL_NAME = _config.get("llm_model", "llama3")
 MODEL_FALLBACK = "qwen2:1.5b"
 LLM_TIMEOUT = float(_config.get("llm_timeout_seconds", 30))
