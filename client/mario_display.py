@@ -209,6 +209,14 @@ class MarioDisplay:
         self._display_scale = 1.0  # scale factor for fullscreen proportional scaling
         self._native_width = WINDOW_WIDTH
         self._native_height = WINDOW_HEIGHT
+        self._fs_scale = 1.0
+        self._render_w = WINDOW_WIDTH
+        self._render_h = WINDOW_HEIGHT
+
+        # Chat history sidebar (F3 toggle)
+        self._chat_history = []  # List of {"role": "mario"|"user", "text": str}
+        self._show_chat_history = False
+        self._MAX_CHAT_HISTORY = 20
 
         # Panic mode (F12) — "Technical Difficulties" overlay
         self._panic_mode = False
@@ -346,6 +354,8 @@ class MarioDisplay:
                     elif event.key == pygame.K_TAB:
                         self.keyboard_mode = not self.keyboard_mode
                         self._keyboard_text = ""
+                    elif event.key == pygame.K_F3:
+                        self._show_chat_history = not self._show_chat_history
                     elif event.key == pygame.K_F5:
                         self.party_mode = not self.party_mode
                     elif event.key == pygame.K_F6:
@@ -380,6 +390,7 @@ class MarioDisplay:
         """Handle keyboard input when in keyboard mode."""
         if event.key == pygame.K_RETURN:
             if self._keyboard_text.strip() and self.on_keyboard_submit:
+                self.add_chat_message("user", self._keyboard_text.strip())
                 self.on_keyboard_submit(self._keyboard_text.strip())
                 self.subtitle_text = self._keyboard_text.strip()
                 self._keyboard_text = ""
@@ -397,6 +408,14 @@ class MarioDisplay:
         self.state = STATE_TALKING
         self._text_display_time = self._frame
         self._talk_last_char_count = 0
+        if text:
+            self.add_chat_message("mario", text)
+
+    def add_chat_message(self, role, text):
+        """Add a message to chat history. role is 'mario' or 'user'."""
+        self._chat_history.append({"role": role, "text": text})
+        if len(self._chat_history) > self._MAX_CHAT_HISTORY:
+            self._chat_history.pop(0)
 
     def set_subtitle(self, text: str):
         """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
@@ -455,11 +474,23 @@ class MarioDisplay:
         elif transition_type == "exit":
             self.state = STATE_EXITING
 
+    def _get_typewriter_speed(self, text_length: int) -> int:
+        """Adaptive speed: short text = slower (savor), long text = faster (don't bore)."""
+        if text_length < 20:
+            return 1  # Slow for short punchy lines
+        elif text_length < 60:
+            return 2  # Normal
+        elif text_length < 120:
+            return 3  # Faster for medium text
+        else:
+            return 4  # Quick for long responses
+
     def _update_typewriter(self):
         """Advance typewriter text effect."""
         if self._typewriter_text and self._typewriter_pos < len(self._typewriter_text):
+            speed = self._get_typewriter_speed(len(self._typewriter_text))
             self._typewriter_pos = min(
-                self._typewriter_pos + self._typewriter_speed,
+                self._typewriter_pos + speed,
                 len(self._typewriter_text)
             )
             self.current_text = self._typewriter_text[:int(self._typewriter_pos)]
@@ -770,19 +801,29 @@ class MarioDisplay:
     # ==========================================
 
     def _toggle_fullscreen(self):
-        """Toggle between fullscreen and windowed mode with proportional scaling."""
+        """Toggle between fullscreen and windowed mode with native resolution scaling."""
         self._fullscreen = not self._fullscreen
         if self._fullscreen:
             info = pygame.display.Info()
-            monitor_w, monitor_h = info.current_w, info.current_h
-            self._screen = pygame.display.set_mode((monitor_w, monitor_h), pygame.FULLSCREEN)
-            self._display_scale = min(monitor_w / WINDOW_WIDTH, monitor_h / WINDOW_HEIGHT)
-            self._native_width = monitor_w
-            self._native_height = monitor_h
+            self._screen = pygame.display.set_mode(
+                (info.current_w, info.current_h), pygame.FULLSCREEN
+            )
+            # Scale render dimensions to native resolution for crisp output
+            scale = min(info.current_w / WINDOW_WIDTH, info.current_h / WINDOW_HEIGHT)
+            self._render_w = int(WINDOW_WIDTH * scale)
+            self._render_h = int(WINDOW_HEIGHT * scale)
+            self._fs_scale = scale
+            self._display_scale = scale
+            self._native_width = info.current_w
+            self._native_height = info.current_h
             if DEBUG_DISPLAY:
-                logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {monitor_w}x{monitor_h}, scale={self._display_scale:.2f}")
+                logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {info.current_w}x{info.current_h}, render={self._render_w}x{self._render_h}, scale={scale:.2f}")
         else:
             self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+            self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+            self._render_w = WINDOW_WIDTH
+            self._render_h = WINDOW_HEIGHT
+            self._fs_scale = 1.0
             self._display_scale = 1.0
             self._native_width = WINDOW_WIDTH
             self._native_height = WINDOW_HEIGHT
@@ -1034,7 +1075,7 @@ class MarioDisplay:
         self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
 
         # Hint for keyboard/party toggle
-        hint = "TAB: type | F5: party | F11: fullscreen | F12: panic | ESC: quit"
+        hint = "TAB:type | F3:chat | F5:party | F6:scores | F11:full | F12:panic"
         hint_surf = self._font_small.render(hint, True, (100, 100, 120))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
 
@@ -1051,14 +1092,48 @@ class MarioDisplay:
         if not self.connected and self._reconnect_info:
             self._draw_reconnect_overlay()
 
-        # Fullscreen: scale render buffer to real screen, then flip
+        # Chat history sidebar (F3 toggle)
+        self._draw_chat_history(self._screen)
+
+        # Fullscreen: scale render buffer to real screen, centered with aspect ratio
         if self._fullscreen:
             self._screen = real_screen
             scaled = pygame.transform.smoothscale(self._render_buffer,
-                                                  (self._native_width, self._native_height))
-            self._screen.blit(scaled, (0, 0))
+                                                  (self._render_w, self._render_h))
+            x_off = (self._native_width - self._render_w) // 2
+            y_off = (self._native_height - self._render_h) // 2
+            if x_off > 0 or y_off > 0:
+                self._screen.fill((0, 0, 0))
+            self._screen.blit(scaled, (x_off, y_off))
 
         pygame.display.flip()
+
+    def _draw_chat_history(self, surface):
+        """Draw scrollable chat log on right side."""
+        if not self._show_chat_history or not self._chat_history:
+            return
+        panel_w = 280
+        panel_x = surface.get_width() - panel_w - 10
+        panel_y = 60
+        panel_h = surface.get_height() - 120
+        # Semi-transparent background
+        overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        surface.blit(overlay, (panel_x, panel_y))
+        # Title
+        title_font = pygame.font.SysFont("arial", 16, bold=True)
+        title = title_font.render("Chat History (F3)", True, (255, 215, 0))
+        surface.blit(title, (panel_x + 10, panel_y + 5))
+        # Messages (newest at bottom)
+        msg_font = pygame.font.SysFont("arial", 13)
+        y_offset = panel_y + 30
+        for msg in self._chat_history[-12:]:  # Show last 12
+            color = (144, 238, 144) if msg["role"] == "mario" else (173, 216, 230)
+            prefix = "M:" if msg["role"] == "mario" else "U:"
+            text = f"{prefix} {msg['text'][:45]}{'...' if len(msg['text']) > 45 else ''}"
+            rendered = msg_font.render(text, True, color)
+            surface.blit(rendered, (panel_x + 10, y_offset))
+            y_offset += 22
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,
