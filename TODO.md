@@ -1,6 +1,9 @@
 # Mario AI Party Bot - TODO
 
 ## Recently Added
+- [ ] Manual test: visit milestone callouts at 2/5/10/15+ visits during live party
+- [ ] Manual test: Jacob birthday greeting variants with real accomplishment references
+- [ ] Manual test: returning guest greetings reference last conversation topic
 - [ ] Manual test: verify _connection_status red overlay appears when server unreachable
 - [ ] Manual test: verify Ollama health tracking logs after 3 failed pings
 - [ ] Manual test: verify emergency silence WAV plays when all TTS engines fail

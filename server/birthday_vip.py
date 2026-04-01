@@ -5,6 +5,7 @@ into Mario's system prompt so he gives them extra-special attention.
 """
 
 import logging
+import random
 import re
 from difflib import SequenceMatcher
 
@@ -84,26 +85,55 @@ class BirthdayVIP:
         return base
 
     def get_special_greeting(self, speaker_name: str) -> str | None:
-        """Returns a special greeting if the speaker is the birthday person."""
+        """Returns a special greeting if the speaker is the birthday person.
+
+        First interaction gets the big reveal greeting. Subsequent visits
+        randomly pick from personalized variants that reference real
+        accomplishments, with a recurring-visit variant for 3+ visits.
+        """
         if not self.is_birthday_person(speaker_name):
             return None
 
-        greetings = [
-            f"It's the birthday {'star' if self._interaction_count <= 1 else 'legend'}! "
-            f"Happy birthday, {self._name}! 🎂",
-            f"WAHOO! The guest of honor is here! Happy birthday, {self._name}! 🎉",
-            f"Mama mia, it's {self._name}'s special day! Let's-a celebrate! 🎂",
+        # Personalized greetings referencing Jacob's real accomplishments
+        personalized_greetings = [
+            (
+                f"The BIRTHDAY BOY is here! {self._name}, the man who got "
+                f"PUBLISHED in a Taylor and Francis book before graduation! "
+                f"Everybody make some noise! 🎂"
+            ),
+            (
+                f"JACOB! Happy birthday you absolute legend! Seven live projects "
+                f"and counting! GatorCommunities, CelebMax, the works! "
+                f"This party is ALL for you! 🎉"
+            ),
+            (
+                f"It's-a the birthday king himself! {self._name}, the guy who "
+                f"built an earthquake prediction game called Normal Weather! "
+                f"That's the kind of beautiful chaos I love! 🎂"
+            ),
+            (
+                f"WAHOO! {self._name}'s in the building! Published researcher, "
+                f"full-stack developer, and tonight's VIP! Happy birthday! 🎉"
+            ),
+            (
+                f"The man of the hour! {self._name}, your dad Carl and mom Stacy "
+                f"raised a GENIUS! Happy birthday from your favorite bathroom "
+                f"companion! 🎂"
+            ),
         ]
 
         if self._interaction_count == 0:
-            return greetings[0]
+            # First sighting gets the big reveal
+            return personalized_greetings[0]
         elif self._interaction_count < 3:
-            return greetings[1]
+            return random.choice(personalized_greetings)
         else:
-            return (
+            # After many visits, mix personalized with a recurring-visit variant
+            recurring = (
                 f"There's my birthday bestie {self._name}! "
                 f"Visit #{self._interaction_count + 1} tonight — you really love this party! 🎉"
             )
+            return random.choice(personalized_greetings + [recurring])
 
     def reset_interaction_count(self):
         """Reset for a new session."""

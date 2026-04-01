@@ -262,7 +262,12 @@ state_current = {
     "_last_idle_action": None,  # What Mario was doing before someone entered
     "detected_guest": None,
     "guest_visits": 0,
+    "memorial_active": False,
+    "memorial_triggered_at": 0.0,
 }
+
+# Active WebSocket reference for admin endpoints to broadcast to
+_active_ws: "WebSocket | None" = None
 
 # Dedicated executor for TTS (scaled by hardware auto-detection)
 _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
@@ -1014,6 +1019,80 @@ async def admin_announce(request_body: dict = {}):
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
+@app.post("/admin/trigger_memorial")
+async def trigger_memorial(request_body: dict = {}):
+    """Manually trigger the Lisa Webb memorial moment."""
+    global state_current, _active_ws
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    if _active_ws is None:
+        return {"status": "error", "message": "No client connected"}
+    try:
+        state_current["memorial_active"] = True
+        state_current["memorial_triggered_at"] = time.time()
+
+        memorial_text = (
+            "Everyone... I need a moment of your time. "
+            "One of the most important people in Jacob's life was his Aunt Lisa Webb. "
+            "She passed away too soon, and we want to honor her memory tonight. "
+            "Let's take a moment of silence for Aunt Lisa."
+        )
+
+        memorial_event = {
+            "type": "memorial_event",
+            "name": "Lisa Webb",
+            "phase": "silence",
+            "text": memorial_text,
+            "duration": 15,
+        }
+        await _active_ws.send_json(memorial_event)
+
+        # Synthesize and send the initial memorial speech
+        loop = asyncio.get_event_loop()
+        try:
+            audio = await loop.run_in_executor(
+                _tts_executor, lambda: tts.synthesize_user(memorial_text))
+            if audio:
+                await _active_ws.send_bytes(audio)
+        except Exception as e:
+            logger.error(f"Memorial initial TTS failed: {e}")
+
+        # Schedule the "raise a glass" follow-up after 15 seconds
+        async def memorial_followup():
+            await asyncio.sleep(15)
+            followup_text = "Now let's raise a glass to Aunt Lisa! Take a shot in her honor!"
+            followup_event = {
+                "type": "memorial_event",
+                "name": "Lisa Webb",
+                "phase": "toast",
+                "text": followup_text,
+            }
+            try:
+                if _active_ws is not None:
+                    await _active_ws.send_json(followup_event)
+            except Exception:
+                pass
+
+            try:
+                followup_loop = asyncio.get_event_loop()
+                followup_audio = await followup_loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(followup_text))
+                if followup_audio and _active_ws is not None:
+                    await _active_ws.send_bytes(followup_audio)
+            except Exception as e:
+                logger.error(f"Memorial followup TTS failed: {e}")
+
+            state_current["memorial_active"] = False
+
+        asyncio.create_task(memorial_followup())
+
+        return {"status": "ok", "message": "Memorial triggered"}
+    except Exception as e:
+        logger.error(f"Memorial trigger failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")
@@ -1110,7 +1189,9 @@ async def restart_sovits():
 
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
+    global _active_ws
     await ws.accept()
+    _active_ws = ws
     logger.info("Client connected!")
 
     # Reset per-connection state (games, conversation, etc.)
@@ -1227,6 +1308,7 @@ async def websocket_endpoint(ws: WebSocket):
             await leaderboard_task
         except asyncio.CancelledError:
             pass
+        _active_ws = None
 
 
 async def _heartbeat_loop(ws: WebSocket):
@@ -3125,6 +3207,12 @@ async def handle_event(ws: WebSocket, event: dict):
                 else:
                     visit_hint = f"They've visited {actual_visits} times! They're a LEGEND! Treat them like royalty!"
                 ctx.append({"role": "system", "content": visit_hint})
+
+                # Context-aware returning greetings — reference last conversation
+                recent_topics = memory.get_recent_conversations(state_current["speaker_id"], limit=1)
+                if recent_topics:
+                    ctx.append({"role": "system", "content": f"Last time {state_current['speaker_name']} was here, you were talking about: {recent_topics[0]}. Reference this!"})
+
             elif total == 1:
                 ctx = mario_prompt.build_context(event="first_visitor")
             elif total in (10, 25, 50, 100):
@@ -3187,6 +3275,23 @@ async def handle_event(ws: WebSocket, event: dict):
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)
+
+            # Visit milestones — special callout for returning guests at key visit counts
+            if state_current.get("speaker_name") and state_current.get("speaker_id"):
+                _milestone_info = memory.get_person_info(state_current["speaker_id"])
+                _milestone_count = _milestone_info["visit_count"] if _milestone_info else 1
+                _milestone_name = state_current["speaker_name"]
+                milestone_prefix = ""
+                if _milestone_count == 2:
+                    milestone_prefix = f"Welcome BACK {_milestone_name}! I missed you! "
+                elif _milestone_count == 5:
+                    milestone_prefix = f"It's {_milestone_name} again! That's your FIFTH visit tonight! You're a LEGEND! "
+                elif _milestone_count == 10:
+                    milestone_prefix = f"TEN TIMES?! {_milestone_name}, you live here now! I'm giving you a key! "
+                elif _milestone_count >= 15:
+                    milestone_prefix = f"{_milestone_name}! You've been here {_milestone_count} times! At this point you're my roommate! "
+                if milestone_prefix:
+                    response_text = milestone_prefix + response_text
 
             if not state_current["speaker_name"]:
                 response_text += " What's-a your name, friend?"
