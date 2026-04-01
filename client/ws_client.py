@@ -28,6 +28,7 @@ class MarioWSClient:
         self.on_audio_chunk = None      # Called with (wav_bytes: bytes, chunk_meta: dict)
         self.on_state_update = None     # Called with (state: dict)
         self.on_leaderboard_update = None  # Called with (data: dict)
+        self.on_memorial_event = None   # Called with (data: dict)
         self.on_connected = None
         self.on_disconnected = None
 
@@ -159,6 +160,12 @@ class MarioWSClient:
                         logger.info(f"[DEBUG_WS] leaderboard update received")
                     if self.on_leaderboard_update:
                         self.on_leaderboard_update(data)
+
+                elif msg_type == "memorial_event":
+                    if DEBUG_WS:
+                        logger.info(f"[DEBUG_WS] memorial event: phase={data.get('phase')}")
+                    if self.on_memorial_event:
+                        self.on_memorial_event(data)
 
             except json.JSONDecodeError as e:
                 logger.error(f"[DEBUG_WS] invalid JSON: {e}")

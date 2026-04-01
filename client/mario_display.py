@@ -261,6 +261,14 @@ class MarioDisplay:
         self._leaderboard_ticker_frame = 0
         self._leaderboard_ticker_interval = 150  # ~5 seconds at 30fps
 
+        # Memorial overlay
+        self._memorial_active = False
+        self._memorial_phase = "silence"
+        self._memorial_name = ""
+        self._memorial_text = ""
+        self._memorial_start = 0.0
+        self._memorial_duration = 15
+
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
         # Try loading AI-generated poses first
@@ -1129,6 +1137,10 @@ class MarioDisplay:
         # Chat history sidebar (F3 toggle)
         self._draw_chat_history(self._screen)
 
+        # Memorial overlay (drawn on top of everything)
+        if self._memorial_active:
+            self._draw_memorial(self._screen)
+
         # Fullscreen: scale render buffer to real screen, centered with aspect ratio
         if self._fullscreen:
             self._screen = real_screen
@@ -1656,6 +1668,65 @@ class MarioDisplay:
         self._leaderboard_data = data
         if DEBUG_DISPLAY:
             logger.info(f"[DEBUG_DISPLAY] Leaderboard data updated")
+
+    def show_memorial(self, name, phase, text, duration=15):
+        """Show memorial overlay on screen."""
+        self._memorial_active = True
+        self._memorial_phase = phase
+        self._memorial_name = name
+        self._memorial_text = text
+        self._memorial_start = time.time()
+        self._memorial_duration = duration
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] Memorial overlay: phase={phase} name={name}")
+
+    def _draw_memorial(self, surface):
+        """Draw memorial overlay."""
+        try:
+            w, h = surface.get_size()
+            elapsed = time.time() - self._memorial_start
+
+            if self._memorial_phase == "silence":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                alpha = min(200, int(elapsed * 40))
+                overlay.fill((0, 0, 0, alpha))
+                surface.blit(overlay, (0, 0))
+
+                font_large = self._font_title or pygame.font.SysFont("arial", 28, bold=True)
+                font_small = self._font_small or pygame.font.SysFont("arial", 18)
+
+                title = f"In Memory of {self._memorial_name}"
+                title_surface = font_large.render(title, True, (255, 255, 255))
+                title_rect = title_surface.get_rect(center=(w // 2, h // 2 - 30))
+                surface.blit(title_surface, title_rect)
+
+                subtitle = "A moment of silence..."
+                sub_surface = font_small.render(subtitle, True, (200, 200, 200))
+                sub_rect = sub_surface.get_rect(center=(w // 2, h // 2 + 20))
+                surface.blit(sub_surface, sub_rect)
+
+                remaining = max(0, self._memorial_duration - elapsed)
+                if remaining <= 0:
+                    self._memorial_active = False
+
+            elif self._memorial_phase == "toast":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                overlay.fill((40, 20, 0, 180))
+                surface.blit(overlay, (0, 0))
+
+                font_large = self._font_title or pygame.font.SysFont("arial", 28, bold=True)
+
+                title = f"Raise a glass to {self._memorial_name}!"
+                title_surface = font_large.render(title, True, (255, 215, 0))
+                title_rect = title_surface.get_rect(center=(w // 2, h // 2))
+                surface.blit(title_surface, title_rect)
+
+                if elapsed > 10:
+                    self._memorial_active = False
+
+        except Exception as e:
+            logger.debug(f"Memorial draw error: {e}")
+            self._memorial_active = False
 
     def _draw_leaderboard(self):
         """Draw the party leaderboard overlay on the right side of the screen."""

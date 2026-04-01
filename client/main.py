@@ -68,6 +68,7 @@ class MarioClient:
         self.ws.on_disconnected = self._on_disconnected
         self.ws.on_state_update = self._on_state_update
         self.ws.on_leaderboard_update = self._on_leaderboard_update
+        self.ws.on_memorial_event = self._on_memorial_event
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -368,6 +369,17 @@ class MarioClient:
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Leaderboard update received")
         self.display.update_leaderboard(data)
+
+    def _on_memorial_event(self, data: dict):
+        """Called when server sends memorial event."""
+        phase = data.get("phase", "silence")
+        name = data.get("name", "")
+        text = data.get("text", "")
+        duration = data.get("duration", 15)
+        if DEBUG_CLIENT:
+            logger.info(f"[DEBUG_CLIENT] Memorial event: phase={phase} name={name}")
+        if self.display:
+            self.display.show_memorial(name, phase, text, duration)
 
 
 def main():

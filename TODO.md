@@ -10,7 +10,9 @@
 - [ ] Manual test: F11 fullscreen toggle on 4K display
 - [ ] Manual test: F3 chat history sidebar with long conversations
 - [ ] Manual test: F12 panic mode kills all audio
-- [ ] Manual test: Lisa Webb memorial triggers at 45 minutes
+- [x] Manual test: Lisa Webb memorial triggers at 45 minutes
+- [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
+- [ ] Manual test: memorial overlay displays silence + toast phases on client
 - [ ] Manual test: Webcam person detection with multiple guests
 - [ ] Configure alert_webhook_url for production deployment
 - [ ] Add Tailscale setup instructions for party day networking
