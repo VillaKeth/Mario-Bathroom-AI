@@ -1,6 +1,9 @@
 # Mario AI Party Bot - TODO
 
 ## Recently Added
+- [ ] Manual test: verify _connection_status red overlay appears when server unreachable
+- [ ] Manual test: verify Ollama health tracking logs after 3 failed pings
+- [ ] Manual test: verify emergency silence WAV plays when all TTS engines fail
 - [ ] Manual test: F11 fullscreen toggle on 4K display
 - [ ] Manual test: F3 chat history sidebar with long conversations
 - [ ] Manual test: F12 panic mode kills all audio

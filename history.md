@@ -1,5 +1,15 @@
 # History — Mario AI Design Decisions
 
+## 2026-04-01 — Party Resilience: Error Recovery & Health Tracking
+- **Goal**: Mario should NEVER go silent during a party
+- **Changes**:
+  - Silent `except: pass` blocks in keepalive/maintenance now log at DEBUG level
+  - Ollama health tracking: 3 consecutive failed pings marks it unhealthy with ERROR log
+  - LLM fallback responses now log WARNING for diagnostics
+  - Emergency silence WAV fallback in tts_router when ALL TTS engines fail (1.5s silent PCM)
+  - Client displays red connection status overlay via `set_connection_status()` method
+- **Rationale**: During a party, silent failures are the worst — they look like crashes. Logging + emergency fallbacks ensure the bot always responds, even if degraded.
+
 ## 2026-03-04 — Initial Architecture
 - **Decision**: Client-server architecture (MacBook client + friend's GPU PC as server)
 - **Reason**: 2015 MacBook can't run AI models locally. All heavy processing offloaded to GPU server via WebSocket.
