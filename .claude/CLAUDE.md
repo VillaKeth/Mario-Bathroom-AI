@@ -40,9 +40,10 @@ cd server && python main.py    # Starts on http://localhost:8765
 
 ### Response Pipeline
 1. User sends text via WebSocket → `command_handlers.py` checks for games/commands
-2. If no command match → LLM (Ollama qwen2:1.5b) generates response
-3. Response → TTS (GPT-SoVITS primary, Edge TTS fallback) → audio sent back
+2. If no command match → LLM (Ollama llama3 8B) generates response with VIP fact injection
+3. Response → TTS (GPT-SoVITS primary, Edge TTS + RVC fallback) → audio sent back
 4. Cached responses are instant (0.0s), LLM responses 3-15s
+5. Thinking filler ("Let me think!") sent while LLM generates (is_thinking_filler flag)
 
 ### Games (12 total)
 RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangman, Hot Takes, Would You Rather, Never Have I Ever, Karaoke. All have game state management, timeouts (180s), and clean switching between games.
@@ -73,9 +74,13 @@ RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangma
 - Running gag detection, emotional mirroring, question-back system
 - 40-message conversation history with momentum injection
 
-## Testing Status (as of 2026-03-27)
+## Testing Status (as of 2026-04-01)
 - **E2E Browser Test**: 40/45 passed (53+ min session, 107 audio clips)
 - **Stress Test**: 52/52 passed, 8-hour endurance verified
+- **LLM Router**: 37/37 tests pass
+- **Night Progression**: 22/22 tests pass
+- **Memory Semantic**: 19/19 tests pass (Qdrant layer)
+- **VIP Knowledge**: 12+ tests pass (profile loading, fuzzy matching, facts)
 - **All features working**: games, chat, idle, emotions, sick care, recovery, friend-sick
 - **Known minor issues**: idle message variety, trivia not interactive Q&A
 
@@ -96,5 +101,74 @@ RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangma
 See `TODO.md` for full task tracking. Key remaining:
 - Create reusable stress test skill
 - Idle message variety improvement
-- Consider LLM upgrade from qwen2:1.5b to 7B+
+- Consider LLM upgrade from llama3 8B to larger model (needs bigger GPU)
 - Sprite system overhaul
+- Fish Speech TTS — code ready, needs GPU with >4GB VRAM
+
+## Hardware Profile
+- **GPU**: Quadro P1000 (4GB VRAM) — detects as "low" tier
+- **RAM**: 32GB
+- **CPU**: 24-core
+- **LLM**: Ollama running llama3 8B (fits in 4GB VRAM)
+- **TTS**: GPT-SoVITS V2 subprocess (separate venv: `gpt_sovits_env`)
+- **GPU detection**: nvidia-smi fallback (torch not installed in server venv)
+- Fish Speech deferred — needs ~3GB VRAM, can't fit alongside llama3 + SoVITS
+
+## VIP Knowledge System
+VIP profiles provide deep biographical context for special guests.
+
+### Adding a New VIP
+1. Create JSON file: `server/data/vip_profiles/<name>.json`
+2. Profile loads automatically at server startup via `load_all_vip_profiles()`
+3. Memories injected into Qdrant with negative person_id (deterministic hash)
+
+### JSON Profile Schema
+```json
+{
+  "name": "Full Name",
+  "aliases": ["Nickname1", "Nick2"],
+  "hometown": "City, State",
+  "age": 25,
+  "birthday": "Month Day, Year",
+  "education": { "university": "...", "degree": "...", "graduation_year": 2023 },
+  "titles": ["Birthday VIP"],
+  "family": { "dad": "Name", "mom": "Name" },
+  "projects": [{ "name": "...", "description": "...", "tech_stack": ["..."] }],
+  "skills": ["Python", "..."],
+  "personality_notes": ["Loves X", "..."],
+  "mario_conversation_hooks": ["Ask about X!", "Mention Y!"],
+  "memorial": {
+    "person": "Memorial Person Name",
+    "relationship": "aunt",
+    "born": "1960", "passed": "2025",
+    "note": "Take a moment of silence"
+  },
+  "memories": ["Fact 1", "Fact 2", "..."]
+}
+```
+
+### Memorial Events
+- Fires at 45 minutes into the party (configurable in `idle_behavior.py`)
+- Two phases: moment of silence → everyone take a shot
+- Triggered by `check_memorial_event()` in idle loop
+
+## TTS Pronunciation Guide
+Add pronunciation fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts()`:
+```python
+# Existing fixes:
+"Bowser" → "the bad guy"
+"Goomba" → "bad mushroom"
+"Koopa" → "Cooper"
+"Hoppenstedt" → "Hoppenstead"
+```
+**Note:** GPT-SoVITS subprocess must be restarted for changes to take effect.
+
+## Recent Bug Fixes (2026-03-31 → 2026-04-01)
+- **LLM 404**: Fixed hardcoded `llama3:8b` → `llama3` in hardware.py
+- **TTS recursion**: Fixed monkey-patch closure bug in tts.py
+- **Health endpoint**: Fixed `NightProgression.current_phase` → `get_time_phase()`
+- **Response truncation**: Removed `\n\n` and `[` stop sequences, raised 120→300 char cap
+- **Token limits**: Bumped llm_num_predict (low: 25→120, med: 30→120, high: 40→150)
+- **GPU detection**: Added nvidia-smi fallback for systems without torch
+- **VIP bypass**: "know anything about me" now falls through to VIP-aware LLM pipeline
+- **Idle guard**: Text input path gets post-response guard (matches audio path)
