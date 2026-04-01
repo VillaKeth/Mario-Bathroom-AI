@@ -738,6 +738,10 @@ class IdleBehavior:
         self._challenge_index = random.randint(0, max(1, len(MARIO_CHALLENGES)) - 1)
         self._compliment_index = random.randint(0, max(1, len(MARIO_COMPLIMENTS)) - 1)
         self._hand_wash_index = random.randint(0, max(1, len(HAND_WASH_REMINDERS)) - 1)
+        # Memorial event tracking (fires once per party session)
+        self._memorial_delivered = False
+        self._memorial_shot_delivered = False
+        self._party_start_time = time.time()
 
     def _pick_unique(self, pool: list, pool_name: str = None) -> str:
         """Pick a random item from pool, avoiding recent repeats (per-pool + global)."""
@@ -882,6 +886,64 @@ class IdleBehavior:
         self._last_idle_action = time.time()
         self._idle_interval = 15
         self._action_count = 0
+
+    def check_memorial_event(self) -> str | None:
+        """Check if it's time for the Lisa Webb memorial moment.
+
+        Returns the memorial message (moment of silence or shot dedication),
+        or None if not time yet. Fires once per party, ~45 min after start.
+        The moment of silence fires first, then the shot on the next idle cycle.
+        """
+        if self._memorial_delivered and self._memorial_shot_delivered:
+            return None
+
+        # Wait at least 45 minutes into the party
+        party_minutes = (time.time() - self._party_start_time) / 60
+        if party_minutes < 45:
+            return None
+
+        # Try to load memorial info from VIP knowledge
+        try:
+            import vip_knowledge
+            memorial = vip_knowledge.get_memorial_info("Jacob")
+        except Exception:
+            memorial = None
+
+        if not memorial:
+            # Fallback hardcoded memorial
+            memorial = {
+                "person": "Lisa Webb",
+                "relationship": "Jacob's aunt",
+                "born": "August 17, 1968",
+                "passed": "March 23, 2023",
+            }
+
+        if not self._memorial_delivered:
+            # Phase 1: Moment of silence
+            self._memorial_delivered = True
+            return (
+                f"*Mario removes his hat and holds it to his chest* "
+                f"Hey everyone... Can I have your attention for just a moment? "
+                f"Tonight we're celebrating Jacob's birthday, but I want us to take a moment "
+                f"to remember someone very special — {memorial['person']}, {memorial['relationship']}. "
+                f"She passed away in 2023, and she meant the world to this family. "
+                f"Let's have a moment of silence for Aunt Lisa. "
+                f"*bows head in silence*"
+            )
+        elif not self._memorial_shot_delivered:
+            # Phase 2: Shot dedication (fires on next idle cycle after the silence)
+            self._memorial_shot_delivered = True
+            return (
+                f"*puts hat back on with a warm smile* "
+                f"Alright everyone — Aunt Lisa wouldn't want us to be sad! "
+                f"She'd want us to CELEBRATE! So right now, everybody grab a drink — "
+                f"we're taking a shot for Aunt Lisa! 🥂 "
+                f"To Lisa Webb — the kind of person who made every room brighter! "
+                f"Ready? One... two... three... CHEERS! Wahoo! "
+                f"That one was for you, Aunt Lisa! Now let's-a party!"
+            )
+
+        return None
 
     def get_long_stay_comment(self, minutes: float) -> str:
         """Get a comment about someone taking a long time."""

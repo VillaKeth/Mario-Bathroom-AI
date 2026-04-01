@@ -12,9 +12,22 @@ server/stt.py           — Whisper-based speech-to-text
 server/audio_distress.py — PANNs Cnn14 model for retching/distress audio detection
 server/party_stats.py   — Leaderboard, visitor tracking, party analytics
 server/party_gossip.py  — Cross-visitor social dynamics
+server/memory.py        — SQLite memory (facts, conversations, people) + dual-write to Qdrant
+server/memory_semantic.py — Qdrant vector DB wrapper (fastembed all-MiniLM-L6-v2, 384-dim)
+server/vip_knowledge.py — VIP profile loader (JSON profiles → Qdrant injection)
+server/idle_behavior.py — Idle behavior, autonomous actions, timed events
 web/mario_chat.html     — Browser chat interface at /chat endpoint
 client/                 — Pygame desktop client with 74 AI poses
 ```
+
+### Memory System (Hybrid SQLite + Qdrant)
+- **SQLite** (`server/data/memory.db`): Source of truth for structured data (people, conversations, facts)
+- **Qdrant** (`server/data/qdrant_memories/`): Semantic vector search over all memories
+- **fastembed** (all-MiniLM-L6-v2): 384-dim embeddings, CPU-only, zero VRAM impact
+- **Dual-write**: every save_fact/save_conversation writes to both SQLite and Qdrant
+- **Memory cap**: 50 items injected into LLM context (ULTRA hardware budget)
+- **VIP profiles**: JSON files in `server/data/vip_profiles/` — deep biographical data for special guests
+- **Backfill**: first startup auto-migrates existing SQLite data into Qdrant
 
 ## How to Run
 ```bash

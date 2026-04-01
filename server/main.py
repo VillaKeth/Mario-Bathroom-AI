@@ -1349,6 +1349,22 @@ async def _idle_loop(ws: WebSocket):
                 logger.error(f"Scheduled event failed: {e}")
             continue
 
+        # Memorial event: moment of silence + shot for Lisa Webb (fires once per party)
+        memorial_msg = idle_behavior.check_memorial_event()
+        if memorial_msg:
+            try:
+                analyzed = analyze_text(memorial_msg)
+                pose = "emotional/respectful" if "silence" in memorial_msg.lower() else "positive/excited_jump"
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound=None, pose_hint=pose)
+                # Extra pause after the moment of silence before the shot dedication
+                if "silence" in memorial_msg.lower():
+                    await asyncio.sleep(15)
+            except Exception as e:
+                logger.error(f"Memorial event failed: {e}")
+            continue
+
         # Game auto-timeout: clear stale game state after 3 minutes of no input
         _GAME_TIMEOUT_SECONDS = 180
         async with _state_lock:
