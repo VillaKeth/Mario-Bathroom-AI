@@ -591,7 +591,7 @@ def get_game_leaderboard(limit: int = 10) -> list:
         SELECT
             gr.person_id,
             p.name,
-            SUM(CASE WHEN CAST(gr.score AS FLOAT) / MAX(gr.max_score, 1) > 0.5 THEN 1 ELSE 0 END) as wins,
+            SUM(CASE WHEN gr.max_score > 0 AND CAST(gr.score AS FLOAT) * 2 > gr.max_score THEN 1 ELSE 0 END) as wins,
             COUNT(*) as games_played,
             SUM(gr.score) as points
         FROM game_results gr

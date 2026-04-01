@@ -1067,8 +1067,15 @@ async def trigger_memorial(request_body: dict = {}):
             logger.error(f"Memorial initial TTS failed: {e}")
 
         # Schedule the "raise a glass" follow-up after 15 seconds
+        captured_ws = _active_ws  # Capture current connection
+
         async def memorial_followup():
             await asyncio.sleep(15)
+            # Check the connection is still the same one
+            if _active_ws is not captured_ws or captured_ws is None:
+                logger.info("[MEMORIAL] Client changed during memorial, skipping toast")
+                state_current["memorial_active"] = False
+                return
             followup_text = "Now let's raise a glass to Aunt Lisa! Take a shot in her honor!"
             followup_event = {
                 "type": "memorial_event",
@@ -1077,8 +1084,7 @@ async def trigger_memorial(request_body: dict = {}):
                 "text": followup_text,
             }
             try:
-                if _active_ws is not None:
-                    await _active_ws.send_json(followup_event)
+                await captured_ws.send_json(followup_event)
             except Exception:
                 pass
 
@@ -1086,8 +1092,8 @@ async def trigger_memorial(request_body: dict = {}):
                 followup_loop = asyncio.get_event_loop()
                 followup_audio = await followup_loop.run_in_executor(
                     _tts_executor, lambda: tts.synthesize_user(followup_text))
-                if followup_audio and _active_ws is not None:
-                    await _active_ws.send_bytes(followup_audio)
+                if followup_audio:
+                    await captured_ws.send_bytes(followup_audio)
             except Exception as e:
                 logger.error(f"Memorial followup TTS failed: {e}")
 
