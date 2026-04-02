@@ -1,5 +1,28 @@
 # History — Mario AI Design Decisions
 
+## 2026-04-02 — v3.7-v3.8 Social Intelligence Sprint (overnight, 5:45-6:45 AM)
+- **Goal**: Make gossip system create real social dynamics between guests
+- **Changes (v3.7)**:
+  - Alliance detection: guests who agree on topics form friendships (not just rivalries)
+  - Trending topics: when 3+ guests mention same topic, Mario surfaces it as party hot news
+  - Party recap for newcomers: exciting FOMO teaser combining trending, rivalries, alliances, drama
+  - Return visit intelligence: gossip-based dossier for returning guests
+  - Command discovery tests: 7 new tests
+- **Changes (v3.8)**:
+  - Idle gossip recap: when alone, Mario reflects on party social dynamics out loud
+  - Fixed idle gossip wiring: `if not action` condition was unreachable
+  - 619 total tests (was 582 at v3.6)
+- **Rationale**: The gossip system had good data collection but only rivalries, no friendships or trends. Alliances + trending create a rich social web. The recap gives newcomers FOMO context. Return visit intel makes Mario genuinely remember each guest's social standing.
+
+## 2026-04-02 — v3.6 Conversation Quality (overnight, 4:50-5:45 AM)
+- **Goal**: Fix conversation amnesia, add emotional depth, help guests discover features
+- **Changes**:
+  - Conversation summarization: zero-latency extractive summarizer preserves old context
+  - Idle loneliness arc: 3-tier mood progression when Mario is alone (24 unique messages)
+  - Command discovery hints: 15 natural feature suggestions during conversation
+  - 582 total tests
+- **Rationale**: With RECENT_RAW_MESSAGES=8, older context was silently dropped. Summary preserves topics + proper nouns. Loneliness arc makes Mario feel alive when alone. Discovery hints teach guests about 40+ features without being pushy.
+
 ## 2026-04-02 — v3.4 Robustness Sprint (overnight session)
 - **Goal**: Make Mario bulletproof for Jacob's birthday party on Threadripper Pro
 - **Changes**:

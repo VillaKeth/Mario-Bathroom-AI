@@ -1,6 +1,36 @@
 # Mario AI Party Bot - TODO
 
-## v3.1 Improvements (In Progress)
+## v3.8 Final Sprint (Current)
+- [x] Idle gossip recap — Mario reflects on party gossip when alone (trending, rivalries, alliances, titles)
+- [x] Fix idle gossip wiring — was unreachable due to condition that was always False
+- [x] 619 tests passing
+
+## v3.7 Social Intelligence Overhaul (Done)
+- [x] Gossip alliances — guests who agree on topics form friendships alongside rivalries
+- [x] Trending topics — 3+ guests mention same topic → surfaced as party hot news
+- [x] Topic mention tracking across all guests for trend detection
+- [x] Party recap for newcomers — exciting FOMO teaser combining all social dynamics
+- [x] Return visit intelligence — gossip-based dossier for returning guests (highlights, traits, titles, relationships)
+- [x] Command discovery tests — 7 tests for hint system
+- [x] 613 tests passing
+
+## v3.6 Conversation Quality & Emotional Depth (Done)
+- [x] Conversation summarization — zero-latency rolling summary prevents context amnesia
+- [x] Idle loneliness arc — 3-tier mood progression when alone (24 unique messages)
+- [x] Command discovery hints — 15 natural feature suggestions during conversation
+- [x] 582 tests passing
+
+## v3.5 Content Expansion & Validation (Done)
+- [x] Text input timeout (45s) + exception handling with fallback responses
+- [x] Game content expansion (karaoke 5→20, truth 10→25, dares 10→20, stories 12→25)
+- [x] Force-stop game admin endpoint + dashboard button
+- [x] Game state validation (VALID_GAMES frozenset, input guards, check_game_timeout)
+- [x] Dashboard alerts (WS status, GPU overtemp, error spikes, idle failures)
+- [x] Idle loop executor restart on circuit breaker
+- [x] Expanded Jacob aliases (JH, Hoppenstedt, birthday boy)
+- [x] Simon actions 12→31, starter words 8→18, RPS reactions 10→15 each
+- [x] WebSocket send lock tests + text input timeout tests
+- [x] 561 tests passing
 - [x] Birthday context always-on — injected into EVERY LLM call
 - [x] Emotion sync wired — client processes emotion field from server
 - [x] Party metadata in config — location, theme, expected guest count
@@ -14,6 +44,8 @@
 - [x] 188 tests passing
 - [x] Add comprehensive test suite for command_handlers.py (54 tests)
 - [x] Add TestGreetingTimeout and TestReconnectStateReset tests (8 tests)
+- [x] Add TestWsSendLock tests for _ws_send_lock concurrency guard (3 tests)
+- [x] Add TestTextInputTimeout tests for text_input timeout/exception handling (4 tests)
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
 - [ ] Manual test: game leaderboard shows in /leaderboard endpoint
@@ -44,7 +76,9 @@
 - [x] dismissAlert() with 60s auto-reset of dismissed state
 - [x] Server-side ws_connected and idle_errors added to /health endpoint
 - [x] WebSocket send lock (_ws_send_lock) prevents concurrent sends from idle loop, user responses, admin endpoints
-- [x] All 546 tests passing
+- [x] All 554 tests passing
+- [x] Idle loop circuit breaker with TTS executor restart recovery
+- [x] Integrated check_game_timeout from game_handlers into idle loop
 
 ## v3.3 Robustness & Testing (Done)
 - [x] Fix 12 bare except-pass blocks → logged warnings/debug messages
@@ -143,6 +177,12 @@
 - [x] Expanded HOT_TAKES from 30 to 40
 - [x] Expanded NHIE_PROMPTS from 30 to 40
 - [x] All 260 tests passing after expansion
+- [x] Expanded SIMON_ACTIONS from 12 to 31 (physical actions, Mario impressions, party-fun moves)
+- [x] Expanded STARTER_WORDS from 8 to 18
+- [x] Expanded RPS_WIN_REACTIONS from 10 to 15
+- [x] Expanded RPS_LOSE_REACTIONS from 10 to 15
+- [x] Expanded RPS_TIE_REACTIONS from 10 to 15
+- [x] All 557 tests passing after expansion
 
 ## Features & Enhancements
 - [ ] Hand wash reminder on exit event
