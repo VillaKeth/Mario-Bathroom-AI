@@ -18,6 +18,13 @@ DEFAULT_EVENT_MAP = {
     "vomit": "pipe.wav",
     "farewell": "star.wav",
     "birthday": "1up.wav",
+    "correct": "coin.wav",
+    "wrong": "pipe.wav",
+    "level_up": "powerup.wav",
+    "victory": "star.wav",
+    "challenge": "powerup.wav",
+    "milestone": "1up.wav",
+    "gossip": "coin.wav",
 }
 
 

@@ -2091,6 +2091,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if debate_resp:
             conv_hint = debate_resp
 
+        # Game suggestion (only when no active game)
+        if not conv_hint and not state_current.get("_active_game"):
+            _gs_guest_type = _infer_guest_type(state_current.get("conversation_history", []))
+            game_suggest = idle_behavior.get_game_suggestion(
+                exchange_count,
+                detected_mood=state_current.get("_detected_mood"),
+                guest_type=_gs_guest_type
+            )
+            if game_suggest:
+                conv_hint = game_suggest
+
         # Recap request
         if not conv_hint:
             recap = mario_prompt.get_recap_hint(text)
@@ -3455,6 +3466,13 @@ async def handle_event(ws: WebSocket, event: dict):
                 party_stats.get_stats().get("total_visits", 0))
             if stats_gossip and random.random() < 0.3:
                 ctx.append({"role": "system", "content": f"[GOSSIP]: {stats_gossip}"})
+
+            # 25% chance Mario asks for a quick rating in the farewell
+            if random.random() < 0.25 and exchange_count >= 3:
+                ctx.append({"role": "system", "content":
+                    "End your farewell by asking them to rate their bathroom experience 1-10. "
+                    "Make it funny — 'Rate this bathroom visit! Was it a 10 out of 10? Be honest, I can take it!'"
+                })
 
             response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
             response_text = filter_response(response_text)

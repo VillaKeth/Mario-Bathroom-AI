@@ -1245,3 +1245,53 @@ class IdleBehavior:
         except Exception as e:
             logger.debug(f"Gossip idle failed: {e}")
             return None
+
+    def get_game_suggestion(self, exchange_count: int, detected_mood: str = None, guest_type: str = "balanced") -> str | None:
+        """Suggest a game based on conversation state. Returns None if not a good time."""
+        # Only suggest games after 3+ exchanges, 30% chance
+        if exchange_count < 3 or random.random() > 0.30:
+            return None
+
+        # Don't suggest if already suggested recently (cooldown)
+        if hasattr(self, '_last_game_suggest') and exchange_count - self._last_game_suggest < 5:
+            return None
+
+        self._last_game_suggest = exchange_count
+
+        # Mood-based recommendations
+        suggestions = {
+            "drunk": [
+                "Hey, you seem fun! Wanna play Would You Rather? I've got some CRAZY ones!",
+                "You know what this bathroom needs? A game of Truth or Dare! You in?",
+                "Let's play Never Have I Ever! I bet you've got some stories!",
+            ],
+            "sad": [
+                "Hey, you know what might cheer you up? Let me tell you a riddle!",
+                "Want me to tell you a story? We can build one together!",
+            ],
+            "energetic": [
+                "You've got ENERGY! Let's play Rapid Fire Quiz! How fast can you go?",
+                "Okay okay okay — Simon Says! Right now! You ready?!",
+                "TRIVIA TIME! I bet you know your Mario facts! Let's go!",
+            ],
+        }
+
+        # Guest type based
+        type_suggestions = {
+            "shy": "Hey, no pressure, but I know a fun riddle if you want to try it!",
+            "curious": "You ask great questions! Want to test YOUR knowledge with some trivia?",
+            "storyteller": "You tell great stories! Let's do Story Builder — we take turns making one up!",
+        }
+
+        if detected_mood and detected_mood in suggestions:
+            return random.choice(suggestions[detected_mood])
+        if guest_type in type_suggestions:
+            return type_suggestions[guest_type]
+
+        # Generic suggestions for engaged guests
+        generic = [
+            "Hey, wanna play a game? Just say 'play trivia' or 'play truth or dare'!",
+            "I've got 17 games in here! Try 'play would you rather' — it's a party favorite!",
+            "Psst... say 'play a game' and I'll pick something fun for us!",
+        ]
+        return random.choice(generic)
