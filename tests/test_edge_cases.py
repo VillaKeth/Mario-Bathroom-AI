@@ -1334,3 +1334,85 @@ class TestReconnectStateReset:
         assert state["memorial_active"] is True
         assert state["memorial_triggered_at"] == 1700000000.0
         assert state["guest_visits"] == 5
+
+
+class TestWsSendLock:
+    """Tests for the _ws_send_lock asyncio.Lock in server/main.py.
+
+    Importing server.main directly is impractical in the unit-test env because
+    it pulls in heavy runtime deps (stt, tts, hardware, etc.).  Instead we:
+      1. Parse the source with ``ast`` to confirm the variable exists and is
+         assigned ``asyncio.Lock()``.
+      2. Create a fresh ``asyncio.Lock()`` (same type) for behavioral tests.
+    """
+
+    @staticmethod
+    def _find_lock_assignment():
+        """Parse server/main.py and return the AST node for ``_ws_send_lock = ...``."""
+        import ast, os
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..", "server", "main.py"
+        )
+        with open(src_path, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read(), filename=src_path)
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "_ws_send_lock":
+                        return node
+        return None
+
+    def test_ws_send_lock_exists(self):
+        """server/main.py must declare ``_ws_send_lock = asyncio.Lock()``."""
+        import ast
+        node = self._find_lock_assignment()
+        assert node is not None, "_ws_send_lock assignment not found in server/main.py"
+        # Verify RHS is asyncio.Lock()
+        call = node.value
+        assert isinstance(call, ast.Call), "RHS should be a Call node"
+        func = call.func
+        assert isinstance(func, ast.Attribute) and func.attr == "Lock", (
+            "Expected asyncio.Lock() call"
+        )
+        assert isinstance(func.value, ast.Name) and func.value.id == "asyncio", (
+            "Expected asyncio.Lock() call"
+        )
+
+    def test_ws_send_lock_prevents_concurrent_sends(self):
+        """Acquiring the lock should block, then release cleanly."""
+        import asyncio
+        lock = asyncio.Lock()
+
+        async def _test():
+            assert not lock.locked()
+            async with lock:
+                assert lock.locked()
+            assert not lock.locked()
+
+        asyncio.run(_test())
+
+    def test_ws_send_lock_contention_queues(self):
+        """Two concurrent tasks should serialize through the lock."""
+        import asyncio
+        lock = asyncio.Lock()
+
+        order = []
+
+        async def task(name, delay):
+            async with lock:
+                order.append(f"{name}_start")
+                await asyncio.sleep(delay)
+                order.append(f"{name}_end")
+
+        async def _test():
+            order.clear()
+            t1 = asyncio.create_task(task("first", 0.1))
+            await asyncio.sleep(0.01)  # ensure first acquires lock first
+            t2 = asyncio.create_task(task("second", 0.01))
+            await asyncio.gather(t1, t2)
+            assert order == [
+                "first_start", "first_end",
+                "second_start", "second_end",
+            ]
+
+        asyncio.run(_test())

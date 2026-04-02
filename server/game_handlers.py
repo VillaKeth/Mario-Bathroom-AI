@@ -98,6 +98,25 @@ SIMON_ACTIONS = [
     "do a thumbs up",
     "flex your muscles",
     "blow a kiss to the mirror",
+    "do a little squat",
+    "wiggle your fingers",
+    "tap your feet really fast",
+    "do your best Mario fist-pump",
+    "pretend to throw a fireball",
+    "do the floss dance",
+    "moonwalk in place",
+    "air guitar for 3 seconds",
+    "put your hands on your hips like a superhero",
+    "do a royal wave like Princess Peach",
+    "stomp the ground like a Thwomp",
+    "pretend to eat a mushroom and grow big",
+    "do a slow-motion jump",
+    "salute yourself in the mirror",
+    "clap above your head",
+    "do jazz hands",
+    "shimmy your shoulders",
+    "pretend to pull a star out of the air",
+    "wag your finger like you're scolding a Goomba",
 ]
 
 TWENTY_Q_THINGS = [
@@ -156,7 +175,11 @@ RIDDLES = [
     {"q": "What building has the most stories?", "a": "library", "hints": ["It's full of books", "You can borrow from here", "Knowledge lives here"]},
 ]
 
-STARTER_WORDS = ["mario", "party", "castle", "mushroom", "adventure", "bathroom", "princess", "galaxy"]
+STARTER_WORDS = [
+    "mario", "party", "castle", "mushroom", "adventure", "bathroom", "princess", "galaxy",
+    "fireball", "plumber", "spaghetti", "koopa", "rainbow", "bowser", "wahoo", "goomba",
+    "toilet", "champion",
+]
 
 KARAOKE_SONGS = [
     {"title": "Jump Up, Super Star!", "lyrics": "Here we go, off the rails! Don't you know it's time to raise our sails? It's FREEDOM like you never knew!"},
@@ -299,6 +322,11 @@ RPS_WIN_REACTIONS = [
     "YES YES YES! Mario is-a on FIRE! Not even Bowser could beat me!",
     "I crushed it! Like a Thwomp from above! BOOM! Ha ha!",
     "Too slow! Mario's reflexes are-a LEGENDARY! Wahoo!",
+    "Mario STRIKES again! I could do this ALL night! Let's-a go!",
+    "HA HA! My plumber hands are-a UNBEATABLE! You never stood a chance!",
+    "It's like I had a Star Power-up for my BRAIN! Another WIN for Mario!",
+    "Did you see THAT?! Even Toad is cheering for me! WAHOO!",
+    "That's THREE stars for Mario! I'm-a on a ROLL tonight! Hee hee!",
 ]
 
 RPS_LOSE_REACTIONS = [
@@ -312,6 +340,11 @@ RPS_LOSE_REACTIONS = [
     "That was-a FLUKE! Mario demands a do-over! Mama mia!",
     "You're tougher than a Dry Bones! I'll get you next time!",
     "Fine, you win! But I'm-a just getting warmed up! Watch out!",
+    "WHAT?! Did someone give you a cheat code?! That's-a not fair!",
+    "You got LUCKY! Mario's hand slipped! That's my story and I'm-a sticking to it!",
+    "Okay, I admit it — that was GOOD! But don't let it go to your head!",
+    "Bowser would be LAUGHING at me right now! Quick, let's go again!",
+    "My fingers are-a cold from all this bathroom air! That's my excuse! Rematch!",
 ]
 
 RPS_TIE_REACTIONS = [
@@ -325,6 +358,11 @@ RPS_TIE_REACTIONS = [
     "A TIE! Even the stars don't know who's better! One more!",
     "Same pick! You've got-a the Mario instinct! Impressive!",
     "Draw! It's like we share the same brain! Creepy! Ha ha!",
+    "ANOTHER tie?! Are you copying me or am I copying YOU? Mama mia!",
+    "We MATCHED again! It's like we're controlled by the same player! Spooky!",
+    "Same thing! This is-a more dramatic than a Mario Party final turn!",
+    "A DRAW! We're-a perfectly matched! This calls for a TIEBREAKER!",
+    "Identical! We must be connected by a warp pipe or something! Ha ha!",
 ]
 
 HANGMAN_WORDS = [
