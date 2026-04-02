@@ -1,6 +1,25 @@
 # Mario AI Party Bot - TODO
 
-## v3.9 Gossip Seed Questions (Current)
+## v3.11 VRAM Budget Fix + Memory Enhancement (Current)
+- [x] Fix ULTRA tier models — 70B Q4 + Mixtral didn't fit in 24GB VRAM
+- [x] Quality model: gemma3:27b (~16GB, fits alongside TTS)
+- [x] Fast model: llama3.1:8b (~5GB)
+- [x] Updated QUICKSTART.md with correct models
+- [x] VIP prompt facts now include family (Carl, Stacy) + memorial awareness
+- [x] Memorial stored as 3 separate searchable Qdrant memories
+- [x] Family members stored as individual Qdrant memories
+- [x] Birthday facts from config.json injected into Qdrant at startup
+- [x] VIP conversation retention: 2000 lines (4x regular guests)
+- [x] 626 tests passing
+- [x] Memorial waits for Jacob (fires at 45min+Jacob, 90min regardless)
+- [x] Memorial SFX: solemn bell chime + victory toast sound
+- [x] 7 memorial tests (alias detection, timing, Jacob-awareness)
+- [ ] Test gemma3:27b quality on Threadripper before party
+- [ ] Consider 70B with partial CPU offloading if gemma3 isn't good enough
+- [ ] Run canary smoke test on Threadripper
+- [ ] Configure Tailscale for remote client access
+
+## v3.9 Gossip Seed Questions (Done)
 - [x] Gossip seed questions — 10 fun party-starter questions to generate gossip material early
 - [x] Wired into conversation context at 20% probability when gossip < 10 entries
 - [x] No-repeat tracking per party session
@@ -228,3 +247,6 @@
 - [x] Add TestStateAccessThreadSafety class to test_edge_cases.py (2 tests)
 - [x] Add TestRapidReEntry class to test_party_modules.py (6 tests for get_seconds_since_last_exit)
 - [x] Add TestGossipPruningAndComparison to test_party_gossip.py (11 tests for _prune_gossip, get_comparison_hint, _analyze_speech_traits)
+
+## SFX Audio
+- [x] Replace all 16 SFX WAV files with high-quality retro chiptune sounds (square waves, FM synthesis, ADSR envelopes, arpeggios, noise channels, 44100Hz 16-bit PCM)
