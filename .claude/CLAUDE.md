@@ -179,7 +179,8 @@ Special handling for birthday guests:
 - 15-minute crossfade between phases
 - Guest energy caps per phase (prevents over-hype during wind-down)
 - `banned_topics` per phase (e.g., no sad topics during PARTY_MODE)
-- 22 dedicated tests passing
+- Reads `party_start_time` from SQLite (persisted across restarts)
+- 22 dedicated tests passing + 8 edge-case tests
 
 ### Sound Effects System
 - 6 WAV files for party events
@@ -195,7 +196,7 @@ Special handling for birthday guests:
 5. Thinking filler ("Let me think!") sent while LLM generates (is_thinking_filler flag)
 
 ### Games (12 total)
-RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangman, Hot Takes, Would You Rather, Never Have I Ever, Karaoke. All have game state management, timeouts (180s), and clean switching between games.
+RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangman, Hot Takes, Would You Rather, Never Have I Ever, Karaoke. All have game state management, timeouts (180s), and clean switching between games. Game handlers now include a **concurrent game guard** (prevents starting a new game while one is active) and **per-guest rotation tracking** (no cross-guest pollution of game history).
 
 ### Sick Care System (4 detection layers)
 1. **Text keywords** in command_handlers.py — instant comfort response
@@ -209,6 +210,8 @@ RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangma
 ### Idle System
 - Fires messages at 30-135s intervals when no user input
 - 207+ idle mumbles (party-specific, time-aware, DJ announcements)
+- Uses `_idle_send_if_safe()` to prevent idle/response audio interleaving
+- `_user_request_active` guard on text input prevents idle/text race conditions
 - Known issue: some messages over-repeat (e.g., "Afternoon break!")
 
 ### TTS Voice
@@ -223,16 +226,19 @@ RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangma
 - Running gag detection, emotional mirroring, question-back system
 - 40-message conversation history with momentum injection
 
-## Testing Status (as of 2026-04-01)
-- **Core tests**: 144+ passing (unit + integration)
+## Testing Status (as of 2026-04-02)
+- **517 tests passing** (unit + integration + E2E)
 - **E2E Browser Test**: 40/45 passed (53+ min session, 107 audio clips)
 - **Stress Test**: 52/52 passed, 8-hour endurance verified
 - **LLM Router**: 37/37 tests pass
-- **Night Progression**: 22/22 tests pass
+- **Night Progression**: 22/22 tests pass + 8 edge-case tests (`TestNightProgressionEdgeCases`)
 - **Memory Semantic**: 19/19 tests pass (Qdrant layer)
 - **VIP Knowledge**: 12+ tests pass (profile loading, fuzzy matching, facts)
 - **Edge Cases**: 18 crash vector tests in `test_edge_cases.py`
 - **Webcam Pipeline**: 12 tests (`test_face_memory.py` + `test_person_detector.py`)
+- **TestCheckInput**: 12 tests (input validation, command routing)
+- **TestConcurrentGameGuard**: 6 tests (prevents starting game while one active)
+- **TestRapidReEntry**: 6 tests (rapid re-entry greeting intelligence)
 - **All features working**: games, chat, idle, emotions, sick care, recovery, friend-sick, face detection
 - **Known minor issues**: idle message variety, trivia not interactive Q&A
 
@@ -326,3 +332,16 @@ Add pronunciation fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts
 - **GPU detection**: Added nvidia-smi fallback for systems without torch
 - **VIP bypass**: "know anything about me" now falls through to VIP-aware LLM pipeline
 - **Idle guard**: Text input path gets post-response guard (matches audio path)
+
+## Recent Changes — v3.3 & v3.4 (2026-04-02)
+- **Bare except cleanup**: 12 bare `except: pass` → logged with context (robustness)
+- **Concurrent game guard**: Prevents starting a new game while one is already active
+- **Per-guest game rotation**: Game rotation tracked per-guest (no cross-guest pollution)
+- **Night progression persistence**: `party_start_time` read from SQLite, survives restarts
+- **11 IndexError guards**: Bounds checks on game data pools (trivia, riddles, etc.)
+- **Idle/text race fix**: `_user_request_active` guard on text input prevents race conditions
+- **`_idle_send_if_safe()`**: Prevents idle/response audio interleaving
+- **TTS retry**: 2-attempt retry before falling back to text-only
+- **Rapid re-entry detection**: "Back so soon?" greeting intelligence for returning guests
+- **Enhanced dashboard**: Health badges, GPU temp, cache stats
+- **Character-break safety filter**: Prevents Mario from breaking character in responses

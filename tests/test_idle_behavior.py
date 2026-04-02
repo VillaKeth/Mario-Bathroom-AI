@@ -387,3 +387,119 @@ class TestEdgeCases:
             mock_time.time.return_value += 200
             ib.get_idle_action()
         assert ib._idle_interval == 90
+
+
+# ── TestIdleBehaviorGaps ─────────────────────────────────────────────────
+
+class TestIdleBehaviorGaps:
+    """Tests for previously untested functions: get_party_stage, get_time_observation, get_gossip_idle."""
+
+    # -- get_party_stage tests --
+
+    def test_party_stage_early(self):
+        ib = IdleBehavior()
+        result = ib.get_party_stage(15)
+        assert isinstance(result, str) and len(result) > 0
+        # 15 min falls in the <30 branch (early stage)
+        assert result in [
+            "The party just-a started! We're warming up!",
+            "Still early! The best is yet to come, wahoo!",
+        ]
+
+    def test_party_stage_peak(self):
+        ib = IdleBehavior()
+        result = ib.get_party_stage(120)
+        assert isinstance(result, str) and len(result) > 0
+        # 120 min falls in the 120..240 branch (strong/marathon stage)
+        assert result in [
+            "The party's been going strong for hours! Legendary!",
+            "Marathon party! Mario is-a impressed!",
+        ]
+
+    def test_party_stage_winding_down(self):
+        ib = IdleBehavior()
+        result = ib.get_party_stage(300)
+        assert isinstance(result, str) and len(result) > 0
+        # 300 min falls in the >=240 branch (eternal/late stage)
+        assert result in [
+            "This party is ETERNAL! We've been at it for hours!",
+            "Are we... are we still partying? Mama mia, what a night!",
+        ]
+
+    def test_party_stage_zero_minutes(self):
+        ib = IdleBehavior()
+        result = ib.get_party_stage(0)
+        assert isinstance(result, str) and len(result) > 0
+        # 0 min falls in the <30 early branch
+        assert result in [
+            "The party just-a started! We're warming up!",
+            "Still early! The best is yet to come, wahoo!",
+        ]
+
+    def test_party_stage_negative(self):
+        ib = IdleBehavior()
+        result = ib.get_party_stage(-10)
+        assert isinstance(result, str) and len(result) > 0
+        # Negative falls in the <30 early branch (no crash)
+        assert result in [
+            "The party just-a started! We're warming up!",
+            "Still early! The best is yet to come, wahoo!",
+        ]
+
+    # -- get_time_observation tests --
+
+    @patch("idle_behavior.datetime")
+    def test_time_observation_returns_string_or_none(self, mock_dt):
+        mock_dt.now.return_value = MagicMock(hour=22)
+        ib = IdleBehavior()
+        result = ib.get_time_observation()
+        assert result is None or isinstance(result, str)
+
+    @patch("idle_behavior.datetime")
+    def test_time_observation_not_empty_string(self, mock_dt):
+        # Pick an hour that always returns content (midnight)
+        mock_dt.now.return_value = MagicMock(hour=0)
+        ib = IdleBehavior()
+        result = ib.get_time_observation()
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    @patch("idle_behavior.datetime")
+    def test_time_observation_changes_over_time(self, mock_dt):
+        """Different hours should produce different observation pools."""
+        ib = IdleBehavior()
+        # Collect from midnight
+        mock_dt.now.return_value = MagicMock(hour=0)
+        midnight_results = {ib.get_time_observation() for _ in range(20)}
+        # Collect from early morning
+        mock_dt.now.return_value = MagicMock(hour=5)
+        morning_results = {ib.get_time_observation() for _ in range(20)}
+        # The two pools should be distinct
+        assert midnight_results != morning_results
+
+    # -- get_gossip_idle tests --
+
+    @patch("idle_behavior.random.choice", side_effect=lambda x: x[0])
+    def test_gossip_idle_returns_string_or_none(self, _choice):
+        ib = IdleBehavior()
+        with patch.dict("sys.modules", {"memory": MagicMock()}) as _:
+            import sys
+            mock_mem = sys.modules["memory"]
+            mock_conn = MagicMock()
+            mock_mem._get_conn.return_value = mock_conn
+            mock_conn.execute.return_value.fetchall.return_value = [
+                ("Luigi", "I just saw Bowser stealing mushrooms from the garden!"),
+            ]
+            result = ib.get_gossip_idle()
+        assert result is None or isinstance(result, str)
+
+    def test_gossip_idle_with_no_gossip_data(self):
+        ib = IdleBehavior()
+        with patch.dict("sys.modules", {"memory": MagicMock()}) as _:
+            import sys
+            mock_mem = sys.modules["memory"]
+            mock_conn = MagicMock()
+            mock_mem._get_conn.return_value = mock_conn
+            mock_conn.execute.return_value.fetchall.return_value = []
+            result = ib.get_gossip_idle()
+        assert result is None

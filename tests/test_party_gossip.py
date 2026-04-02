@@ -234,3 +234,126 @@ class TestPartyNarrative:
         assert "Alice" not in names
         assert "Bob" in names
         assert "Carl" in names
+
+
+# ── TestGossipPruningAndComparison ────────────────────────────────────────
+
+class TestGossipPruningAndComparison:
+    """Tests for _prune_gossip(), get_comparison_hint(), and _analyze_speech_traits()."""
+
+    def _make_entry(self, speaker_name="Guest", speaker_id="g1",
+                    text="something", keyword="love", timestamp=None):
+        return {
+            "type": "opinion",
+            "speaker_name": speaker_name,
+            "speaker_id": speaker_id,
+            "text": text,
+            "keyword": keyword,
+            "timestamp": timestamp or time.time(),
+            "shared_count": 0,
+        }
+
+    # ── _prune_gossip tests ───────────────────────────────────────────────
+
+    def test_prune_removes_old_entries(self):
+        pg = PartyGossip()
+        old_ts = time.time() - (PartyGossip.GOSSIP_AGE_LIMIT + 100)
+        pg._gossip_log = [self._make_entry(speaker_id=f"old{i}", timestamp=old_ts) for i in range(5)]
+        assert len(pg._gossip_log) == 5
+        pg._prune_gossip()
+        assert len(pg._gossip_log) == 0
+
+    def test_prune_caps_at_max_size(self):
+        pg = PartyGossip()
+        now = time.time()
+        pg._gossip_log = [
+            self._make_entry(speaker_id=f"g{i}", timestamp=now) for i in range(600)
+        ]
+        pg._prune_gossip()
+        assert len(pg._gossip_log) == PartyGossip.MAX_GOSSIP_LOG
+
+    def test_prune_keeps_recent_entries(self):
+        pg = PartyGossip()
+        old_ts = time.time() - (PartyGossip.GOSSIP_AGE_LIMIT + 100)
+        now = time.time()
+        pg._gossip_log = [
+            self._make_entry(speaker_id="old1", timestamp=old_ts),
+            self._make_entry(speaker_id="old2", timestamp=old_ts),
+            self._make_entry(speaker_id="new1", timestamp=now),
+            self._make_entry(speaker_id="new2", timestamp=now),
+        ]
+        pg._prune_gossip()
+        assert len(pg._gossip_log) == 2
+        ids = {g["speaker_id"] for g in pg._gossip_log}
+        assert ids == {"new1", "new2"}
+
+    def test_prune_empty_log_no_crash(self):
+        pg = PartyGossip()
+        assert pg._gossip_log == []
+        pg._prune_gossip()  # should not raise
+        assert pg._gossip_log == []
+
+    def test_prune_resets_used_gossip_index(self):
+        pg = PartyGossip()
+        now = time.time()
+        pg._gossip_log = [
+            self._make_entry(speaker_id=f"g{i}", timestamp=now) for i in range(600)
+        ]
+        pg._used_gossip = {0, 1, 2, 50, 100}
+        pg._prune_gossip()
+        # After cap-triggered prune, _used_gossip is cleared because indices shifted
+        assert pg._used_gossip == set()
+
+    # ── get_comparison_hint tests ─────────────────────────────────────────
+
+    def test_comparison_hint_finds_match(self):
+        pg = PartyGossip()
+        # Set up opinions for two guests on the same topic ("pizza")
+        pg._guest_opinions = {
+            "a1": {"pizza": "I love pizza"},
+            "b1": {"pizza": "Pizza is okay"},
+        }
+        # Need gossip log entry so get_comparison_hint can resolve guest name
+        pg._gossip_log = [self._make_entry(speaker_name="Alice", speaker_id="a1")]
+        hint = pg.get_comparison_hint("b1", "I just had some pizza")
+        assert hint is not None
+        assert isinstance(hint, str)
+        assert "Alice" in hint
+
+    def test_comparison_hint_no_match(self):
+        pg = PartyGossip()
+        pg._guest_opinions = {
+            "a1": {"sushi": "Sushi is great"},
+        }
+        pg._gossip_log = [self._make_entry(speaker_name="Alice", speaker_id="a1")]
+        hint = pg.get_comparison_hint("b1", "I love basketball")
+        assert hint is None
+
+    def test_comparison_hint_empty_opinions(self):
+        pg = PartyGossip()
+        assert pg._guest_opinions == {}
+        hint = pg.get_comparison_hint("x1", "Anything at all")
+        assert hint is None
+
+    def test_comparison_hint_same_guest_not_compared(self):
+        pg = PartyGossip()
+        pg._guest_opinions = {
+            "a1": {"pizza": "Pizza is the best"},
+        }
+        pg._gossip_log = [self._make_entry(speaker_name="Alice", speaker_id="a1")]
+        # Speaker a1 mentions pizza — should NOT match against themselves
+        hint = pg.get_comparison_hint("a1", "I also love pizza")
+        assert hint is None
+
+    # ── _analyze_speech_traits tests ──────────────────────────────────────
+
+    def test_analyze_traits_detects_foodie(self):
+        pg = PartyGossip()
+        pg._analyze_speech_traits("a1", "I love cooking and trying new recipes")
+        assert "foodie" in pg._guest_speech_traits["a1"]
+
+    def test_analyze_traits_empty_text(self):
+        pg = PartyGossip()
+        pg._analyze_speech_traits("a1", "")
+        traits = pg._guest_speech_traits.get("a1", [])
+        assert traits == []
