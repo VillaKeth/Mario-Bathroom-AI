@@ -103,29 +103,55 @@ EMOTION_DESCRIPTIONS = {
 }
 
 
-def extract_emotion_tag(response: str) -> str:
-    """Extract emotion from LLM response JSON. Returns 'neutral' on failure."""
+def extract_emotion_tag(response: str) -> dict:
+    """Extract emotion and energy from LLM response JSON, return clean text.
+    
+    Returns: {"emotion": str, "energy": float, "clean_text": str}
+    Falls back to neutral emotion and 0.5 energy on parse failure.
+    """
     if DEBUG_EMOTION:
         logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parsing response")
+    
+    clean_text = response
+    result = {"emotion": "neutral", "energy": 0.5, "clean_text": clean_text}
+    
     try:
         # Try to find JSON at end of response
-        json_match = re.search(r'\{[^{}]*"emotion"[^{}]*\}', response)
+        json_match = re.search(r'\{[^{}]*(?:"emotion"|"energy")[^{}]*\}', response)
         if json_match:
-            data = json.loads(json_match.group())
+            json_str = json_match.group()
+            data = json.loads(json_str)
+            
+            # Extract emotion
             emotion = data.get("emotion", "neutral")
             # Validate against known emotions
             known = {v for k, v in vars(Emotion).items() if not k.startswith("_") and isinstance(v, str)}
-            if emotion in known:
+            if emotion not in known:
+                emotion = "neutral"
                 if DEBUG_EMOTION:
-                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: extracted '{emotion}'")
-                return emotion
-            else:
-                if DEBUG_EMOTION:
-                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: unknown emotion '{emotion}', using 'neutral'")
+                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: unknown emotion '{data.get('emotion')}', using 'neutral'")
+            
+            # Extract and validate energy (0.0-1.0)
+            energy = data.get("energy", 0.5)
+            try:
+                energy = float(energy)
+                energy = max(0.0, min(1.0, energy))  # Clamp to valid range
+            except (ValueError, TypeError):
+                energy = 0.5
+            
+            # Strip JSON from clean text
+            clean_text = response.replace(json_str, "").strip()
+            
+            result = {"emotion": emotion, "energy": energy, "clean_text": clean_text}
+            
+            if DEBUG_EMOTION:
+                logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: extracted emotion='{emotion}', energy={energy}")
+                
     except (json.JSONDecodeError, AttributeError) as e:
         if DEBUG_EMOTION:
-            logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parse error {e}, using 'neutral'")
-    return "neutral"
+            logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parse error {e}, using defaults")
+    
+    return result
 
 
 class EmotionSystem:
@@ -466,3 +492,59 @@ class EmotionSystem:
                 Emotion.WORRIED: "rain",
             }
             return _EMOTION_PARTICLES.get(self.current)
+
+    def update_from_llm_sentiment(self, emotion: str, energy: float):
+        """Update emotion and energy from LLM-extracted sentiment data."""
+        with self._lock:
+            if DEBUG_EMOTION:
+                logger.info(f"[DEBUG_EMOTION] update_from_llm_sentiment: emotion={emotion}, energy={energy}")
+            
+            # Update current emotion if it's a valid emotion
+            known = {v for k, v in vars(Emotion).items() if not k.startswith("_") and isinstance(v, str)}
+            if emotion in known:
+                self._previous_emotion = self.current
+                self.current = emotion
+                self._last_change = time.time()
+                
+            # Update conversation energy with weighted average
+            # Recent energy values get more weight 
+            self._conversation_energy = (self._conversation_energy * 0.7) + (energy * 0.3)
+            self._conversation_energy = max(0.0, min(1.0, self._conversation_energy))
+            
+            # Update intensity based on energy level
+            self.intensity = max(0.3, min(1.0, energy * 0.8 + 0.2))
+            
+            if DEBUG_EMOTION:
+                logger.info(f"[DEBUG_EMOTION] updated to {self.current}, conversation_energy={self._conversation_energy:.2f}")
+
+    def get_energy_running_average(self) -> float:
+        """Get the running average energy level (0.0-1.0)."""
+        with self._lock:
+            return self._conversation_energy
+
+    def should_influence_idle_behavior(self) -> dict:
+        """Return behavior modifications based on current energy levels."""
+        with self._lock:
+            energy = self._conversation_energy
+            
+            # High energy (>0.7) - more animated idle behavior  
+            if energy > 0.7:
+                return {
+                    "idle_cadence_multiplier": 1.5,  # Faster pose changes
+                    "pose_energy_boost": "high",
+                    "animation_intensity": "energetic"
+                }
+            # Low energy (<0.3) - calmer behavior
+            elif energy < 0.3:
+                return {
+                    "idle_cadence_multiplier": 0.6,  # Slower pose changes
+                    "pose_energy_boost": "low", 
+                    "animation_intensity": "calm"
+                }
+            # Normal energy
+            else:
+                return {
+                    "idle_cadence_multiplier": 1.0,
+                    "pose_energy_boost": "normal",
+                    "animation_intensity": "normal"
+                }

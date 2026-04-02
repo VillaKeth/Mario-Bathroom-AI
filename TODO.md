@@ -12,11 +12,11 @@
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
 - [ ] Sub-C: Dynamic guest learning — Mario asks name, stores face+voice
 - [ ] Sub-C: Jacob VIP pre-registration (face + voice + knowledge)
-- [ ] Sub-D: LLM-analyzed sentiment replacing keyword matching
+- [x] Task 12: LLM Sentiment Integration — emotion/energy extraction to system prompt + parse from response + WebSocket integration (14 tests passing)
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
 - [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
 - [x] Task 5: Shot Events System Framework — ShotEvent dataclass + ShotEventManager (10 tests passing)
-- [ ] Task 6: Shot Event Configurations — Lisa Webb memorial + Birthday Boy shot + Deltarune shot
+- [x] Task 6: Shot Event Configurations — Lisa Webb memorial + Birthday Boy shot + Deltarune shot (19 tests passing)
 - [ ] Task 7: Shot Events WebSocket Integration
 - [ ] Easter egg: "Jacob said the N-Word" line 3-5 times per night
 - [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)

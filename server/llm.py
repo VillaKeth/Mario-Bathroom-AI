@@ -204,12 +204,14 @@ async def check_ollama():
         return False
 
 
-async def generate_response(messages: list[dict], transcript: str = None, model: str = None) -> str:
-    """Send messages to Ollama and get Mario's response.
+async def generate_response(messages: list[dict], transcript: str = None, model: str = None) -> dict:
+    """Send messages to Ollama and get Mario's response with sentiment data.
 
-    Uses streaming internally for faster first-token, but returns complete text.
+    Uses streaming internally for faster first-token, returns complete text + sentiment.
     Dynamic temperature: higher for humor/fun, lower for questions/facts.
     Optional model parameter overrides the default MODEL_NAME for dual-model routing.
+    
+    Returns: {"text": str, "emotion": str, "energy": float}
     """
     use_model = model or MODEL_NAME
     if DEBUG_LLM:
@@ -277,7 +279,18 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
             logger.info(f"[DEBUG_LLM] RAW response ({len(response_text)} chars): {response_text[:500]}")
         if not response_text or len(response_text) < 3:
             logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
-            return random.choice(LLM_FALLBACKS)
+            fallback_text = random.choice(LLM_FALLBACKS)
+            return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
+
+        # Import emotions module for sentiment extraction
+        from . import emotions
+        
+        # Extract emotion and energy from LLM response, get clean text
+        sentiment_data = emotions.extract_emotion_tag(response_text)
+        response_text = sentiment_data["clean_text"]
+        extracted_emotion = sentiment_data["emotion"]
+        extracted_energy = sentiment_data["energy"]
+        
         response_text = _clean_response(response_text)
 
         # Repeat detection — fuzzy similarity check against recent responses
@@ -300,6 +313,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         if is_repeat:
             logger.info(f"[DEBUG_LLM] generate_response: repeat/similar detected, using fallback")
             response_text = random.choice(LLM_FALLBACKS)
+            return {"text": response_text, "emotion": "neutral", "energy": 0.5}
         
         # Track recent responses
         _recent_responses.append(response_text)
@@ -308,16 +322,19 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
 
         elapsed = time.time() - start
         if DEBUG_LLM:
-            logger.info(f"[DEBUG_LLM] generate_response: {elapsed:.1f}s response={response_text[:100]}")
-        return response_text
+            logger.info(f"[DEBUG_LLM] generate_response: {elapsed:.1f}s response={response_text[:100]} emotion={extracted_emotion} energy={extracted_energy}")
+        
+        return {"text": response_text, "emotion": extracted_emotion, "energy": extracted_energy}
 
     except httpx.TimeoutException:
         elapsed = time.time() - start
         logger.warning(f"[DEBUG_LLM] generate_response: timeout after {elapsed:.1f}s, using fallback")
-        return random.choice(LLM_FALLBACKS)
+        fallback_text = random.choice(LLM_FALLBACKS)
+        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
     except Exception as e:
         logger.error(f"[DEBUG_LLM] generate_response: error: {e}")
-        return random.choice(LLM_FALLBACKS)
+        fallback_text = random.choice(LLM_FALLBACKS)
+        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
 
 
 def _clean_response(text: str) -> str:

@@ -1616,7 +1616,14 @@ async def websocket_endpoint(ws: WebSocket):
         greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
         _inject_birthday_always_on(greeting_ctx)
         greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-        greeting_text = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
+        greeting_response = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
+        greeting_text = greeting_response["text"]
+        greeting_emotion = greeting_response["emotion"] 
+        greeting_energy = greeting_response["energy"]
+        
+        # Update emotion system with LLM sentiment
+        emotion_system.update_from_llm_sentiment(greeting_emotion, greeting_energy)
+        
         greeting_text = filter_response(greeting_text)
         analyzed = analyze_text(greeting_text)
         greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
@@ -3180,10 +3187,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             logger.info(f"[ROUTER] type={_response_type} decision={_routing.value} model={_routed_model}")
 
         try:
-            _, response_text = await asyncio.gather(
+            _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
                 asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model), timeout=_LLM_TIMEOUT),
             )
+            response_text = llm_response["text"]
+            response_emotion = llm_response["emotion"]
+            response_energy = llm_response["energy"]
+            
+            # Update emotion system with LLM sentiment
+            emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
+            
         except asyncio.TimeoutError:
             _llm_elapsed = time.time() - _t_llm
             # If quality model timed out, retry with fast model
@@ -3194,10 +3208,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     f"[ROUTER] Quality model timed out after {_llm_elapsed:.1f}s — retrying with fast model {_fallback_model}"
                 )
                 try:
-                    response_text = await asyncio.wait_for(
+                    llm_response = await asyncio.wait_for(
                         llm.generate_response(ctx, text, model=_fallback_model),
                         timeout=_LLM_TIMEOUT,
                     )
+                    response_text = llm_response["text"]
+                    response_emotion = llm_response["emotion"]
+                    response_energy = llm_response["energy"]
+                    
+                    # Update emotion system with LLM sentiment
+                    emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
                 except asyncio.TimeoutError:
                     logger.error("[ROUTER] Fast model fallback also timed out")
                     response_text = None
@@ -3779,7 +3799,14 @@ async def _do_greeting(ws: WebSocket, event: dict):
     if greeting_mood:
         ctx.append({"role": "system", "content": f"[PARTY MOOD]: {greeting_mood}"})
 
-    response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+    llm_response = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+    response_text = llm_response["text"]
+    response_emotion = llm_response["emotion"]
+    response_energy = llm_response["energy"]
+    
+    # Update emotion system with LLM sentiment
+    emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
+    
     response_text = filter_response(response_text)
 
     if state_current.get("speaker_name") and state_current.get("speaker_id"):
@@ -4031,7 +4058,14 @@ async def handle_event(ws: WebSocket, event: dict):
                     "Make it funny — 'Rate this bathroom visit! Was it a 10 out of 10? Be honest, I can take it!'"
                 })
 
-            response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+            llm_response = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+            response_text = llm_response["text"]
+            response_emotion = llm_response["emotion"]
+            response_energy = llm_response["energy"]
+            
+            # Update emotion system with LLM sentiment  
+            emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
+            
             response_text = filter_response(response_text)
 
             # Fallback farewell if LLM returned empty
@@ -4254,7 +4288,7 @@ async def send_thinking(ws: WebSocket, subtitle: str = None):
 
 
 async def send_response(ws: WebSocket, text: str, audio: bytes = None,
-                        sound: str = None, emotion: str = None,
+                        sound: str = None, emotion: str = None, energy: float = None,
                         pose_hint: str = None, response_time: float = None,
                         particle_effect: str = None,
                         chunk_index: int = None, total_chunks: int = None,
@@ -4269,6 +4303,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         "has_audio": audio is not None and len(audio) > 0,
         "sound_effect": sound,
         "emotion": emotion or emotion_system.current,
+        "energy": energy if energy is not None else emotion_system.get_energy_running_average(),
         "animation": emotion_system.animation_state,
     }
     if pose_hint:

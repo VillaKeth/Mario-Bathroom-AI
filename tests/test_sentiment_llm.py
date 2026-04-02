@@ -20,11 +20,14 @@ def test_emotion_voice_map_covers_all():
 def test_extract_emotion_from_llm_response():
     from server.emotions import extract_emotion_tag
     response = '{"reply": "Hello!", "emotion": "excited", "energy": 0.8}'
-    emotion = extract_emotion_tag(response)
-    assert emotion == "excited"
+    result = extract_emotion_tag(response)
+    assert result["emotion"] == "excited"
+    assert result["energy"] == 0.8
+
 
 def test_extract_emotion_fallback():
     from server.emotions import extract_emotion_tag
     response = "Just a plain text response with no JSON"
-    emotion = extract_emotion_tag(response)
-    assert emotion == "neutral"
+    result = extract_emotion_tag(response)
+    assert result["emotion"] == "neutral"
+    assert result["energy"] == 0.5
