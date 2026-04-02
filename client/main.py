@@ -501,7 +501,7 @@ class MarioClient:
             "TWO-a!": "2",
             "ONE-a!": "1",
         }
-        return word_to_number.get(text.upper())
+        return word_to_number.get(text)  # exact match, no .upper()
 
 
 def main():

@@ -2125,7 +2125,9 @@ async def _idle_loop(ws: WebSocket):
                 continue
 
         # Check for shot event auto-triggers (Lisa Webb memorial between 45-90min)
-        shot_event_name = idle_behavior.check_shot_event_timers(shot_event_manager)
+        party_elapsed_seconds = time.time() - party_stats.party_start_time
+        party_elapsed_minutes = party_elapsed_seconds / 60.0
+        shot_event_name = idle_behavior.check_shot_event_timers(shot_event_manager, party_elapsed_minutes)
         if shot_event_name:
             event = shot_event_manager.events.get(shot_event_name)
             if event:

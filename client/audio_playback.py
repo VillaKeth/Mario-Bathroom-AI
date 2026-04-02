@@ -89,11 +89,11 @@ class AudioPlayback:
                 pygame.mixer.init()
             pygame.mixer.music.load(path)
             pygame.mixer.music.set_volume(0.5)
-            pygame.mixer.music.play(loops=0)  # Always play once
+            pygame.mixer.music.play(loops=loops)  # Use the parameter
             if DEBUG_PLAYBACK:
-                logger.info(f"[DEBUG_PLAYBACK] Memorial music started: {path} (loops=0)")
+                logger.info(f"[DEBUG_PLAYBACK] Memorial music started: {path} (loops={loops})")
         except Exception as e:
-            logger.error(f"[DEBUG_PLAYBOOK] Memorial music error: {e}")
+            logger.error(f"[DEBUG_PLAYBACK] Memorial music error: {e}")
 
     def stop_memorial_music(self, fadeout_ms: int = 3000):
         """Fade out and stop memorial music."""

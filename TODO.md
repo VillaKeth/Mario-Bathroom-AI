@@ -1,9 +1,8 @@
 # Mario AI Party Bot - TODO
 
-# Mario AI Party Bot - TODO
-
 ## v3.14 Ultra Party Upgrade (Current)
 - [ ] Sub-A: Memorial v2 — voice trigger for "Lisa"/"Aunt Lisa", 10-sec dramatic countdown, music loop fix (loops=0), warm recovery line
+- [x] 6 shot event wiring bugs fixed: _active_event blocking (finally block), countdown display (.upper() removal), Ctrl+Shift+L attribute fix, DEBUG_PLAYBOOK typo, loops parameter use, circular import fix
 - [ ] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
 - [ ] Sub-A: Flush idle text queue when memorial starts
 - [x] Sub-B: Speech bubble auto-shrink font (14-28px) with word wrap

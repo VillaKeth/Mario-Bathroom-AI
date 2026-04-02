@@ -456,13 +456,13 @@ class MarioDisplay:
                             self._toggle_panic_mode()
                     elif event.key == pygame.K_l and (pygame.key.get_mods() & pygame.KMOD_CTRL) and (pygame.key.get_mods() & pygame.KMOD_SHIFT):
                         # Ctrl+Shift+L: Skip memorial event
-                        if hasattr(self, 'memorial_active') and self.memorial_active:
+                        if self._memorial_active:
                             # Call the skip callback if it exists
                             try:
                                 if hasattr(self, '_on_memorial_skip') and self._on_memorial_skip:
                                     self._on_memorial_skip()
                                 # Clear memorial overlay
-                                self.memorial_active = False
+                                self._memorial_active = False
                                 self.clear_memorial_overlay()
                             except Exception as e:
                                 logger.error(f"Memorial skip error: {e}")
@@ -597,8 +597,7 @@ class MarioDisplay:
 
     def clear_memorial_overlay(self):
         """Clear memorial overlay."""
-        if hasattr(self, 'memorial_active'):
-            self.memorial_active = False
+        self._memorial_active = False
         if hasattr(self, '_countdown_text'):
             self._countdown_text = None
 
