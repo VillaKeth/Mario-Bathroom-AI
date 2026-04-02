@@ -129,6 +129,16 @@ RIDDLES = [
     {"q": "What has a spine but no bones?", "a": "book", "hints": ["I have pages", "You read me", "I can teach you things"]},
     {"q": "I am always hungry, the more you feed me the bigger I grow, the more you starve me the smaller I become. What am I?", "a": "fire", "hints": ["I give warmth", "I consume fuel", "I produce light"]},
     {"q": "What invention allows you to look right through walls?", "a": "window", "hints": ["I'm made of glass", "You can open me", "I let in light"]},
+    {"q": "I have cities but no houses, forests but no trees, and water but no fish. What am I?", "a": "map", "hints": ["You can fold me up", "I help you find your way", "I show the whole world"]},
+    {"q": "I speak without a mouth and hear without ears. I have no body, but I come alive with the wind. What am I?", "a": "echo", "hints": ["You hear me in canyons", "I repeat what you say", "I'm just a sound"]},
+    {"q": "The more you take, the more you leave behind. What am I?", "a": "footsteps", "hints": ["You make me when you walk", "I can be found in sand", "I show where you've been"]},
+    {"q": "I can be cracked, I can be made, I can be told, I can be played. What am I?", "a": "joke", "hints": ["I make people laugh", "Comedians tell me", "I have a punchline"]},
+    {"q": "What has a ring but no finger?", "a": "telephone", "hints": ["You answer me", "I help you talk to people", "I make a ringing sound"]},
+    {"q": "I go all around the world but never leave the corner. What am I?", "a": "stamp", "hints": ["I'm small and sticky", "I go on envelopes", "You buy me at a post office"]},
+    {"q": "What gets wetter the more it dries?", "a": "towel", "hints": ["You use me after a shower", "I hang in the bathroom", "I absorb water"]},
+    {"q": "What can you hold in your right hand but never in your left?", "a": "left hand", "hints": ["Everyone has one", "It's attached to you", "Think about your own body"]},
+    {"q": "I have legs but never walk. What am I?", "a": "table", "hints": ["You eat on me", "I'm a piece of furniture", "I usually have four of them"]},
+    {"q": "What building has the most stories?", "a": "library", "hints": ["It's full of books", "You can borrow from here", "Knowledge lives here"]},
 ]
 
 STARTER_WORDS = ["mario", "party", "castle", "mushroom", "adventure", "bathroom", "princess", "galaxy"]
@@ -162,6 +172,16 @@ RAPID_FIRE_QUESTIONS = [
     {"q": "What enemy walks off ledges?", "a": "goomba"},
     {"q": "What warp system does Mario use?", "a": "pipe"},
     {"q": "What's the racing game called?", "a": "mario kart"},
+    {"q": "What does the Super Leaf give Mario?", "a": "raccoon tail"},
+    {"q": "What's Bowser's castle surrounded by?", "a": "lava"},
+    {"q": "What color are warp pipes?", "a": "green"},
+    {"q": "What item makes Mario giant?", "a": "mega mushroom"},
+    {"q": "Who is Mario's evil twin?", "a": "wario"},
+    {"q": "What does Mario throw in SMB2?", "a": "vegetables"},
+    {"q": "What's the name of Peach's steward?", "a": "toadsworth"},
+    {"q": "What world has the classic flagpole?", "a": "1-1"},
+    {"q": "What power-up makes Mario small?", "a": "poison mushroom"},
+    {"q": "How many players in co-op NSMB Wii?", "a": "4"},
 ]
 
 TRUTH_QUESTIONS = [
@@ -291,6 +311,16 @@ HOT_TAKES = [
     "The coin sound effect is the most SATISFYING sound in gaming!",
     "Baby Mario games are BETTER than adult Mario games!",
     "Mario would LOSE in a fair fight against Sonic!",
+    "Waluigi DESERVES his own game more than ANY other Nintendo character!",
+    "The underwater levels are actually the BEST levels in every Mario game!",
+    "Rosalina is a BETTER princess than Peach and it's NOT even close!",
+    "Mario Party mini-games are MORE competitive than actual esports!",
+    "The Tanooki suit should be Mario's DEFAULT outfit in every game!",
+    "Bowser is a BETTER dad than most video game characters!",
+    "Paper Mario: The Thousand-Year Door is the GREATEST RPG ever made!",
+    "Luigi's Mansion is SCARIER than most actual horror games!",
+    "Mario Kart Double Dash is the PEAK of the Mario Kart series!",
+    "Yoshi's Island has BETTER graphics than any modern indie game!",
 ]
 
 # ---------------------------------------------------------------------------
@@ -324,6 +354,39 @@ MARIO_TRIVIA_QUESTIONS = [
     {"q": "Which princess rules Sarasaland?", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
     {"q": "What enemy hides in pipes and bites Mario?", "a": ["piranha plant"], "accept": ["piranha", "piranha plant"]},
     {"q": "What is the name of the chain enemy attached to a post?", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
+    # --- Mario Kart questions ---
+    {"q": "What is the name of the rainbow-colored track in Mario Kart?", "a": ["rainbow road"], "accept": ["rainbow road", "rainbow"]},
+    {"q": "What item gives you a speed boost in Mario Kart?", "a": ["mushroom"], "accept": ["mushroom", "boost mushroom", "super mushroom"]},
+    {"q": "Which Mario Kart game introduced anti-gravity racing?", "a": ["mario kart 8"], "accept": ["mario kart 8", "mk8", "8"]},
+    {"q": "What is the name of the Lakitu who holds the traffic light at the start of Mario Kart?", "a": ["lakitu"], "accept": ["lakitu"]},
+    {"q": "In Mario Kart, what does the lightning bolt item do?", "a": ["shrink"], "accept": ["shrink", "shrinks everyone", "makes everyone small", "shrinks"]},
+    # --- Paper Mario questions ---
+    {"q": "What is the name of Mario's first partner in Paper Mario 64?", "a": ["goombario"], "accept": ["goombario"]},
+    {"q": "In Paper Mario: The Thousand-Year Door, what city is the hub world?", "a": ["rogueport"], "accept": ["rogueport", "rogue port"]},
+    {"q": "What kind of attacks use flower points in Paper Mario?", "a": ["special"], "accept": ["special", "special attacks", "magic", "special moves"]},
+    # --- Mario Galaxy questions ---
+    {"q": "What are the small star-shaped collectibles called in Super Mario Galaxy?", "a": ["star bits"], "accept": ["star bits", "starbits"]},
+    {"q": "What is the name of the hub area in Super Mario Galaxy?", "a": ["comet observatory"], "accept": ["comet observatory", "observatory"]},
+    {"q": "Who are the small star creatures that Rosalina protects in Mario Galaxy?", "a": ["lumas"], "accept": ["lumas", "luma"]},
+    # --- Super Mario Odyssey questions ---
+    {"q": "What is the name of Mario's ship in Super Mario Odyssey?", "a": ["odyssey"], "accept": ["odyssey", "the odyssey"]},
+    {"q": "In Super Mario Odyssey, what ability does Cappy give Mario?", "a": ["capture"], "accept": ["capture", "possess", "capturing enemies", "possession"]},
+    {"q": "Which kingdom in Super Mario Odyssey features a realistic city with humans?", "a": ["metro kingdom"], "accept": ["metro kingdom", "metro", "new donk city"]},
+    # --- Mario Party questions ---
+    {"q": "How many playable characters were in the original Mario Party?", "a": ["6"], "accept": ["6", "six"]},
+    {"q": "What do you collect on the board in Mario Party to win?", "a": ["stars"], "accept": ["stars", "power stars", "star"]},
+    {"q": "In Mario Party, what item lets you steal a star from another player?", "a": ["boo"], "accept": ["boo", "boo bell"]},
+    # --- Donkey Kong arcade questions ---
+    {"q": "In the original Donkey Kong arcade game, what does Mario dodge?", "a": ["barrels"], "accept": ["barrels", "barrel"]},
+    {"q": "What was Mario originally called in the Donkey Kong arcade game?", "a": ["jumpman"], "accept": ["jumpman", "jump man"]},
+    {"q": "What year was the original Donkey Kong arcade game released?", "a": ["1981"], "accept": ["1981", "81"]},
+    # --- Yoshi's Island questions ---
+    {"q": "In Yoshi's Island, what does Yoshi turn enemies into when he eats them?", "a": ["eggs"], "accept": ["eggs", "egg"]},
+    {"q": "Who is Yoshi trying to reunite Baby Mario with in Yoshi's Island?", "a": ["baby luigi"], "accept": ["baby luigi", "luigi"]},
+    # --- Luigi's Mansion questions ---
+    {"q": "What device does Luigi use to capture ghosts in Luigi's Mansion?", "a": ["poltergust"], "accept": ["poltergust", "poltergust 3000", "vacuum"]},
+    {"q": "Who invented the Poltergust in Luigi's Mansion?", "a": ["professor e gadd"], "accept": ["professor e gadd", "e gadd", "e. gadd", "professor elvin gadd"]},
+    {"q": "How many portrait ghosts are there in the original Luigi's Mansion?", "a": ["23"], "accept": ["23", "twenty three", "twenty-three"]},
 ]
 
 NAME_THAT_CHARACTER = [
@@ -431,6 +494,16 @@ NHIE_PROMPTS = [
     "Never have I ever... done a victory lap after winning ANYTHING!",
     "Never have I ever... tripped in public and said 'I lost a life'!",
     "Never have I ever... looked at stars and thought of Star Power!",
+    "Never have I ever... picked a character in Mario Kart based on looks instead of stats!",
+    "Never have I ever... rage quit a Mario game and immediately restarted it!",
+    "Never have I ever... tried to do a spin jump off a diving board!",
+    "Never have I ever... argued with someone about which Mario game is the best!",
+    "Never have I ever... pretended to throw a red shell at a bad driver!",
+    "Never have I ever... made sound effects while jumping over puddles!",
+    "Never have I ever... called a short person a Toad or a Goomba!",
+    "Never have I ever... fantasized about living in the Mushroom Kingdom!",
+    "Never have I ever... used 'It's-a me!' as an introduction!",
+    "Never have I ever... blamed a loss on the game cheating instead of my own skill!",
 ]
 
 
@@ -468,6 +541,57 @@ def get_adaptive_rounds(game_name: str, base_rounds: int, state: dict) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Game Rotation — avoid repeating the same game for a guest
+# ---------------------------------------------------------------------------
+
+ALL_GAME_NAMES = [
+    "simon_says", "twenty_questions", "truth_or_dare", "riddles",
+    "word_chain", "karaoke", "rapid_fire", "would_you_rather",
+    "rock_paper_scissors", "hangman", "hot_takes", "never_have_i_ever",
+    "mario_trivia", "name_that_character", "bathroom_dare",
+    "story_builder", "wyr_mario",
+]
+
+# Quick/easy games that work well as random picks for new guests
+QUICK_GAMES = [
+    "truth_or_dare", "would_you_rather", "riddles", "hot_takes",
+    "never_have_i_ever", "rock_paper_scissors", "rapid_fire",
+    "mario_trivia", "hangman",
+]
+
+_recent_games: list[str] = []  # Module-level recent game buffer
+_ROTATION_BUFFER = 5  # Don't repeat within last 5 games
+
+
+def pick_random_game(state: dict) -> str:
+    """Pick a random game that hasn't been played recently.
+    Prefers quick/party-friendly games for random selection."""
+    # Filter out recently played games
+    available = [g for g in QUICK_GAMES if g not in _recent_games[-_ROTATION_BUFFER:]]
+    if not available:
+        available = list(QUICK_GAMES)  # Reset if all played
+    return random.choice(available)
+
+
+def record_game_played(game_name: str):
+    """Record that a game was played for rotation tracking."""
+    _recent_games.append(game_name)
+    # Cap buffer size
+    if len(_recent_games) > 20:
+        _recent_games[:] = _recent_games[-20:]
+
+
+def get_recent_games() -> list[str]:
+    """Get list of recently played games (for testing/dashboard)."""
+    return list(_recent_games)
+
+
+def reset_game_rotation():
+    """Reset rotation tracking (for testing)."""
+    _recent_games.clear()
+
+
+# ---------------------------------------------------------------------------
 # start_game — initialise a new game session
 # ---------------------------------------------------------------------------
 
@@ -483,6 +607,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     """
     import time as _time
     state["_game_last_input_time"] = _time.time()  # Start timeout clock
+    record_game_played(game_name)  # Track for rotation
     if game_name == "simon_says":
         state["_active_game"] = "simon_says"
         max_r = get_adaptive_rounds("simon_says", config["simon_max_rounds"], state)

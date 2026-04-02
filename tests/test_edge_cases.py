@@ -408,3 +408,61 @@ class TestFuzzyRepeatDetection:
                     is_repeat = True
                     break
         assert not is_repeat  # Short and different, should pass
+
+
+class TestGameRotation:
+    """Tests for the game rotation system that prevents repeating games."""
+
+    def setup_method(self):
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
+        from game_handlers import reset_game_rotation
+        reset_game_rotation()
+
+    def test_pick_random_game_returns_valid_game(self):
+        from game_handlers import pick_random_game, QUICK_GAMES
+        game = pick_random_game({})
+        assert game in QUICK_GAMES
+
+    def test_record_game_played_tracks(self):
+        from game_handlers import record_game_played, get_recent_games
+        record_game_played("trivia")
+        assert "trivia" in get_recent_games()
+
+    def test_rotation_avoids_recent_games(self):
+        from game_handlers import pick_random_game, record_game_played, QUICK_GAMES
+        # Play all but one game
+        for g in QUICK_GAMES[:-1]:
+            record_game_played(g)
+        # The remaining game should be the one picked
+        picked = pick_random_game({})
+        assert picked == QUICK_GAMES[-1]
+
+    def test_rotation_resets_when_all_played(self):
+        from game_handlers import pick_random_game, record_game_played, QUICK_GAMES
+        # Play ALL quick games
+        for g in QUICK_GAMES:
+            record_game_played(g)
+        # Should still return a valid game (resets pool)
+        picked = pick_random_game({})
+        assert picked in QUICK_GAMES
+
+    def test_start_game_records_rotation(self):
+        from game_handlers import start_game, get_recent_games, reset_game_rotation
+        reset_game_rotation()
+        state = {"_active_game": None, "_game_state": {}, "speaker_id": "test"}
+        config = {
+            "simon_max_rounds": 5, "twenty_q_max_questions": 10,
+            "truth_dare_max_rounds": 5, "riddle_max_attempts": 3,
+            "word_chain_max_rounds": 8, "rapid_fire_max_rounds": 5,
+        }
+        emotion_sys = MagicMock()
+        emotion_sys.current = "happy"
+        start_game("riddles", state, config, emotion_sys)
+        assert "riddles" in get_recent_games()
+
+    def test_buffer_caps_at_20(self):
+        from game_handlers import record_game_played, get_recent_games
+        for i in range(25):
+            record_game_played(f"game_{i}")
+        assert len(get_recent_games()) == 20

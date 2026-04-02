@@ -762,6 +762,13 @@ def handle_special_commands(
 
     # --- Interactive Game Modes ---
 
+    # "Play a game" — random game picker (Mario suggests one!)
+    if any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
+                                 "pick a game", "any game", "let's play", "wanna play"]):
+        if not state.get("_active_game"):
+            picked = game_handlers.pick_random_game(state)
+            return game_handlers.start_game(picked, state, game_config, emotion_system)
+
     # Simon Says
     if any(w in lower for w in ["simon says", "play simon", "let's play simon"]):
         return game_handlers.start_game("simon_says", state, game_config, emotion_system)

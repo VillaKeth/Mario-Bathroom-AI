@@ -1,13 +1,17 @@
 # Mario AI Party Bot - TODO
 
-## Recently Added
-- [x] Birthday context always-on — injected into EVERY LLM call, not just phase transitions
-- [x] Emotion sync already wired — client processes emotion field from server responses
+## v3.1 Improvements (In Progress)
+- [x] Birthday context always-on — injected into EVERY LLM call
+- [x] Emotion sync wired — client processes emotion field from server
 - [x] Party metadata in config — location, theme, expected guest count
 - [x] Generic party guest profile — conversation hooks for unknown guests
-- [x] Fix SQL MAX() aggregate misuse in get_game_leaderboard (was group MAX, not scalar)
-- [x] Fix memorial toast race condition — capture WebSocket at task creation time
-- [x] Make night progression phases Jacob-aware (WARM_UP, PARTY_MODE, UNHINGED, WIND_DOWN)
+- [x] Webcam exponential backoff recovery (never silently dies)
+- [x] Camera status UI indicator (reconnecting/disconnected)
+- [x] Token budget enforcement — trims context if > 80% of num_ctx
+- [x] Qdrant health recovery — auto re-enables semantic search
+- [x] TTS emergency silence fallback (never returns None)
+- [x] Fix TTS tests for emergency silence behavior
+- [x] 188 tests passing
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
 - [ ] Manual test: game leaderboard shows in /leaderboard endpoint
@@ -30,6 +34,15 @@
 - [ ] Configure alert_webhook_url for production deployment
 - [ ] Add Tailscale setup instructions for party day networking
 - [ ] Create v3.0 GitHub Release with changelog
+
+
+## v3.2 Party UX (Done)
+- [x] Smart game suggestions — mood/engagement-based game recommendations (30% after 3+ exchanges)
+- [x] Expanded SFX map — 7 new events (correct, wrong, level_up, victory, challenge, milestone, gossip)
+- [x] Exit quick feedback — 25% chance Mario asks for bathroom rating in farewell
+- [ ] Manual test: verify game suggestions trigger after 3+ exchanges with different moods
+- [ ] Manual test: verify new SFX events fire correctly (correct, wrong, level_up, victory, challenge, milestone, gossip)
+- [ ] Manual test: verify exit rating prompt appears ~25% of the time for 3+ exchange visits
 
 ## Critical / Major
 - [ ] CRITICAL: Resolve VRAM budget — 70B-Q5_K_M (22GB) + RVC + Whisper + Fish Speech exceeds 24GB RTX 3090 Ti
@@ -92,6 +105,14 @@
 - [ ] Consider Kokoro (82M, ultra-fast) as real-time fallback
 - [ ] Consider Edge TTS fallback for very short phrases (<4 words)
 - [ ] Add request-level isolation to prevent TTS race conditions
+
+## Content Expansion (Done)
+- [x] Expanded MARIO_TRIVIA_QUESTIONS from 25 to 50 (Mario Kart, Paper Mario, Galaxy, Odyssey, Mario Party, DK arcade, Yoshi's Island, Luigi's Mansion)
+- [x] Expanded RAPID_FIRE_QUESTIONS from 20 to 30
+- [x] Expanded RIDDLES from 20 to 30
+- [x] Expanded HOT_TAKES from 30 to 40
+- [x] Expanded NHIE_PROMPTS from 30 to 40
+- [x] All 260 tests passing after expansion
 
 ## Features & Enhancements
 - [ ] Hand wash reminder on exit event
