@@ -163,13 +163,27 @@ python client/main.py          # Pygame desktop client
 - Debug flags: `DEBUG_AUTH`, `DEBUG_API`, etc. (default True for new features)
 - General-to-specific naming: `pointBase`, `pointNext`, `configDefault`, etc.
 
-## Hardware Profile
+## Hardware Profiles
+
+### Development Machine (Dev)
 - **GPU**: Quadro P1000 (4GB VRAM) — detects as "low" tier
 - **RAM**: 32GB
 - **CPU**: 24-core
 - **LLM**: Ollama running llama3 8B (fits in 4GB VRAM)
 - **TTS**: GPT-SoVITS V2 subprocess (separate venv: `gpt_sovits_env`)
 - **GPU detection**: nvidia-smi fallback (torch not installed in server venv)
+
+### Party Deployment Machine (Threadripper) — NEVER FORGET THESE SPECS
+- **CPU**: AMD Threadripper Pro 3995WX (64 cores / 128 threads)
+- **RAM**: 256 GB DDR4 3200MHz
+- **GPU**: EVGA RTX 3090 Ti FTW3 (24GB VRAM)
+- **Hardware tier**: Will auto-detect as **ULTRA**
+- **LLM**: gemma3:27b (quality, ~16GB) + llama3.1:8b (fast, ~5GB) — both fit in 24GB with room for TTS
+- **LLM dual-model**: Models swap via Ollama keep_alive; never both loaded simultaneously
+- **Note**: 70B Q4 (~39GB) does NOT fit in 24GB — would need partial CPU offloading. Possible but slower.
+- **TTS workers**: 8 (auto-detected by hardware.py for ultra tier)
+- **Context window**: 8192 tokens (ultra tier default)
+- **Owner**: Friend of VillaKeth (NOT Jacob — Jacob is the birthday boy)
 
 ---
 
@@ -205,8 +219,28 @@ Add fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts()`:
 "Goomba" → "bad mushroom"
 "Koopa" → "Cooper"
 "Hoppenstedt" → "Hoppenstead"
+"Peach" → "Peech"
+"Princess" → "the princess"
+"Luigi" → "Looigi"
+"Yoshi" → "Yoh shee"
+"Daisy" → "Dayzee"
 ```
+Year-to-words: `2024` → `twenty twenty four` (2000-2099 range).
 GPT-SoVITS subprocess must be restarted for pronunciation changes to take effect.
+
+## Audio Normalization
+All TTS output (GPT-SoVITS and Edge+RVC paths) is peak-normalized to -3dB via `_normalize_audio()` in `server/tts.py`. Ensures consistent volume regardless of source engine.
+
+## TTS Prompt Guidance
+`MARIO_SYSTEM_PROMPT` includes TTS RULES section:
+- Keep sentences under 15 words
+- Avoid ALL CAPS (sounds robotic in TTS)
+- No ellipsis or em-dashes (causes pauses)
+- Spell out numbers (TTS reads digits oddly)
+- No written sound effects (e.g., don't write "Wahoo!")
+
+## Test Count
+**636 tests** across 17 test files (as of v3.11).
 
 ## Remaining Work
 See `TODO.md` for full task tracking.

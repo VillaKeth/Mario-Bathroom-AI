@@ -1,4 +1,4 @@
-"""
+r"""
 GPT-SoVITS TTS Server — runs as a subprocess in the gpt_sovits_env venv.
 Communicates via stdin/stdout JSON protocol for low-latency integration with main TTS pipeline.
 
