@@ -1,6 +1,12 @@
 # Mario AI Party Bot - TODO
 
-## v3.8 Final Sprint (Current)
+## v3.9 Gossip Seed Questions (Current)
+- [x] Gossip seed questions — 10 fun party-starter questions to generate gossip material early
+- [x] Wired into conversation context at 20% probability when gossip < 10 entries
+- [x] No-repeat tracking per party session
+- [x] 624 tests passing
+
+## v3.8 Final Sprint (Done)
 - [x] Idle gossip recap — Mario reflects on party gossip when alone (trending, rivalries, alliances, titles)
 - [x] Fix idle gossip wiring — was unreachable due to condition that was always False
 - [x] 619 tests passing
