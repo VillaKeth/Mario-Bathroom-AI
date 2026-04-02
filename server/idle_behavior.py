@@ -1238,6 +1238,7 @@ class IdleBehavior:
                 f"Nobody's here so I can say it — {guest_name} really said '{snippet}' Ha!",
                 f"The things people tell Mario! {guest_name} goes '{snippet}' Mama mia!",
             ]
+
             choice = random.choice(templates)
             if DEBUG_IDLE:
                 logger.info(f"[DEBUG_IDLE] get_gossip_idle: guest={guest_name} '{choice[:60]}...'")
@@ -1245,6 +1246,62 @@ class IdleBehavior:
         except Exception as e:
             logger.debug(f"Gossip idle failed: {e}")
             return None
+
+    # ------------------------------------------------------------------
+    # Re-engagement questions — fun questions to ask when guest goes quiet
+    # ------------------------------------------------------------------
+
+    RE_ENGAGEMENT_QUESTIONS = [
+        "So what's-a your go-to karaoke song? Everyone has one!",
+        "Quick — if you could have ONE Mario power-up in real life, which one?",
+        "Okay serious question — pineapple on pizza, yes or NO?",
+        "If you had to be trapped in one video game forever, which one?",
+        "What's the most embarrassing thing you've done at a party? I won't tell! (I might tell.)",
+        "If you could swap lives with anyone for a day, who'd it be?",
+        "What's your unpopular opinion that makes people mad?",
+        "If you had to eat ONE food for the rest of your life, what is it?",
+        "What's the weirdest thing you've ever googled? Don't lie!",
+        "If you won a million coins, what's the FIRST thing you'd buy?",
+        "Would you rather fight 100 Goomba-sized Bowsers or 1 Bowser-sized Goomba?",
+        "What's your party trick? Everyone has one, even if it's bad!",
+        "If you could master any skill instantly, what would it be?",
+        "What's a movie everyone loves that you secretly think is overrated?",
+        "If you were a Mario character, who would you be and why?",
+        "Quick — name your top 3 favorite snacks, GO!",
+        "What song gets you on the dance floor EVERY time?",
+        "If aliens landed tomorrow, what's the first thing you'd ask them?",
+        "What's the boldest thing you've ever done? Impress me!",
+        "If this party had a theme song, what would it be?",
+    ]
+
+    _used_reengagement: set = set()
+
+    def get_reengagement_question(self, exchange_count: int, seconds_quiet: float = 0) -> str | None:
+        """Get a fun re-engagement question when guest goes quiet mid-conversation.
+        Returns None if not appropriate (too early, too frequent, etc.)."""
+        # Only re-engage after 3+ exchanges and 15+ seconds of silence
+        if exchange_count < 3 or seconds_quiet < 15:
+            return None
+        # Cooldown: don't ask if we asked recently (reset every 8 exchanges)
+        if hasattr(self, '_last_reengagement') and exchange_count - self._last_reengagement < 8:
+            return None
+        # 40% chance to trigger (don't be pushy)
+        if random.random() > 0.40:
+            return None
+
+        available = [i for i in range(len(self.RE_ENGAGEMENT_QUESTIONS))
+                     if i not in self._used_reengagement]
+        if not available:
+            self._used_reengagement.clear()
+            available = list(range(len(self.RE_ENGAGEMENT_QUESTIONS)))
+
+        idx = random.choice(available)
+        self._used_reengagement.add(idx)
+        self._last_reengagement = exchange_count
+        question = self.RE_ENGAGEMENT_QUESTIONS[idx]
+        if DEBUG_IDLE:
+            logger.info(f"[DEBUG_IDLE] get_reengagement_question: '{question[:60]}...'")
+        return question
 
     def get_game_suggestion(self, exchange_count: int, detected_mood: str = None, guest_type: str = "balanced") -> str | None:
         """Suggest a game based on conversation state. Returns None if not a good time."""

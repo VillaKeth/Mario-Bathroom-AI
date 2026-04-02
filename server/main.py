@@ -2502,6 +2502,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if grat:
                 conv_hint = grat
 
+        # Re-engagement question — when user seems disengaged (short response)
+        if not conv_hint and len(text.strip()) < 15 and exchange_count >= 4:
+            reengagement = idle_behavior.get_reengagement_question(exchange_count, seconds_quiet=20)
+            if reengagement:
+                conv_hint = f"The conversation feels quiet. Ask them this fun question: '{reengagement}'"
+
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 

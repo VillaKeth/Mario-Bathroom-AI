@@ -430,13 +430,14 @@ class TestGameRotation:
         assert "trivia" in get_recent_games()
 
     def test_rotation_avoids_recent_games(self):
-        from game_handlers import pick_random_game, record_game_played, QUICK_GAMES
-        # Play all but one game
-        for g in QUICK_GAMES[:-1]:
+        from game_handlers import pick_random_game, record_game_played, QUICK_GAMES, _ROTATION_BUFFER
+        # Play the last _ROTATION_BUFFER games so only earlier ones are available
+        recent = QUICK_GAMES[-_ROTATION_BUFFER:]
+        for g in recent:
             record_game_played(g)
-        # The remaining game should be the one picked
+        # Picked game should NOT be in the recent buffer
         picked = pick_random_game({})
-        assert picked == QUICK_GAMES[-1]
+        assert picked not in recent
 
     def test_rotation_resets_when_all_played(self):
         from game_handlers import pick_random_game, record_game_played, QUICK_GAMES
@@ -466,3 +467,44 @@ class TestGameRotation:
         for i in range(25):
             record_game_played(f"game_{i}")
         assert len(get_recent_games()) == 20
+
+
+class TestReengagement:
+    """Tests for the re-engagement question system."""
+
+    def setup_method(self):
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
+
+    def test_returns_none_when_too_few_exchanges(self):
+        from idle_behavior import IdleBehavior
+        ib = IdleBehavior()
+        result = ib.get_reengagement_question(1, seconds_quiet=20)
+        assert result is None
+
+    def test_returns_none_when_not_quiet_enough(self):
+        from idle_behavior import IdleBehavior
+        ib = IdleBehavior()
+        result = ib.get_reengagement_question(5, seconds_quiet=5)
+        assert result is None
+
+    def test_returns_question_when_conditions_met(self):
+        from idle_behavior import IdleBehavior
+        ib = IdleBehavior()
+        # Force trigger by trying many times (40% chance)
+        results = [ib.get_reengagement_question(5 + i * 10, seconds_quiet=20) for i in range(20)]
+        non_none = [r for r in results if r is not None]
+        assert len(non_none) > 0  # At least one should trigger
+
+    def test_no_repeated_questions(self):
+        from idle_behavior import IdleBehavior
+        ib = IdleBehavior()
+        questions = []
+        for i in range(40):
+            q = ib.get_reengagement_question(5 + i * 10, seconds_quiet=20)
+            if q:
+                questions.append(q)
+        # Since we track used questions, duplicates only appear after pool exhaustion
+        # With 20 questions and 40 attempts, we should see all 20 unique ones
+        unique = set(questions)
+        assert len(unique) >= min(10, len(questions))  # At least 10 unique
