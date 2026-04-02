@@ -59,6 +59,7 @@ class MarioClient:
         self._audio_thread = None
         self._health_thread = None
         self._last_play_end_time = 0  # Echo cancellation tracking
+        self._memorial_active = False  # Suppresses idle text during memorial
 
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
@@ -210,6 +211,11 @@ class MarioClient:
 
     def _on_mario_text(self, text: str, metadata: dict = None):
         """Called when Mario has something to say."""
+        # Suppress idle text bubbles during memorial ceremony
+        if self._memorial_active:
+            if DEBUG_CLIENT:
+                logger.info("[DEBUG_CLIENT] Suppressed idle text during memorial")
+            return
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Mario says: {text}")
         self.display.set_thinking(False)
@@ -374,15 +380,58 @@ class MarioClient:
         self.display.update_leaderboard(data)
 
     def _on_memorial_event(self, data: dict):
-        """Called when server sends memorial event."""
+        """Called when server sends memorial event — handles all 5 phases."""
         phase = data.get("phase", "silence")
         name = data.get("name", "")
         text = data.get("text", "")
         duration = data.get("duration", 15)
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Memorial event: phase={phase} name={name}")
+
+        # Set memorial active on first phase, clear after fadeout
+        if phase == "announcement":
+            self._memorial_active = True
+        elif phase == "fadeout":
+            # Clear flag after fadeout animation completes
+            def _clear_flag():
+                time.sleep(duration + 3)
+                self._memorial_active = False
+                if DEBUG_CLIENT:
+                    logger.info("[DEBUG_CLIENT] Memorial flag cleared after fadeout")
+            threading.Thread(target=_clear_flag, daemon=True).start()
+
+        # Start/stop memorial music
+        if phase == "music":
+            music_path = os.path.join(os.path.dirname(__file__), "assets", "music", "lisa_webb_memorial.mp3")
+            if os.path.exists(music_path):
+                self.audio_playback.play_memorial_music(music_path, loops=1)  # Play twice
+            else:
+                logger.warning(f"[DEBUG_CLIENT] Memorial music not found: {music_path}")
+        elif phase == "fadeout":
+            self.audio_playback.stop_memorial_music(fadeout_ms=3000)
+
+        # Route to display
         if self.display:
             self.display.show_memorial(name, phase, text, duration)
+
+        # Play SFX for specific phases
+        sfx_dir = os.path.join(os.path.dirname(__file__), "assets", "sfx")
+        if phase == "silence":
+            chime_path = os.path.join(sfx_dir, "memorial_chime.wav")
+            if os.path.exists(chime_path):
+                try:
+                    with open(chime_path, "rb") as f:
+                        self.audio_playback.play(f.read())
+                except Exception as e:
+                    logger.warning(f"[DEBUG_CLIENT] Chime SFX error: {e}")
+        elif phase == "toast":
+            clink_path = os.path.join(sfx_dir, "memorial_clink.wav")
+            if os.path.exists(clink_path):
+                try:
+                    with open(clink_path, "rb") as f:
+                        self.audio_playback.play(f.read())
+                except Exception as e:
+                    logger.warning(f"[DEBUG_CLIENT] Clink SFX error: {e}")
 
 
 def main():
