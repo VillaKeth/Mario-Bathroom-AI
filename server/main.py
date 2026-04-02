@@ -47,7 +47,7 @@ from tts_router import TTSEngine
 from emotions import EmotionSystem, Emotion
 from party_stats import PartyStats
 from safety_filter import filter_response, check_input
-from idle_behavior import IdleBehavior
+from idle_behavior import IdleBehavior, MEMORIAL_ANNOUNCEMENT, MEMORIAL_SILENCE, MEMORIAL_TOAST, MEMORIAL_FADEOUT
 from pose_analyzer import analyze_text
 import command_handlers
 from game_handlers import check_game_timeout
@@ -1190,98 +1190,98 @@ async def force_stop_game(request_body: dict = {}):
 
 @app.post("/admin/trigger_memorial")
 async def trigger_memorial(request_body: dict = {}):
-    """Manually trigger the Lisa Webb memorial moment."""
-    global state_current, _active_ws
-    api_key = GAME_CONFIG.get("admin_api_key", "")
-    if api_key and request_body.get("api_key") != api_key:
-        return {"status": "error", "message": "Invalid API key"}
-    if _active_ws is None:
+    """Trigger 5-phase Lisa Webb memorial ceremony."""
+    global _active_ws
+    if not _active_ws:
         return {"status": "error", "message": "No client connected"}
-    try:
-        state_current["memorial_active"] = True
-        state_current["memorial_triggered_at"] = time.time()
 
-        memorial_text = (
-            "Everyone... I need a moment of your time. "
-            "One of the most important people in Jacob's life was his Aunt Lisa Webb. "
-            "She passed away too soon, and we want to honor her memory tonight. "
-            "Let's take a moment of silence for Aunt Lisa."
-        )
+    if state_current.get("memorial_active"):
+        return {"status": "error", "message": "Memorial already in progress"}
 
-        memorial_event = {
-            "type": "memorial_event",
-            "name": "Lisa Webb",
-            "phase": "silence",
-            "text": memorial_text,
-            "duration": 15,
-        }
-        if _ws_send_lock.locked() and DEBUG_SERVER:
-            logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial initial — waiting")
-        async with _ws_send_lock:
-            if _active_ws is not None:
-                await _active_ws.send_json(memorial_event)
+    state_current["memorial_active"] = True
+    state_current["memorial_triggered_at"] = time.time()
+    logger.info("[MEMORIAL] Starting 5-phase memorial ceremony")
 
-        # Synthesize and send the initial memorial speech
-        loop = asyncio.get_event_loop()
+    async def _run_memorial():
         try:
-            audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize_user(memorial_text))
-            if audio:
-                if _ws_send_lock.locked() and DEBUG_SERVER:
-                    logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial audio — waiting")
-                async with _ws_send_lock:
-                    if _active_ws is not None:
-                        await _active_ws.send_bytes(audio)
-        except Exception as e:
-            logger.error(f"Memorial initial TTS failed: {e}")
-
-        # Schedule the "raise a glass" follow-up after 15 seconds
-        captured_ws = _active_ws  # Capture current connection
-
-        async def memorial_followup():
-            await asyncio.sleep(15)
-            # Check the connection is still the same one
-            if _active_ws is not captured_ws or captured_ws is None:
-                logger.info("[MEMORIAL] Client changed during memorial, skipping toast")
-                state_current["memorial_active"] = False
+            ws = _active_ws
+            if not ws:
                 return
-            followup_text = "Now let's raise a glass to Aunt Lisa! Take a shot in her honor!"
-            followup_event = {
-                "type": "memorial_event",
-                "name": "Lisa Webb",
-                "phase": "toast",
-                "text": followup_text,
-            }
-            try:
-                if _ws_send_lock.locked() and DEBUG_SERVER:
-                    logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial followup — waiting")
-                async with _ws_send_lock:
-                    if captured_ws is not None:
-                        await captured_ws.send_json(followup_event)
-            except Exception as e:
-                logger.debug(f"[WS] Followup send failed: {e}")
 
-            try:
-                followup_loop = asyncio.get_event_loop()
-                followup_audio = await followup_loop.run_in_executor(
-                    _tts_executor, lambda: tts.synthesize_user(followup_text))
-                if followup_audio:
-                    if _ws_send_lock.locked() and DEBUG_SERVER:
-                        logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial followup audio — waiting")
+            phases = [
+                ("announcement", MEMORIAL_ANNOUNCEMENT, 2),
+                ("silence", MEMORIAL_SILENCE, 5),
+                ("toast", MEMORIAL_TOAST, 2),
+                ("music", None, 0),
+                ("fadeout", MEMORIAL_FADEOUT, 0),
+            ]
+
+            for phase_name, text, extra_delay in phases:
+                if not _active_ws:
+                    logger.warning("[MEMORIAL] Client disconnected, aborting")
+                    break
+
+                event = {
+                    "type": "memorial_event",
+                    "phase": phase_name,
+                    "name": "Lisa Webb",
+                }
+
+                if phase_name == "silence":
+                    event["born"] = "August 17, 1968"
+                    event["died"] = "March 23, 2023"
+
+                audio_bytes = None
+                audio_duration = 0
+
+                if text:
+                    # Synthesize TTS
+                    loop = asyncio.get_event_loop()
+                    try:
+                        audio_bytes = await loop.run_in_executor(
+                            _tts_executor, lambda t=text: tts.synthesize_user(t)
+                        )
+                        if audio_bytes:
+                            # Calculate duration: 16-bit mono 24kHz = 48000 bytes/sec
+                            audio_duration = len(audio_bytes) / 48000
+                            logger.info(f"[MEMORIAL] phase={phase_name} audio={len(audio_bytes)}B duration={audio_duration:.1f}s")
+                    except Exception as e:
+                        logger.error(f"[MEMORIAL] TTS error for {phase_name}: {e}")
+
+                # Send event + audio
+                try:
+                    event["text"] = text or ""
+                    event["duration"] = int(audio_duration + extra_delay + 2)
                     async with _ws_send_lock:
-                        if captured_ws is not None:
-                            await captured_ws.send_bytes(followup_audio)
-            except Exception as e:
-                logger.error(f"Memorial followup TTS failed: {e}")
+                        if _active_ws is not None:
+                            await _active_ws.send_json(event)
+                            if audio_bytes:
+                                await _active_ws.send_bytes(audio_bytes)
+                except Exception as e:
+                    logger.error(f"[MEMORIAL] Send error for {phase_name}: {e}")
+                    break
 
+                # Wait for phase to complete
+                if phase_name == "music":
+                    logger.info("[MEMORIAL] Music phase — sleeping 225s")
+                    await asyncio.sleep(225)
+                elif audio_duration > 0:
+                    await asyncio.sleep(audio_duration + extra_delay)
+                else:
+                    await asyncio.sleep(extra_delay + 2)
+
+            # Buffer after fadeout — keep memorial_active for 15 more seconds
+            logger.info("[MEMORIAL] Fadeout sent, waiting 15s buffer before clearing flag")
+            await asyncio.sleep(15)
+
+        except Exception as e:
+            logger.error(f"[MEMORIAL] Ceremony error: {e}")
+        finally:
             state_current["memorial_active"] = False
+            logger.info("[MEMORIAL] Memorial ceremony complete, flag cleared")
 
-        asyncio.create_task(memorial_followup())
-
-        return {"status": "ok", "message": "Memorial triggered"}
-    except Exception as e:
-        logger.error(f"Memorial trigger failed: {e}")
-        return {"status": "error", "message": str(e)}
+    asyncio.create_task(_run_memorial())
+    return {"status": "ok", "message": "Memorial triggered"}
 
 
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])

@@ -8,6 +8,36 @@ from datetime import datetime
 DEBUG_IDLE = True
 logger = logging.getLogger(__name__)
 
+# ── Memorial text constants (no ellipsis — TTS convention) ──────────────
+MEMORIAL_ANNOUNCEMENT = (
+    "*Mario removes his hat and holds it to his chest* "
+    "Hey everyone, can I have your attention for just a moment? "
+    "Tonight we are celebrating Jacob's birthday, but I want us to take "
+    "a special moment to honor someone very important to this family."
+)
+
+MEMORIAL_SILENCE = (
+    "Lisa Webb was Jacob's beloved aunt. "
+    "She was born on August 17th, 1968, and she passed away on March 23rd, 2023. "
+    "She meant the world to this family, and her light touched everyone who knew her. "
+    "Let us take a moment of silence in her memory."
+)
+
+MEMORIAL_TOAST = (
+    "*puts hat back on with a warm smile* "
+    "Alright everyone, Aunt Lisa would not want us to be sad! "
+    "She would want us to CELEBRATE! So right now, everybody grab a drink! "
+    "We are taking a shot for Aunt Lisa! "
+    "To Lisa Webb, the kind of person who made every room brighter! "
+    "Ready? One, two, three, CHEERS! Wahoo!"
+)
+
+MEMORIAL_FADEOUT = (
+    "That was beautiful, everyone. Lisa would be so proud. "
+    "Now, let us keep this party going for Jacob! "
+    "Wahoo! Let's-a go!"
+)
+
 # Things Mario says/does when nobody is around
 IDLE_MUMBLES = [
     "♪ Do do do do do doo... ♪",
