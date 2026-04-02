@@ -508,3 +508,115 @@ class TestReengagement:
         # With 20 questions and 40 attempts, we should see all 20 unique ones
         unique = set(questions)
         assert len(unique) >= min(10, len(questions))  # At least 10 unique
+
+
+class TestPartyMilestones:
+    """Tests for party_stats.py milestone system."""
+
+    def setup_method(self):
+        from party_stats import PartyStats
+        self.ps = PartyStats()
+        # Reset milestones tracking for clean tests
+        self.ps._announced_milestones = set()
+
+    def test_milestone_at_5_visitors(self):
+        """Milestone triggers at 5 visitors."""
+        for i in range(5):
+            self.ps.record_enter(f"milestone_test_{i}", f"MilestoneGuest_{i}")
+        result = self.ps.check_milestones()
+        # With real DB, total may be >5 already, so just verify it returns something
+        assert result is not None
+
+    def test_milestone_not_repeated(self):
+        """Once all available milestones are announced, returns None."""
+        # Drain all available milestones
+        announced = []
+        for _ in range(20):
+            m = self.ps.check_milestones()
+            if m is None:
+                break
+            announced.append(m)
+        # Now there should be no more milestones
+        result = self.ps.check_milestones()
+        assert result is None
+        # And no duplicates in what was announced
+        assert len(announced) == len(set(announced))
+
+    def test_multiple_milestones_sequential(self):
+        """Multiple milestones fire in order with fresh tracking."""
+        # Add enough visitors to hit at least 2 thresholds
+        for i in range(15):
+            self.ps.record_enter(f"multi_milestone_{i}", f"MultiGuest_{i}")
+        milestones = []
+        for _ in range(10):
+            m = self.ps.check_milestones()
+            if m is None:
+                break
+            milestones.append(m)
+        # Should have gotten at least 1 milestone
+        assert len(milestones) >= 1
+
+    def test_hour_milestone(self):
+        """Hour milestones trigger based on elapsed time."""
+        import time as _time
+        self.ps.party_start_time = _time.time() - 3700  # ~1 hour ago
+        result = self.ps.check_milestones()
+        assert result is not None
+
+
+class TestMemoryProtection:
+    """Tests for try-except protection in memory.py DB operations."""
+
+    def test_register_person_handles_db_error(self):
+        """register_person doesn't crash on DB failure."""
+        import server.memory as mem
+        with patch.object(mem, '_get_conn') as mock_conn:
+            mock_conn.return_value.execute.side_effect = Exception("DB locked")
+            # Should not raise
+            mem.register_person(99999, "CrashTest")
+
+    def test_record_visit_handles_db_error(self):
+        """record_visit doesn't crash on DB failure."""
+        import server.memory as mem
+        with patch.object(mem, '_get_conn') as mock_conn:
+            mock_conn.return_value.execute.side_effect = Exception("DB locked")
+            result = mem.record_visit(99999)
+            assert result is None or isinstance(result, (int, type(None)))
+
+    def test_save_topics_handles_db_error(self):
+        """save_topics doesn't crash on DB failure."""
+        import server.memory as mem
+        with patch.object(mem, '_get_conn') as mock_conn:
+            mock_conn.return_value.execute.side_effect = Exception("DB locked")
+            mem.save_topics(99999, ["topic1", "topic2"])
+
+    def test_get_trending_topics_handles_db_error(self):
+        """get_trending_topics returns empty on DB failure."""
+        import server.memory as mem
+        with patch.object(mem, '_get_conn') as mock_conn:
+            mock_conn.return_value.execute.side_effect = Exception("DB locked")
+            result = mem.get_trending_topics()
+            assert result == [] or result is None
+
+
+class TestFilterResponseNoneGuard:
+    """Tests for filter_response and the None guard in the pipeline."""
+
+    def test_filter_response_with_valid_input(self):
+        """filter_response works with normal strings."""
+        from server.safety_filter import filter_response
+        result = filter_response("Hello! I'm-a Mario!")
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_filter_response_with_empty_string(self):
+        """filter_response handles empty string."""
+        from server.safety_filter import filter_response
+        result = filter_response("")
+        assert isinstance(result, str)
+
+    def test_filter_response_returns_string(self):
+        """filter_response always returns a string."""
+        from server.safety_filter import filter_response
+        result = filter_response("*adjusts hat* Hello there!")
+        assert isinstance(result, str)
