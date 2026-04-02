@@ -987,6 +987,39 @@ class IdleBehavior:
         self._compliment_index += 1
         return compliment
 
+    def get_idle_gossip_recap(self, party_gossip) -> str | None:
+        """When alone, Mario reflects on the party gossip out loud.
+        Takes the party_gossip instance and generates a self-talk line."""
+        if party_gossip is None:
+            return None
+
+        options = []
+
+        # Trending topics
+        trending = [(t, len(ids)) for t, ids in party_gossip._topic_mentions.items() if len(ids) >= 2]
+        for topic, count in trending[:3]:
+            options.append(f"*talking to self* Everyone keeps-a talking about {topic}! {count} people mentioned it!")
+            options.append(f"*musing* If I hear one more person talk about {topic}... actually, I love it! Keep going!")
+
+        # Rivalries
+        for r in party_gossip._rivalries[-3:]:
+            options.append(f"*chuckling* The {r[0]} vs {r[1]} rivalry about {r[2]} is-a the best drama tonight!")
+            options.append(f"*dramatic whisper* {r[0]} and {r[1]} still disagree about {r[2]}... this is better than a soap opera!")
+
+        # Alliances
+        for a in party_gossip._alliances[-3:]:
+            options.append(f"*happy sigh* {a[0]} and {a[1]} bonding over {a[2]}... friendship is-a beautiful!")
+
+        # Guest titles
+        for gid, title in list(party_gossip._guest_titles.items())[-3:]:
+            name = party_gossip._guest_names.get(gid)
+            if name:
+                options.append(f"*polishing imaginary trophy* {name}, the '{title}'... what a legend!")
+
+        if not options:
+            return None
+        return random.choice(options)
+
     def get_hand_wash_reminder(self) -> str:
         reminder = HAND_WASH_REMINDERS[self._hand_wash_index % len(HAND_WASH_REMINDERS)]
         self._hand_wash_index += 1

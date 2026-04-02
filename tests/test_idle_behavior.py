@@ -602,3 +602,52 @@ class TestLonelinessArc:
         ib._alone_since = time.time() - 2700  # 45 min alone
         result = ib.get_loneliness_greeting_boost()
         assert isinstance(result, str) and len(result) > 0
+
+
+class TestIdleGossipRecap:
+    def test_gossip_recap_none_when_no_gossip(self):
+        ib = IdleBehavior()
+        assert ib.get_idle_gossip_recap(None) is None
+
+    def test_gossip_recap_none_with_empty_gossip(self):
+        from party_gossip import PartyGossip
+        ib = IdleBehavior()
+        pg = PartyGossip()
+        assert ib.get_idle_gossip_recap(pg) is None
+
+    def test_gossip_recap_with_trending(self):
+        from party_gossip import PartyGossip
+        ib = IdleBehavior()
+        pg = PartyGossip()
+        pg._topic_mentions = {"pizza": {"a1", "b1"}}
+        result = ib.get_idle_gossip_recap(pg)
+        assert result is not None
+        assert "pizza" in result.lower()
+
+    def test_gossip_recap_with_rivalry(self):
+        from party_gossip import PartyGossip
+        ib = IdleBehavior()
+        pg = PartyGossip()
+        pg._rivalries = [("Alice", "Bob", "pizza")]
+        result = ib.get_idle_gossip_recap(pg)
+        assert result is not None
+        assert "Alice" in result or "Bob" in result
+
+    def test_gossip_recap_with_alliance(self):
+        from party_gossip import PartyGossip
+        ib = IdleBehavior()
+        pg = PartyGossip()
+        pg._alliances = [("Alice", "Carol", "music")]
+        result = ib.get_idle_gossip_recap(pg)
+        assert result is not None
+        assert "Alice" in result or "Carol" in result
+
+    def test_gossip_recap_with_title(self):
+        from party_gossip import PartyGossip
+        ib = IdleBehavior()
+        pg = PartyGossip()
+        pg._guest_titles = {"a1": "The Pizza Queen"}
+        pg._guest_names = {"a1": "Alice"}
+        result = ib.get_idle_gossip_recap(pg)
+        assert result is not None
+        assert "Alice" in result or "Pizza Queen" in result
