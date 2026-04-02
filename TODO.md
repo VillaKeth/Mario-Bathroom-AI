@@ -106,6 +106,7 @@
 - [x] Manual test: Lisa Webb memorial triggers at 45 minutes
 - [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
 - [x] 5-phase memorial overlay (announcement, silence, toast, music, fadeout) with photo, particles, text
+- [x] Client memorial suppression + music/SFX phase handling (_memorial_active flag, play_memorial_music, chime/clink SFX)
 - [ ] Manual test: memorial overlay displays all 5 phases on client
 - [ ] Manual test: Webcam person detection with multiple guests
 - [ ] Configure alert_webhook_url for production deployment
