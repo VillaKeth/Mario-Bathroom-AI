@@ -335,6 +335,34 @@ class MarioDisplay:
                 except Exception as e:
                     logger.warning(f"[DEBUG_DISPLAY] Failed to load {path}: {e}")
 
+    def _load_backgrounds(self):
+        """Load all background images from client/assets/backgrounds/."""
+        backgrounds_dir = os.path.join(os.path.dirname(__file__), "assets", "backgrounds")
+        if not os.path.isdir(backgrounds_dir):
+            if DEBUG_DISPLAY:
+                logger.info("[DEBUG_DISPLAY] No backgrounds directory found")
+            return
+        
+        supported_formats = ('.png', '.jpg', '.jpeg')
+        for filename in os.listdir(backgrounds_dir):
+            if filename.lower().endswith(supported_formats):
+                path = os.path.join(backgrounds_dir, filename)
+                try:
+                    img = pygame.image.load(path).convert()
+                    # Scale to window size
+                    img = pygame.transform.scale(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+                    self._backgrounds.append({
+                        'name': filename,
+                        'image': img
+                    })
+                    if DEBUG_DISPLAY:
+                        logger.info(f"[DEBUG_DISPLAY] Loaded background: {filename}")
+                except Exception as e:
+                    logger.warning(f"[DEBUG_DISPLAY] Failed to load background {filename}: {e}")
+        
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] Loaded {len(self._backgrounds)} background images")
+
     def init(self):
         """Initialize Pygame display."""
         if DEBUG_DISPLAY:
@@ -375,6 +403,11 @@ class MarioDisplay:
 
         self._load_sprites()
         self._bg_surface = None  # cached static background
+        
+        # Background system
+        self._backgrounds = []  # loaded background images
+        self._current_bg_index = -1  # -1 = use drawn background, 0+ = use image
+        self._load_backgrounds()
         
         # Initialize closed captions
         self.captions = ClosedCaptions(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -831,55 +864,63 @@ class MarioDisplay:
         """Draw the bathroom background scene (cached for performance)."""
         if self._bg_surface is None:
             self._bg_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-            tile_color1 = (40, 50, 70)
-            tile_color2 = (35, 45, 65)
-            grout_color = (30, 35, 50)
-            tile_size = 40
+            
+            # Use image background if available and selected
+            if (self._current_bg_index >= 0 and 
+                self._current_bg_index < len(self._backgrounds)):
+                bg_img = self._backgrounds[self._current_bg_index]['image']
+                self._bg_surface.blit(bg_img, (0, 0))
+            else:
+                # Draw the original bathroom scene
+                tile_color1 = (40, 50, 70)
+                tile_color2 = (35, 45, 65)
+                grout_color = (30, 35, 50)
+                tile_size = 40
 
-            for row in range(WINDOW_HEIGHT // tile_size + 1):
+                for row in range(WINDOW_HEIGHT // tile_size + 1):
+                    for col in range(WINDOW_WIDTH // tile_size + 1):
+                        x = col * tile_size
+                        y = row * tile_size
+                        color = tile_color1 if (row + col) % 2 == 0 else tile_color2
+                        pygame.draw.rect(self._bg_surface, color, (x, y, tile_size, tile_size))
+                        pygame.draw.rect(self._bg_surface, grout_color, (x, y, tile_size, tile_size), 1)
+
+                floor_y = WINDOW_HEIGHT - 80
+                floor_color1 = (60, 50, 40)
+                floor_color2 = (50, 40, 30)
                 for col in range(WINDOW_WIDTH // tile_size + 1):
                     x = col * tile_size
-                    y = row * tile_size
-                    color = tile_color1 if (row + col) % 2 == 0 else tile_color2
-                    pygame.draw.rect(self._bg_surface, color, (x, y, tile_size, tile_size))
-                    pygame.draw.rect(self._bg_surface, grout_color, (x, y, tile_size, tile_size), 1)
+                    color = floor_color1 if col % 2 == 0 else floor_color2
+                    pygame.draw.rect(self._bg_surface, color, (x, floor_y, tile_size, 80))
+                    pygame.draw.rect(self._bg_surface, (40, 30, 20), (x, floor_y, tile_size, 80), 1)
 
-            floor_y = WINDOW_HEIGHT - 80
-            floor_color1 = (60, 50, 40)
-            floor_color2 = (50, 40, 30)
-            for col in range(WINDOW_WIDTH // tile_size + 1):
-                x = col * tile_size
-                color = floor_color1 if col % 2 == 0 else floor_color2
-                pygame.draw.rect(self._bg_surface, color, (x, floor_y, tile_size, 80))
-                pygame.draw.rect(self._bg_surface, (40, 30, 20), (x, floor_y, tile_size, 80), 1)
+                mirror_x, mirror_y = 30, 80
+                mirror_w, mirror_h = 120, 160
+                pygame.draw.rect(self._bg_surface, (80, 80, 90), (mirror_x - 4, mirror_y - 4, mirror_w + 8, mirror_h + 8))
+                pygame.draw.rect(self._bg_surface, (140, 160, 180), (mirror_x, mirror_y, mirror_w, mirror_h))
+                pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 10, mirror_y + 10), (mirror_x + 10, mirror_y + 50), 2)
+                pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 15, mirror_y + 10), (mirror_x + 15, mirror_y + 30), 1)
 
-            mirror_x, mirror_y = 30, 80
-            mirror_w, mirror_h = 120, 160
-            pygame.draw.rect(self._bg_surface, (80, 80, 90), (mirror_x - 4, mirror_y - 4, mirror_w + 8, mirror_h + 8))
-            pygame.draw.rect(self._bg_surface, (140, 160, 180), (mirror_x, mirror_y, mirror_w, mirror_h))
-            pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 10, mirror_y + 10), (mirror_x + 10, mirror_y + 50), 2)
-            pygame.draw.line(self._bg_surface, (180, 200, 220), (mirror_x + 15, mirror_y + 10), (mirror_x + 15, mirror_y + 30), 1)
+                sink_y = mirror_y + mirror_h + 10
+                pygame.draw.ellipse(self._bg_surface, (180, 180, 190), (mirror_x + 10, sink_y, 100, 30))
+                pygame.draw.ellipse(self._bg_surface, (160, 160, 170), (mirror_x + 20, sink_y + 5, 80, 20))
+                pygame.draw.rect(self._bg_surface, (150, 150, 160), (mirror_x + 55, sink_y - 15, 10, 18))
+                pygame.draw.rect(self._bg_surface, (170, 170, 180), (mirror_x + 50, sink_y - 15, 20, 5))
 
-            sink_y = mirror_y + mirror_h + 10
-            pygame.draw.ellipse(self._bg_surface, (180, 180, 190), (mirror_x + 10, sink_y, 100, 30))
-            pygame.draw.ellipse(self._bg_surface, (160, 160, 170), (mirror_x + 20, sink_y + 5, 80, 20))
-            pygame.draw.rect(self._bg_surface, (150, 150, 160), (mirror_x + 55, sink_y - 15, 10, 18))
-            pygame.draw.rect(self._bg_surface, (170, 170, 180), (mirror_x + 50, sink_y - 15, 20, 5))
+                toilet_x = WINDOW_WIDTH - 140
+                toilet_y = floor_y - 80
+                pygame.draw.rect(self._bg_surface, (200, 200, 210), (toilet_x + 15, toilet_y - 50, 60, 55), border_radius=5)
+                pygame.draw.rect(self._bg_surface, (180, 180, 190), (toilet_x + 15, toilet_y - 50, 60, 55), 2, border_radius=5)
+                pygame.draw.rect(self._bg_surface, (170, 170, 180), (toilet_x + 60, toilet_y - 35, 15, 5))
+                pygame.draw.ellipse(self._bg_surface, (210, 210, 220), (toilet_x, toilet_y, 90, 85))
+                pygame.draw.ellipse(self._bg_surface, (190, 190, 200), (toilet_x, toilet_y, 90, 85), 2)
+                pygame.draw.ellipse(self._bg_surface, (220, 220, 230), (toilet_x + 10, toilet_y + 5, 70, 50))
 
-            toilet_x = WINDOW_WIDTH - 140
-            toilet_y = floor_y - 80
-            pygame.draw.rect(self._bg_surface, (200, 200, 210), (toilet_x + 15, toilet_y - 50, 60, 55), border_radius=5)
-            pygame.draw.rect(self._bg_surface, (180, 180, 190), (toilet_x + 15, toilet_y - 50, 60, 55), 2, border_radius=5)
-            pygame.draw.rect(self._bg_surface, (170, 170, 180), (toilet_x + 60, toilet_y - 35, 15, 5))
-            pygame.draw.ellipse(self._bg_surface, (210, 210, 220), (toilet_x, toilet_y, 90, 85))
-            pygame.draw.ellipse(self._bg_surface, (190, 190, 200), (toilet_x, toilet_y, 90, 85), 2)
-            pygame.draw.ellipse(self._bg_surface, (220, 220, 230), (toilet_x + 10, toilet_y + 5, 70, 50))
-
-            tp_x = toilet_x - 30
-            tp_y = toilet_y + 10
-            pygame.draw.rect(self._bg_surface, (80, 80, 90), (tp_x + 5, tp_y - 15, 5, 20))
-            pygame.draw.circle(self._bg_surface, (240, 235, 225), (tp_x + 7, tp_y + 8), 12)
-            pygame.draw.circle(self._bg_surface, (180, 175, 165), (tp_x + 7, tp_y + 8), 5)
+                tp_x = toilet_x - 30
+                tp_y = toilet_y + 10
+                pygame.draw.rect(self._bg_surface, (80, 80, 90), (tp_x + 5, tp_y - 15, 5, 20))
+                pygame.draw.circle(self._bg_surface, (240, 235, 225), (tp_x + 7, tp_y + 8), 12)
+                pygame.draw.circle(self._bg_surface, (180, 175, 165), (tp_x + 7, tp_y + 8), 5)
 
         # Blit cached background
         self._screen.blit(self._bg_surface, (0, 0))
@@ -967,6 +1008,29 @@ class MarioDisplay:
                     logger.info("[DEBUG_DISPLAY] PANIC MODE OFF — audio resumed")
         except Exception as e:
             logger.warning(f"[DEBUG_DISPLAY] Mixer pause/unpause error (no mixer?): {e}")
+
+    def next_background(self):
+        """Cycle to the next background (drawn -> bg1 -> bg2 -> ... -> drawn)."""
+        if not self._backgrounds:
+            if DEBUG_DISPLAY:
+                logger.info("[DEBUG_DISPLAY] No background images available")
+            return
+        
+        self._current_bg_index = (self._current_bg_index + 1) % (len(self._backgrounds) + 1)
+        # -1=drawn, 0=first bg, 1=second bg, etc.
+        if self._current_bg_index == len(self._backgrounds):
+            self._current_bg_index = -1  # back to drawn background
+        
+        # Invalidate cached background so it redraws
+        self._bg_surface = None
+        
+        if self._current_bg_index == -1:
+            bg_name = "drawn bathroom"
+        else:
+            bg_name = self._backgrounds[self._current_bg_index]['name']
+        
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] Switched to background: {bg_name}")
 
     def _draw_panic_overlay(self):
         """Draw 'Technical Difficulties' full-screen overlay when panic mode is active."""
