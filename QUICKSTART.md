@@ -10,7 +10,7 @@ The server auto-detects your hardware via `server/hardware.py` and picks optimal
 
 | Tier | GPU VRAM | RAM | CPU Cores | LLM Model |
 |------|----------|-----|-----------|-----------|
-| **Ultra** (Threadripper) | ≥20 GB | ≥128 GB | ≥32 | 70B Q4 + Mixtral 8x7B |
+| **Ultra** (Threadripper) | ≥20 GB | ≥128 GB | ≥32 | gemma3:27b + llama3.1:8b |
 | High | ≥10 GB | ≥32 GB | ≥8 | llama3 (single) |
 | Medium | ≥6 GB | ≥16 GB | any | llama3 (single) |
 | Low | <6 GB | <16 GB | any | llama3 (single) |
@@ -30,8 +30,8 @@ pip install -r server/requirements.txt
 
 # Install Ollama (https://ollama.ai)
 # Then pull the models:
-ollama pull llama3.1:70b-instruct-q4_K_M    # Quality model (~40GB download)
-ollama pull mixtral:8x7b                      # Fast model (~26GB download)
+ollama pull gemma3:27b       # Quality model (~16GB download, fits 24GB VRAM)
+ollama pull llama3.1:8b      # Fast model (~4.7GB download)
 ```
 
 ## Step 2: Configure

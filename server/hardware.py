@@ -92,6 +92,13 @@ def _tier(hw: dict) -> str:
 
 
 _TIER_DEFAULTS = {
+    # Ultra tier: ≥20GB VRAM, ≥128GB RAM, ≥32 cores
+    # VRAM budget (24GB card like 3090 Ti):
+    #   Quality LLM ~8-10GB + GPT-SoVITS ~8GB + overhead ~2GB = ~20GB
+    #   Fast LLM swaps in when quality unloads (Ollama keep_alive manages this)
+    # NOTE: 70b models need partial CPU offloading (~39GB total).
+    #   With Threadripper Pro 8-channel DDR4 (~200GB/s), offloading works at
+    #   ~10-15 tok/s. To use 70b, set llm_quality_model in config.json manually.
     "ultra": {
         "tts_workers": 8,
         "tts_concurrency": 6,
@@ -102,8 +109,8 @@ _TIER_DEFAULTS = {
         "llm_num_predict": 250,
         "llm_num_ctx": 8192,
         "conversation_history_limit": 150,
-        "llm_quality_model": "llama3.1:70b-q4_k_m",
-        "llm_fast_model": "mixtral:8x7b",
+        "llm_quality_model": "gemma3:27b",
+        "llm_fast_model": "llama3.1:8b",
         "stt_device": "cpu",
     },
     "high": {
