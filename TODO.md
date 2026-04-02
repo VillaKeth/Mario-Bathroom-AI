@@ -147,3 +147,7 @@
 - [ ] MINOR: Expand canary smoke tests to cover new features
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
 - [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
+
+## Tests
+- [x] Add TestVIPBypassFix class to test_edge_cases.py (5 tests)
+- [x] Add TestStateAccessThreadSafety class to test_edge_cases.py (2 tests)

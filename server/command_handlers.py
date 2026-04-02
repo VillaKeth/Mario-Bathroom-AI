@@ -526,14 +526,8 @@ def handle_special_commands(
             return f"You know, I've been here a while but my memory is-a fuzzy! Too many guests!"
 
     # Who am I / what do you know about me
+    # Always fall through to LLM pipeline so VIP knowledge (Qdrant) gets injected
     if any(w in lower for w in ["who am i", "do you know me", "remember me", "know anything about me", "what do you remember"]):
-        if state["speaker_id"]:
-            memories = memory_module.get_memories_for_context(state["speaker_id"])
-            if memories:
-                facts_text = ", ".join(memories[:4])
-                return f"Of course I remember-a you, {state['speaker_name'] or 'friend'}! I know that {facts_text}!"
-        # No SQLite memories — fall through to VIP-aware LLM pipeline
-        # This allows Qdrant VIP facts to be injected into the LLM context
         return None
 
     # How do I look

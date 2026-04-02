@@ -1765,13 +1765,15 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
         state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
 
-    state_current["_user_request_active"] = True
+    async with _state_lock:
+        state_current["_user_request_active"] = True
     try:
         await _process_audio(ws, audio_chunk)
     finally:
         # Keep guard active for 3s after response to prevent idle TTS during audio playback
         await asyncio.sleep(3.0)
-        state_current["_user_request_active"] = False
+        async with _state_lock:
+            state_current["_user_request_active"] = False
 
 
 # Moved to server/llm_router.py as infer_response_type()
@@ -3665,14 +3667,16 @@ async def handle_event(ws: WebSocket, event: dict):
         if not text:
             return
 
-        state_current["_user_request_active"] = True
+        async with _state_lock:
+            state_current["_user_request_active"] = True
         try:
             await _handle_text_input(ws, text)
         finally:
             # Match audio handler: keep guard active briefly after response
             # to prevent idle TTS from firing immediately after text response
             await asyncio.sleep(2.0)
-            state_current["_user_request_active"] = False
+            async with _state_lock:
+                state_current["_user_request_active"] = False
 
     elif event_type == "health_ping":
         # Respond to client health pings
