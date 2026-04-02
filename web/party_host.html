@@ -113,6 +113,9 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
     <div class="action-btn" onclick="restartSovits()">
       <div class="icon">🔧</div><div class="label">Restart TTS Engine</div>
     </div>
+    <div class="action-btn danger" onclick="forceStopGame()">
+      <div class="icon">🛑</div><div class="label">Force Stop Game</div>
+    </div>
     <div class="action-btn danger full-width" onclick="resetParty()">
       <div class="icon">🗑️</div><div class="label">Reset All Party Stats</div>
     </div>
@@ -261,6 +264,16 @@ async function triggerMemorial() {
   } catch (e) {
     showToast('Failed: ' + e.message, true);
     addLog('Memorial failed: ' + e.message, true);
+  }
+}
+
+async function forceStopGame() {
+  try {
+    const res = await apiCall('/admin/force_stop_game', 'POST');
+    showToast('🛑 ' + (res.message || 'Game stopped'));
+    addLog('Force-stopped active game');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
   }
 }
 

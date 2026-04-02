@@ -1087,6 +1087,22 @@ async def admin_announce(request_body: dict = {}):
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
+@app.post("/admin/force_stop_game")
+async def force_stop_game(request_body: dict = {}):
+    """Force-stop any active game (emergency recovery for stuck games)."""
+    global state_current
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    game = state_current.get("_active_game")
+    if not game:
+        return {"status": "ok", "message": "No active game to stop"}
+    state_current["_active_game"] = None
+    state_current["_game_state"] = {}
+    logger.warning(f"[ADMIN] Force-stopped active game: {game}")
+    return {"status": "ok", "message": f"Force-stopped game: {game}"}
+
+
 @app.post("/admin/trigger_memorial")
 async def trigger_memorial(request_body: dict = {}):
     """Manually trigger the Lisa Webb memorial moment."""
