@@ -652,6 +652,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return f"TRUTH OR DARE! Let's-a play! Round 1 of {mr}! Say 'truth' or 'dare'!"
 
     if game_name == "riddles":
+        if not RIDDLES:
+            return "Mama mia! I ran out of riddles! Let's-a play something else!"
         riddle = random.choice(RIDDLES)
         state["_active_game"] = "riddles"
         state["_game_state"] = {
@@ -683,6 +685,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     if game_name == "rapid_fire":
         questions = list(RAPID_FIRE_QUESTIONS)
+        if not questions:
+            return "Mama mia! I ran out of questions for Rapid Fire! Let's-a play something else!"
         random.shuffle(questions)
         max_r = get_adaptive_rounds("rapid_fire", config["rapid_fire_max_rounds"], state)
         state["_active_game"] = "rapid_fire"
@@ -698,6 +702,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return f"RAPID FIRE QUIZ! Answer as fast as you can! {max_r} questions, GO! Q1: {first_q}"
 
     if game_name == "would_you_rather":
+        if not WOULD_YOU_RATHER:
+            return "Mama mia! I ran out of Would You Rather questions! Let's-a play something else!"
         random.shuffle(WOULD_YOU_RATHER)
         max_rounds = config.get("truth_dare_max_rounds", 5)
         state["_active_game"] = "would_you_rather"
@@ -737,6 +743,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     if game_name == "hot_takes":
         takes = list(HOT_TAKES)
+        if not takes:
+            return "Mama mia! I ran out of hot takes! Let's-a play something else!"
         random.shuffle(takes)
         state["_active_game"] = "hot_takes"
         state["_game_state"] = {
@@ -751,6 +759,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     if game_name == "never_have_i_ever":
         prompts = list(NHIE_PROMPTS)
+        if not prompts:
+            return "Mama mia! I ran out of Never Have I Ever prompts! Let's-a play something else!"
         random.shuffle(prompts)
         state["_active_game"] = "never_have_i_ever"
         state["_game_state"] = {
@@ -767,6 +777,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     if game_name == "mario_trivia":
         max_r = get_adaptive_rounds("mario_trivia", 5, state)
         questions = _mix_jacob_trivia(MARIO_TRIVIA_QUESTIONS, count=max_r)
+        if not questions:
+            return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
             "questions": questions,
@@ -786,6 +798,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     # --- Name That Character ---
     if game_name == "name_that_character":
         chars = list(NAME_THAT_CHARACTER)
+        if not chars:
+            return "Mama mia! I ran out of characters to describe! Let's-a play something else!"
         random.shuffle(chars)
         max_r = min(5, len(chars))
         state["_active_game"] = "name_that_character"
@@ -804,6 +818,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     # --- Bathroom Dare ---
     if game_name == "bathroom_dare":
         dares = list(BATHROOM_DARES)
+        if not dares:
+            return "Mama mia! I ran out of dares! Let's-a play something else!"
         random.shuffle(dares)
         max_r = 3
         state["_active_game"] = "bathroom_dare"
@@ -833,6 +849,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     # --- Would You Rather (Extended/Mario Edition) ---
     if game_name == "wyr_mario":
         combined = list(WYR_EXTENDED)
+        if not combined:
+            return "Mama mia! I ran out of Would You Rather scenarios! Let's-a play something else!"
         random.shuffle(combined)
         max_rounds = 5
         state["_active_game"] = "wyr_mario"
@@ -963,6 +981,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
     # --- Truth or Dare ---
     if game == "truth_or_dare":
         if "truth" in lower:
+            if not TRUTH_QUESTIONS:
+                return ("Mama mia! I ran out of truth questions! Let's-a play something else!", "game_over")
             truth = random.choice(TRUTH_QUESTIONS)
             gs["round"] += 1
             emotion_sys.current = Emotion.MISCHIEVOUS
@@ -973,6 +993,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             return (f"TRUTH! {truth} Tell me your answer, then say 'truth' or 'dare' for round {gs['round']}!", None)
 
         if "dare" in lower:
+            if not DARES:
+                return ("Mama mia! I ran out of dares! Let's-a play something else!", "game_over")
             dare = random.choice(DARES)
             gs["round"] += 1
             emotion_sys.current = Emotion.EXCITED
