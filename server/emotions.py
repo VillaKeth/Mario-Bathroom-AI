@@ -1,6 +1,8 @@
 """Emotion and mood system for Mario."""
 
+import json
 import logging
+import re
 import threading
 import time
 
@@ -22,6 +24,20 @@ class Emotion:
     FRUSTRATED = "frustrated"
     EMBARRASSED = "embarrassed"
     NEUTRAL = "neutral"
+    # New emotions for expanded system (13 → 26)
+    ANNOYED = "annoyed"
+    LAUGHING = "laughing"
+    SAD = "sad"
+    ANGRY = "angry"
+    NERVOUS = "nervous"
+    SCARED = "scared"
+    LOVE = "love"
+    DISGUSTED = "disgusted"
+    DETERMINED = "determined"
+    CURIOUS = "curious"
+    THINKING = "thinking"
+    SHOCKED = "shocked"
+    IDEA = "idea"
 
 
 # How emotions affect TTS voice parameters — more dramatic range for Neuro-sama energy
@@ -39,6 +55,20 @@ EMOTION_VOICE_MAP = {
     Emotion.FRUSTRATED: {"rate": "+15%", "pitch": "-3Hz"},
     Emotion.EMBARRASSED: {"rate": "-12%", "pitch": "+4Hz"},
     Emotion.NEUTRAL:    {"rate": "+0%", "pitch": "+0Hz"},
+    # New emotions (13 → 26)
+    Emotion.ANNOYED:    {"rate": "+12%", "pitch": "-2Hz"},
+    Emotion.LAUGHING:   {"rate": "+25%", "pitch": "+5Hz"},
+    Emotion.SAD:        {"rate": "-18%", "pitch": "-4Hz"},
+    Emotion.ANGRY:      {"rate": "+20%", "pitch": "-5Hz"},
+    Emotion.NERVOUS:    {"rate": "+5%", "pitch": "+3Hz"},
+    Emotion.SCARED:     {"rate": "+10%", "pitch": "+6Hz"},
+    Emotion.LOVE:       {"rate": "-5%", "pitch": "+4Hz"},
+    Emotion.DISGUSTED:  {"rate": "-10%", "pitch": "-3Hz"},
+    Emotion.DETERMINED: {"rate": "+12%", "pitch": "+1Hz"},
+    Emotion.CURIOUS:    {"rate": "+8%", "pitch": "+3Hz"},
+    Emotion.THINKING:   {"rate": "-15%", "pitch": "+1Hz"},
+    Emotion.SHOCKED:    {"rate": "+25%", "pitch": "+7Hz"},
+    Emotion.IDEA:       {"rate": "+18%", "pitch": "+5Hz"},
 }
 
 # Emotion descriptions for the LLM prompt — Neuro-sama dramatic style
@@ -56,7 +86,46 @@ EMOTION_DESCRIPTIONS = {
     Emotion.FRUSTRATED: "MAMA MIA! Things aren't going your way! Be grumpy but funny about it!",
     Emotion.EMBARRASSED: "Oh no... that was awkward... try to play it cool but FAIL at playing it cool.",
     Emotion.NEUTRAL:    "Normal Mario vibes — ready for anything!",
+    # New emotions (13 → 26)
+    Emotion.ANNOYED:    "You're slightly irritated but holding it in... barely. Side-eye energy.",
+    Emotion.LAUGHING:   "You're CRACKING UP! Can't stop laughing! This is HILARIOUS! Hahahaha!",
+    Emotion.SAD:        "You're feeling down... genuinely sad... try to be brave but it shows.",
+    Emotion.ANGRY:      "You're ANGRY! Fired up! Channel it into dramatic Mario rage! RARGH!",
+    Emotion.NERVOUS:    "You're nervous! A bit jittery! What if something goes wrong?! Be anxious!",
+    Emotion.SCARED:     "You're SCARED! Genuinely frightened! Wide eyes! Maybe hide behind Luigi!",
+    Emotion.LOVE:       "You're in LOVE! Heart eyes! This is THE BEST! Be absolutely smitten!",
+    Emotion.DISGUSTED:  "Ewww! GROSS! You're disgusted! Make a face! This is NASTY!",
+    Emotion.DETERMINED: "You're LOCKED IN! Nothing can stop you! Be focused and fierce!",
+    Emotion.CURIOUS:    "You're SO curious! What's that?! Tell me more! Be inquisitive and eager!",
+    Emotion.THINKING:   "Hmmm... you're deep in thought... pondering... be contemplative...",
+    Emotion.SHOCKED:    "SHOCKED! Mind = BLOWN! This is UNBELIEVABLE! Jaw on the floor!",
+    Emotion.IDEA:       "AHA! You just had a BRILLIANT idea! Eureka moment! Light bulb! Share it!",
 }
+
+
+def extract_emotion_tag(response: str) -> str:
+    """Extract emotion from LLM response JSON. Returns 'neutral' on failure."""
+    if DEBUG_EMOTION:
+        logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parsing response")
+    try:
+        # Try to find JSON at end of response
+        json_match = re.search(r'\{[^{}]*"emotion"[^{}]*\}', response)
+        if json_match:
+            data = json.loads(json_match.group())
+            emotion = data.get("emotion", "neutral")
+            # Validate against known emotions
+            known = {v for k, v in vars(Emotion).items() if not k.startswith("_") and isinstance(v, str)}
+            if emotion in known:
+                if DEBUG_EMOTION:
+                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: extracted '{emotion}'")
+                return emotion
+            else:
+                if DEBUG_EMOTION:
+                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: unknown emotion '{emotion}', using 'neutral'")
+    except (json.JSONDecodeError, AttributeError) as e:
+        if DEBUG_EMOTION:
+            logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parse error {e}, using 'neutral'")
+    return "neutral"
 
 
 class EmotionSystem:
@@ -342,6 +411,20 @@ class EmotionSystem:
             Emotion.FRUSTRATED: "frustrated",
             Emotion.EMBARRASSED: "embarrassed",
             Emotion.NEUTRAL: "idle",
+            # New emotions (13 → 26)
+            Emotion.ANNOYED: "annoyed",
+            Emotion.LAUGHING: "laughing",
+            Emotion.SAD: "sad",
+            Emotion.ANGRY: "angry",
+            Emotion.NERVOUS: "nervous",
+            Emotion.SCARED: "scared",
+            Emotion.LOVE: "love",
+            Emotion.DISGUSTED: "disgusted",
+            Emotion.DETERMINED: "determined",
+            Emotion.CURIOUS: "curious",
+            Emotion.THINKING: "thinking",
+            Emotion.SHOCKED: "shocked",
+            Emotion.IDEA: "idea",
         }
         return mapping.get(self.current, "idle")
 
