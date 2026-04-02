@@ -14,7 +14,7 @@
 - [ ] Sub-C: Jacob VIP pre-registration (face + voice + knowledge)
 - [ ] Sub-D: LLM-analyzed sentiment replacing keyword matching
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
-- [ ] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
+- [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
 - [ ] Shot Events System — Lisa Webb memorial + Birthday Boy shot + Deltarune shot
 - [ ] Easter egg: "Jacob said the N-Word" line 3-5 times per night
 - [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)
