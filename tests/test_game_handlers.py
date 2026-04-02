@@ -552,5 +552,83 @@ class TestGameLastInputTime(unittest.TestCase):
         self.assertGreater(state["_game_last_input_time"], 0)
 
 
+class TestConcurrentGameGuard(unittest.TestCase):
+    """Tests for concurrent game guard and per-guest rotation tracking."""
+
+    def setUp(self):
+        reset_game_rotation()
+
+    def _emo(self):
+        emo = MagicMock()
+        emo.current = "happy"
+        emo.update = lambda *a, **kw: None
+        return emo
+
+    def _cfg(self):
+        return {
+            "simon_max_rounds": 5,
+            "twenty_q_max": 20,
+            "truth_dare_rounds": 3,
+            "riddle_max_attempts": 5,
+            "word_chain_lives": 3,
+            "karaoke_max_rounds": 3,
+            "hot_takes_rounds": 5,
+            "nhie_rounds": 5,
+            "rapid_fire_time": 30,
+            "dare_count": 3,
+            "wyr_rounds": 5,
+        }
+
+    # 1. Start simon_says, then try riddles — second call blocked
+    def test_start_game_while_active_blocked(self):
+        state = _make_state()
+        start_game("simon_says", state, _make_config(), self._emo())
+        self.assertEqual(state["_active_game"], "simon_says")
+        result = start_game("riddles", state, _make_config(), self._emo())
+        self.assertIsInstance(result, str)
+        self.assertIn("already playing", result.lower())
+
+    # 2. state with _active_game=None should start normally
+    def test_start_game_when_no_active_game_works(self):
+        state = _make_state()
+        state["_active_game"] = None
+        result = start_game("simon_says", state, _make_config(), self._emo())
+        self.assertIsNotNone(result)
+        self.assertNotIn("already playing", result.lower())
+        self.assertEqual(state["_active_game"], "simon_says")
+
+    # 3. Warning message should mention the current game name
+    def test_concurrent_guard_message_includes_game_name(self):
+        state = _make_state()
+        start_game("simon_says", state, _make_config(), self._emo())
+        result = start_game("riddles", state, _make_config(), self._emo())
+        self.assertIn("simon_says", result)
+
+    # 4. record_game_played with state tracks per-guest
+    def test_per_guest_rotation_tracking(self):
+        state = {"_recent_games": []}
+        record_game_played("riddles", state)
+        self.assertIn("riddles", state["_recent_games"])
+
+    # 5. pick_random_game avoids guest-recent games
+    def test_pick_random_avoids_guest_recent(self):
+        all_quick = list(QUICK_GAMES)
+        # Keep one game out, put the rest in the last _ROTATION_BUFFER slots
+        the_one = all_quick[0]
+        recent = all_quick[1:]  # all except the_one — buffer trims to last 5
+        state = {"_recent_games": recent}
+        # Run multiple times to account for randomness
+        for _ in range(20):
+            result = pick_random_game(state)
+            # result should never be one of the last 5 recent games
+            self.assertNotIn(result, recent[-5:])
+
+    # 6. record_game_played without state still tracks globally
+    def test_global_rotation_still_works(self):
+        reset_game_rotation()
+        record_game_played("riddles")
+        self.assertIn("riddles", get_recent_games())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -432,20 +432,22 @@ class TestGameRotation:
     def test_rotation_avoids_recent_games(self):
         from game_handlers import pick_random_game, record_game_played, QUICK_GAMES, _ROTATION_BUFFER
         # Play the last _ROTATION_BUFFER games so only earlier ones are available
+        state = {}
         recent = QUICK_GAMES[-_ROTATION_BUFFER:]
         for g in recent:
-            record_game_played(g)
-        # Picked game should NOT be in the recent buffer
-        picked = pick_random_game({})
+            record_game_played(g, state=state)
+        # Picked game should NOT be in the recent buffer (per-guest tracking)
+        picked = pick_random_game(state)
         assert picked not in recent
 
     def test_rotation_resets_when_all_played(self):
         from game_handlers import pick_random_game, record_game_played, QUICK_GAMES
-        # Play ALL quick games
+        # Play ALL quick games with per-guest state
+        state = {}
         for g in QUICK_GAMES:
-            record_game_played(g)
+            record_game_played(g, state=state)
         # Should still return a valid game (resets pool)
-        picked = pick_random_game({})
+        picked = pick_random_game(state)
         assert picked in QUICK_GAMES
 
     def test_start_game_records_rotation(self):
