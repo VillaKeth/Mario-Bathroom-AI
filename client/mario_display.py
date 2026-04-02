@@ -1558,31 +1558,26 @@ class MarioDisplay:
         right.fill((r, g, b, glow_alpha))
         self._screen.blit(right, (WINDOW_WIDTH - glow_w, 0))
 
-    def _draw_speech_bubble(self, text: str):
-        """Draw Mario's speech bubble with style variations."""
-        style = self._detect_bubble_style(self._typewriter_text)
-        max_width = 350
+    def _wrap_text_for_bubble(self, text: str, font, max_width: int) -> list[str]:
+        """Wrap text to fit within max_width using given font."""
         words = text.split()
         lines = []
         current_line = ""
-
         for word in words:
-            # Break long words that exceed max_width on their own
-            if self._font.size(word)[0] > max_width:
+            if font.size(word)[0] > max_width:
                 if current_line:
                     lines.append(current_line)
                     current_line = ""
-                # Split by character
                 for char in word:
                     test = current_line + char
-                    if self._font.size(test)[0] > max_width:
+                    if font.size(test)[0] > max_width:
                         lines.append(current_line)
                         current_line = char
                     else:
                         current_line = test
                 continue
             test = current_line + " " + word if current_line else word
-            if self._font.size(test)[0] > max_width:
+            if font.size(test)[0] > max_width:
                 if current_line:
                     lines.append(current_line)
                 current_line = word
@@ -1590,13 +1585,40 @@ class MarioDisplay:
                 current_line = test
         if current_line:
             lines.append(current_line)
+        return lines
 
-        if not lines:
+    def _draw_speech_bubble(self, text: str):
+        """Draw Mario's speech bubble with style variations."""
+        style = self._detect_bubble_style(self._typewriter_text)
+        max_width = 350
+        max_bubble_height = 180  # max height for text content
+        min_font_size = 14
+        max_font_size = 28
+        
+        # Auto-shrink: find largest font that fits
+        best_font = None
+        best_lines = []
+        best_size = min_font_size
+        for size in range(max_font_size, min_font_size - 1, -2):
+            font = pygame.font.Font(None, size)
+            lines = self._wrap_text_for_bubble(text, font, max_width)
+            total_height = len(lines) * (size + 4)
+            if total_height <= max_bubble_height:
+                best_font = font
+                best_lines = lines
+                best_size = size
+                break
+            best_lines = lines
+        
+        if best_font is None:
+            best_font = pygame.font.Font(None, min_font_size)
+        
+        if not best_lines:
             return
-
-        line_height = 28
+        
+        line_height = best_size + 4
         bubble_w = max_width + 40
-        bubble_h = len(lines) * line_height + 30
+        bubble_h = len(best_lines) * line_height + 30
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = 58
 
@@ -1675,16 +1697,17 @@ class MarioDisplay:
                           and (self._frame // 8) % 2 == 0)
 
         # Text
-        for i, line in enumerate(lines):
-            text_surf = self._font.render(line, True, text_color)
+        for i, line in enumerate(best_lines):
+            text_surf = best_font.render(line, True, text_color)
             self._screen.blit(text_surf, (bubble_x + 20, bubble_y + 15 + i * line_height))
 
         # Blinking cursor at end of typewriter text
-        if showing_cursor and lines:
-            last_line = lines[-1]
-            cursor_x = bubble_x + 20 + self._font.size(last_line)[0] + 2
-            cursor_y = bubble_y + 15 + (len(lines) - 1) * line_height
-            pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, 22))
+        if showing_cursor and best_lines:
+            last_line = best_lines[-1]
+            cursor_x = bubble_x + 20 + best_font.size(last_line)[0] + 2
+            cursor_y = bubble_y + 15 + (len(best_lines) - 1) * line_height
+            cursor_height = best_size - 6
+            pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, cursor_height))
 
     def _draw_subtitle(self, text: str):
         """Draw subtitle text at the bottom (what the user said)."""
