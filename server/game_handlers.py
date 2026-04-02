@@ -1237,8 +1237,9 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 state["_game_state"] = {}
                 emotion_sys.current = Emotion.EXCITED
                 return (f"CORRECT! Final score: {score}/{total} in {elapsed:.0f}s! Wahoo! You're a Mario expert!", "achievement")
-            next_q = gs["questions"][next_idx]["q"]
-            return (f"YES! Q{next_idx + 1}: {next_q}", "correct")
+            else:
+                next_q = gs["questions"][next_idx]["q"]
+                return (f"YES! Q{next_idx + 1}: {next_q}", "correct")
         else:
             if next_idx >= len(gs["questions"]):
                 elapsed = time.time() - gs["start_time"]
@@ -1248,8 +1249,9 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 state["_game_state"] = {}
                 emotion_sys.current = Emotion.HAPPY
                 return (f"Nope, it was '{answer}'! Final score: {score}/{total} in {elapsed:.0f}s! Good try!", "game_over")
-            next_q = gs["questions"][next_idx]["q"]
-            return (f"Nope! It was '{answer}'! Q{next_idx + 1}: {next_q}", "wrong")
+            else:
+                next_q = gs["questions"][next_idx]["q"]
+                return (f"Nope! It was '{answer}'! Q{next_idx + 1}: {next_q}", "wrong")
 
     # --- Would You Rather ---
     if game == "would_you_rather":
@@ -1277,10 +1279,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_game_state"] = {}
             emotion_sys.current = Emotion.HAPPY
             return (f"{reaction} Game over! Great choices! You're-a unique! Wahoo!", "game_over")
-
-        next_q = gs["questions"][gs["current"]]
-        next_round = gs["current"] + 1
-        return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
+        else:
+            next_q = gs["questions"][gs["current"]]
+            next_round = gs["current"] + 1
+            return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
 
     # --- Rock Paper Scissors ---
     if game == "rock_paper_scissors":
@@ -1556,9 +1558,9 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 return (f"{feedback} Final score: {score}/{total}! Great job, you know your stuff!", "game_over")
             else:
                 return (f"{feedback} Final score: {score}/{total}! Time to play more Mario games! Ha ha!", "game_over")
-
-        next_q = gs["questions"][next_idx]["q"]
-        return (f"{feedback} Question {next_idx + 1}: {next_q}", sfx)
+        else:
+            next_q = gs["questions"][next_idx]["q"]
+            return (f"{feedback} Question {next_idx + 1}: {next_q}", sfx)
 
     # --- Name That Character ---
     if game == "name_that_character":
@@ -1602,10 +1604,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Not bad at all!", "game_over")
             else:
                 return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Time to study your Mario characters!", "game_over")
-
-        gs["round_start"] = time.time()
-        next_desc = gs["characters"][next_idx]["desc"]
-        return (f"{feedback} Character {next_idx + 1}: {next_desc}", sfx)
+        else:
+            gs["round_start"] = time.time()
+            next_desc = gs["characters"][next_idx]["desc"]
+            return (f"{feedback} Character {next_idx + 1}: {next_desc}", sfx)
 
     # --- Bathroom Dare ---
     if game == "bathroom_dare":
@@ -1729,10 +1731,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_game_state"] = {}
             emotion_sys.current = Emotion.HAPPY
             return (f"{reaction} All rounds done! Your choices were: {choices_summary}! You are TRULY one of a kind! Wahoo!", "game_over")
-
-        next_q = gs["questions"][gs["current"]]
-        next_round = gs["current"] + 1
-        return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
+        else:
+            next_q = gs["questions"][gs["current"]]
+            next_round = gs["current"] + 1
+            return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
 
     return None
 

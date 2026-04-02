@@ -427,3 +427,65 @@ class TestTTSPreprocessing:
         result = synthesize("")
         assert result is not None
         assert len(result) > 0
+
+
+# --- TTS Pre-clean ---
+
+class TestPrecleanTtsText:
+    """Verify _preclean_tts_text strips problematic chars for TTS engines."""
+
+    def test_ellipsis_three_dots(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello... world") == "Hello, world"
+
+    def test_ellipsis_smart(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello\u2026 world") == "Hello, world"
+
+    def test_ellipsis_two_dots(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello.. world") == "Hello, world"
+
+    def test_ellipsis_at_end(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Mama mia...") == "Mama mia"
+
+    def test_ellipsis_at_start(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("...Ready?") == "Ready?"
+
+    def test_smart_quotes_removed(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("\u201cHello\u201d") == "Hello"
+
+    def test_em_dash_to_comma(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello\u2014world") == "Hello, world"
+
+    def test_asterisks_removed(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("*laughs* hello") == "laughs hello"
+
+    def test_comma_after_punctuation(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Wahoo! ...Ready?") == "Wahoo! Ready?"
+
+    def test_only_ellipsis(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("...") == ""
+
+    def test_double_commas_collapsed(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello,, world") == "Hello, world"
+
+    def test_multiple_issues(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello... *laughs*... world") == "Hello, laughs, world"
+
+    def test_normal_text_unchanged(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello world!") == "Hello world!"
+
+    def test_trailing_comma_removed(self):
+        from tts import _preclean_tts_text
+        assert _preclean_tts_text("Hello world,") == "Hello world"

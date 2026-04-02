@@ -1,6 +1,25 @@
 # Mario AI Party Bot - TODO
 
-## v3.11 TTS Quality + Audio Normalization (Current — 636 tests)
+## v3.12 TTS Cache + UI Fixes (Current)
+- [x] Deep ellipsis pre-clean: _preclean_tts_text() in tts.py sanitizes ALL text before cache/TTS
+- [x] Purge stale TTS cache: purge_stale_cache() deleted 1109 bad entries
+- [x] Cache management: clear_all_cache() for full reset
+- [x] Fixed all hardcoded ellipsis in mario_prompt.py (20+ strings) and llm.py (3 strings)
+- [x] Fixed perfect_cache_v2.py .lower() cache key mismatch
+- [x] Two-strip header layout (title bar Y=0-28, info strip Y=28-50)
+- [x] Secret triple-tap F12 panic button (hidden from guests)
+- [x] Speech bubble stays visible while audio still playing
+- [x] Memorial interrupt priority (skips idle queue)
+- [x] Updated CLAUDE.md with TTS cache convention and UI layout rules
+- [ ] Test gemma3:27b quality on Threadripper before party
+- [ ] Run canary smoke test on Threadripper
+- [ ] Configure Tailscale for remote client access
+- [ ] Fix 5 game handler IndexError crash bugs (would_you_rather, wyr_mario, name_that_character, mario_trivia, rapid_fire)
+- [ ] Fix 13 client UI bugs from prior audit
+- [ ] Add tests for _preclean_tts_text()
+- [ ] Create release v3.12
+
+## v3.11 TTS Quality + Audio Normalization (Done — 636 tests)
 - [x] Audio normalization: peak normalize to -3dB for consistent volume
 - [x] New character pronunciations (Peach, Luigi, Yoshi, Daisy)
 - [x] Year-to-words conversion (2000-2099)
@@ -251,3 +270,9 @@
 
 ## TTS Source String Cleanup
 - [x] Replace all hardcoded ellipsis (...) in TTS-spoken strings with commas/periods (15 edits across mario_prompt.py and llm.py)
+
+## Idle Message Variety Fix
+- [x] Randomize idle category selection (random.randint instead of modulo rotation)
+- [x] Increase global dedup window from 15 → 50 messages
+- [x] Lower pool reset threshold from 90% → 60% for earlier item re-entry
+- [x] De-hardcode birthday person name from PHASE_PROMPTS in mario_prompt.py

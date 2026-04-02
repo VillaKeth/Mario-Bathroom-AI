@@ -763,7 +763,7 @@ class IdleBehavior:
         self._used_trivia = set()
         self._recently_used = []  # Track last N choices to avoid repeats
         self._used_items = {}  # pool_name -> set of recently used items
-        self._global_recent = []  # Global dedup: tracks last 15 messages sent regardless of pool
+        self._global_recent = []  # Global dedup: tracks last 50 messages sent regardless of pool
         self._last_time_comment_at = 0  # Cooldown for time-based comments
         # Per-category rotation tracking
         self._joke_index = random.randint(0, max(1, len(MARIO_JOKES)) - 1)
@@ -888,13 +888,13 @@ class IdleBehavior:
         if pool_name not in self._used_items:
             self._used_items[pool_name] = set()
         self._used_items[pool_name].add(choice)
-        # Reset when 90% of pool has been used (was 60%, too aggressive for small pools)
-        if len(self._used_items[pool_name]) >= len(pool) * 0.9:
+        # Reset when 60% of pool has been used to allow earlier re-entry
+        if len(self._used_items[pool_name]) >= len(pool) * 0.6:
             self._used_items[pool_name] = set()
         # Track in global recent
         self._global_recent.append(choice)
-        if len(self._global_recent) > 15:
-            self._global_recent = self._global_recent[-15:]
+        if len(self._global_recent) > 50:
+            self._global_recent = self._global_recent[-50:]
         return choice
 
     def get_idle_action(self, phase=None) -> str:
@@ -919,7 +919,7 @@ class IdleBehavior:
         phase_val = int(phase) if phase is not None else None
 
         # Rotate through categories for variety
-        category = self._action_count % 5
+        category = random.randint(0, 4)
         if category == 0:
             options = list(IDLE_MUMBLES)
         elif category == 1:
@@ -1080,9 +1080,9 @@ class IdleBehavior:
             self._memorial_delivered = True
             msg = (
                 f"*Mario removes his hat and holds it to his chest* "
-                f"Hey everyone... Can I have your attention for just a moment? "
+                f"Hey everyone, can I have your attention for just a moment? "
                 f"Tonight we're celebrating Jacob's birthday, but I want us to take a moment "
-                f"to remember someone very special — {memorial['person']}, {memorial['relationship']}. "
+                f"to remember someone very special, {memorial['person']}, {memorial['relationship']}. "
                 f"She passed away in 2023, and she meant the world to this family. "
                 f"Let's have a moment of silence for Aunt Lisa. "
                 f"*bows head in silence*"
@@ -1097,7 +1097,7 @@ class IdleBehavior:
                 f"She'd want us to CELEBRATE! So right now, everybody grab a drink — "
                 f"we're taking a shot for Aunt Lisa! 🥂 "
                 f"To Lisa Webb — the kind of person who made every room brighter! "
-                f"Ready? One... two... three... CHEERS! Wahoo! "
+                f"Ready? One, two, three, CHEERS! Wahoo! "
                 f"That one was for you, Aunt Lisa! Now let's-a party!"
             )
             return (msg, "toast")
