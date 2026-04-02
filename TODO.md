@@ -1,6 +1,26 @@
 # Mario AI Party Bot - TODO
 
-## v3.13 Memorial Overhaul + Party Polish (Current)
+## v3.14 Ultra Party Upgrade (Current)
+- [ ] Sub-A: Memorial v2 — voice trigger for "Lisa"/"Aunt Lisa", 10-sec dramatic countdown, music loop fix (loops=0), warm recovery line
+- [ ] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
+- [ ] Sub-A: Flush idle text queue when memorial starts
+- [ ] Sub-B: Speech bubble auto-shrink font (14-28px) with word wrap
+- [ ] Sub-B: Closed captions bar at bottom of screen
+- [ ] Sub-B: Speech bubble stays visible until TTS audio finishes
+- [ ] Sub-B: Hot-swappable bathroom backgrounds from assets/backgrounds/
+- [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
+- [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
+- [ ] Sub-C: Dynamic guest learning — Mario asks name, stores face+voice
+- [ ] Sub-C: Jacob VIP pre-registration (face + voice + knowledge)
+- [ ] Sub-D: LLM-analyzed sentiment replacing keyword matching
+- [ ] Sub-D: Per-guest mood persistence in Qdrant
+- [ ] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
+- [ ] Shot Events System — Lisa Webb memorial + Birthday Boy shot + Deltarune shot
+- [ ] Easter egg: "Jacob said the N-Word" line 3-5 times per night
+- [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)
+- [ ] Stable Diffusion prompts for Jacob's 1985 FL townhouse bathroom
+
+## v3.13 Memorial Overhaul + Party Polish
 - [x] Generate memorial SFX (chime + clink WAV files)
 - [x] Add memorial music support (pygame.mixer.music MP3 playback)
 - [x] 5-phase memorial display overlay (announcement, silence, toast, music, fadeout) with photo, particles, golden glow
