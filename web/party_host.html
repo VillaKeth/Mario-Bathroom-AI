@@ -38,10 +38,16 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
 .announce-row input::placeholder{color:#555}
 .announce-row button{background:#e94560;border:none;border-radius:8px;padding:10px 16px;color:#fff;font-weight:bold;cursor:pointer;white-space:nowrap}
 
-.stats-bar{display:flex;justify-content:space-around;background:#16213e;border-radius:10px;padding:10px;border:1px solid #0f3460;margin-bottom:12px}
-.stat{text-align:center}
+.stats-bar{display:flex;justify-content:space-around;background:#16213e;border-radius:10px;padding:10px;border:1px solid #0f3460;margin-bottom:12px;flex-wrap:wrap;gap:4px}
+.stat{text-align:center;min-width:60px}
 .stat .num{font-size:1.2em;font-weight:bold}
 .stat .lbl{font-size:.6em;color:#888;text-transform:uppercase}
+
+.info-panel{background:#16213e;border-radius:10px;padding:10px;border:1px solid #0f3460;margin-bottom:12px;font-size:.75em}
+.info-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0f346033}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#888}
+.info-value{font-weight:600;color:#e94560}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#00c853;color:#000;padding:10px 20px;border-radius:8px;font-size:.85em;font-weight:bold;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.error{background:#d50000;color:#fff}
@@ -62,6 +68,18 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
   <div class="stat"><div class="num" id="stUptime">-</div><div class="lbl">Uptime</div></div>
   <div class="stat"><div class="num" id="stGames">-</div><div class="lbl">Games</div></div>
   <div class="stat"><div class="num" id="stPhase">-</div><div class="lbl">Phase</div></div>
+  <div class="stat"><div class="num" id="stEmotion">-</div><div class="lbl">Emotion</div></div>
+  <div class="stat"><div class="num" id="stCache">-</div><div class="lbl">TTS Cache</div></div>
+</div>
+
+<div class="info-panel" id="infoPanel">
+  <div class="info-row"><span class="info-label">Active Game</span><span class="info-value" id="infoGame">None</span></div>
+  <div class="info-row"><span class="info-label">User Active</span><span class="info-value" id="infoActive">No</span></div>
+  <div class="info-row"><span class="info-label">Avg Response</span><span class="info-value" id="infoResp">-</span></div>
+  <div class="info-row"><span class="info-label">LLM Model</span><span class="info-value" id="infoModel">-</span></div>
+  <div class="info-row"><span class="info-label">Gossip</span><span class="info-value" id="infoGossip">-</span></div>
+  <div class="info-row"><span class="info-label">Memory</span><span class="info-value" id="infoMem">-</span></div>
+  <div class="info-row"><span class="info-label">Errors</span><span class="info-value" id="infoErrors">0</span></div>
 </div>
 
 <div class="section">
@@ -168,10 +186,22 @@ async function pollHealth() {
     pill.textContent = tier;
     pill.className = 'status-pill ' + (tier === 'FULL' ? 'status-ok' : tier === 'DEGRADED' ? 'status-warn' : 'status-bad');
 
-    document.getElementById('stGuests').textContent = d.total_guests || '0';
+    document.getElementById('stGuests').textContent = d.guests_served || d.total_visits || '0';
     document.getElementById('stUptime').textContent = fmtUptime(d.uptime_seconds);
-    document.getElementById('stGames').textContent = d.games_played || '0';
+    document.getElementById('stGames').textContent = d.active_games || '0';
     document.getElementById('stPhase').textContent = d.current_phase || '-';
+    document.getElementById('stEmotion').textContent = d.emotion || '-';
+    document.getElementById('stCache').textContent = (d.tts_cache_mb || 0).toFixed(0) + 'MB';
+
+    document.getElementById('infoGame').textContent = d.active_game || 'None';
+    document.getElementById('infoActive').textContent = d.user_active ? '🟢 Yes' : '⚫ No';
+    document.getElementById('infoResp').textContent = d.avg_response_time || '-';
+    document.getElementById('infoModel').textContent = d.llm_model || '-';
+    document.getElementById('infoGossip').textContent = (d.gossip_entries || 0) + ' entries, ' + (d.gossip_guests || 0) + ' guests';
+    document.getElementById('infoMem').textContent = (d.memory_mb || 0).toFixed(0) + 'MB RSS' + (d.semantic_memory ? ' + Qdrant' : '');
+    document.getElementById('infoErrors').textContent = d.error_count || '0';
+    const errEl = document.getElementById('infoErrors');
+    errEl.style.color = (d.error_count > 0) ? '#ff6b6b' : '#00c853';
   } catch (e) {
     document.getElementById('statusPill').textContent = 'OFFLINE';
     document.getElementById('statusPill').className = 'status-pill status-bad';
