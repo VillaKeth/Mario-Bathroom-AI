@@ -564,21 +564,27 @@ _ROTATION_BUFFER = 5  # Don't repeat within last 5 games
 
 
 def pick_random_game(state: dict) -> str:
-    """Pick a random game that hasn't been played recently.
+    """Pick a random game that hasn't been played recently by this guest.
     Prefers quick/party-friendly games for random selection."""
-    # Filter out recently played games
-    available = [g for g in QUICK_GAMES if g not in _recent_games[-_ROTATION_BUFFER:]]
+    guest_recent = state.get("_recent_games", [])
+    available = [g for g in QUICK_GAMES if g not in guest_recent[-_ROTATION_BUFFER:]]
     if not available:
         available = list(QUICK_GAMES)  # Reset if all played
     return random.choice(available)
 
 
-def record_game_played(game_name: str):
+def record_game_played(game_name: str, state: dict = None):
     """Record that a game was played for rotation tracking."""
     _recent_games.append(game_name)
-    # Cap buffer size
     if len(_recent_games) > 20:
         _recent_games[:] = _recent_games[-20:]
+    # Also track per-guest if state provided
+    if state is not None:
+        if "_recent_games" not in state:
+            state["_recent_games"] = []
+        state["_recent_games"].append(game_name)
+        if len(state["_recent_games"]) > 20:
+            state["_recent_games"] = state["_recent_games"][-20:]
 
 
 def get_recent_games() -> list[str]:
@@ -605,9 +611,13 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         config:    ``GAME_CONFIG`` dict from main.
         emotion_sys: ``EmotionSystem`` instance from main.
     """
+    # Guard: don't start a new game while one is active
+    if state.get("_active_game"):
+        current = state["_active_game"]
+        return f"Mama mia! We're already playing {current}! Say 'quit game' first if you want to switch!"
     import time as _time
     state["_game_last_input_time"] = _time.time()  # Start timeout clock
-    record_game_played(game_name)  # Track for rotation
+    record_game_played(game_name, state)  # Track for rotation
     if game_name == "simon_says":
         state["_active_game"] = "simon_says"
         max_r = get_adaptive_rounds("simon_says", config["simon_max_rounds"], state)

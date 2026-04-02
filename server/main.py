@@ -209,11 +209,14 @@ idle_behavior = IdleBehavior()
 party_gossip = PartyGossip()
 
 # Night Progression — personality escalation across party phases
+# Use party_stats persisted start time (survives restarts) unless config overrides
 _party_start_cfg = server_config.get("party_start_time")
-night_progression = NightProgression(
-    start_time=_party_start_cfg if isinstance(_party_start_cfg, (int, float)) and _party_start_cfg > 0 else None
-)
-logger.info(f"Night progression initialized (start_time={night_progression.start_time:.0f})")
+if isinstance(_party_start_cfg, (int, float)) and _party_start_cfg > 0:
+    _night_start = _party_start_cfg
+else:
+    _night_start = party_stats.party_start_time  # Persisted in SQLite
+night_progression = NightProgression(start_time=_night_start)
+logger.info(f"Night progression initialized (start_time={night_progression.start_time:.0f}, elapsed={night_progression.get_hours_elapsed():.1f}h)")
 
 # Birthday VIP system — special treatment for the guest of honor
 _birthday_name = server_config.get("birthday_person_name", "")
