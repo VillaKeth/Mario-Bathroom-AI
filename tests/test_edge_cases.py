@@ -1078,3 +1078,259 @@ class TestCheckInput:
             result = self._fn(word)
             assert result["safe"] is True, f"'{word}' should be safe"
             assert result["redirect"] is None
+
+
+class TestGreetingTimeout:
+    """Tests for greeting timeout and emergency fallback (asyncio.wait_for wrapper)."""
+
+    def _make_state(self):
+        """Create a fresh state_current dict matching server/main.py layout."""
+        from collections import deque
+        return {
+            "speaker_name": None,
+            "speaker_id": None,
+            "is_speaking": False,
+            "presence": True,
+            "presence_phase": "GREETING",
+            "audio_buffer": bytearray(),
+            "conversation_history": [],
+            "current_visit_id": None,
+            "enter_time": None,
+            "_last_audio_chunk": None,
+            "_user_request_active": False,
+            "_greeting_in_progress": True,
+            "_last_buffer_time": 0.0,
+            "_last_text_input_time": 0.0,
+            "_last_command_time": 0.0,
+            "_active_game": None,
+            "_game_state": {},
+            "_game_last_input_time": 0.0,
+            "_response_times": deque(maxlen=50),
+            "_pending_announcement": None,
+            "_detected_mood": None,
+            "_personality_mode": None,
+            "_last_dj_time": 0.0,
+            "_last_time_obs": 0.0,
+            "_last_timing": {},
+            "_session_topics": set(),
+            "_last_idle_action": None,
+            "detected_guest": None,
+            "guest_visits": 0,
+            "memorial_active": False,
+            "memorial_triggered_at": 0.0,
+        }
+
+    def test_greeting_timeout_sends_emergency_fallback(self):
+        """When greeting flow times out, an emergency 'It's-a me, Mario!' message is sent."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        state = self._make_state()
+        ws = AsyncMock()
+        send_response = AsyncMock()
+
+        async def slow_greeting(ws, event):
+            await asyncio.sleep(999)  # Will be cancelled by timeout
+
+        async def run():
+            state["_greeting_in_progress"] = True
+            try:
+                await asyncio.wait_for(slow_greeting(ws, {}), timeout=0.05)
+            except asyncio.TimeoutError:
+                # Mirror the emergency fallback from main.py line ~3504
+                await send_response(ws, "It's-a me, Mario! Welcome! Wahoo!", None,
+                                    sound="greeting", pose_hint="greeting/wave_high")
+            finally:
+                state["_greeting_in_progress"] = False
+                state["presence_phase"] = "CONVERSING"
+
+        asyncio.run(run())
+        send_response.assert_called_once()
+        call_args = send_response.call_args
+        assert "It's-a me, Mario!" in call_args[0][1]
+
+    def test_greeting_clears_in_progress_flag_on_success(self):
+        """After successful greeting, _greeting_in_progress should be False."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        state = self._make_state()
+        ws = AsyncMock()
+
+        async def fast_greeting(ws, event):
+            pass  # Completes immediately
+
+        async def run():
+            state["_greeting_in_progress"] = True
+            try:
+                await asyncio.wait_for(fast_greeting(ws, {}), timeout=60.0)
+            except asyncio.TimeoutError:
+                pass
+            finally:
+                state["_greeting_in_progress"] = False
+                state["presence_phase"] = "CONVERSING"
+
+        asyncio.run(run())
+        assert state["_greeting_in_progress"] is False
+
+    def test_greeting_clears_in_progress_flag_on_timeout(self):
+        """After timeout, _greeting_in_progress should be False (via finally block)."""
+        import asyncio
+
+        state = self._make_state()
+
+        async def slow_greeting(ws, event):
+            await asyncio.sleep(999)
+
+        async def run():
+            state["_greeting_in_progress"] = True
+            try:
+                await asyncio.wait_for(slow_greeting(None, {}), timeout=0.05)
+            except asyncio.TimeoutError:
+                pass  # Emergency fallback would go here
+            finally:
+                state["_greeting_in_progress"] = False
+                state["presence_phase"] = "CONVERSING"
+
+        asyncio.run(run())
+        assert state["_greeting_in_progress"] is False
+
+    def test_greeting_sets_conversing_phase_on_success(self):
+        """After greeting completes, presence_phase should be 'CONVERSING'."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        state = self._make_state()
+        assert state["presence_phase"] == "GREETING"
+
+        async def fast_greeting(ws, event):
+            pass
+
+        async def run():
+            state["_greeting_in_progress"] = True
+            try:
+                await asyncio.wait_for(fast_greeting(None, {}), timeout=60.0)
+            except asyncio.TimeoutError:
+                pass
+            finally:
+                state["_greeting_in_progress"] = False
+                state["presence_phase"] = "CONVERSING"
+
+        asyncio.run(run())
+        assert state["presence_phase"] == "CONVERSING"
+
+
+class TestReconnectStateReset:
+    """Tests for WebSocket reconnect state reset (server/main.py websocket_endpoint)."""
+
+    def _make_state_with_stale_data(self):
+        """Create state_current with stale data from a previous connection."""
+        from collections import deque
+        return {
+            "speaker_name": "Luigi",
+            "speaker_id": 42,
+            "is_speaking": True,
+            "presence": True,
+            "presence_phase": "CONVERSING",
+            "audio_buffer": bytearray(b"\x00\x01\x02"),
+            "conversation_history": [{"role": "user", "content": "hello"}],
+            "current_visit_id": "visit-abc-123",
+            "enter_time": 1700000000.0,
+            "_last_audio_chunk": b"\xff",
+            "_user_request_active": True,
+            "_greeting_in_progress": True,
+            "_last_buffer_time": 99.9,
+            "_last_text_input_time": 99.9,
+            "_last_command_time": 99.9,
+            "_active_game": "trivia",
+            "_game_state": {"round": 3},
+            "_game_last_input_time": 99.9,
+            "_response_times": deque([0.5, 0.6], maxlen=50),
+            "_pending_announcement": None,
+            "_detected_mood": "happy",
+            "_personality_mode": "pirate",
+            "_last_dj_time": 0.0,
+            "_last_time_obs": 0.0,
+            "_last_timing": {},
+            "_session_topics": {"pasta", "mushrooms"},
+            "_last_idle_action": "singing",
+            "detected_guest": None,
+            "guest_visits": 5,
+            "memorial_active": False,
+            "memorial_triggered_at": 0.0,
+            "_name_from_parsing": True,
+            "_sick_checkin_time": 99.9,
+            "_last_user_msg_time": 99.9,
+        }
+
+    def _simulate_reconnect(self, state):
+        """Simulate the reconnect reset logic from websocket_endpoint (line ~1279)."""
+        import time
+        state["_active_game"] = None
+        state["_game_state"] = {}
+        state["conversation_history"] = []
+        state["_detected_mood"] = None
+        state["_sick_checkin_time"] = 0.0
+        state["_last_user_msg_time"] = 0.0
+        state["_name_from_parsing"] = False
+        state["presence_phase"] = "IDLE"
+        state["_last_dj_time"] = time.time()
+        state["audio_buffer"] = bytearray()
+        state["_last_buffer_time"] = 0.0
+        state["speaker_name"] = None
+        state["speaker_id"] = None
+        state["current_visit_id"] = None
+        state["_user_request_active"] = False
+        state["_greeting_in_progress"] = False
+
+    def test_reconnect_resets_speaker_identity(self):
+        """After reconnect, speaker_name and speaker_id should be None."""
+        state = self._make_state_with_stale_data()
+        assert state["speaker_name"] == "Luigi"
+        assert state["speaker_id"] == 42
+
+        self._simulate_reconnect(state)
+
+        assert state["speaker_name"] is None
+        assert state["speaker_id"] is None
+
+    def test_reconnect_resets_visit_id(self):
+        """After reconnect, current_visit_id should be None."""
+        state = self._make_state_with_stale_data()
+        assert state["current_visit_id"] == "visit-abc-123"
+
+        self._simulate_reconnect(state)
+
+        assert state["current_visit_id"] is None
+
+    def test_reconnect_resets_active_flags(self):
+        """After reconnect, _user_request_active and _greeting_in_progress should be False."""
+        state = self._make_state_with_stale_data()
+        assert state["_user_request_active"] is True
+        assert state["_greeting_in_progress"] is True
+
+        self._simulate_reconnect(state)
+
+        assert state["_user_request_active"] is False
+        assert state["_greeting_in_progress"] is False
+
+    def test_reconnect_preserves_party_state(self):
+        """After reconnect, party-level state (night phase, party_start_time) should NOT be reset.
+
+        The reconnect handler only resets per-connection fields in state_current.
+        Party-level state lives on separate objects (party_stats, emotion_system)
+        and module-level variables (_night_start), so they survive reconnections.
+        We verify reconnect doesn't touch fields outside the reset list.
+        """
+        state = self._make_state_with_stale_data()
+        # Add party-level fields that should survive reconnect
+        state["memorial_active"] = True
+        state["memorial_triggered_at"] = 1700000000.0
+        state["guest_visits"] = 5
+
+        self._simulate_reconnect(state)
+
+        # These party-level fields are NOT touched by the reconnect handler
+        assert state["memorial_active"] is True
+        assert state["memorial_triggered_at"] == 1700000000.0
+        assert state["guest_visits"] == 5

@@ -290,6 +290,10 @@ state_current = {
 # Active WebSocket reference for admin endpoints to broadcast to
 _active_ws: "WebSocket | None" = None
 
+# Lock to prevent concurrent WebSocket sends from idle loop, user responses,
+# admin endpoints, and greeting flow interleaving.
+_ws_send_lock = asyncio.Lock()
+
 # Dedicated executor for TTS (scaled by hardware auto-detection)
 _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
 
@@ -1110,7 +1114,11 @@ async def trigger_memorial(request_body: dict = {}):
             "text": memorial_text,
             "duration": 15,
         }
-        await _active_ws.send_json(memorial_event)
+        if _ws_send_lock.locked() and DEBUG_SERVER:
+            logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial initial — waiting")
+        async with _ws_send_lock:
+            if _active_ws is not None:
+                await _active_ws.send_json(memorial_event)
 
         # Synthesize and send the initial memorial speech
         loop = asyncio.get_event_loop()
@@ -1118,7 +1126,11 @@ async def trigger_memorial(request_body: dict = {}):
             audio = await loop.run_in_executor(
                 _tts_executor, lambda: tts.synthesize_user(memorial_text))
             if audio:
-                await _active_ws.send_bytes(audio)
+                if _ws_send_lock.locked() and DEBUG_SERVER:
+                    logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial audio — waiting")
+                async with _ws_send_lock:
+                    if _active_ws is not None:
+                        await _active_ws.send_bytes(audio)
         except Exception as e:
             logger.error(f"Memorial initial TTS failed: {e}")
 
@@ -1140,7 +1152,11 @@ async def trigger_memorial(request_body: dict = {}):
                 "text": followup_text,
             }
             try:
-                await captured_ws.send_json(followup_event)
+                if _ws_send_lock.locked() and DEBUG_SERVER:
+                    logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial followup — waiting")
+                async with _ws_send_lock:
+                    if captured_ws is not None:
+                        await captured_ws.send_json(followup_event)
             except Exception as e:
                 logger.debug(f"[WS] Followup send failed: {e}")
 
@@ -1149,7 +1165,11 @@ async def trigger_memorial(request_body: dict = {}):
                 followup_audio = await followup_loop.run_in_executor(
                     _tts_executor, lambda: tts.synthesize_user(followup_text))
                 if followup_audio:
-                    await captured_ws.send_bytes(followup_audio)
+                    if _ws_send_lock.locked() and DEBUG_SERVER:
+                        logger.debug("[DEBUG_SERVER] _ws_send_lock contention in memorial followup audio — waiting")
+                    async with _ws_send_lock:
+                        if captured_ws is not None:
+                            await captured_ws.send_bytes(followup_audio)
             except Exception as e:
                 logger.error(f"Memorial followup TTS failed: {e}")
 
@@ -3700,7 +3720,21 @@ async def handle_event(ws: WebSocket, event: dict):
         async with _state_lock:
             state_current["_user_request_active"] = True
         try:
-            await _handle_text_input(ws, text)
+            await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
+        except asyncio.TimeoutError:
+            logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
+            try:
+                await send_response(ws, "Mama mia, that took too long! Try again?", None,
+                                    sound="error", pose_hint="confused/sad")
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error(f"[TEXT_INPUT] Pipeline failed: {e}", exc_info=True)
+            try:
+                await send_response(ws, "Oops! Something went wrong. Try again!", None,
+                                    sound="error", pose_hint="confused/sad")
+            except Exception:
+                pass
         finally:
             # Match audio handler: keep guard active briefly after response
             # to prevent idle TTS from firing immediately after text response
@@ -3820,9 +3854,15 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
 
     for attempt in range(2):
         try:
-            await ws.send_json(msg)
-            if audio and len(audio) > 0:
-                await ws.send_bytes(audio)
+            if _ws_send_lock.locked() and DEBUG_SERVER:
+                logger.debug("[DEBUG_SERVER] _ws_send_lock contention in send_response — waiting")
+            async with _ws_send_lock:
+                if ws is None:
+                    logger.warning("send_response: ws is None, skipping send")
+                    return
+                await ws.send_json(msg)
+                if audio and len(audio) > 0:
+                    await ws.send_bytes(audio)
             return
         except Exception as e:
             if attempt == 0:

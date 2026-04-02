@@ -1,5 +1,22 @@
 # History — Mario AI Design Decisions
 
+## 2026-04-02 — v3.4 Robustness Sprint (overnight session)
+- **Goal**: Make Mario bulletproof for Jacob's birthday party on Threadripper Pro
+- **Changes**:
+  - Concurrent game guard — blocks starting new game while one active
+  - Per-guest game rotation — prevents cross-guest game history pollution
+  - Night progression persistence across server restarts
+  - 11 IndexError guards on game data pool access
+  - Idle/text race condition fix — _handle_text_input now sets _user_request_active
+  - _idle_send_if_safe() helper — rechecks guard before sending idle messages
+  - Greeting outer timeout (60s) with emergency fallback
+  - Reconnect state reset — clears speaker identity on WebSocket reconnect
+  - Extracted _do_greeting() async helper (~180 lines)
+  - 21 coverage gap tests (gossip pruning, idle behavior)
+  - 14 edge case tests (night progression, concurrent game guard)
+  - Total: 538 tests passing
+- **Rationale**: Party runs 6+ hours on friend's Threadripper. Every edge case matters when 50+ guests cycle through. Race conditions, stale state, and game pool exhaustion are all real risks at scale.
+
 ## 2026-04-01 — Party Resilience: Error Recovery & Health Tracking
 - **Goal**: Mario should NEVER go silent during a party
 - **Changes**:

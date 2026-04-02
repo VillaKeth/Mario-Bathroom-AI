@@ -229,7 +229,7 @@ class TestTTSRouter:
             priority=0,
         )
         router.register(engine)
-        results = asyncio.get_event_loop().run_until_complete(
+        results = asyncio.run(
             router.parallel_synthesize("Hello! How are you? Great day.")
         )
         assert len(results) == 3
@@ -268,7 +268,7 @@ class TestTTSRouter:
 
         router = TTSRouter()
         router.register(TTSEngine(name="flaky", synthesize_fn=flaky_synth, is_available_fn=lambda: True, priority=0))
-        results = asyncio.get_event_loop().run_until_complete(
+        results = asyncio.run(
             router.parallel_synthesize("One. Two. Three.")
         )
         # Sentences 1 and 3 succeed (odd calls), sentence 2 fails (even call)

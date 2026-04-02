@@ -149,6 +149,21 @@ KARAOKE_SONGS = [
     {"title": "Bowser's Fury Rap", "lyrics": "I'm-a Mario, red hat hero! Stomping Goombas, coins from zero! Jumping high and running fast! Every level is a BLAST!"},
     {"title": "Bathroom Ballad", "lyrics": "Oh this bathroom, it's-a so fine! Every tile perfectly aligned! The soap dispenser, what a treat! This party bathroom can't be beat!"},
     {"title": "Plumber's Anthem", "lyrics": "We're the plumbers, here we go! Through the pipes from high to low! Fixing leaks and saving queens! Living out our plumber dreams!"},
+    {"title": "Rainbow Road Blues", "lyrics": "I'm driving on a rainbow, no guardrails in sight! One wrong turn and I'm falling through the night! But I keep on racing, that's the Mario way!"},
+    {"title": "Mushroom Kingdom Party", "lyrics": "Everybody gather 'round, it's a party night! Toads are dancing, stars are shining bright! From World One to World Eight, we celebrate!"},
+    {"title": "Koopa Beach Bop", "lyrics": "Sunshine on the sand, shells upon the shore! Koopa Troopas surfing, who could ask for more? Grab a coconut and dance the night away!"},
+    {"title": "Warp Pipe Serenade", "lyrics": "Down the pipe I go, where I end up no one knows! Could be underground, could be in the clouds! Every pipe's a new adventure!"},
+    {"title": "Luigi's Lament", "lyrics": "Always player two, always in the green! The tallest brother that you've ever seen! One day I'll be the star, just you wait and see!"},
+    {"title": "Star Power Shuffle", "lyrics": "I got the star, I'm invincible now! Nothing can stop me, nothing can slow me down! Flashing rainbow colors, feeling like a king!"},
+    {"title": "Toad's Party Rock", "lyrics": "Welcome to the Mushroom House, pick a chest! Will you get the star or just the rest? Left or right or center, take your chance tonight!"},
+    {"title": "Yoshi's Island Jam", "lyrics": "Flutter jump high, flutter jump low! Baby Mario on my back, here we go! Eggs for throwing, tongues for catching, Yoshi's on patrol!"},
+    {"title": "Chain Chomp Cha-Cha", "lyrics": "Bark bark bark, I'm chained to a stake! But when I break free, watch out for goodness sake! Chomping to the left and chomping to the right!"},
+    {"title": "Princess Power Ballad", "lyrics": "They say wait in the castle, wait to be saved! But I've got a frying pan and I am BRAVE! Peach is in the fight now, watch her take the crown!"},
+    {"title": "Bob-omb Battlefield Beat", "lyrics": "Tick tick tick, I'm about to blow! Three two one and away I go! Explosive personality, that's my claim to fame!"},
+    {"title": "Ghost House Groove", "lyrics": "Boo! Ha ha, did I scare you? Turn around, I'll disappear from view! Dancing in the darkness, floating through the walls!"},
+    {"title": "Underwater Theme Remix", "lyrics": "Blooper swimming left, Cheep Cheep swimming right! Deep beneath the ocean, everything's delight! Bubbles floating upward, coins are everywhere!"},
+    {"title": "Bowser's Castle Metal", "lyrics": "FIRE and LAVA, bridges falling down! I'm the KING of Koopas, wearing the crown! Mario thinks he's tough? HA! I'll show him who's the boss!"},
+    {"title": "Party All Night Long", "lyrics": "Ten turns, twenty turns, we're still going strong! Rolling dice and stealing stars, nothing can go wrong! Wait, who stole MY star?! This friendship might not last!"},
 ]
 
 RAPID_FIRE_QUESTIONS = [
@@ -195,6 +210,21 @@ TRUTH_QUESTIONS = [
     "What's a secret talent nobody here knows about?",
     "Have you ever pretended to be on the phone to avoid someone?",
     "What's the most Mario-like thing you've ever done?",
+    "What's the strangest thing you've ever done when nobody was watching?",
+    "Have you ever laughed so hard something came out of your nose?",
+    "What's the most ridiculous lie you've told that someone believed?",
+    "What's the worst text you've ever sent to the wrong person?",
+    "Have you ever used a fake name? What was it?",
+    "What's the most embarrassing thing in your camera roll right now?",
+    "Have you ever walked into a glass door in public?",
+    "What's the weirdest food combination you actually enjoy?",
+    "Have you ever blamed a fart on someone else? Who?",
+    "What's something you've done at a party that you'd never admit sober?",
+    "What song do you secretly know ALL the words to?",
+    "Have you ever pretended to know someone you definitely didn't recognize?",
+    "What's the pettiest reason you've ever stopped talking to someone?",
+    "If this bathroom could talk, what would it say about you right now?",
+    "What's your most irrational fear that you're embarrassed about?",
 ]
 
 DARES = [
@@ -208,6 +238,16 @@ DARES = [
     "Do your best Bowser roar! RAAAWR!",
     "Compliment the next person you see at the party!",
     "Do the Mario dance — swing your arms from side to side!",
+    "Do your best Luigi scared-face impression! Mamma mia!",
+    "Beatbox the underground theme for 10 seconds! Dun dun dun!",
+    "Tell the next person you see that MARIO sent you with a message!",
+    "Do your best Toad impression — make your voice REALLY high!",
+    "Act like you just got a star power-up — run in place and be INVINCIBLE!",
+    "Make a dramatic speech to the mirror about how awesome this party is!",
+    "Do your best victory dance like you just won a Mario Kart race!",
+    "Sing Happy Birthday but in Mario's voice! It's-a birthday time!",
+    "Walk out of this bathroom doing the Mario jump — fist in the air!",
+    "Tell someone at the party your name is Luigi and you're lost!",
 ]
 
 WOULD_YOU_RATHER = [
@@ -443,6 +483,19 @@ STORY_STARTERS = [
     "Bowser decided to take a vacation from being evil, so he booked a trip to...",
     "In a parallel universe, Mario was a VILLAIN and Bowser was the HERO! It all started when...",
     "A Chain Chomp broke free from its post and decided to become a PUPPY at a pet store!",
+    "One day, all the Boos in the Ghost House decided to throw the SCARIEST party ever, but the DJ was...",
+    "Lakitu was filming Mario's adventure when his cloud ran out of gas RIGHT over a volcano!",
+    "The Toads discovered a hidden room in Peach's Castle with a machine that could turn ANYONE into...",
+    "Bowser Jr. snuck into Mario's house while he was sleeping and replaced all his power-ups with...",
+    "There was a rumor that World 9 existed, and the only way to get there was to flush a golden...",
+    "Mario and Luigi opened a restaurant, but their ONLY customer was someone very unexpected...",
+    "Wario found a magic mirror that showed his future, and in it he saw himself as the KING of...",
+    "The Piranha Plants organized a union and their number one demand was...",
+    "Someone left a mysterious package at Mario's door with a note that said 'DO NOT OPEN until the party!'",
+    "Kamek the Magikoopa accidentally cast a spell that turned Bowser's Castle into a BOUNCE HOUSE!",
+    "The bullet bills went on strike because they were tired of being shot at plumbers, so they started a...",
+    "Shy Guy took off his mask for the FIRST time ever, and everyone was shocked because underneath was...",
+    "At the annual Mushroom Kingdom bathroom awards, the winner for Best Plumber was NOT who everyone expected...",
 ]
 
 WYR_EXTENDED = [

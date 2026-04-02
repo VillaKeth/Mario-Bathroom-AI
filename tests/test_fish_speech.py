@@ -43,7 +43,7 @@ class TestFishSpeechTTS:
         from fish_speech_tts import FishSpeechTTS
 
         tts = FishSpeechTTS(reference_audio="nonexistent.wav")
-        result = asyncio.get_event_loop().run_until_complete(tts.synthesize("Hello"))
+        result = asyncio.run(tts.synthesize("Hello"))
         assert result is None
 
     def test_device_parameter_accepted(self):
