@@ -147,7 +147,7 @@ LLM_FALLBACKS = [
 
 # Recent response ring buffer for repeat detection
 _recent_responses: list[str] = []
-_RECENT_MAX = 10
+_RECENT_MAX = 20
 
 
 async def check_ollama():
@@ -280,11 +280,25 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
             return random.choice(LLM_FALLBACKS)
         response_text = _clean_response(response_text)
 
-        # Repeat detection — if response is too similar to recent ones, retry once
+        # Repeat detection — fuzzy similarity check against recent responses
         response_lower = response_text.lower().strip()
-        is_repeat = any(response_lower == r.lower().strip() for r in _recent_responses)
-        if is_repeat and not transcript:  # Only retry for non-user-prompted (idle/greeting)
-            logger.info(f"[DEBUG_LLM] generate_response: repeat detected, using fallback")
+        is_repeat = False
+        for r in _recent_responses:
+            r_lower = r.lower().strip()
+            if response_lower == r_lower:
+                is_repeat = True
+                break
+            # Fuzzy check: if responses share >70% of words, consider repeat
+            if len(response_lower) > 20 and len(r_lower) > 20:
+                words_new = set(response_lower.split())
+                words_old = set(r_lower.split())
+                if words_new and words_old:
+                    overlap = len(words_new & words_old) / max(len(words_new), len(words_old))
+                    if overlap > 0.70:
+                        is_repeat = True
+                        break
+        if is_repeat:
+            logger.info(f"[DEBUG_LLM] generate_response: repeat/similar detected, using fallback")
             response_text = random.choice(LLM_FALLBACKS)
         
         # Track recent responses

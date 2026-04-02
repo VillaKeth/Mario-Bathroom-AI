@@ -435,6 +435,39 @@ NHIE_PROMPTS = [
 
 
 # ---------------------------------------------------------------------------
+# Adaptive Difficulty — scales game rounds based on player history
+# ---------------------------------------------------------------------------
+
+def get_adaptive_rounds(game_name: str, base_rounds: int, state: dict) -> int:
+    """Scale game rounds based on player's historical performance.
+    
+    - High win rate (>70%): Add 2 extra rounds (harder)
+    - Medium win rate (40-70%): Keep base rounds
+    - Low win rate (<40%): Reduce by 1 round (easier, min 3)
+    - New player: Use base rounds
+    """
+    try:
+        from memory import get_player_stats
+        person_id = state.get("speaker_id")
+        if not person_id:
+            return base_rounds
+        
+        stats = get_player_stats(person_id)
+        game_stats = stats.get(game_name)
+        if not game_stats or game_stats["games_played"] < 2:
+            return base_rounds  # Not enough data
+        
+        win_rate = game_stats["win_rate"]
+        if win_rate > 0.70:
+            return min(base_rounds + 2, 10)  # Cap at 10
+        elif win_rate < 0.40:
+            return max(base_rounds - 1, 3)   # Floor at 3
+        return base_rounds
+    except Exception:
+        return base_rounds
+
+
+# ---------------------------------------------------------------------------
 # start_game — initialise a new game session
 # ---------------------------------------------------------------------------
 
@@ -452,7 +485,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     state["_game_last_input_time"] = _time.time()  # Start timeout clock
     if game_name == "simon_says":
         state["_active_game"] = "simon_says"
-        state["_game_state"] = {"round": 1, "score": 0, "max_rounds": config["simon_max_rounds"]}
+        max_r = get_adaptive_rounds("simon_says", config["simon_max_rounds"], state)
+        state["_game_state"] = {"round": 1, "score": 0, "max_rounds": max_r}
         action = random.choice(SIMON_ACTIONS)
         state["_game_state"]["current_action"] = action
         state["_game_state"]["is_simon"] = random.random() > 0.3
@@ -477,9 +511,9 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     if game_name == "truth_or_dare":
         state["_active_game"] = "truth_or_dare"
-        state["_game_state"] = {"round": 1, "max_rounds": config["truth_dare_max_rounds"]}
+        mr = get_adaptive_rounds("truth_or_dare", config["truth_dare_max_rounds"], state)
+        state["_game_state"] = {"round": 1, "max_rounds": mr}
         emotion_sys.current = Emotion.MISCHIEVOUS
-        mr = config["truth_dare_max_rounds"]
         return f"TRUTH OR DARE! Let's-a play! Round 1 of {mr}! Say 'truth' or 'dare'!"
 
     if game_name == "riddles":
@@ -515,7 +549,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     if game_name == "rapid_fire":
         questions = list(RAPID_FIRE_QUESTIONS)
         random.shuffle(questions)
-        max_r = config["rapid_fire_max_rounds"]
+        max_r = get_adaptive_rounds("rapid_fire", config["rapid_fire_max_rounds"], state)
         state["_active_game"] = "rapid_fire"
         state["_game_state"] = {
             "questions": questions[:max_r],
@@ -596,7 +630,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     # --- Mario Trivia ---
     if game_name == "mario_trivia":
-        max_r = 5
+        max_r = get_adaptive_rounds("mario_trivia", 5, state)
         questions = _mix_jacob_trivia(MARIO_TRIVIA_QUESTIONS, count=max_r)
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
@@ -611,7 +645,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         intro = "MARIO TRIVIA TIME!"
         if has_birthday:
             intro += " With BIRTHDAY SPECIAL questions about our guest of honor!"
-        intro += f" 5 questions — let's-a see how smart you are! Question 1: {first_q}"
+        intro += f" {max_r} questions — let's-a see how smart you are! Question 1: {first_q}"
         return intro
 
     # --- Name That Character ---

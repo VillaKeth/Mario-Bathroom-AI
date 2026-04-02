@@ -307,3 +307,104 @@ class TestConversationArc:
         results = [self.mp.get_bookmark_callback(8) for _ in range(100)]
         non_empty = [r for r in results if r]
         assert len(non_empty) > 0  # At least some callbacks at 20% rate
+
+
+class TestAdaptiveDifficulty:
+    """Test adaptive game difficulty scaling."""
+
+    def setup_method(self):
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'server'))
+
+    def test_base_rounds_for_new_player(self):
+        from game_handlers import get_adaptive_rounds
+        state = {"speaker_id": None}
+        result = get_adaptive_rounds("trivia", 5, state)
+        assert result == 5
+
+    def test_base_rounds_no_history(self):
+        from game_handlers import get_adaptive_rounds
+        with patch("memory.get_player_stats", return_value={}):
+            result = get_adaptive_rounds("trivia", 5, {"speaker_id": 1})
+        assert result == 5
+
+    def test_harder_for_high_win_rate(self):
+        from game_handlers import get_adaptive_rounds
+        stats = {"trivia": {"win_rate": 0.85, "games_played": 5}}
+        with patch("memory.get_player_stats", return_value=stats):
+            result = get_adaptive_rounds("trivia", 5, {"speaker_id": 1})
+        assert result == 7  # base 5 + 2
+
+    def test_easier_for_low_win_rate(self):
+        from game_handlers import get_adaptive_rounds
+        stats = {"trivia": {"win_rate": 0.25, "games_played": 3}}
+        with patch("memory.get_player_stats", return_value=stats):
+            result = get_adaptive_rounds("trivia", 5, {"speaker_id": 1})
+        assert result == 4  # base 5 - 1
+
+    def test_floor_at_3_rounds(self):
+        from game_handlers import get_adaptive_rounds
+        stats = {"trivia": {"win_rate": 0.1, "games_played": 5}}
+        with patch("memory.get_player_stats", return_value=stats):
+            result = get_adaptive_rounds("trivia", 3, {"speaker_id": 1})
+        assert result == 3  # Can't go below 3
+
+    def test_cap_at_10_rounds(self):
+        from game_handlers import get_adaptive_rounds
+        stats = {"trivia": {"win_rate": 0.95, "games_played": 10}}
+        with patch("memory.get_player_stats", return_value=stats):
+            result = get_adaptive_rounds("trivia", 9, {"speaker_id": 1})
+        assert result == 10  # Capped at 10
+
+    def test_needs_2_games_minimum(self):
+        from game_handlers import get_adaptive_rounds
+        stats = {"trivia": {"win_rate": 0.9, "games_played": 1}}
+        with patch("memory.get_player_stats", return_value=stats):
+            result = get_adaptive_rounds("trivia", 5, {"speaker_id": 1})
+        assert result == 5  # Not enough data, stays at base
+
+
+class TestFuzzyRepeatDetection:
+    """Test fuzzy repeat detection in LLM responses."""
+
+    def test_exact_repeat_detected(self):
+        """Exact duplicate should be caught."""
+        response = "Wahoo! Let's go!"
+        recent = ["Wahoo! Let's go!"]
+        response_lower = response.lower().strip()
+        is_repeat = any(response_lower == r.lower().strip() for r in recent)
+        assert is_repeat
+
+    def test_fuzzy_repeat_by_word_overlap(self):
+        """High word overlap should be caught."""
+        words_new = set("wahoo let me tell you about this amazing party tonight".split())
+        words_old = set("wahoo let me tell you about this amazing party today".split())
+        overlap = len(words_new & words_old) / max(len(words_new), len(words_old))
+        assert overlap > 0.70  # Should trigger repeat
+
+    def test_different_responses_not_flagged(self):
+        """Sufficiently different responses should NOT be flagged."""
+        words_new = set("mama mia what a beautiful day in mushroom kingdom".split())
+        words_old = set("bowser is cooking pasta for everyone tonight wahoo".split())
+        overlap = len(words_new & words_old) / max(len(words_new), len(words_old))
+        assert overlap < 0.70  # Should not trigger
+
+    def test_short_responses_skip_fuzzy(self):
+        """Responses under 20 chars should only use exact match, not fuzzy."""
+        # Simulate the logic: short messages skip fuzzy check
+        response = "Wahoo!"
+        recent = ["Wahoo! Yeah!"]
+        is_repeat = False
+        for r in recent:
+            if response.lower() == r.lower():
+                is_repeat = True
+                break
+            # Fuzzy only for long responses
+            if len(response) > 20 and len(r) > 20:
+                words_new = set(response.lower().split())
+                words_old = set(r.lower().split())
+                overlap = len(words_new & words_old) / max(len(words_new), len(words_old))
+                if overlap > 0.70:
+                    is_repeat = True
+                    break
+        assert not is_repeat  # Short and different, should pass
