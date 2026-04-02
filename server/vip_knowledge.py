@@ -79,12 +79,24 @@ def inject_vip_memories(profile: dict, person_id: int) -> int:
     for title in profile.get("titles", []):
         bio_facts.append(f"{name} calls himself a {title}")
 
-    # Family
+    # Family — inject each member as a separate searchable memory
     family = profile.get("family", {})
     if family.get("father"):
         bio_facts.append(f"{name}'s dad is {family['father']}")
+        memory_semantic.store_memory(
+            person_id,
+            f"{name}'s father {family['father']} raised him in {profile.get('hometown', 'Florida')}",
+            memory_type="vip_profile",
+        )
+        count += 1
     if family.get("mother"):
         bio_facts.append(f"{name}'s mom is {family['mother']}")
+        memory_semantic.store_memory(
+            person_id,
+            f"{name}'s mother {family['mother']} is his mom — family clearly matters to him",
+            memory_type="vip_profile",
+        )
+        count += 1
 
     for fact in bio_facts:
         memory_semantic.store_memory(person_id, fact, memory_type="vip_profile")
@@ -140,7 +152,7 @@ def inject_vip_memories(profile: dict, person_id: int) -> int:
         memory_semantic.store_memory(person_id, note, memory_type="vip_profile")
         count += 1
 
-    # Memorial / sensitive data
+    # Memorial / sensitive data — inject as multiple searchable memories
     memorial = profile.get("memorial")
     if memorial:
         mem_text = (
@@ -149,6 +161,19 @@ def inject_vip_memories(profile: dict, person_id: int) -> int:
             f"passed away. {memorial.get('note', '')}"
         )
         memory_semantic.store_memory(person_id, mem_text, memory_type="vip_memorial")
+        count += 1
+        # Additional memorial memories for richer semantic search hits
+        memory_semantic.store_memory(
+            person_id,
+            f"{memorial['person']} was {name}'s {memorial['relationship']} who passed in {memorial.get('passed', '?')}",
+            memory_type="vip_memorial",
+        )
+        count += 1
+        memory_semantic.store_memory(
+            person_id,
+            f"The party includes a moment of silence and shot dedication for {memorial['person']}",
+            memory_type="vip_memorial",
+        )
         count += 1
 
     # Appearance hints (for webcam integration)
@@ -228,6 +253,24 @@ def get_vip_facts_for_prompt(speaker_name: str) -> list[str]:
 
     for p in profile.get("projects", [])[:3]:
         facts.append(f"Built: {p['name']} — {p['description'][:80]}")
+
+    # Family facts — so Mario naturally references parents
+    family = profile.get("family", {})
+    if family.get("father") or family.get("mother"):
+        parents = []
+        if family.get("father"):
+            parents.append(f"dad {family['father']}")
+        if family.get("mother"):
+            parents.append(f"mom {family['mother']}")
+        facts.append(f"Family: {', '.join(parents)}")
+
+    # Memorial awareness
+    memorial = profile.get("memorial")
+    if memorial:
+        facts.append(
+            f"❤️ {memorial['person']} ({memorial['relationship']}) passed in "
+            f"{memorial.get('passed', '?')} — honor respectfully if it comes up"
+        )
 
     for note in profile.get("personality_notes", [])[:2]:
         facts.append(note)

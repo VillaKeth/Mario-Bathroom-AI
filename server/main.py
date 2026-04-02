@@ -647,6 +647,15 @@ async def lifespan(app: FastAPI):
             logger.info("Semantic memory (Qdrant) initialized")
             vip_knowledge.load_all_vip_profiles()
             logger.info("VIP profiles loaded into semantic memory")
+
+            # Inject birthday_person_facts from config into Qdrant for semantic search
+            bday_name = server_config.get("birthday_person_name", "")
+            bday_facts = server_config.get("birthday_person_facts", [])
+            if bday_name and bday_facts:
+                bday_id = vip_knowledge._deterministic_vip_id(bday_name)
+                for fact in bday_facts:
+                    memory_semantic.store_memory(bday_id, fact, memory_type="vip_profile")
+                logger.info(f"Injected {len(bday_facts)} birthday facts for {bday_name} into semantic memory")
             # Backfill existing SQLite memories into Qdrant (first run only)
             memory_semantic.backfill_from_sqlite()
         except Exception as e:

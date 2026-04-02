@@ -169,7 +169,7 @@ def record_visit(person_id: int):
 
 
 def save_conversation(person_id: int, role: str, content: str):
-    """Save a conversation line. Caps at 500 conversations per person."""
+    """Save a conversation line. Caps at 500 conversations per person (2000 for VIPs)."""
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] save_conversation: person={person_id} role={role} content='{content[:50]}'")
 
@@ -179,13 +179,14 @@ def save_conversation(person_id: int, role: str, content: str):
             "INSERT INTO conversations (person_id, role, content) VALUES (?, ?, ?)",
             (person_id, role, content),
         )
-        # Trim old conversations to prevent unbounded growth (keep last 500 per person)
+        # VIP guests (negative person_id from vip_knowledge) get 4x retention
+        retention_limit = 2000 if person_id < 0 else 500
         conn.execute("""
             DELETE FROM conversations WHERE id IN (
                 SELECT id FROM conversations WHERE person_id = ?
-                ORDER BY timestamp DESC LIMIT -1 OFFSET 500
+                ORDER BY timestamp DESC LIMIT -1 OFFSET ?
             )
-        """, (person_id,))
+        """, (person_id, retention_limit))
         conn.commit()
 
         # Dual-write to Qdrant for semantic search
