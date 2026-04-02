@@ -1,12 +1,14 @@
 """Generate Nintendo-style sound effect WAV files for assets/sfx/.
 
-Creates 6 WAV files matching DEFAULT_EVENT_MAP in server/sound_events.py:
-  coin.wav    - Two-note coin collect (greeting event)
-  powerup.wav - Ascending power-up (game_start event)
-  fireball.wav - Quick descending fireball (roast event)
-  pipe.wav    - Descending pipe warp (vomit event)
-  star.wav    - Star jingle (farewell event)
-  1up.wav     - 1-UP ascending arpeggio (birthday event)
+Creates 8 WAV files matching DEFAULT_EVENT_MAP in server/sound_events.py:
+  coin.wav           - Two-note coin collect (greeting event)
+  powerup.wav        - Ascending power-up (game_start event)
+  fireball.wav       - Quick descending fireball (roast event)
+  pipe.wav           - Descending pipe warp (vomit event)
+  star.wav           - Star jingle (farewell event)
+  1up.wav            - 1-UP ascending arpeggio (birthday event)
+  memorial_chime.wav - Gentle bell chime (memorial moment of silence)
+  memorial_clink.wav - Glass clink (memorial toast)
 
 All files: 16-bit mono WAV, 44100 Hz, <2 seconds.
 """
@@ -108,6 +110,24 @@ def generate_1up():
     return np.concatenate(segments)
 
 
+def generate_memorial_chime():
+    """Gentle bell chime: 880Hz + 1320Hz with exponential decay."""
+    duration = 1.5
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    tone = 0.5 * np.sin(2 * np.pi * 880 * t) + 0.3 * np.sin(2 * np.pi * 1320 * t)
+    envelope = np.exp(-t / 0.4)
+    return (tone * envelope * 0.6).astype(np.float32)
+
+
+def generate_memorial_clink():
+    """Glass clink: high-freq burst with fast decay."""
+    duration = 0.6
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
+    tone = 0.4 * np.sin(2 * np.pi * 2500 * t) + 0.3 * np.sin(2 * np.pi * 4000 * t) + 0.2 * np.sin(2 * np.pi * 6000 * t)
+    envelope = np.exp(-t / 0.08)
+    return (tone * envelope * 0.7).astype(np.float32)
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     print(f"Generating Mario SFX WAV files in {OUTPUT_DIR}...")
@@ -117,7 +137,9 @@ def main():
     save_wav("pipe.wav", generate_pipe())
     save_wav("star.wav", generate_star())
     save_wav("1up.wav", generate_1up())
-    print(f"\nDone! 6 files created.")
+    save_wav("memorial_chime.wav", generate_memorial_chime())
+    save_wav("memorial_clink.wav", generate_memorial_clink())
+    print(f"\nDone! 8 files created.")
 
 
 if __name__ == "__main__":
