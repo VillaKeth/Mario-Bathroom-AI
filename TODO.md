@@ -12,6 +12,7 @@
 - [x] TTS emergency silence fallback (never returns None)
 - [x] Fix TTS tests for emergency silence behavior
 - [x] 188 tests passing
+- [x] Add comprehensive test suite for command_handlers.py (54 tests)
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
 - [ ] Manual test: game leaderboard shows in /leaderboard endpoint
