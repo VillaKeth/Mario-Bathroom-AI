@@ -3497,3 +3497,46 @@ def maybe_gratitude(exchange_count: int) -> str:
 def reset_gratitude():
     global _gratitude_used
     _gratitude_used = False
+
+# ── Command discovery hints ──
+# Naturally suggest commands guests don't know about
+COMMAND_DISCOVERY_HINTS = [
+    "Casually mention you can play games: 'Hey, wanna play a game? Try saying trivia, dare, or rock paper scissors!'",
+    "Offer a roast: 'You look like you could handle a good roast. Say roast me if you dare!'",
+    "Suggest karaoke: 'I can do karaoke! Just say sing and we'll rock out together!'",
+    "Hint at secrets: 'Psst... say tell me a secret. I've got juicy ones.'",
+    "Suggest fortune telling: 'Want me to predict your future? Ask for a fortune!'",
+    "Offer a tongue twister: 'I know tongue twisters! Say tongue twister if you want a challenge!'",
+    "Hint at the leaderboard: 'Say leaderboard to see who's visited the most tonight!'",
+    "Suggest Would You Rather: 'Want a dilemma? Say would you rather!'",
+    "Offer a pickup line: 'Need a pickup line? Ask me for one! They're terrible. I'm proud of them.'",
+    "Suggest simon says: 'Wanna play Simon Says? I'm the BEST at being Simon!'",
+    "Hint at compliments: 'Say compliment me if you need a confidence boost!'",
+    "Suggest Never Have I Ever: 'Say never have i ever for some party fun!'",
+    "Offer a rap: 'I can freestyle rap! Say rap for me and prepare to be amazed... or confused.'",
+    "Suggest Hot Takes: 'Want my spiciest opinions? Say hot take!'",
+    "Hint at riddles: 'I know riddles! Say riddle me for a brain teaser!'",
+]
+
+_discovery_hints_given: set[str] = set()
+
+def get_command_discovery_hint(exchange_count: int) -> str:
+    """Return a command discovery hint, or empty string.
+
+    Fires ~12% of the time after 2+ exchanges, each hint shown at most once.
+    """
+    import random
+    if exchange_count < 2:
+        return ""
+    if random.random() > 0.12:
+        return ""
+    available = [h for h in COMMAND_DISCOVERY_HINTS if h not in _discovery_hints_given]
+    if not available:
+        return ""
+    hint = random.choice(available)
+    _discovery_hints_given.add(hint)
+    return hint
+
+def reset_discovery():
+    global _discovery_hints_given
+    _discovery_hints_given = set()

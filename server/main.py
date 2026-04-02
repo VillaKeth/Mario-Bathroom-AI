@@ -2685,6 +2685,12 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Always track bookmarks (even if not used as hint)
         mario_prompt.add_bookmark(text, exchange_count)
 
+        # Command discovery — naturally hint at features guests don't know about
+        if not conv_hint:
+            discovery = mario_prompt.get_command_discovery_hint(exchange_count)
+            if discovery:
+                conv_hint = discovery
+
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
@@ -3638,6 +3644,7 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_philosophy()
         mario_prompt.reset_skill_brag()
         mario_prompt.reset_gratitude()
+        mario_prompt.reset_discovery()
 
         try:
             await asyncio.wait_for(_do_greeting(ws, event), timeout=60.0)
