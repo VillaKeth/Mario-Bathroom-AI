@@ -6,7 +6,7 @@
     "stt_device": "cpu",
     "llm_model": "llama3",
     "tts_voice": "en-US-GuyNeural",
-    "tts_rate": "+20%",
+    "tts_rate": "+10%",
     "tts_pitch": "+0Hz",
     "tts_fast_mode": true,
     "tts_mode": "sovits",

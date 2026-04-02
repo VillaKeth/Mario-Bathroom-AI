@@ -1053,7 +1053,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # GPT-SoVITS mode: direct synthesis, no RVC needed
     if TTS_MODE == "sovits" and _sovits_available:
         try:
-            result = _sovits_synthesize(text)
+            result = _normalize_audio(_sovits_synthesize(text))
             total = time.time() - start
             if DEBUG_TTS:
                 logger.info(f"[DEBUG_TTS] synthesize: END (GPT-SoVITS) total={total:.1f}s")
@@ -1207,6 +1207,48 @@ def _make_dummy_wav(duration: float = 0.5, sample_rate: int = 24000) -> bytes:
     return wav_buffer.read()
 
 
+def _normalize_audio(wav_bytes: bytes, target_db: float = -3.0) -> bytes:
+    """Normalize WAV audio to consistent peak volume.
+    
+    Prevents inconsistent volume across TTS outputs — some phrases
+    come out quiet, some loud. Normalizes to target_db peak level.
+    """
+    try:
+        with io.BytesIO(wav_bytes) as buf:
+            with wave.open(buf, 'rb') as wf:
+                params = wf.getparams()
+                frames = wf.readframes(params.nframes)
+        
+        # Convert to numpy for processing
+        dtype = np.int16 if params.sampwidth == 2 else np.int32
+        samples = np.frombuffer(frames, dtype=dtype).astype(np.float32)
+        
+        if len(samples) == 0:
+            return wav_bytes
+        
+        # Calculate current peak and target
+        peak = np.max(np.abs(samples))
+        if peak < 1.0:
+            return wav_bytes
+        
+        target_peak = (2 ** (params.sampwidth * 8 - 1) - 1) * (10 ** (target_db / 20.0))
+        gain = target_peak / peak
+        
+        # Apply gain with clipping protection
+        samples = np.clip(samples * gain, -32768, 32767).astype(np.int16)
+        
+        # Write back to WAV
+        out = io.BytesIO()
+        with wave.open(out, 'wb') as wf:
+            wf.setparams(params)
+            wf.writeframes(samples.tobytes())
+        return out.getvalue()
+    except Exception as e:
+        if DEBUG_TTS:
+            logger.warning(f"[DEBUG_TTS] _normalize_audio: failed ({e}), returning original")
+        return wav_bytes
+
+
 def _apply_rvc(wav_bytes: bytes) -> bytes:
     """Convert voice to Mario using RVC model. Returns WAV bytes.
     
@@ -1245,7 +1287,7 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
         if DEBUG_TTS:
             logger.info(f"[DEBUG_TTS] _apply_rvc: converted in {rvc_time:.1f}s")
 
-        return result
+        return _normalize_audio(result)
 
     except Exception as e:
         logger.warning(f"[DEBUG_TTS] _apply_rvc: RVC conversion failed: {e}, returning original")

@@ -314,3 +314,91 @@ class TestTTSRouter:
         assert result is not None
         assert result[:4] == b"RIFF"
         assert not event.is_set(), "Event must be cleared even on failure"
+
+
+# --- Audio Normalization ---
+
+class TestAudioNormalization:
+    """Verify peak normalization produces consistent volume."""
+
+    def _make_wav(self, peak_value=2000, n_samples=1000, sample_rate=22050):
+        import wave, struct, io
+        buf = io.BytesIO()
+        with wave.open(buf, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(struct.pack(f'<{n_samples}h', *([peak_value] * n_samples)))
+        return buf.getvalue()
+
+    def test_quiet_audio_is_boosted(self):
+        import io, wave
+        import numpy as np
+        from tts import _normalize_audio
+
+        quiet = self._make_wav(peak_value=2000)
+        normalized = _normalize_audio(quiet)
+
+        with wave.open(io.BytesIO(quiet), 'rb') as wf:
+            orig = np.max(np.abs(np.frombuffer(wf.readframes(wf.getnframes()), np.int16)))
+        with wave.open(io.BytesIO(normalized), 'rb') as wf:
+            normed = np.max(np.abs(np.frombuffer(wf.readframes(wf.getnframes()), np.int16)))
+
+        assert normed > orig, "Quiet audio should be boosted"
+        assert normed > 20000, "Should be near -3dB target"
+
+    def test_loud_audio_is_reduced(self):
+        import io, wave
+        import numpy as np
+        from tts import _normalize_audio
+
+        loud = self._make_wav(peak_value=32000)
+        normalized = _normalize_audio(loud)
+
+        with wave.open(io.BytesIO(normalized), 'rb') as wf:
+            normed = np.max(np.abs(np.frombuffer(wf.readframes(wf.getnframes()), np.int16)))
+
+        assert normed < 32000, "Loud audio peak should be reduced to -3dB target"
+
+    def test_returns_original_on_empty(self):
+        from tts import _normalize_audio
+        assert _normalize_audio(b"not a wav") == b"not a wav"
+
+    def test_output_is_valid_wav(self):
+        from tts import _normalize_audio
+        wav = self._make_wav(peak_value=5000)
+        result = _normalize_audio(wav)
+        assert result[:4] == b"RIFF"
+
+
+# --- TTS Preprocessing ---
+
+class TestTTSPreprocessing:
+    """Verify GPT-SoVITS text cleaning handles new character names."""
+
+    def test_peach_pronunciation(self):
+        from gpt_sovits_server import clean_text_for_tts
+        assert "Peech" in clean_text_for_tts("Princess Peach is great!")
+
+    def test_luigi_pronunciation(self):
+        from gpt_sovits_server import clean_text_for_tts
+        assert "Looigi" in clean_text_for_tts("Luigi is my brother!")
+
+    def test_yoshi_pronunciation(self):
+        from gpt_sovits_server import clean_text_for_tts
+        result = clean_text_for_tts("Yoshi is the best!")
+        assert "Yoh shee" in result
+
+    def test_year_conversion(self):
+        from gpt_sovits_server import clean_text_for_tts
+        result = clean_text_for_tts("Back in 2024 it was great")
+        assert "2024" not in result
+        assert "twenty" in result.lower()
+
+    def test_existing_bowser_replacement(self):
+        from gpt_sovits_server import clean_text_for_tts
+        assert "bad guy" in clean_text_for_tts("Bowser is evil!")
+
+    def test_hoppenstedt_pronunciation(self):
+        from gpt_sovits_server import clean_text_for_tts
+        assert "Hoppenstead" in clean_text_for_tts("Jacob Hoppenstedt is here!")

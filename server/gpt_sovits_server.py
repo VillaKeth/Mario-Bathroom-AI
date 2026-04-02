@@ -133,6 +133,12 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\bGumba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bKoopas\b', 'Coopers', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bKoopa\b', 'Cooper', clean_text, flags=_re.IGNORECASE)
+    # Additional Mario character fixes (untested variants — keep original if it works)
+    clean_text = _re.sub(r'\bPeach\b', 'Peech', clean_text)  # Prevent "Peach" → "Peesh"
+    clean_text = _re.sub(r'\bPrincess\b', 'the princess', clean_text)  # Simplify
+    clean_text = _re.sub(r'\bLuigi\b', 'Looigi', clean_text)  # Italian vowel stretch
+    clean_text = _re.sub(r'\bYoshi\b', 'Yoh shee', clean_text)  # Phonetic split
+    clean_text = _re.sub(r'\bDaisy\b', 'Dayzee', clean_text)  # Phonetic
     
     # Guest name pronunciation — "stedt" sounds like "stead" (as in steadfast)
     clean_text = _re.sub(r'\bHoppenstedt\b', 'Hoppenstead', clean_text)
@@ -183,6 +189,19 @@ def clean_text_for_tts(text):
         except ValueError:
             return m.group(0)
     clean_text = _re.sub(r'\b\d{1,3}\b', _num_repl, clean_text)
+
+    # Convert years (2000-2099) to spoken form: "2024" → "twenty twenty four"
+    def _year_repl(m):
+        try:
+            n = int(m.group(0))
+            if 2000 <= n <= 2009:
+                return "two thousand " + (_num_to_words(n - 2000) if n > 2000 else "")
+            elif 2010 <= n <= 2099:
+                return _num_to_words(n // 100) + " " + _num_to_words(n % 100)
+            return m.group(0)
+        except (ValueError, KeyError):
+            return m.group(0)
+    clean_text = _re.sub(r'\b20\d{2}\b', _year_repl, clean_text)
 
     # Collapse repeated characters — vowels to 1, consonants to 2
     # "BAAAAAALLS" → "BALLS", "YAAAAY" → "YAY", "BRRRR" → "BRR"
