@@ -8,6 +8,7 @@ import random
 import string
 import time
 import pygame
+from .closed_captions import ClosedCaptions
 
 DEBUG_DISPLAY = True
 logger = logging.getLogger(__name__)
@@ -277,6 +278,9 @@ class MarioDisplay:
         self._memorial_duration = 15
         self._memorial_particles = []  # Floating golden light particles
         self._memorial_photo = None
+        
+        # Closed captions (initialized after pygame.init() in init() method)
+        self.captions = None
 
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
@@ -371,6 +375,9 @@ class MarioDisplay:
 
         self._load_sprites()
         self._bg_surface = None  # cached static background
+        
+        # Initialize closed captions
+        self.captions = ClosedCaptions(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         if DEBUG_DISPLAY:
             logger.info("[DEBUG_DISPLAY] MarioDisplay.init: END")
@@ -1167,6 +1174,10 @@ class MarioDisplay:
         # Memorial overlay (drawn on top of everything)
         if self._memorial_active:
             self._draw_memorial(self._screen)
+        
+        # Closed captions (drawn last, on top of everything except fullscreen scaling)
+        if self.captions:
+            self.captions.draw(self._screen)
 
         # Fullscreen: scale render buffer to real screen, centered with aspect ratio
         if self._fullscreen:

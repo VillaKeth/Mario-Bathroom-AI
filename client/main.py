@@ -225,6 +225,10 @@ class MarioClient:
         self.display.set_mario_text(text)
         self.display.set_state(STATE_TALKING)
         self.display._speaking = True
+        
+        # Update closed captions
+        if self.display.captions:
+            self.display.captions.set_text(text)
 
         if metadata:
             sfx_name = metadata.get("sound_effect")
@@ -311,6 +315,10 @@ class MarioClient:
         """Clear speaking state after audio finishes."""
         self.display._speaking = False
         self.display.set_state(STATE_IDLE)
+        
+        # Clear closed captions
+        if self.display.captions:
+            self.display.captions.clear()
 
     def _on_connected(self):
         logger.info("Connected to Mario AI server!")
