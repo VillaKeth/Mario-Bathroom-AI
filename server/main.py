@@ -2755,6 +2755,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if rivalry_hint:
             ctx.append({"role": "system", "content": f"[RIVALRY]: {rivalry_hint}"})
 
+        # Alliance hint — if current topic matches an existing alliance
+        alliance_hint = party_gossip.get_alliance_hint(
+            state_current.get("speaker_id", ""), text)
+        if alliance_hint and random.random() < 0.5:
+            ctx.append({"role": "system", "content": f"[ALLIANCE]: {alliance_hint}"})
+
+        # Trending topic hint — if a topic is hot across 3+ guests
+        trending = party_gossip.get_trending_topic_hint(
+            state_current.get("speaker_id", ""))
+        if trending:
+            ctx.append({"role": "system", "content": f"[TRENDING]: {trending}"})
+
         # Chaos system — random interrupts for Neuro-sama energy
         chaos_roll = random.random()
         if chaos_roll < 0.08:
@@ -3471,6 +3483,12 @@ async def _do_greeting(ws: WebSocket, event: dict):
     narrative = party_gossip.get_party_narrative_hint()
     if narrative and random.random() < 0.25:
         ctx.append({"role": "system", "content": narrative})
+
+    # Trending topic in greeting — let new guest know what's hot
+    greeting_trending = party_gossip.get_trending_topic_hint(
+        state_current.get("speaker_id"))
+    if greeting_trending and random.random() < 0.4:
+        ctx.append({"role": "system", "content": f"[TRENDING]: {greeting_trending}"})
 
     now = datetime.now()
     party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0

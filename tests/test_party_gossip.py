@@ -357,3 +357,102 @@ class TestGossipPruningAndComparison:
         pg._analyze_speech_traits("a1", "")
         traits = pg._guest_speech_traits.get("a1", [])
         assert traits == []
+
+
+class TestAlliances:
+    def test_alliance_detection_on_agreement(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza, it's amazing")
+        pg.analyze_for_gossip("Bob", "b1", "I love pizza too, it's amazing")
+        assert len(pg._alliances) >= 1
+        names_in_alliances = [(a[0], a[1]) for a in pg._alliances]
+        assert any("Bob" in pair and "Alice" in pair for pair in names_in_alliances)
+
+    def test_alliance_not_created_on_opposition(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "pizza is the best food ever")
+        pg.analyze_for_gossip("Bob", "b1", "pizza is the worst food ever")
+        assert len(pg._alliances) == 0
+        assert len(pg._rivalries) >= 1
+
+    def test_alliance_hint_returns_string(self):
+        pg = PartyGossip()
+        pg._alliances = [("Alice", "Bob", "pizza")]
+        hint = pg.get_alliance_hint("c1", "let's talk about pizza")
+        assert hint is not None
+        assert isinstance(hint, str)
+
+    def test_alliance_hint_not_repeated(self):
+        pg = PartyGossip()
+        pg._alliances = [("Alice", "Bob", "pizza")]
+        hint1 = pg.get_alliance_hint("c1", "pizza is great")
+        hint2 = pg.get_alliance_hint("c1", "more pizza talk")
+        assert hint1 is not None
+        assert hint2 is None  # Already shared
+
+    def test_alliance_hint_no_match(self):
+        pg = PartyGossip()
+        pg._alliances = [("Alice", "Bob", "pizza")]
+        hint = pg.get_alliance_hint("c1", "I like gaming")
+        assert hint is None
+
+
+class TestTrendingTopics:
+    def test_topic_tracking_across_guests(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza so much")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is the best food ever")
+        pg.analyze_for_gossip("Carol", "c1", "Can we order more pizza?")
+        # "pizza" mentioned by 3 guests — should be trending
+        assert "pizza" in pg._topic_mentions
+        assert len(pg._topic_mentions["pizza"]) >= 3
+
+    def test_trending_hint_requires_3_guests(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is the best")
+        # Only 2 guests — not trending yet
+        hint = pg.get_trending_topic_hint()
+        assert hint is None
+
+    def test_trending_hint_fires_at_3_guests(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is the best")
+        pg.analyze_for_gossip("Carol", "c1", "Pizza for everyone")
+        hint = pg.get_trending_topic_hint("d1")
+        assert hint is not None
+        assert "pizza" in hint.lower() or "3" in hint
+
+    def test_trending_not_repeated(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is the best")
+        pg.analyze_for_gossip("Carol", "c1", "Pizza for everyone")
+        hint1 = pg.get_trending_topic_hint()
+        hint2 = pg.get_trending_topic_hint()
+        assert hint1 is not None
+        assert hint2 is None  # Already surfaced
+
+    def test_trending_empty_when_no_gossip(self):
+        pg = PartyGossip()
+        hint = pg.get_trending_topic_hint()
+        assert hint is None
+
+    def test_multiple_trending_topics(self):
+        pg = PartyGossip()
+        # 3 guests talk about pizza
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is the best")
+        pg.analyze_for_gossip("Carol", "c1", "Pizza for everyone")
+        # 3 guests talk about game
+        pg.analyze_for_gossip("Dave", "d1", "This game is amazing")
+        pg.analyze_for_gossip("Eve", "e1", "Best game ever")
+        pg.analyze_for_gossip("Frank", "f1", "Love this game")
+        # First call gets one, second gets the other
+        hint1 = pg.get_trending_topic_hint()
+        hint2 = pg.get_trending_topic_hint()
+        assert hint1 is not None
+        assert hint2 is not None
+        # They should be different topics
+        assert hint1 != hint2

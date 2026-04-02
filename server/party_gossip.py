@@ -107,6 +107,27 @@ _RIVALRY_TEMPLATES = [
     "Oh mama mia, {name1} and {name2} on opposite teams. I love this party!",
 ]
 
+# Alliance templates (when guests agree)
+_ALLIANCE_TEMPLATES = [
+    "{name1} and {name2} BOTH love {topic}! Best friends alert!",
+    "Looks like {name1} and {name2} agree about {topic}! I love harmony!",
+    "{name1} would HIGH FIVE you — they said the same thing about {topic}!",
+    "You and {name2} are on the SAME TEAM about {topic}! Alliance formed!",
+    "BREAKING: {name1} and {name2} unite over {topic}! Friendship is-a beautiful!",
+    "{name1} and {name2}, the dynamic duo of {topic}! Someone write a buddy comedy!",
+    "TWO guests agree about {topic}! {name1} and {name2}, take a bow!",
+]
+
+# Trending topic templates (3+ guests mention same topic)
+_TRENDING_TEMPLATES = [
+    "EVERYONE is talking about {topic} tonight! {names} and more — it's the hot topic!",
+    "{topic} is TRENDING at this party! {count} guests can't stop talking about it!",
+    "The number one topic tonight? {topic}! {names} all brought it up!",
+    "If this party had a hashtag, it would be #{topic}! {count} guests and counting!",
+    "{topic} is the STAR of the party tonight — {names} all agree it's worth discussing!",
+    "Breaking from the Mushroom Kingdom News Desk: {topic} is officially the party's biggest topic! {names} all weighed in!",
+]
+
 # Title templates for guests
 _TITLE_TEMPLATES = [
     "The {adj} {noun}",
@@ -142,6 +163,7 @@ class PartyGossip:
         self._guest_titles: dict[str, str] = {}  # guest_id → title
         self._guest_highlights: dict[str, list] = {}  # guest_id → best moments
         self._rivalries: list[tuple] = []  # (guest1, guest2, topic) pairs
+        self._alliances: list[tuple] = []  # (guest1, guest2, topic) agreement pairs
         self._party_narrative: list[str] = []  # Running party story beats
         self._used_gossip: set = set()  # Track which gossip has been shared (by index)
         self._guest_opinions: dict[str, dict] = {}  # guest_id → {topic: opinion}
@@ -149,7 +171,10 @@ class PartyGossip:
         self._party_start = time.time()
         self._guest_speech_traits: dict[str, list[str]] = {}  # guest_id → detected traits
         self._shared_rivalries: set = set()  # Track which rivalry indices have been hinted
+        self._shared_alliances: set = set()  # Track which alliance indices have been hinted
         self._guest_names: dict[str, str] = {}  # guest_id → display name lookup
+        self._topic_mentions: dict[str, set] = {}  # topic → set of guest_ids who mentioned it
+        self._trending_surfaced: set = set()  # Topics already surfaced as trending
 
     def analyze_for_gossip(self, speaker_name: str, speaker_id: str,
                            text: str, mario_response: str = "") -> list[dict]:
@@ -188,13 +213,19 @@ class PartyGossip:
                     self._gossip_log.append(entry)
                     new_gossip.append(entry)
 
+                    # Track topic mentions for trending detection
+                    if speaker_id:
+                        if kw not in self._topic_mentions:
+                            self._topic_mentions[kw] = set()
+                        self._topic_mentions[kw].add(speaker_id)
+
                     # Track opinions for comparison system
                     if gtype in ("opinion", "preference"):
                         if speaker_id not in self._guest_opinions:
                             self._guest_opinions[speaker_id] = {}
                         self._guest_opinions[speaker_id][kw] = text[:80]
 
-                        # Rivalry detection: compare against ALL other guests' opinions
+                        # Rivalry + alliance detection: compare against ALL other guests' opinions
                         _OPPOSING_KEYWORDS = {
                             "love": "hate", "hate": "love",
                             "best": "worst", "worst": "best",
@@ -204,18 +235,29 @@ class PartyGossip:
                             "beautiful": "ugly", "ugly": "beautiful",
                             "genius": "stupid", "stupid": "genius",
                         }
+                        _AGREEING_KEYWORDS = {
+                            "love", "hate", "best", "worst", "favorite", "terrible",
+                            "amazing", "disgusting", "overrated", "underrated",
+                            "beautiful", "ugly", "genius", "stupid",
+                        }
                         for other_id, other_opinions in self._guest_opinions.items():
                             if other_id == speaker_id:
                                 continue
                             if kw in other_opinions:
-                                # Same topic discussed — check for opposing sentiment
                                 other_text_lower = other_opinions[kw].lower()
                                 has_opposition = False
+                                has_agreement = False
                                 for pos_kw, neg_kw in _OPPOSING_KEYWORDS.items():
                                     if (pos_kw in lower and neg_kw in other_text_lower) or \
                                        (neg_kw in lower and pos_kw in other_text_lower):
                                         has_opposition = True
                                         break
+                                if not has_opposition:
+                                    # Check for agreement: same sentiment keywords
+                                    for agree_kw in _AGREEING_KEYWORDS:
+                                        if agree_kw in lower and agree_kw in other_text_lower:
+                                            has_agreement = True
+                                            break
                                 if has_opposition:
                                     other_name = self._guest_names.get(other_id, "someone")
                                     rivalry_key = (speaker_name, other_name, kw)
@@ -226,6 +268,14 @@ class PartyGossip:
                                         new_rivalries.append(rivalry_key)
                                         self._queue_rivalry_announcement(speaker_name, other_name, kw)
                                         logger.info(f"[RIVALRY] New rivalry: {speaker_name} vs {other_name} about '{kw}'")
+                                elif has_agreement:
+                                    other_name = self._guest_names.get(other_id, "someone")
+                                    alliance_key = (speaker_name, other_name, kw)
+                                    reverse_key = (other_name, speaker_name, kw)
+                                    if alliance_key not in self._alliances and \
+                                       reverse_key not in self._alliances:
+                                        self._alliances.append(alliance_key)
+                                        logger.info(f"[ALLIANCE] New alliance: {speaker_name} & {other_name} agree about '{kw}'")
 
                     break  # One entry per type per message
 
@@ -355,6 +405,47 @@ class PartyGossip:
                 template = random.choice(_RIVALRY_TEMPLATES)
                 return template.format(name1=name1, name2=name2)
         return None
+
+    def get_alliance_hint(self, current_speaker_id: str, text: str) -> str | None:
+        """Check if any existing alliance involves a topic the current speaker is talking about.
+        Returns a formatted alliance hint, or None. Avoids repeats."""
+        if not self._alliances:
+            return None
+
+        lower = text.lower()
+        for idx, (name1, name2, topic) in enumerate(self._alliances):
+            if idx in self._shared_alliances:
+                continue
+            if topic in lower:
+                self._shared_alliances.add(idx)
+                template = random.choice(_ALLIANCE_TEMPLATES)
+                return template.format(name1=name1, name2=name2, topic=topic)
+        return None
+
+    def get_trending_topic_hint(self, current_speaker_id: str = None) -> str | None:
+        """Return a hint about the hottest topic of the party (3+ guests mentioned it).
+        Each trending topic is only surfaced once."""
+        trending = []
+        for topic, mentioners in self._topic_mentions.items():
+            if len(mentioners) >= 3 and topic not in self._trending_surfaced:
+                trending.append((topic, len(mentioners)))
+        if not trending:
+            return None
+        # Pick the hottest topic (most unique guests)
+        trending.sort(key=lambda x: x[1], reverse=True)
+        topic, count = trending[0]
+        self._trending_surfaced.add(topic)
+        # Gather names who mentioned it
+        names = []
+        for gid in self._topic_mentions[topic]:
+            if gid != current_speaker_id:
+                name = self._guest_names.get(gid)
+                if name:
+                    names.append(name)
+        if not names:
+            return None
+        template = random.choice(_TRENDING_TEMPLATES)
+        return template.format(topic=topic, count=count, names=", ".join(names[:3]))
 
     def get_new_rivalry_announcements(self) -> list[str]:
         """Return dramatic announcements for any newly detected rivalries.
