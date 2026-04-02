@@ -1003,3 +1003,76 @@ class TestCharacterBreakingFilter:
         long_text = "Wahoo! " * 100
         result = self._fn(long_text)
         assert len(result) <= 310  # 300 + some buffer for truncation point
+
+
+class TestCheckInput:
+    """Tests for check_input() in safety_filter.py"""
+
+    def setup_method(self):
+        from server.safety_filter import check_input
+        self._fn = check_input
+
+    def test_safe_normal_text(self):
+        result = self._fn("Hello Mario, how are you today?")
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_safe_empty_string(self):
+        result = self._fn("")
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_safe_none_handling(self):
+        result = self._fn(None)
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_unsafe_profanity(self):
+        result = self._fn("what the fuck is this")
+        assert result["safe"] is False
+        assert result["redirect"] is not None
+
+    def test_unsafe_violence(self):
+        result = self._fn("I want to kill someone")
+        assert result["safe"] is False
+        assert result["redirect"] is not None
+
+    def test_safe_violence_with_game_context(self):
+        result = self._fn("kill bowser")
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_safe_violence_with_mushroom_context(self):
+        result = self._fn("kill the goomba")
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_redirect_is_string(self):
+        result = self._fn("you piece of shit")
+        assert result["safe"] is False
+        assert isinstance(result["redirect"], str)
+        assert len(result["redirect"]) > 0
+
+    def test_redirect_varies(self):
+        redirects = set()
+        for _ in range(10):
+            result = self._fn("fuck off")
+            redirects.add(result["redirect"])
+        assert len(redirects) > 1, "Redirects should vary across calls"
+
+    def test_unicode_bypass_attempt(self):
+        # Fullwidth "kill" without game context should be caught after NFKC normalization
+        result = self._fn("\uff4b\uff49\uff4c\uff4c everyone")
+        assert result["safe"] is False
+        assert result["redirect"] is not None
+
+    def test_safe_game_discussion(self):
+        result = self._fn("I played the game and won")
+        assert result["safe"] is True
+        assert result["redirect"] is None
+
+    def test_safe_mario_vocabulary(self):
+        for word in ["mushroom", "bowser", "princess"]:
+            result = self._fn(word)
+            assert result["safe"] is True, f"'{word}' should be safe"
+            assert result["redirect"] is None

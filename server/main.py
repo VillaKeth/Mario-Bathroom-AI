@@ -934,8 +934,8 @@ async def leaderboard_endpoint():
             if row:
                 game_champion = row[0]
                 game_score = row[1]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[REPORT] Game champion query failed: {e}")
 
     # Funniest moment — longest gossip entry per guest
     funniest_name = None
@@ -1003,8 +1003,8 @@ async def leaderboard_endpoint():
     game_leaderboard = []
     try:
         game_leaderboard = memory_module.get_game_leaderboard(limit=10)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[REPORT] Game leaderboard retrieval failed: {e}")
 
     return {
         "total_visits": stats.get("total_visits", 0),
@@ -1138,8 +1138,8 @@ async def trigger_memorial(request_body: dict = {}):
             }
             try:
                 await captured_ws.send_json(followup_event)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[WS] Followup send failed: {e}")
 
             try:
                 followup_loop = asyncio.get_event_loop()
@@ -1401,8 +1401,8 @@ async def _leaderboard_broadcast_loop(ws: WebSocket):
         try:
             lb_data = await _build_leaderboard_data()
             await ws.send_json({"type": "leaderboard_update", **lb_data})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[LEADERBOARD] Broadcast send failed (client may have disconnected): {e}")
 
 
 async def _build_leaderboard_data() -> dict:
@@ -1431,14 +1431,14 @@ async def _build_leaderboard_data() -> dict:
             if row:
                 game_champion = row[0]
                 game_score = row[1]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[LEADERBOARD] Game champion query failed: {e}")
 
     game_leaderboard = []
     try:
         game_leaderboard = memory_module.get_game_leaderboard(limit=10)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[LEADERBOARD] Game leaderboard retrieval failed: {e}")
 
     return {
         "total_visits": stats.get("total_visits", 0),
@@ -1467,8 +1467,8 @@ async def _send_leaderboard_event(ws: WebSocket):
     try:
         lb_data = await _build_leaderboard_data()
         await ws.send_json({"type": "leaderboard_update", **lb_data})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[LEADERBOARD] On-demand send failed: {e}")
 
 
 async def _emotion_decay_loop():
@@ -3131,8 +3131,8 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     # Send thinking
     try:
         await ws.send_json({"type": "state", "thinking": True, "subtitle": transcript})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[WS] Thinking state send failed: {e}")
 
     # Update speaker state
     if speaker_info and not speaker_info["is_new"]:
@@ -3481,16 +3481,16 @@ async def handle_event(ws: WebSocket, event: dict):
                 try:
                     await send_response(ws, _fallback_text, None,
                                         sound="greeting", pose_hint="greeting/wave_high")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[GREETING] All greeting fallbacks failed: {e}")
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_enter greeting failed: {e}")
             # Fallback: send text-only greeting so user isn't ignored
             try:
                 await send_response(ws, "Hey! Welcome to Mario's-a bathroom! Wahoo!", None,
                                     sound="greeting", pose_hint="greeting/wave_high")
-            except Exception:
-                pass
+            except Exception as e2:
+                logger.warning(f"[GREETING] Emergency text-only greeting also failed: {e2}")
         finally:
             state_current["_greeting_in_progress"] = False
             state_current["presence_phase"] = "CONVERSING"
@@ -3607,8 +3607,8 @@ async def handle_event(ws: WebSocket, event: dict):
                 fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(fallback))
                 await send_response(ws, fallback, fallback_audio, sound="goodbye",
                                     emotion="happy", pose_hint="greeting/farewell")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[FAREWELL] Emergency fallback also failed: {e}")
 
         # Record dramatic exit moment for gossip
         exit_name = state_current.get("speaker_name", "someone")
@@ -3703,10 +3703,8 @@ async def handle_event(ws: WebSocket, event: dict):
                 "emotion": emotion_system.current,
                 "active_game": state_current["_active_game"],
             })
-        except Exception:
-            pass
-
-    elif event_type == "person_detected":
+        except Exception as e:
+            logger.debug(f"[WS] Health pong send failed: {e}")
         face_enc = event.get("face_encoding")
         if face_enc and _face_memory and isinstance(face_enc, list) and len(face_enc) == 128:
             try:
@@ -3745,8 +3743,8 @@ async def _handle_text_input(ws: WebSocket, text: str):
 
     try:
         await ws.send_json({"type": "state", "thinking": True, "subtitle": text})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[WS] Text thinking state send failed: {e}")
 
     try:
         await _generate_and_send_response(ws, text, source="text", start_time=now)
@@ -3754,8 +3752,8 @@ async def _handle_text_input(ws: WebSocket, text: str):
         logger.error(f"[TEXT_INPUT_ERROR] Exception in response pipeline for '{text[:50]}': {e}", exc_info=True)
         try:
             await ws.send_json({"type": "mario_response", "text": f"Mama mia! Something went wrong: {e}", "emotion": "confused"})
-        except Exception:
-            pass
+        except Exception as e2:
+            logger.debug(f"[WS] Error response send also failed: {e2}")
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):
@@ -3765,8 +3763,8 @@ async def send_thinking(ws: WebSocket, subtitle: str = None):
         if subtitle:
             msg["subtitle"] = subtitle
         await ws.send_json(msg)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"[WS] send_thinking failed: {e}")
 
 
 async def send_response(ws: WebSocket, text: str, audio: bytes = None,
