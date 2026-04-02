@@ -69,6 +69,17 @@ _GOSSIP_TEMPLATES = [
     "I heard from {name} that they {gossip_summary}. The DRAMA!",
     "Between you and me... {name} {gossip_summary}. Don't spread it around! (Spread it around.)",
     "A little birdie (me, I'm the birdie) heard that {name} {gossip_summary}.",
+    # --- Expanded templates (v3.2) ---
+    "So {name} walks in and just {gossip_summary}. I was SPEECHLESS! Well, briefly.",
+    "You're never gonna guess what happened — {name} {gossip_summary}! Classic!",
+    "Okay this is TOP SECRET but {name} totally {gossip_summary}. Mama mia!",
+    "I've been DYING to tell someone — {name} {gossip_summary}! What do you think?",
+    "If the bathroom walls could talk... well they'd say {name} {gossip_summary}!",
+    "Plot twist of the night: {name} {gossip_summary}. I did NOT see that coming!",
+    "I promised {name} I wouldn't tell anyone they {gossip_summary}. Oops!",
+    "The bathroom has-a witnessed many things tonight. Like when {name} {gossip_summary}!",
+    "Hold on, hold on — did you know that {name} {gossip_summary}? BREAKING NEWS!",
+    "In my professional plumber opinion, the most interesting thing tonight is that {name} {gossip_summary}.",
 ]
 
 # Comparison templates
@@ -88,6 +99,12 @@ _RIVALRY_TEMPLATES = [
     "I smell a rivalry! {name1} said one thing, {name2} said the opposite!",
     "{name1} would DISAGREE with you. Maybe I should arrange a debate!",
     "This bathroom has seen some DRAMA tonight between opinions!",
+    # --- Expanded templates (v3.2) ---
+    "The rivalry between {name1} and {name2} is the best thing I've seen all night!",
+    "Mario declares a BATHROOM FEUD between {name1} and {name2}! Fight!",
+    "If {name1} and {name2} had a debate, I'd sell tickets! Who's buying?",
+    "Somebody get popcorn! {name1} vs {name2} is the party's main event!",
+    "Oh mama mia, {name1} and {name2} on opposite teams. I love this party!",
 ]
 
 # Title templates for guests

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🍄 Mario Party Host Controls</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a2e;color:#eee;min-height:100vh;padding:12px 12px 80px}
+h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
+.subtitle{text-align:center;font-size:.75em;color:#666;margin-bottom:14px}
+.status-pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.7em;font-weight:bold}
+.status-ok{background:#00c853;color:#000}
+.status-warn{background:#ffc107;color:#000}
+.status-bad{background:#d50000;color:#fff}
+
+.section{margin-bottom:16px}
+.section-title{font-size:.8em;color:#e94560;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-left:4px}
+
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.action-btn{background:#16213e;border:2px solid #0f3460;border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;user-select:none}
+.action-btn:active{transform:scale(.95);background:#1a2d5e;border-color:#e94560}
+.action-btn .icon{font-size:1.6em;margin-bottom:4px}
+.action-btn .label{font-size:.75em;font-weight:600}
+.action-btn.danger{border-color:#d50000}
+.action-btn.danger:active{background:#3d1010}
+.action-btn.success{border-color:#00c853}
+.action-btn.success:active{background:#0a3d1a}
+.action-btn.full-width{grid-column:1/-1}
+
+.emotion-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.emotion-btn{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:.7em;transition:all .15s}
+.emotion-btn:active{background:#1a2d5e;border-color:#e94560}
+.emotion-btn .em{font-size:1.3em}
+
+.announce-row{display:flex;gap:6px;margin-top:8px}
+.announce-row input{flex:1;background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:10px;color:#eee;font-size:.85em}
+.announce-row input::placeholder{color:#555}
+.announce-row button{background:#e94560;border:none;border-radius:8px;padding:10px 16px;color:#fff;font-weight:bold;cursor:pointer;white-space:nowrap}
+
+.stats-bar{display:flex;justify-content:space-around;background:#16213e;border-radius:10px;padding:10px;border:1px solid #0f3460;margin-bottom:12px}
+.stat{text-align:center}
+.stat .num{font-size:1.2em;font-weight:bold}
+.stat .lbl{font-size:.6em;color:#888;text-transform:uppercase}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#00c853;color:#000;padding:10px 20px;border-radius:8px;font-size:.85em;font-weight:bold;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.error{background:#d50000;color:#fff}
+.toast.show{opacity:1}
+
+.log{background:#0d1117;border-radius:8px;padding:8px;font-family:'Courier New',monospace;font-size:.65em;max-height:120px;overflow-y:auto;color:#7ee787;border:1px solid #0f3460;margin-top:8px}
+.log .entry{margin-bottom:2px}
+.log .entry.error{color:#ff6b6b}
+</style>
+</head>
+<body>
+
+<h1>🍄 Party Host Controls</h1>
+<div class="subtitle">Quick actions for the party host — <span id="statusPill" class="status-pill status-warn">...</span></div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat"><div class="num" id="stGuests">-</div><div class="lbl">Guests</div></div>
+  <div class="stat"><div class="num" id="stUptime">-</div><div class="lbl">Uptime</div></div>
+  <div class="stat"><div class="num" id="stGames">-</div><div class="lbl">Games</div></div>
+  <div class="stat"><div class="num" id="stPhase">-</div><div class="lbl">Phase</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">⚡ Quick Actions</div>
+  <div class="quick-actions">
+    <div class="action-btn success" onclick="triggerMemorial()">
+      <div class="icon">🕯️</div><div class="label">Lisa Webb Memorial</div>
+    </div>
+    <div class="action-btn" onclick="reloadConfig()">
+      <div class="icon">🔄</div><div class="label">Reload Config</div>
+    </div>
+    <div class="action-btn" onclick="pauseIdle()">
+      <div class="icon" id="pauseIcon">⏸️</div><div class="label" id="pauseLabel">Pause Idle TTS</div>
+    </div>
+    <div class="action-btn" onclick="restartSovits()">
+      <div class="icon">🔧</div><div class="label">Restart TTS Engine</div>
+    </div>
+    <div class="action-btn danger full-width" onclick="resetParty()">
+      <div class="icon">🗑️</div><div class="label">Reset All Party Stats</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">😊 Set Mario's Emotion</div>
+  <div class="emotion-grid">
+    <div class="emotion-btn" onclick="setEmotion('happy')"><div class="em">😊</div>Happy</div>
+    <div class="emotion-btn" onclick="setEmotion('excited')"><div class="em">🤩</div>Excited</div>
+    <div class="emotion-btn" onclick="setEmotion('sad')"><div class="em">😢</div>Sad</div>
+    <div class="emotion-btn" onclick="setEmotion('angry')"><div class="em">😤</div>Angry</div>
+    <div class="emotion-btn" onclick="setEmotion('scared')"><div class="em">😱</div>Scared</div>
+    <div class="emotion-btn" onclick="setEmotion('drunk')"><div class="em">🥴</div>Drunk</div>
+    <div class="emotion-btn" onclick="setEmotion('sick')"><div class="em">🤢</div>Sick</div>
+    <div class="emotion-btn" onclick="setEmotion('neutral')"><div class="em">😐</div>Neutral</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📢 Custom Announcement</div>
+  <div class="announce-row">
+    <input type="text" id="announceText" placeholder="Type what Mario should say..." maxlength="200">
+    <button onclick="sendAnnounce()">Send</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📋 Activity Log</div>
+  <div class="log" id="activityLog">
+    <div class="entry">Ready. Waiting for actions...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const POLL_MS = 8000;
+let idlePaused = false;
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function addLog(msg, isError) {
+  const log = document.getElementById('activityLog');
+  const d = new Date();
+  const ts = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  const div = document.createElement('div');
+  div.className = 'entry' + (isError ? ' error' : '');
+  div.textContent = '[' + ts + '] ' + msg;
+  log.prepend(div);
+  if (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+async function apiCall(url, method, body) {
+  try {
+    const opts = { method, signal: AbortSignal.timeout(10000) };
+    if (body) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify(body);
+    }
+    const r = await fetch(url, opts);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json().catch(() => ({}));
+  } catch (e) {
+    throw e;
+  }
+}
+
+function fmtUptime(s) {
+  if (!s && s !== 0) return '-';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h > 0 ? h + 'h' + m + 'm' : m + 'm';
+}
+
+async function pollHealth() {
+  try {
+    const d = await apiCall('/api/health', 'GET');
+    const tier = d.degradation_tier || 'FULL';
+    const pill = document.getElementById('statusPill');
+    pill.textContent = tier;
+    pill.className = 'status-pill ' + (tier === 'FULL' ? 'status-ok' : tier === 'DEGRADED' ? 'status-warn' : 'status-bad');
+
+    document.getElementById('stGuests').textContent = d.total_guests || '0';
+    document.getElementById('stUptime').textContent = fmtUptime(d.uptime_seconds);
+    document.getElementById('stGames').textContent = d.games_played || '0';
+    document.getElementById('stPhase').textContent = d.current_phase || '-';
+  } catch (e) {
+    document.getElementById('statusPill').textContent = 'OFFLINE';
+    document.getElementById('statusPill').className = 'status-pill status-bad';
+  }
+}
+
+async function triggerMemorial() {
+  if (!confirm('Trigger Lisa Webb memorial moment?')) return;
+  try {
+    await apiCall('/admin/trigger_memorial', 'POST');
+    showToast('🕯️ Memorial triggered');
+    addLog('Triggered Lisa Webb memorial');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Memorial failed: ' + e.message, true);
+  }
+}
+
+async function reloadConfig() {
+  try {
+    await apiCall('/config/reload', 'POST');
+    showToast('✅ Config reloaded');
+    addLog('Config reloaded');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Config reload failed: ' + e.message, true);
+  }
+}
+
+async function pauseIdle() {
+  try {
+    await apiCall('/pause_idle', 'GET');
+    idlePaused = !idlePaused;
+    document.getElementById('pauseIcon').textContent = idlePaused ? '▶️' : '⏸️';
+    document.getElementById('pauseLabel').textContent = idlePaused ? 'Resume Idle TTS' : 'Pause Idle TTS';
+    showToast(idlePaused ? '⏸️ Idle TTS paused' : '▶️ Idle TTS resumed');
+    addLog(idlePaused ? 'Paused idle TTS' : 'Resumed idle TTS');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Pause toggle failed: ' + e.message, true);
+  }
+}
+
+async function restartSovits() {
+  if (!confirm('Restart GPT-SoVITS TTS engine?')) return;
+  try {
+    await apiCall('/restart_sovits', 'GET');
+    showToast('🔧 TTS engine restarting');
+    addLog('Restarted GPT-SoVITS engine');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('TTS restart failed: ' + e.message, true);
+  }
+}
+
+async function resetParty() {
+  if (!confirm('⚠️ Reset ALL party stats? This cannot be undone!')) return;
+  if (!confirm('Are you REALLY sure? All guest data, games, and gossip will be cleared.')) return;
+  try {
+    await apiCall('/admin/reset', 'POST');
+    showToast('🗑️ Party stats reset');
+    addLog('Reset all party stats');
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Reset failed: ' + e.message, true);
+  }
+}
+
+async function setEmotion(emotion) {
+  try {
+    await apiCall('/admin/set_emotion?emotion=' + emotion, 'POST');
+    showToast('😊 Emotion → ' + emotion);
+    addLog('Set emotion: ' + emotion);
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Set emotion failed: ' + e.message, true);
+  }
+}
+
+async function sendAnnounce() {
+  const input = document.getElementById('announceText');
+  const text = input.value.trim();
+  if (!text) { showToast('Type something first!', true); return; }
+  try {
+    await apiCall('/admin/announce?text=' + encodeURIComponent(text), 'POST');
+    showToast('📢 Announcement queued');
+    addLog('Announced: ' + text);
+    input.value = '';
+  } catch (e) {
+    showToast('Failed: ' + e.message, true);
+    addLog('Announce failed: ' + e.message, true);
+  }
+}
+
+// Enter key sends announcement
+document.getElementById('announceText').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendAnnounce();
+});
+
+// Poll health
+pollHealth();
+setInterval(pollHealth, POLL_MS);
+</script>
+</body>
+</html>

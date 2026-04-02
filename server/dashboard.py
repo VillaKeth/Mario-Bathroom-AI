@@ -45,6 +45,15 @@ async def dashboard_page():
     return HTMLResponse("<h1>dashboard.html not found</h1>", status_code=404)
 
 
+@router.get("/party-host")
+async def party_host_page():
+    """Serve the mobile party host quick-actions page."""
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "party_host.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path, media_type="text/html")
+    return HTMLResponse("<h1>party_host.html not found</h1>", status_code=404)
+
+
 @router.get("/api/health")
 async def api_health():
     """Detailed health JSON for dashboard consumption."""
