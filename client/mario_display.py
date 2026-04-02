@@ -349,6 +349,11 @@ class MarioDisplay:
         self._font_input = pygame.font.Font(None, 32)
         self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
         self._chat_msg_font = pygame.font.SysFont("arial", 13)
+        # Pre-cache bubble fonts to avoid creating fonts every frame (up to 240/sec at 30fps)
+        self._bubble_fonts = {
+            size: pygame.font.Font(None, size)
+            for size in range(14, 30, 2)  # 14, 16, 18, 20, 22, 24, 26, 28
+        }
         self._running = True
 
         # ── Memorial photo loading (requires pygame to be initialized) ──
@@ -1600,7 +1605,7 @@ class MarioDisplay:
         best_lines = []
         best_size = min_font_size
         for size in range(max_font_size, min_font_size - 1, -2):
-            font = pygame.font.Font(None, size)
+            font = self._bubble_fonts[size]
             lines = self._wrap_text_for_bubble(text, font, max_width)
             total_height = len(lines) * (size + 4)
             if total_height <= max_bubble_height:
@@ -1611,13 +1616,14 @@ class MarioDisplay:
             best_lines = lines
         
         if best_font is None:
-            best_font = pygame.font.Font(None, min_font_size)
+            best_font = self._bubble_fonts[min_font_size]
         
         if not best_lines:
             return
         
         line_height = best_size + 4
         bubble_w = max_width + 40
+        # If text overflows even at min font, let bubble grow rather than clip
         bubble_h = len(best_lines) * line_height + 30
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = 58
