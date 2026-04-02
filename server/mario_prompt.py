@@ -1312,9 +1312,13 @@ def add_bookmark(user_text: str, exchange_count: int):
             break
 
 def get_bookmark_callback(exchange_count: int) -> str:
-    """Reference a bookmarked moment from earlier (8% after 5+ exchanges)."""
+    """Reference a bookmarked moment from earlier. Rate scales with depth."""
     import random
-    if not _bookmarks or exchange_count < 5 or random.random() > 0.08:
+    if not _bookmarks or exchange_count < 5:
+        return ""
+    # Higher depth = more callbacks (8% base → up to 20% at max depth)
+    callback_chance = 0.08 + (_depth_score / 30.0) * 0.12
+    if random.random() > callback_chance:
         return ""
     bm = random.choice(_bookmarks)
     if exchange_count - bm["exchange"] < 3:
@@ -1730,6 +1734,63 @@ def update_depth(text: str) -> str:
 def reset_depth():
     global _depth_score
     _depth_score = 0
+
+
+def get_depth_score() -> int:
+    """Return current depth score for external use."""
+    return _depth_score
+
+
+# --- Conversation Arc System ---
+# Evolves Mario's personality based on conversation depth + exchange count
+
+def get_conversation_arc_modifier(exchange_count: int) -> str:
+    """Return a system-level personality modifier based on conversation depth and length.
+    
+    This creates progressive personality evolution:
+    - Surface chats: High energy, chaotic, joke-heavy
+    - Deepening chats: Mix humor with genuine moments
+    - Deep chats: Heartfelt, honest, still Mario but with soul
+    """
+    score = _depth_score
+    
+    # Short conversations — keep it light
+    if exchange_count < 3:
+        return ""
+    
+    # Deep + long = heart-to-heart mode
+    if score >= 15 and exchange_count >= 6:
+        return (
+            "[HEART MODE]: This guest is sharing real, vulnerable things. "
+            "Drop the chaos a bit. Be genuinely warm and caring. "
+            "You can still be Mario, but show the heart beneath the mustache. "
+            "Use fewer catchphrases, more real words. Listen and respond to what they actually said."
+        )
+    
+    # Moderate depth — transitioning
+    if score >= 8 and exchange_count >= 4:
+        return (
+            "[REAL TALK]: This guest is getting personal. "
+            "Balance your chaos with genuine warmth. Still be funny, but also be real. "
+            "If they share something meaningful, acknowledge it sincerely before being silly."
+        )
+    
+    # Long but shallow — they're having fun, crank it up
+    if exchange_count >= 10 and score < 5:
+        return (
+            "[BEST FRIENDS]: You've been chatting forever! This is your new best friend! "
+            "Be extra chaotic, reference earlier things they said, create inside jokes. "
+            "You're both having a blast — match their energy!"
+        )
+    
+    # Medium length, normal depth — standard progression
+    if exchange_count >= 5:
+        return (
+            "[WARMED UP]: You know this person now! Be more personal, use callbacks. "
+            "Drop the generic party host energy — this is a real conversation."
+        )
+    
+    return ""
 
 
 # --- Hype Generator ---
@@ -2192,10 +2253,11 @@ FAREWELL_LEVELS = [
 ]
 
 def get_farewell_drama(exchange_count: int) -> str:
-    """Scale farewell drama based on conversation length."""
-    if exchange_count >= 15:
+    """Scale farewell drama based on conversation length AND depth."""
+    # Deep conversations get upgraded farewell regardless of length
+    if _depth_score >= 15 or exchange_count >= 15:
         return FAREWELL_LEVELS[3]
-    elif exchange_count >= 8:
+    elif _depth_score >= 8 or exchange_count >= 8:
         return FAREWELL_LEVELS[2]
     elif exchange_count >= 3:
         return FAREWELL_LEVELS[1]

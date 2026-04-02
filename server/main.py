@@ -2012,7 +2012,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Lower-priority reaction hints — skip if we already have 2 (we only use [:2])
         # Always run stateful trackers (depth, intensity, mood) but skip result collection
-        mario_prompt.update_depth(text)
+        depth_hint = mario_prompt.update_depth(text)
+        if depth_hint:
+            reaction_parts.append(depth_hint)
         mario_prompt.update_intensity(text)
 
         if len(reaction_parts) < 2:
@@ -2082,6 +2084,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         if all_hints:
             ctx.append({"role": "system", "content": " | ".join(all_hints[:3])})
+
+        # Conversation arc modifier — evolves Mario's personality based on depth + engagement
+        arc_mod = mario_prompt.get_conversation_arc_modifier(exchange_count)
+        if arc_mod:
+            ctx.append({"role": "system", "content": arc_mod})
 
         # --- CONVERSATION hints (callbacks, stories, secrets) --- priority: low, pick one
         conv_hint = None

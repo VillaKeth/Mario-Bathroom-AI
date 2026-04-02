@@ -242,3 +242,68 @@ class TestTokenBudget:
         # System message should survive, some conversation trimmed
         assert ctx[0]["role"] == "system"
         assert est_tokens <= budget_tokens
+
+
+class TestConversationArc:
+    """Test conversation arc modifier system."""
+
+    def setup_method(self):
+        import server.mario_prompt as mp
+        self.mp = mp
+        mp.reset_depth()
+
+    def test_no_modifier_early(self):
+        """No arc modifier for short conversations."""
+        result = self.mp.get_conversation_arc_modifier(1)
+        assert result == ""
+
+    def test_warmed_up_at_5_exchanges(self):
+        """After 5 exchanges with normal depth, get WARMED UP."""
+        result = self.mp.get_conversation_arc_modifier(5)
+        assert "WARMED UP" in result
+
+    def test_best_friends_long_shallow(self):
+        """Long conversation with low depth = BEST FRIENDS mode."""
+        # Keep depth low
+        self.mp._depth_score = 2
+        result = self.mp.get_conversation_arc_modifier(10)
+        assert "BEST FRIENDS" in result
+
+    def test_real_talk_moderate_depth(self):
+        """Moderate depth triggers REAL TALK."""
+        self.mp._depth_score = 10
+        result = self.mp.get_conversation_arc_modifier(5)
+        assert "REAL TALK" in result
+
+    def test_heart_mode_deep_long(self):
+        """Deep + long conversation triggers HEART MODE."""
+        self.mp._depth_score = 18
+        result = self.mp.get_conversation_arc_modifier(8)
+        assert "HEART MODE" in result
+
+    def test_depth_score_accessible(self):
+        """get_depth_score() returns current value."""
+        self.mp._depth_score = 12
+        assert self.mp.get_depth_score() == 12
+
+    def test_update_depth_returns_hint(self):
+        """update_depth() returns a non-empty hint when score is high."""
+        self.mp._depth_score = 14
+        hint = self.mp.update_depth("I dream about my purpose in life and I'm scared")
+        assert hint != ""  # deep words push score above 15
+
+    def test_farewell_drama_depth_aware(self):
+        """Farewell drama upgrades for deep conversations even if short."""
+        self.mp._depth_score = 16
+        result = self.mp.get_farewell_drama(4)  # Only 4 exchanges but deep
+        assert "EPIC" in result or "greatest" in result.lower()
+
+    def test_bookmark_callback_scales_with_depth(self):
+        """Bookmark callback chance increases with depth score."""
+        # Can't easily test randomness, but verify it doesn't crash
+        self.mp._bookmarks = [{"text": "I love pasta", "exchange": 1}]
+        self.mp._depth_score = 25
+        # Call many times — at high depth (20% chance), should sometimes return
+        results = [self.mp.get_bookmark_callback(8) for _ in range(100)]
+        non_empty = [r for r in results if r]
+        assert len(non_empty) > 0  # At least some callbacks at 20% rate
