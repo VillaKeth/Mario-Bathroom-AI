@@ -137,6 +137,23 @@ class PartyStats:
         except Exception as e:
             logger.error(f"record_event failed: {e}")
 
+    def get_seconds_since_last_exit(self, person_id: int) -> float | None:
+        """Return seconds since this person's last exit, or None if never visited."""
+        if not person_id:
+            return None
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                row = conn.execute("""
+                    SELECT (julianday(CURRENT_TIMESTAMP) - julianday(exit_time)) * 86400 as secs
+                    FROM party_visits
+                    WHERE person_id = ? AND exit_time IS NOT NULL
+                    ORDER BY exit_time DESC LIMIT 1
+                """, (person_id,)).fetchone()
+                return row[0] if row else None
+        except Exception as e:
+            logger.warning(f"get_seconds_since_last_exit failed: {e}")
+            return None
+
     def get_stats(self) -> dict:
         """Get all party statistics."""
         try:

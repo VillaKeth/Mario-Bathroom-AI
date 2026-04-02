@@ -3353,6 +3353,13 @@ async def handle_event(ws: WebSocket, event: dict):
                     visit_hint = f"They've visited {actual_visits} times! They're a LEGEND! Treat them like royalty!"
                 ctx.append({"role": "system", "content": visit_hint})
 
+                # Rapid re-entry detection — "back so soon?"
+                secs_since_exit = party_stats.get_seconds_since_last_exit(state_current["speaker_id"])
+                if secs_since_exit is not None and secs_since_exit < 120:
+                    ctx.append({"role": "system", "content": f"{state_current['speaker_name']} JUST left {int(secs_since_exit)} seconds ago and is already back! React with surprise and humor — 'Back so soon?', 'Miss me already?', 'Couldn't stay away, huh?'"})
+                elif secs_since_exit is not None and secs_since_exit < 600:
+                    ctx.append({"role": "system", "content": f"{state_current['speaker_name']} was here just {int(secs_since_exit // 60)} minutes ago. Acknowledge the quick return warmly."})
+
                 # Context-aware returning greetings — reference last conversation
                 recent_topics = memory.get_recent_conversations(state_current["speaker_id"], limit=1)
                 if recent_topics:

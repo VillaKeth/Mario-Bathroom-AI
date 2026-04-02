@@ -137,3 +137,65 @@ class TestCatchphraseMirror:
         mirror.reset()
         assert mirror.get_mirror_phrase("Grace") is None
         assert mirror.get_party_catchphrases() == {}
+
+
+# ── Rapid Re-Entry / get_seconds_since_last_exit Tests ──
+
+import time
+import server.party_stats as _party_stats_mod
+from server.party_stats import PartyStats
+
+
+@pytest.fixture()
+def party_stats(tmp_path, monkeypatch):
+    """Yield a fresh PartyStats wired to an isolated temp DB."""
+    db_file = str(tmp_path / "test_party.db")
+    monkeypatch.setattr(_party_stats_mod, "DB_PATH", db_file)
+    return PartyStats()
+
+
+class TestRapidReEntry:
+    """Tests for get_seconds_since_last_exit and rapid re-entry detection."""
+
+    def test_no_previous_exit_returns_none(self, party_stats):
+        """Person with no visits at all should return None."""
+        assert party_stats.get_seconds_since_last_exit(999) is None
+
+    def test_after_exit_returns_seconds(self, party_stats):
+        """After a full enter/exit cycle, should return a small positive number."""
+        visit_id = party_stats.record_enter(person_id=123, person_name="Test")
+        party_stats.record_exit(visit_id)
+        result = party_stats.get_seconds_since_last_exit(123)
+        assert result is not None
+        assert isinstance(result, float)
+        assert result >= 0
+
+    def test_no_exit_yet_returns_none(self, party_stats):
+        """Enter without exit (exit_time IS NULL) should return None."""
+        party_stats.record_enter(person_id=456, person_name="StillHere")
+        assert party_stats.get_seconds_since_last_exit(456) is None
+
+    def test_with_none_person_id_returns_none(self, party_stats):
+        """person_id=None should return None (falsy guard)."""
+        assert party_stats.get_seconds_since_last_exit(None) is None
+
+    def test_with_zero_person_id_returns_none(self, party_stats):
+        """person_id=0 should return None (falsy guard)."""
+        assert party_stats.get_seconds_since_last_exit(0) is None
+
+    def test_multiple_exits_returns_most_recent(self, party_stats):
+        """Multiple enter/exit cycles should return seconds since the MOST RECENT exit."""
+        # First visit
+        v1 = party_stats.record_enter(person_id=789, person_name="Repeat")
+        party_stats.record_exit(v1)
+        time.sleep(0.1)
+
+        # Second visit
+        v2 = party_stats.record_enter(person_id=789, person_name="Repeat")
+        party_stats.record_exit(v2)
+        time.sleep(0.05)
+
+        result = party_stats.get_seconds_since_last_exit(789)
+        assert result is not None
+        # Should be close to 0.05s (the time since last exit), not ~0.15s
+        assert result < 1.0
