@@ -121,11 +121,13 @@ def clean_text_for_tts(text):
     #   Toad → "Todd" already close enough (model does this naturally)
     
     # Character names — replace with words the model CAN actually say
-    clean_text = _re.sub(r"\bBowser's\b", "the bad guy's", clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowser\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzur\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzer\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzah\b', 'the bad guy', clean_text, flags=_re.IGNORECASE)
+    # NOTE: "the bad guy" tested best in 220-round ralph loop, but user reports
+    # Bowser sounds close to correct now — try "Bowsir" (preserves name, fixes ending)
+    clean_text = _re.sub(r"\bBowser's\b", "Bowsir's", clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowser\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzur\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzer\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+    clean_text = _re.sub(r'\bBowzah\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bToad\b', 'Todd', clean_text)  # Case-sensitive: only proper noun
     clean_text = _re.sub(r'\bGoombas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
     clean_text = _re.sub(r'\bGoomba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
@@ -262,8 +264,8 @@ def clean_text_for_tts(text):
     clean_text = clean_text.replace('/', ' ')  # Slashes → space
     clean_text = clean_text.replace('\\', ' ')  # Backslashes → space
     clean_text = clean_text.replace('_', ' ')  # Underscores → space
-    clean_text = clean_text.replace('…', ', ')  # Smart ellipsis → comma pause
-    clean_text = _re.sub(r'\.{2,}', ', ', clean_text)  # Multi-dots → comma pause (TTS garbles dots)
+    clean_text = clean_text.replace('…', ' ')  # Smart ellipsis → space (not comma — avoids leading ", ")
+    clean_text = _re.sub(r'\.{2,}', ' ', clean_text)  # Multi-dots → space (TTS garbles dots)
     clean_text = clean_text.replace('"', '"').replace('"', '"')  # Smart quotes → straight
     clean_text = clean_text.replace(''', "'").replace(''', "'")  # Smart apostrophes
     clean_text = clean_text.replace('"', '')  # Remove remaining quotes (TTS reads them)
@@ -274,7 +276,7 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'([!?])\1+', r'\1', clean_text)
     clean_text = _re.sub(r'[!?]{3,}', '?!', clean_text)
     # Remove any remaining multi-dots (safety net after earlier dot normalization)
-    clean_text = _re.sub(r'\.{2,}', ', ', clean_text)
+    clean_text = _re.sub(r'\.{2,}', ' ', clean_text)
     # Convert mid-sentence periods to commas (prevents TTS sentence fragmentation)
     # "Line one. Line two. Line three." → "Line one, Line two, Line three."
     # Only convert periods followed by space+uppercase (sentence boundaries mid-text)

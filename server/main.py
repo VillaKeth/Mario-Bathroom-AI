@@ -1611,10 +1611,13 @@ async def _emotion_decay_loop():
 
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
-    """Send idle message only if no user request is active (prevents interleaving)."""
+    """Send idle message only if no user request or memorial is active (prevents interleaving)."""
     async with _state_lock:
         if state_current.get("_user_request_active"):
             logger.debug("[IDLE] Suppressed idle send — user request active")
+            return False
+        if state_current.get("memorial_active"):
+            logger.debug("[IDLE] Suppressed idle send — memorial active")
             return False
     await send_response(ws, text, audio, **kwargs)
     return True
@@ -1661,7 +1664,12 @@ async def _idle_loop(ws: WebSocket):
         # Skip idle TTS when a user request is being processed (prevents GPU contention)
         async with _state_lock:
             user_active = state_current.get("_user_request_active")
+            memorial_running = state_current.get("memorial_active")
         if user_active:
+            continue
+        # Suppress ALL idle behavior during memorial — don't queue behind it
+        if memorial_running:
+            logger.debug("[IDLE] Skipping idle loop — memorial active")
             continue
 
         # Check for admin announcements (priority)

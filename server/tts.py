@@ -267,6 +267,16 @@ _rvc_lock = threading.Lock()  # Serialize RVC GPU calls to prevent contention
 _cache_lock = threading.Lock()  # Protects _audio_cache and _cache_order from concurrent access
 _edge_executor = None  # Reusable executor for Edge TTS async-in-sync calls
 
+# Tiny silent WAV for empty text guard (inline — _make_dummy_wav defined later)
+def _make_silence_wav():
+    _buf = io.BytesIO()
+    with wave.open(_buf, "wb") as _wf:
+        _wf.setnchannels(1); _wf.setsampwidth(2); _wf.setframerate(22050)
+        _wf.writeframes(np.zeros(2205, dtype=np.int16).tobytes())
+    return _buf.getvalue()
+_EMERGENCY_SILENCE = _make_silence_wav()
+del _make_silence_wav
+
 # Disk cache for TTS audio persistence across restarts
 _DISK_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "server", "data", "tts_cache")
 
@@ -1024,6 +1034,11 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
 
     Pipeline: Cache check → Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
     """
+    # Guard: empty/whitespace text produces silence (prevents TTS engine errors)
+    if not text or not text.strip():
+        logger.debug("[DEBUG_TTS] synthesize: empty text, returning silence")
+        return _EMERGENCY_SILENCE
+
     # Check cache first for instant playback (key includes voice params)
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"

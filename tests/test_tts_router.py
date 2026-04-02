@@ -397,8 +397,33 @@ class TestTTSPreprocessing:
 
     def test_existing_bowser_replacement(self):
         from gpt_sovits_server import clean_text_for_tts
-        assert "bad guy" in clean_text_for_tts("Bowser is evil!")
+        result = clean_text_for_tts("Bowser is evil!")
+        assert "owsir" in result.lower()
 
     def test_hoppenstedt_pronunciation(self):
         from gpt_sovits_server import clean_text_for_tts
         assert "Hoppenstead" in clean_text_for_tts("Jacob Hoppenstedt is here!")
+
+    def test_ellipsis_stripped_no_leading_comma(self):
+        """Ellipsis at start/end should NOT produce leading commas."""
+        from gpt_sovits_server import clean_text_for_tts
+        result = clean_text_for_tts("...Hello there!")
+        assert not result.startswith(","), f"Leading comma in: {result}"
+        assert "hello" in result.lower()
+
+    def test_ellipsis_mid_sentence(self):
+        from gpt_sovits_server import clean_text_for_tts
+        result = clean_text_for_tts("Let me...think about...that")
+        assert "..." not in result
+        assert "let me" in result.lower()
+
+    def test_only_ellipsis_returns_empty(self):
+        from gpt_sovits_server import clean_text_for_tts
+        assert clean_text_for_tts("...") == ""
+
+    def test_empty_text_synthesize_returns_silence(self):
+        """Empty text should return emergency silence, not crash."""
+        from tts import synthesize
+        result = synthesize("")
+        assert result is not None
+        assert len(result) > 0

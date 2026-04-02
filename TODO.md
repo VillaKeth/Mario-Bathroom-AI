@@ -1,21 +1,15 @@
 # Mario AI Party Bot - TODO
 
-## v3.11 VRAM Budget Fix + Memory Enhancement (Current)
-- [x] Fix ULTRA tier models — 70B Q4 + Mixtral didn't fit in 24GB VRAM
-- [x] Quality model: gemma3:27b (~16GB, fits alongside TTS)
-- [x] Fast model: llama3.1:8b (~5GB)
-- [x] Updated QUICKSTART.md with correct models
-- [x] VIP prompt facts now include family (Carl, Stacy) + memorial awareness
-- [x] Memorial stored as 3 separate searchable Qdrant memories
-- [x] Family members stored as individual Qdrant memories
-- [x] Birthday facts from config.json injected into Qdrant at startup
-- [x] VIP conversation retention: 2000 lines (4x regular guests)
-- [x] 626 tests passing
-- [x] Memorial waits for Jacob (fires at 45min+Jacob, 90min regardless)
-- [x] Memorial SFX: solemn bell chime + victory toast sound
-- [x] 7 memorial tests (alias detection, timing, Jacob-awareness)
+## v3.11 TTS Quality + Audio Normalization (Current — 636 tests)
+- [x] Audio normalization: peak normalize to -3dB for consistent volume
+- [x] New character pronunciations (Peach, Luigi, Yoshi, Daisy)
+- [x] Year-to-words conversion (2000-2099)
+- [x] TTS prompt guidance rules in system prompt
+- [x] Speech rate reduced +20% → +10%
+- [x] 10 new TTS tests (normalization + preprocessing)
+- [x] Fixed escape sequence deprecation warning
+- [x] Updated CLAUDE.md with TTS improvements
 - [ ] Test gemma3:27b quality on Threadripper before party
-- [ ] Consider 70B with partial CPU offloading if gemma3 isn't good enough
 - [ ] Run canary smoke test on Threadripper
 - [ ] Configure Tailscale for remote client access
 
