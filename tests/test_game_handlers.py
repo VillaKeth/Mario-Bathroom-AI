@@ -212,7 +212,7 @@ class TestRiddles(unittest.TestCase):
     def test_wrong_guess_decrements(self, _mock_ar):
         state, config, emo = _make_state(), _make_config(), EmotionSystem()
         start_game("riddles", state, config, emo)
-        resp, sfx = handle_game_input("zzzzz_wrong_answer_xyz", state, emo)
+        resp, sfx = handle_game_input("qxqxqxq", state, emo)
         self.assertEqual(state["_game_state"]["attempts"], 1)
         self.assertEqual(sfx, "wrong")
 
@@ -220,7 +220,7 @@ class TestRiddles(unittest.TestCase):
         state, config, emo = _make_state(), _make_config(), EmotionSystem()
         start_game("riddles", state, config, emo)
         state["_game_state"]["attempts"] = state["_game_state"]["max_attempts"] - 1
-        resp, sfx = handle_game_input("zzzzz_wrong_answer_xyz", state, emo)
+        resp, sfx = handle_game_input("qxqxqxq", state, emo)
         self.assertIsNone(state["_active_game"])
         self.assertEqual(sfx, "game_over")
 

@@ -3468,6 +3468,21 @@ async def handle_event(ws: WebSocket, event: dict):
                         await asyncio.sleep(0.5)
                     else:
                         logger.error(f"[GREETING] Send failed after retry: {send_err}")
+        except asyncio.TimeoutError:
+            logger.error("[GREETING] LLM timed out after 30s — using fast fallback")
+            _fallback_name = state_current.get("speaker_name") or "friend"
+            _fallback_text = f"Wahoo! Welcome to Mario's-a bathroom, {_fallback_name}! It's-a me, Mario!"
+            try:
+                _fb_audio = await asyncio.get_event_loop().run_in_executor(
+                    _tts_executor, lambda: tts.synthesize(_fallback_text))
+                await send_response(ws, _fallback_text, _fb_audio,
+                                    sound="greeting", pose_hint="greeting/wave_high")
+            except Exception:
+                try:
+                    await send_response(ws, _fallback_text, None,
+                                        sound="greeting", pose_hint="greeting/wave_high")
+                except Exception:
+                    pass
         except Exception as e:
             logger.error(f"[DEBUG_SERVER] presence_enter greeting failed: {e}")
             # Fallback: send text-only greeting so user isn't ignored

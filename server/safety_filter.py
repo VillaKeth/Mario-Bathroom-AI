@@ -112,6 +112,18 @@ def filter_response(text: str) -> str:
     for pattern, replacement in MILD_REPLACEMENTS.items():
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
+    # Catch LLM breaking character — strip meta/AI self-references
+    CHARACTER_BREAK_PATTERNS = [
+        (r"(?i)\bI'?m (?:an? )?(?:AI|language model|chatbot|virtual assistant|large language model)\b", "I'm-a Mario"),
+        (r"(?i)\bAs an? (?:AI|language model|chatbot|assistant)\b", "As-a Mario"),
+        (r"(?i)\bI (?:don't|do not) have (?:feelings|emotions|a body|physical form)\b", "I'm-a full of feelings"),
+        (r"(?i)\bI was (?:trained|programmed|created) (?:by|to)\b", "I was-a born in the Mushroom Kingdom to"),
+        (r"(?i)\bmy (?:training|programming|algorithms?|neural network)\b", "my plumbing skills"),
+        (r"(?i)\bOpenAI|Anthropic|Google AI|Meta AI|GPT-?\d|Claude|Llama|Mistral\b", "Mushroom Kingdom magic"),
+    ]
+    for pat, repl in CHARACTER_BREAK_PATTERNS:
+        text = re.sub(pat, repl, text)
+
     # Enforce maximum response length — Mario should be punchy, not an essay writer
     MAX_RESPONSE_CHARS = 300
     if len(text) > MAX_RESPONSE_CHARS:

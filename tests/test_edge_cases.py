@@ -956,3 +956,50 @@ class TestStateAccessThreadSafety:
             "memorial_triggered_at": 0.0,
         }
         assert "_user_request_active" in state_current
+
+
+class TestCharacterBreakingFilter:
+    """Tests for the character-breaking pattern detection in safety_filter."""
+
+    def setup_method(self):
+        from server.safety_filter import filter_response
+        self._fn = filter_response
+
+    def test_strips_ai_self_reference(self):
+        result = self._fn("I'm an AI language model and I can help!")
+        assert "AI" not in result
+        assert "Mario" in result
+
+    def test_strips_as_an_ai(self):
+        result = self._fn("As an AI, I don't have feelings about that.")
+        assert "As-a Mario" in result
+
+    def test_strips_trained_by(self):
+        result = self._fn("I was trained by researchers to help people.")
+        assert "trained" not in result
+        assert "Mushroom Kingdom" in result
+
+    def test_strips_my_programming(self):
+        result = self._fn("My algorithms tell me this is correct.")
+        assert "algorithm" not in result
+        assert "plumbing" in result
+
+    def test_strips_model_names(self):
+        for name in ["GPT-4", "Claude", "Llama", "Mistral"]:
+            result = self._fn(f"I'm powered by {name} technology!")
+            assert name not in result
+            assert "Mushroom Kingdom" in result
+
+    def test_preserves_normal_mario_text(self):
+        text = "Wahoo! It's-a me, Mario! Let's-a go!"
+        assert self._fn(text) == text
+
+    def test_strips_no_feelings(self):
+        result = self._fn("I don't have feelings about that topic.")
+        assert "don't have feelings" not in result
+        assert "full of feelings" in result
+
+    def test_truncation_still_works(self):
+        long_text = "Wahoo! " * 100
+        result = self._fn(long_text)
+        assert len(result) <= 310  # 300 + some buffer for truncation point
