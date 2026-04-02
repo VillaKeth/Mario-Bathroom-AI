@@ -67,6 +67,7 @@
 - [ ] Task 8: Upload models-v2.1.zip to release (re-run package_models.py, then upload via web UI)
 
 ## Testing
+- [x] Comprehensive test suite for game_handlers.py (60 tests covering 10 games + rotation + edge cases)
 - [ ] Integration test with both models loaded simultaneously
 - [ ] Test fullscreen (F11) and panic (F12) on party monitor
 - [ ] Test Pygame client with reorganized repo

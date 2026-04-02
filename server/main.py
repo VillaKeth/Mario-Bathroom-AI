@@ -336,12 +336,39 @@ async def _llm_keepalive():
                 logger.error(f"[HEALTH] Ollama appears down after {_ollama_fail_count} failed pings")
 
 
+def _save_party_state():
+    """Save key party state to JSON for crash recovery."""
+    state_path = os.path.join(os.path.dirname(__file__), "data", "party_state.json")
+    try:
+        resp_times = list(state_current.get("_response_times", []))
+        state_snapshot = {
+            "saved_at": time.time(),
+            "saved_at_iso": datetime.now().isoformat(),
+            "party_stats": party_stats.get_stats(),
+            "emotion": emotion_system.current.value if hasattr(emotion_system.current, 'value') else str(emotion_system.current),
+            "emotion_intensity": emotion_system.intensity,
+            "total_responses": len(resp_times),
+            "avg_response_time": sum(resp_times) / max(1, len(resp_times)) if resp_times else 0,
+            "gossip_count": party_gossip.get_gossip_count(),
+            "tts_cache_entries": len(tts._audio_cache),
+            "tts_cache_mb": tts._audio_cache.stats.get("total_mb", 0),
+            "error_count": _error_count,
+        }
+        with open(state_path, "w") as f:
+            json.dump(state_snapshot, f, indent=2, default=str)
+        logger.info(f"[MEMORY] Party state saved ({len(state_snapshot)} fields)")
+    except Exception as e:
+        logger.warning(f"[MEMORY] Failed to save party state: {e}")
+
+
 async def _memory_maintenance_loop():
-    """Periodic memory leak prevention: gc.collect, WAL checkpoint, TTS cache LRU eviction."""
+    """Periodic memory leak prevention: gc.collect, WAL checkpoint, TTS cache LRU eviction, party state save."""
     _gc_interval = 600       # 10 minutes
     _wal_interval = 1800     # 30 minutes
+    _state_save_interval = 300  # 5 minutes — save party state for crash recovery
     _last_gc = time.time()
     _last_wal = time.time()
+    _last_state_save = time.time()
 
     while True:
         try:
@@ -379,6 +406,14 @@ async def _memory_maintenance_loop():
                                    cache_stats["total_mb"], cache_stats["entries"])
             except Exception as e:
                 logger.warning("[MEMORY] TTS cache stats check failed: %s", e)
+
+            # Save party state for crash recovery (every 5 min)
+            if now - _last_state_save >= _state_save_interval:
+                try:
+                    _save_party_state()
+                    _last_state_save = now
+                except Exception as e:
+                    logger.warning("[MEMORY] Party state save failed: %s", e)
 
         except asyncio.CancelledError:
             return
