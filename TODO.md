@@ -105,7 +105,8 @@
 - [ ] Manual test: F12 panic mode kills all audio
 - [x] Manual test: Lisa Webb memorial triggers at 45 minutes
 - [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
-- [ ] Manual test: memorial overlay displays silence + toast phases on client
+- [x] 5-phase memorial overlay (announcement, silence, toast, music, fadeout) with photo, particles, text
+- [ ] Manual test: memorial overlay displays all 5 phases on client
 - [ ] Manual test: Webcam person detection with multiple guests
 - [ ] Configure alert_webhook_url for production deployment
 - [ ] Add Tailscale setup instructions for party day networking
@@ -267,6 +268,8 @@
 
 ## SFX Audio
 - [x] Replace all 16 SFX WAV files with high-quality retro chiptune sounds (square waves, FM synthesis, ADSR envelopes, arpeggios, noise channels, 44100Hz 16-bit PCM)
+- [x] Generate memorial_chime.wav (1.5s gentle bell, 880Hz+1320Hz) for moment of silence phase
+- [x] Generate memorial_clink.wav (0.6s glass clink, 2500Hz+4000Hz+6000Hz) for toast phase
 
 ## TTS Source String Cleanup
 - [x] Replace all hardcoded ellipsis (...) in TTS-spoken strings with commas/periods (15 edits across mario_prompt.py and llm.py)

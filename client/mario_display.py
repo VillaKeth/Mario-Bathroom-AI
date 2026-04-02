@@ -275,6 +275,8 @@ class MarioDisplay:
         self._memorial_text = ""
         self._memorial_start = 0.0
         self._memorial_duration = 15
+        self._memorial_particles = []  # Floating golden light particles
+        self._memorial_photo = None
 
     def _load_sprites(self):
         """Load Mario sprites — prefer AI-generated transparent poses, fallback to pixel art."""
@@ -348,6 +350,19 @@ class MarioDisplay:
         self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
         self._chat_msg_font = pygame.font.SysFont("arial", 13)
         self._running = True
+
+        # ── Memorial photo loading (requires pygame to be initialized) ──
+        try:
+            photo_path = os.path.join(os.path.dirname(__file__), "assets", "images", "lisa_webb.jpg")
+            if os.path.exists(photo_path):
+                raw = pygame.image.load(photo_path)
+                scale = 300 / raw.get_height()
+                new_w = int(raw.get_width() * scale)
+                self._memorial_photo = pygame.transform.smoothscale(raw, (new_w, 300))
+                if DEBUG_DISPLAY:
+                    logger.info(f"[DEBUG_DISPLAY] Memorial photo loaded: {new_w}x300")
+        except Exception as e:
+            logger.warning(f"[DEBUG_DISPLAY] Failed to load memorial photo: {e}")
 
         self._load_sprites()
         self._bg_surface = None  # cached static background
@@ -1781,64 +1796,155 @@ class MarioDisplay:
         if DEBUG_DISPLAY:
             logger.info(f"[DEBUG_DISPLAY] Leaderboard data updated")
 
+    def _init_memorial_particles(self):
+        """Initialize floating memorial particles (golden light dots)."""
+        self._memorial_particles = []
+        w, h = WINDOW_WIDTH, WINDOW_HEIGHT
+        for _ in range(25):
+            self._memorial_particles.append({
+                "x": random.randint(0, w),
+                "y": random.randint(0, h),
+                "speed": random.uniform(0.3, 1.2),
+                "alpha": random.randint(80, 200),
+                "size": random.randint(2, 5),
+                "drift": random.uniform(-0.3, 0.3),
+            })
+
+    def _update_memorial_particles(self):
+        """Update particle positions — drift upward, wrap around."""
+        for p in self._memorial_particles:
+            p["y"] -= p["speed"]
+            p["x"] += p["drift"]
+            p["alpha"] = max(60, min(220, p["alpha"] + random.randint(-5, 5)))
+            if p["y"] < -10:
+                p["y"] = WINDOW_HEIGHT + 10
+                p["x"] = random.randint(0, WINDOW_WIDTH)
+
+    def _draw_memorial_particles(self, surface):
+        """Draw golden light particles on a surface."""
+        for p in self._memorial_particles:
+            color = (255, 215, 100, p["alpha"])
+            particle_surf = pygame.Surface((p["size"] * 2, p["size"] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surf, color, (p["size"], p["size"]), p["size"])
+            surface.blit(particle_surf, (int(p["x"]), int(p["y"])))
+
     def show_memorial(self, name, phase, text, duration=15):
-        """Show memorial overlay on screen."""
+        """Show memorial overlay — handles all 5 phases."""
         self._memorial_active = True
         self._memorial_phase = phase
         self._memorial_name = name
         self._memorial_text = text
         self._memorial_start = time.time()
         self._memorial_duration = duration
+        if phase in ("silence", "music"):
+            self._init_memorial_particles()
         if DEBUG_DISPLAY:
-            logger.info(f"[DEBUG_DISPLAY] Memorial overlay: phase={phase} name={name}")
+            logger.info(f"[DEBUG_DISPLAY] Memorial overlay: phase={phase} name={name} duration={duration}")
 
     def _draw_memorial(self, surface):
-        """Draw memorial overlay."""
+        """Draw memorial overlay — grand 5-phase tribute."""
         try:
             w, h = surface.get_size()
             elapsed = time.time() - self._memorial_start
+            phase = self._memorial_phase
 
-            if self._memorial_phase == "silence":
+            # ── Phase 1: Announcement (dim screen) ──
+            if phase == "announcement":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                alpha = min(200, int(elapsed * 40))
+                alpha = min(150, int(elapsed * 30))
                 overlay.fill((0, 0, 0, alpha))
                 surface.blit(overlay, (0, 0))
 
-                font_large = self._font_title or pygame.font.SysFont("arial", 28, bold=True)
-                font_small = self._font_small or pygame.font.SysFont("arial", 18)
-
-                title = f"In Memory of {self._memorial_name}"
-                title_surface = font_large.render(title, True, (255, 255, 255))
-                title_rect = title_surface.get_rect(center=(w // 2, h // 2 - 30))
-                surface.blit(title_surface, title_rect)
-
-                subtitle = "A moment of silence..."
-                sub_surface = font_small.render(subtitle, True, (200, 200, 200))
-                sub_rect = sub_surface.get_rect(center=(w // 2, h // 2 + 20))
-                surface.blit(sub_surface, sub_rect)
-
-                remaining = max(0, self._memorial_duration - elapsed)
-                if remaining <= 0:
-                    self._memorial_active = False
-
-            elif self._memorial_phase == "toast":
+            # ── Phase 2: Moment of Silence (photo, particles, glow) ──
+            elif phase == "silence":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                overlay.fill((40, 20, 0, 180))
+                overlay.fill((0, 0, 0, 200))
                 surface.blit(overlay, (0, 0))
 
-                font_large = self._font_title or pygame.font.SysFont("arial", 28, bold=True)
+                self._update_memorial_particles()
+                self._draw_memorial_particles(surface)
 
-                title = f"Raise a glass to {self._memorial_name}!"
-                title_surface = font_large.render(title, True, (255, 215, 0))
-                title_rect = title_surface.get_rect(center=(w // 2, h // 2))
-                surface.blit(title_surface, title_rect)
+                if self._memorial_photo:
+                    photo_rect = self._memorial_photo.get_rect(center=(w // 2, h // 2 - 20))
+                    glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
+                    glow_surf.fill((255, 200, 50, 60))
+                    glow_rect = glow_surf.get_rect(center=(w // 2, h // 2 - 20))
+                    surface.blit(glow_surf, glow_rect)
+                    surface.blit(self._memorial_photo, photo_rect)
 
-                if elapsed > 10:
+                font_large = pygame.font.SysFont("arial", 32, bold=True)
+                font_name = pygame.font.SysFont("arial", 36, bold=True)
+                font_dates = pygame.font.SysFont("arial", 20)
+
+                title = "In Loving Memory"
+                title_surf = font_large.render(title, True, (255, 255, 255))
+                shadow_surf = font_large.render(title, True, (0, 0, 0))
+                surface.blit(shadow_surf, shadow_surf.get_rect(center=(w // 2 + 2, h // 2 - 182)))
+                surface.blit(title_surf, title_surf.get_rect(center=(w // 2, h // 2 - 180)))
+
+                name_surf = font_name.render(self._memorial_name, True, (255, 215, 0))
+                name_shadow = font_name.render(self._memorial_name, True, (0, 0, 0))
+                photo_bottom = h // 2 + 140
+                surface.blit(name_shadow, name_shadow.get_rect(center=(w // 2 + 2, photo_bottom + 2)))
+                surface.blit(name_surf, name_surf.get_rect(center=(w // 2, photo_bottom)))
+
+                dates_text = "August 17, 1968 – March 23, 2023"
+                dates_surf = font_dates.render(dates_text, True, (200, 200, 200))
+                surface.blit(dates_surf, dates_surf.get_rect(center=(w // 2, photo_bottom + 40)))
+
+            # ── Phase 3: Toast/Shot (warm amber overlay) ──
+            elif phase == "toast":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                overlay.fill((60, 30, 0, 180))
+                surface.blit(overlay, (0, 0))
+
+                font_toast = pygame.font.SysFont("arial", 34, bold=True)
+                toast_text = f"To {self._memorial_name}!"
+                toast_surf = font_toast.render(toast_text, True, (255, 215, 0))
+                surface.blit(toast_surf, toast_surf.get_rect(center=(w // 2, h // 2)))
+
+                emoji_font = pygame.font.SysFont("arial", 28)
+                emoji_surf = emoji_font.render("Raise your glass!", True, (255, 255, 255))
+                surface.blit(emoji_surf, emoji_surf.get_rect(center=(w // 2, h // 2 - 50)))
+
+            # ── Phase 4: Memorial Music (photo + particles + "In Loving Memory") ──
+            elif phase == "music":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 210))
+                surface.blit(overlay, (0, 0))
+
+                self._update_memorial_particles()
+                self._draw_memorial_particles(surface)
+
+                if self._memorial_photo:
+                    photo_rect = self._memorial_photo.get_rect(center=(w // 2, h // 2 - 20))
+                    glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
+                    glow_surf.fill((255, 200, 50, 40))
+                    glow_rect = glow_surf.get_rect(center=(w // 2, h // 2 - 20))
+                    surface.blit(glow_surf, glow_rect)
+                    surface.blit(self._memorial_photo, photo_rect)
+
+                font_mem = pygame.font.SysFont("arial", 28, bold=True)
+                mem_surf = font_mem.render("In Loving Memory", True, (255, 255, 255))
+                surface.blit(mem_surf, mem_surf.get_rect(center=(w // 2, h // 2 - 190)))
+
+                font_name = pygame.font.SysFont("arial", 30, bold=True)
+                name_surf = font_name.render(self._memorial_name, True, (255, 215, 0))
+                surface.blit(name_surf, name_surf.get_rect(center=(w // 2, h // 2 + 170)))
+
+            # ── Phase 5: Fade Out ──
+            elif phase == "fadeout":
+                fade_duration = 3.0
+                if elapsed < fade_duration:
+                    alpha = int(200 * (1.0 - elapsed / fade_duration))
+                    overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, max(0, alpha)))
+                    surface.blit(overlay, (0, 0))
+                else:
                     self._memorial_active = False
 
         except Exception as e:
             logger.debug(f"Memorial draw error: {e}")
-            self._memorial_active = False
 
     def _draw_leaderboard(self):
         """Draw the party leaderboard overlay on the right side of the screen."""
