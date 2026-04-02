@@ -158,9 +158,108 @@ EDGE_PITCH_SHIFT = 0
 RATE = "+35%"  # Faster speech for Mario energy
 PITCH_OFFSET = "+0Hz"
 
-# --- Audio cache for instant playback (LRU with max entries) ---
-_audio_cache = {}
-_cache_order = []
+# --- Audio cache for instant playback (size-aware LRU) ---
+
+class SizeLimitedCache:
+    """LRU cache with total byte size limit, not just entry count."""
+
+    def __init__(self, max_bytes: int = 500 * 1024 * 1024, max_entries: int = 2000):
+        self._data: dict[str, bytes] = {}
+        self._sizes: dict[str, int] = {}
+        self._order: list[str] = []  # oldest-first for LRU eviction
+        self.max_bytes = max_bytes
+        self.max_entries = max_entries
+        self.total_bytes = 0
+        self._hits = 0
+        self._misses = 0
+
+    def get(self, key: str) -> bytes | None:
+        val = self._data.get(key)
+        if val is not None:
+            self._hits += 1
+            # Move to end (most recently used)
+            try:
+                self._order.remove(key)
+            except ValueError:
+                pass
+            self._order.append(key)
+            return val
+        self._misses += 1
+        return None
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._data
+
+    def __setitem__(self, key: str, value: bytes):
+        self.set(key, value)
+
+    def __getitem__(self, key: str) -> bytes:
+        val = self._data.get(key)
+        if val is None:
+            raise KeyError(key)
+        return val
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def set(self, key: str, value: bytes):
+        val_size = len(value) if value else 0
+        # Remove old if replacing
+        if key in self._data:
+            self.total_bytes -= self._sizes.get(key, 0)
+            del self._data[key]
+            del self._sizes[key]
+            try:
+                self._order.remove(key)
+            except ValueError:
+                pass
+
+        # Evict LRU entries until we have space
+        while (self.total_bytes + val_size > self.max_bytes or len(self._data) >= self.max_entries) and self._order:
+            evict_key = self._order.pop(0)
+            evicted_size = self._sizes.pop(evict_key, 0)
+            self._data.pop(evict_key, None)
+            self.total_bytes -= evicted_size
+
+        self._data[key] = value
+        self._sizes[key] = val_size
+        self._order.append(key)
+        self.total_bytes += val_size
+
+    def pop(self, key: str, default=None):
+        if key in self._data:
+            val = self._data.pop(key)
+            self.total_bytes -= self._sizes.pop(key, 0)
+            try:
+                self._order.remove(key)
+            except ValueError:
+                pass
+            return val
+        return default
+
+    def keys(self):
+        return self._data.keys()
+
+    def clear(self):
+        self._data.clear()
+        self._sizes.clear()
+        self._order.clear()
+        self.total_bytes = 0
+
+    @property
+    def stats(self) -> dict:
+        return {
+            "entries": len(self._data),
+            "total_bytes": self.total_bytes,
+            "total_mb": round(self.total_bytes / (1024 * 1024), 1),
+            "hits": self._hits,
+            "misses": self._misses,
+            "hit_rate": round(self._hits / max(1, self._hits + self._misses) * 100, 1),
+        }
+
+
+_audio_cache = SizeLimitedCache(max_bytes=500 * 1024 * 1024, max_entries=2000)
+_cache_order = []  # Kept for backward compat but SizeLimitedCache handles ordering internally
 MAX_CACHE_SIZE = _MAX_CACHE
 _cache_hits = 0
 _cache_misses = 0

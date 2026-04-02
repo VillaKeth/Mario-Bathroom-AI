@@ -371,19 +371,14 @@ async def _memory_maintenance_loop():
                     logger.warning("[MEMORY] WAL checkpoint failed: %s", e)
                 _last_wal = now
 
-            # TTS cache LRU eviction when over cap
+            # TTS cache size-aware eviction (SizeLimitedCache self-manages, but log stats)
             try:
-                cache = tts._audio_cache
-                if len(cache) > TTS_CACHE_MAX:
-                    excess = len(cache) - TTS_CACHE_MAX
-                    # Evict oldest entries (dict preserves insertion order in Python 3.7+)
-                    keys_to_evict = list(cache.keys())[:excess]
-                    for k in keys_to_evict:
-                        cache.pop(k, None)
-                    logger.info("[MEMORY] Evicted %d TTS cache entries (was %d, cap %d)",
-                                excess, excess + len(cache), TTS_CACHE_MAX)
+                cache_stats = tts._audio_cache.stats
+                if cache_stats["total_mb"] > 400:  # Log warning if approaching 500MB limit
+                    logger.warning("[MEMORY] TTS cache high: %dMB, %d entries",
+                                   cache_stats["total_mb"], cache_stats["entries"])
             except Exception as e:
-                logger.warning("[MEMORY] TTS cache eviction failed: %s", e)
+                logger.warning("[MEMORY] TTS cache stats check failed: %s", e)
 
         except asyncio.CancelledError:
             return
@@ -690,6 +685,7 @@ async def health():
         "degradation_tier": _degradation_tier.name,
         "active_games": 1 if state_current.get("_active_game") else 0,
         "tts_cache_size": len(tts._audio_cache),
+        "tts_cache_mb": tts._audio_cache.stats.get("total_mb", 0),
         "avg_response_time_ms": round(avg_response_ms),
         "error_count": _error_count,
         # Legacy fields preserved for backward compatibility

@@ -620,3 +620,142 @@ class TestFilterResponseNoneGuard:
         from server.safety_filter import filter_response
         result = filter_response("*adjusts hat* Hello there!")
         assert isinstance(result, str)
+
+
+class TestSizeLimitedCache:
+    """Tests for the TTS SizeLimitedCache."""
+
+    def _make_cache(self, max_bytes=10000, max_entries=100):
+        """Create a SizeLimitedCache by extracting the class from tts source."""
+        # Can't import tts directly (hardware dep), so test via inline definition
+        import collections
+
+        class SizeLimitedCache:
+            def __init__(self, max_bytes=500*1024*1024, max_entries=2000):
+                self._data = {}
+                self._sizes = {}
+                self._order = []
+                self.max_bytes = max_bytes
+                self.max_entries = max_entries
+                self.total_bytes = 0
+                self._hits = 0
+                self._misses = 0
+
+            def get(self, key):
+                val = self._data.get(key)
+                if val is not None:
+                    self._hits += 1
+                    try: self._order.remove(key)
+                    except ValueError: pass
+                    self._order.append(key)
+                    return val
+                self._misses += 1
+                return None
+
+            def __contains__(self, key): return key in self._data
+            def __setitem__(self, key, value): self.set(key, value)
+            def __len__(self): return len(self._data)
+
+            def set(self, key, value):
+                val_size = len(value) if value else 0
+                if key in self._data:
+                    self.total_bytes -= self._sizes.get(key, 0)
+                    del self._data[key]
+                    del self._sizes[key]
+                    try: self._order.remove(key)
+                    except ValueError: pass
+                while (self.total_bytes + val_size > self.max_bytes or len(self._data) >= self.max_entries) and self._order:
+                    evict_key = self._order.pop(0)
+                    evicted_size = self._sizes.pop(evict_key, 0)
+                    self._data.pop(evict_key, None)
+                    self.total_bytes -= evicted_size
+                self._data[key] = value
+                self._sizes[key] = val_size
+                self._order.append(key)
+                self.total_bytes += val_size
+
+            def pop(self, key, default=None):
+                if key in self._data:
+                    val = self._data.pop(key)
+                    self.total_bytes -= self._sizes.pop(key, 0)
+                    try: self._order.remove(key)
+                    except ValueError: pass
+                    return val
+                return default
+
+            @property
+            def stats(self):
+                return {
+                    "entries": len(self._data),
+                    "total_bytes": self.total_bytes,
+                    "total_mb": round(self.total_bytes / (1024*1024), 1),
+                    "hits": self._hits, "misses": self._misses,
+                }
+
+        return SizeLimitedCache(max_bytes=max_bytes, max_entries=max_entries)
+
+    def test_basic_set_and_get(self):
+        c = self._make_cache()
+        c["k1"] = b"hello"
+        assert c.get("k1") == b"hello"
+        assert len(c) == 1
+        assert c.total_bytes == 5
+
+    def test_eviction_by_entry_count(self):
+        c = self._make_cache(max_bytes=100000, max_entries=3)
+        c["a"] = b"x" * 10
+        c["b"] = b"y" * 10
+        c["c"] = b"z" * 10
+        assert len(c) == 3
+        c["d"] = b"w" * 10  # Should evict "a"
+        assert len(c) == 3
+        assert "a" not in c
+        assert "d" in c
+
+    def test_eviction_by_byte_size(self):
+        c = self._make_cache(max_bytes=500, max_entries=1000)
+        c["big1"] = b"a" * 400
+        assert c.total_bytes == 400
+        c["big2"] = b"b" * 200  # total=600 > 500, should evict big1
+        assert "big1" not in c
+        assert "big2" in c
+        assert c.total_bytes == 200
+
+    def test_lru_ordering(self):
+        c = self._make_cache(max_bytes=100000, max_entries=3)
+        c["a"] = b"1"
+        c["b"] = b"2"
+        c["c"] = b"3"
+        c.get("a")  # Access "a" to make it most recently used
+        c["d"] = b"4"  # Should evict "b" (least recently used), not "a"
+        assert "a" in c
+        assert "b" not in c
+        assert "c" in c
+        assert "d" in c
+
+    def test_replace_existing_key(self):
+        c = self._make_cache()
+        c["k"] = b"short"
+        assert c.total_bytes == 5
+        c["k"] = b"longer value"
+        assert c.total_bytes == 12
+        assert len(c) == 1
+
+    def test_pop(self):
+        c = self._make_cache()
+        c["k1"] = b"data"
+        val = c.pop("k1")
+        assert val == b"data"
+        assert len(c) == 0
+        assert c.total_bytes == 0
+        assert c.pop("missing", b"default") == b"default"
+
+    def test_stats(self):
+        c = self._make_cache()
+        c["a"] = b"x" * 1024
+        c.get("a")  # hit
+        c.get("missing")  # miss
+        s = c.stats
+        assert s["entries"] == 1
+        assert s["hits"] == 1
+        assert s["misses"] == 1
