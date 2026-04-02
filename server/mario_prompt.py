@@ -5,6 +5,41 @@ Designed for Neuro-sama style engagement: reactive, sassy, memorable, dynamic.
 
 import re
 from datetime import datetime
+import os
+import json as _json
+
+_VIP_PROFILES_DIR = os.path.join(os.path.dirname(__file__), "data", "vip_profiles")
+_vip_cache = {}
+
+def _load_vip_profile(speaker_name: str) -> dict | None:
+    """Load VIP profile if speaker matches any VIP aliases."""
+    if not speaker_name:
+        return None
+    name_lower = speaker_name.lower()
+
+    # Check cache first
+    if name_lower in _vip_cache:
+        return _vip_cache[name_lower]
+
+    # Scan VIP profiles
+    if not os.path.isdir(_VIP_PROFILES_DIR):
+        return None
+    for fname in os.listdir(_VIP_PROFILES_DIR):
+        if not fname.endswith(".json"):
+            continue
+        try:
+            fpath = os.path.join(_VIP_PROFILES_DIR, fname)
+            with open(fpath, "r", encoding="utf-8") as f:
+                profile = _json.load(f)
+            aliases = [a.lower() for a in profile.get("aliases", [])]
+            aliases.append(profile.get("name", "").lower())
+            if any(alias in name_lower or name_lower in alias for alias in aliases if alias):
+                _vip_cache[name_lower] = profile
+                return profile
+        except Exception:
+            continue
+    _vip_cache[name_lower] = None
+    return None
 
 MARIO_SYSTEM_PROMPT = """You ARE Mario. Not playing Mario — you ARE him. Bathroom guardian at this party. 1-2 sentences MAX.
 
@@ -230,6 +265,24 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
     last_emotion = kwargs.get("last_emotion")
     if last_emotion and event == "enter_known":
         messages.append({"role": "system", "content": f"[MOOD]: Last time {speaker_name or 'they'} visited, the vibe was {last_emotion}. Factor this into your greeting!"})
+
+    # Inject VIP guest context if speaker matches a VIP profile
+    vip = _load_vip_profile(speaker_name)
+    if vip:
+        vip_lines = [f"\n[VIP GUEST CONTEXT]\nYou are talking to {vip.get('name', speaker_name)}!"]
+        if vip.get("title"):
+            vip_lines.append(f"Title: {vip['title']}")
+        if vip.get("interests"):
+            vip_lines.append(f"Interests: {', '.join(vip['interests'][:8])}")
+        if vip.get("fun_facts"):
+            vip_lines.append(f"Fun facts: {'; '.join(vip['fun_facts'][:5])}")
+        if vip.get("relationships"):
+            rels = vip["relationships"]
+            rel_strs = [f"{k}: {v}" for k, v in rels.items()]
+            vip_lines.append(f"Relationships: {', '.join(rel_strs[:5])}")
+        vip_lines.append("Use this context to make conversation personal and meaningful. Reference these details naturally, not all at once.")
+        vip_context = "\n".join(vip_lines)
+        messages.append({"role": "system", "content": vip_context})
 
     if memories:
         memory_text = "Remember: " + "; ".join(memories[:50])
