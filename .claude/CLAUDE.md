@@ -3,244 +3,157 @@
 ## What This Is
 An interactive Mario AI bathroom party bot. At a real house party, a Raspberry Pi/laptop runs Mario in the bathroom — he greets guests, plays games, tells jokes, sings, and comforts sick people. Designed for 8+ hour continuous operation.
 
-## Architecture
-```
-── Server Core ──
-server/main.py            — FastAPI + WebSocket server (port 8765)
-server/command_handlers.py — All command routing, games, sick detection
-server/mario_prompt.py    — Phase prompts, guest typing, system prompt assembly
-
-── Voice & Audio ──
-server/tts.py             — GPT-SoVITS + Edge TTS + RVC voice pipeline
-server/tts_router.py      — 5-level TTS fallback chain
-server/fish_speech_tts.py — Fish Speech integration (ready, deferred for VRAM)
-server/stt.py             — Whisper-based speech-to-text
-server/audio_distress.py  — PANNs Cnn14 model for retching/distress audio detection
-
-── LLM ──
-server/llm_router.py      — Dual-model routing (fast vs quality)
-server/hardware.py        — GPU detection, 5 hardware tiers (LOW→ULTRA)
-
-── Memory & Knowledge ──
-server/memory.py          — SQLite memory (facts, conversations, people) + dual-write to Qdrant
-server/memory_semantic.py — Qdrant vector DB wrapper (fastembed all-MiniLM-L6-v2, 384-dim)
-server/vip_knowledge.py   — VIP profile loader (JSON profiles → Qdrant injection)
-server/face_memory.py     — SQLite face encoding storage + Euclidean matching
-
-── Party Features ──
-server/party_stats.py     — Leaderboard, visitor tracking, party analytics
-server/party_gossip.py    — Cross-visitor social dynamics
-server/idle_behavior.py   — Idle behavior, autonomous actions, timed events
-server/night_progression.py — 4-phase party progression over 8 hours
-server/catchphrase_mirror.py — Detects and mirrors guest catchphrases
-server/birthday_vip.py    — Birthday person detection + enhanced interactions
-
-── Reliability ──
-server/watchdog.py        — Health monitoring + tier degradation
-server/dashboard.py       — Real-time stats dashboard
-server/canary.py          — Pre-party smoke tests (10 checks)
-server/hot_reload.py      — LiveConfig for runtime tuning via config_live.json
-
-── Client ──
-client/mario_client.py    — Pygame desktop client with 74 AI poses
-client/mario_display.py   — Display renderer (4K, F3 chat history, F11 fullscreen)
-client/person_detector.py — YOLO v8n person detection + face_recognition encoding
-web/mario_chat.html       — Browser chat interface at /chat endpoint
+## How to Run
+```bash
+cd server && python main.py    # Starts on ws://localhost:8765
+python client/main.py          # Pygame desktop client
 ```
 
-### Memory System (Hybrid SQLite + Qdrant)
+---
+
+## Architecture Overview
+
+### Core Server
+| File | Role |
+|------|------|
+| `server/main.py` | Central server: WebSocket event routing, LLM pipeline, greeting/exit flows, idle loop, TTS synthesis |
+| `server/llm_router.py` | Dual-model LLM routing (creative + fast models via Ollama) |
+| `server/mario_prompt.py` | Mario personality: context building, discovery hints, engagement scoring, guest typing |
+| `server/command_handlers.py` | Slash commands (`/games`, `/leaderboard`, `/report`, etc.) + sick detection |
+| `server/game_handlers.py` | 10+ party games (trivia, karaoke, RPS, truth_or_dare, riddles, word_chain, hangman, hot_takes, would_you_rather, never_have_i_ever, simon_says, 20_questions) |
+
+### Memory & Knowledge
+| File | Role |
+|------|------|
+| `server/memory.py` | Dual-write memory: SQLite (persistence) + Qdrant (vector search) |
+| `server/memory_semantic.py` | Qdrant vector search for semantic memory retrieval (fastembed all-MiniLM-L6-v2, 384-dim) |
+| `server/vip_knowledge.py` | VIP guest profiles (Jacob Hoppenstedt birthday boy, etc.) — injected via Qdrant semantic search, NOT hardcoded |
+| `server/face_memory.py` | SQLite face encoding storage + Euclidean matching (128-dim vectors) |
+
+### Party Systems
+| File | Role |
+|------|------|
+| `server/party_gossip.py` | Cross-visitor gossip: rivalries, alliances, trending topics, party recaps, return visit intel, gossip seed questions, speech trait analysis, dramatic moments, guest titles |
+| `server/party_stats.py` | Visit tracking, engagement metrics, milestone detection |
+| `server/night_progression.py` | 4-phase party arc: `early_night` → `peak_party` → `late_night` → `after_hours` |
+| `server/idle_behavior.py` | Idle behaviors: mumbles, songs, jokes, loneliness arc (3 tiers), gossip recap, memorial events |
+| `server/birthday_vip.py` | Birthday person detection + enhanced interactions |
+| `server/catchphrase_mirror.py` | Detects and mirrors guest catchphrases via repetition analysis |
+| `server/emotions.py` | Emotion detection and tracking |
+| `server/safety_filter.py` | Character-break safety filter — prevents Mario from breaking character |
+
+### TTS / Voice
+| File | Role |
+|------|------|
+| `server/tts_router.py` | TTS routing: GPT-SoVITS → Fish Speech → Edge TTS → emergency silence (4-tier fallback) |
+| `server/tts.py` | GPT-SoVITS + Edge TTS + RVC voice pipeline, precaching |
+| `server/fish_speech_tts.py` | Fish Speech TTS wrapper (library not yet available, graceful fallback) |
+| `server/gpt_sovits_server.py` | GPT-SoVITS subprocess management + pronunciation fixes |
+| `server/stt.py` | Whisper-based speech-to-text |
+| `server/audio_distress.py` | PANNs Cnn14 model for retching/distress audio detection |
+| `server/sound_events.py` | SFX playback, queuing, and volume control |
+
+### Infrastructure & Reliability
+| File | Role |
+|------|------|
+| `server/watchdog.py` | Process monitoring and auto-restart (full → degraded → minimal) |
+| `server/canary.py` | Pre-party smoke test (LLM, TTS, WebSocket, memory DB, etc.) |
+| `server/hot_reload.py` | Config hot reload without restart via `config_live.json` |
+| `server/hardware.py` | GPU detection, 5 hardware tiers (LOW → MEDIUM → HIGH → VERY_HIGH → ULTRA) |
+| `server/dashboard.py` | Real-time stats dashboard: health badges, GPU temp, cache stats, alerts |
+| `server/party_report.py` | Post-party analytics report generation |
+
+### Client
+| File | Role |
+|------|------|
+| `client/main.py` | Pygame client entry point |
+| `client/mario_display.py` | Display renderer (4K, F3 chat history, F11 fullscreen, adaptive typewriter) |
+| `client/ws_client.py` | WebSocket client connection handler |
+| `client/person_detector.py` | YOLO v8n person detection + face_recognition encoding |
+| `client/presence.py` | Webcam presence detection (exclusive cv2.VideoCapture) |
+| `client/audio_capture.py` | Microphone input capture |
+| `client/audio_playback.py` | Audio playback management |
+| `client/sound_effects.py` | Client-side SFX |
+
+---
+
+## Key Architectural Patterns
+
+### Memory: Dual-Write (SQLite + Qdrant)
 - **SQLite** (`server/data/memory.db`): Source of truth for structured data (people, conversations, facts)
 - **Qdrant** (`server/data/qdrant_memories/`): Semantic vector search over all memories
 - **fastembed** (all-MiniLM-L6-v2): 384-dim embeddings, CPU-only, zero VRAM impact
-- **Dual-write**: every save_fact/save_conversation writes to both SQLite and Qdrant
-- **Memory cap**: 50 items injected into LLM context (ULTRA hardware budget)
-- **VIP profiles**: JSON files in `server/data/vip_profiles/` — deep biographical data for special guests
-- **Backfill**: first startup auto-migrates existing SQLite data into Qdrant
+- Every `save_fact`/`save_conversation` writes to both SQLite and Qdrant
+- First startup auto-migrates existing SQLite data into Qdrant (backfill)
+- Memory cap: 50 items injected into LLM context
 
-## How to Run
-```bash
-cd server && python main.py    # Starts on http://localhost:8765
-# Browser: http://localhost:8765/chat
-# Desktop: python client/mario_client.py
-```
+### TTS: 4-Tier Fallback Chain
+1. **GPT-SoVITS V2** — primary, highest quality (Charles Martinet RVC models)
+2. **Fish Speech** — wrapper ready in `fish_speech_tts.py`, graceful fallback if unavailable
+3. **Edge TTS** — instant fallback (with or without RVC post-processing)
+4. **Emergency silence** — never returns None, always produces valid output
 
-## Webcam / Face Detection Pipeline
-Fully local face recognition — no cloud, no stored images.
+### LLM: Dual-Model Routing
+- **Fast model**: Quick responses (greetings, short answers)
+- **Quality model**: Complex queries, games, emotional moments
+- Automatic routing based on query complexity analysis via `llm_router.py`
 
-### Data Flow
-```
-PresenceDetector (exclusive cv2.VideoCapture)
-  → frames passed to PersonDetector (client/person_detector.py)
-    → YOLO v8n detects person bounding boxes
-    → face_recognition encodes faces (128-dim vectors)
-      → encodings sent via WebSocket to server
-        → FaceMemory (server/face_memory.py) matches via Euclidean distance
-          → detected_guest wired into greeting logic in main.py
-```
+### Gossip System
+- Tracks rivalries, alliances, trending topics across ALL visitors
+- Speech trait analysis and dramatic moment detection
+- Guest titles assigned dynamically
+- Party recaps for newcomers (FOMO teasers)
+- Return visit intel (gossip-based dossier for returning guests)
+- Gossip seed questions injected at 20% probability when gossip < 10 entries
 
-### Key Details
-- **Storage**: SQLite only — 128-dim numerical vectors. No images ever stored.
-- **Matching**: Euclidean distance with early-exit at >95% confidence.
-- **Privacy**: Camera faces the door only. Raw frames never leave the client.
-- **Config keys**: `enable_person_detection`, `yolo_model`, `face_match_tolerance`, `person_detection_frame_skip`
-
-## Phase Prompts System
-`server/mario_prompt.py` drives Mario's personality evolution throughout the party.
-
-### Party Phases (PHASE_PROMPTS dict)
-| Phase | Description |
-|-------|-------------|
-| WARM_UP | Friendly, welcoming energy for early arrivals |
-| PARTY_MODE | Peak energy, jokes, games, maximum engagement |
-| UNHINGED | Late-night chaos — wildcard responses, roasts |
-| WIND_DOWN | Mellow, reflective, "great party" energy |
-
-### Guest Typing
-- `_infer_guest_type()` analyzes message patterns → classifies as **shy / curious / energetic / storyteller / balanced**
-- `GUEST_TYPE_HINTS` dict provides per-type prompt adjustments (e.g., shy guests get gentler prompts)
-- Phase + guest type are injected into the LLM system prompt in `main.py`
-
-## LLM Router
-`server/llm_router.py` — Dual-model routing system.
-- **Fast model**: Used for quick, simple responses (greetings, short answers)
-- **Quality model**: Used for complex queries, games, emotional moments
-- Automatic routing based on query complexity analysis
-- 37 dedicated tests passing
-
-## TTS Router
-`server/tts_router.py` — 5-level fallback chain for voice synthesis:
-1. GPT-SoVITS V2 (primary, highest quality)
-2. Edge TTS + RVC (instant, good quality)
-3. Edge TTS raw (no RVC, still decent)
-4. Fish Speech (ready in `server/fish_speech_tts.py`, deferred — needs >4GB VRAM)
-5. Silent fallback (text-only, no audio)
-
-## ULTRA Hardware Tier
-`server/hardware.py` defines 5 tiers (LOW → MEDIUM → HIGH → VERY_HIGH → ULTRA). ULTRA is tuned for Threadripper Pro / high-end setups:
-
-| Setting | ULTRA Value |
-|---------|-------------|
-| tts_concurrency | 6 |
-| gpu_idle | 0.3s |
-| cache | 1000 MB |
-| bg_tasks | 80 |
-| llm_predict | 250 tokens |
-| history | 150 messages |
-| LLM keepalive | 60 minutes |
-
-- 16 additional precache phrases preloaded in `tts.py` at startup
-
-## Client UI Upgrades
-`client/mario_display.py` renderer features:
-
-### Keyboard Shortcuts
-| Key | Action |
-|-----|--------|
-| F3 | Chat history sidebar (scrollable, overlay with transparency) |
-| F11 | Fullscreen toggle with 4K support |
-
-### Rendering Optimizations
-- **Adaptive typewriter speed**: <50 chars → slow, <200 chars → medium, else → fast
-- **Font caching**: Avoids per-frame `SysFont` creation (major perf win)
-- **Cached fonts**: Sidebar uses pre-rendered font objects
-
-## Reliability Layer
-
-### Watchdog (`server/watchdog.py`)
-Health monitoring with automatic tier degradation:
-- **full** → all systems operational
-- **degraded** → non-critical features disabled
-- **minimal** → only core chat + TTS running
-
-### Dashboard (`server/dashboard.py`)
-Real-time stats dashboard for monitoring party health.
-
-### Canary (`server/canary.py`)
-Pre-party smoke tests — 10 checks run before the party starts:
-- LLM connectivity, TTS pipeline, WebSocket health, memory DB, etc.
-
-### Hot Reload (`server/hot_reload.py`)
-LiveConfig system — edit `config_live.json` at runtime to tune:
-- Personality parameters, idle timing, energy levels
-- No server restart required
-
-## Party Features
-
-### Catchphrase Mirror (`server/catchphrase_mirror.py`)
-Detects guest catchphrases through repetition analysis and mirrors them back in Mario's voice for comedic effect.
-
-### Birthday VIP (`server/birthday_vip.py`)
-Special handling for birthday guests:
-- Auto-detection from VIP profiles or explicit mention
-- Enhanced interactions, birthday-specific jokes and songs
-
-### Night Progression (`server/night_progression.py`)
-4 phases over 8 hours with smooth transitions:
+### Night Progression
+- 4 phases: `early_night` → `peak_party` → `late_night` → `after_hours`
 - 15-minute crossfade between phases
+- Adjusts Mario's personality: gossip aggression, chaos level, energy
 - Guest energy caps per phase (prevents over-hype during wind-down)
 - `banned_topics` per phase (e.g., no sad topics during PARTY_MODE)
-- Reads `party_start_time` from SQLite (persisted across restarts)
-- 22 dedicated tests passing + 8 edge-case tests
+- `party_start_time` persisted in SQLite (survives restarts)
 
-### Sound Effects System
-- 6 WAV files for party events
-- `SoundEventManager` handles playback, queuing, and volume control
-
-## Key Technical Details
+### VIP Knowledge
+- JSON profiles in `server/data/vip_profiles/<name>.json`
+- Loaded at startup via `load_all_vip_profiles()` → injected into Qdrant
+- Memories injected with negative `person_id` (deterministic hash)
+- **NOT hardcoded responses** — surfaced via semantic search during conversation
 
 ### Response Pipeline
 1. User sends text via WebSocket → `command_handlers.py` checks for games/commands
-2. If no command match → LLM (Ollama llama3 8B) generates response with VIP fact injection
-3. Response → TTS (GPT-SoVITS primary, Edge TTS + RVC fallback) → audio sent back
-4. Cached responses are instant (0.0s), LLM responses 3-15s
-5. Thinking filler ("Let me think!") sent while LLM generates (is_thinking_filler flag)
+2. If no command match → LLM generates response with VIP fact injection + gossip context
+3. Response → TTS (fallback chain) → audio sent back via WebSocket
+4. Thinking filler ("Let me think!") sent while LLM generates (`is_thinking_filler` flag)
 
-### Games (12 total)
-RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangman, Hot Takes, Would You Rather, Never Have I Ever, Karaoke. All have game state management, timeouts (180s), and clean switching between games. Game handlers now include a **concurrent game guard** (prevents starting a new game while one is active) and **per-guest rotation tracking** (no cross-guest pollution of game history).
+---
 
-### Sick Care System (4 detection layers)
-1. **Text keywords** in command_handlers.py — instant comfort response
-2. **Friend-sick detection** — "my friend is throwing up" → helpful advice (NOT first-person flow)
-3. **Recovery detection** — "feeling better" → clears sick mood with funny response
-4. **Audio distress** via PANNs model — retching/groaning sounds → comfort
-5. **Proactive check-ins** — 30s silence while sick → Mario checks on you (then every 90s)
+## Config
+- **`config.json`** — LLM model, TTS settings, timeouts, face detection, `birthday_person_name`, party metadata
+- **`config_live.json`** — Runtime-editable personality tuning (hot-reloaded by `server/hot_reload.py`)
+- Hot-reload via `/config/reload` endpoint (full config) or LiveConfig (personality only)
 
-**Tone**: Deadpan humor + genuine care. NOT corny. Example: "If anyone asks, you were fixing your hair. Our secret."
+### Key Config Fields
+- `birthday_person_name` — VIP birthday guest name
+- `models` — LLM model configuration for Ollama
+- TTS settings — engine preferences, cache paths
+- Party metadata — location, theme, expected guest count
 
-### Idle System
-- Fires messages at 30-135s intervals when no user input
-- 207+ idle mumbles (party-specific, time-aware, DJ announcements)
-- Uses `_idle_send_if_safe()` to prevent idle/response audio interleaving
-- `_user_request_active` guard on text input prevents idle/text race conditions
-- Known issue: some messages over-repeat (e.g., "Afternoon break!")
+## Port
+- **WebSocket server**: `ws://localhost:8765` (default)
 
-### TTS Voice
-- GPT-SoVITS V2 with Charles Martinet RVC models
-- 1600+ cached audio clips in server/data/tts_cache
-- 397 ralph loop rounds, final quality 97-100%
-- Hybrid mode: Edge+RVC for instant, GPT-SoVITS for background quality
+---
 
-### Conversation Quality
-- Dynamic temperature (humor→0.95, questions→0.75)
-- Nickname evolution (stranger→acquaintance→buddy→bestie)
-- Running gag detection, emotional mirroring, question-back system
-- 40-message conversation history with momentum injection
+## Testing
+- **624 tests** across **37 test files** in `tests/`
+- Test files cover: command_handlers, game_handlers, idle_behavior, llm_router, memory_semantic, night_progression, party_gossip, party_modules, vip_knowledge, edge_cases, tts_router, watchdog, canary, hot_reload, face_memory, person_detector, fish_speech, and more
+- E2E browser test, 8-hour stress test, integration tests all verified
 
-## Testing Status (as of 2026-04-02)
-- **517 tests passing** (unit + integration + E2E)
-- **E2E Browser Test**: 40/45 passed (53+ min session, 107 audio clips)
-- **Stress Test**: 52/52 passed, 8-hour endurance verified
-- **LLM Router**: 37/37 tests pass
-- **Night Progression**: 22/22 tests pass + 8 edge-case tests (`TestNightProgressionEdgeCases`)
-- **Memory Semantic**: 19/19 tests pass (Qdrant layer)
-- **VIP Knowledge**: 12+ tests pass (profile loading, fuzzy matching, facts)
-- **Edge Cases**: 18 crash vector tests in `test_edge_cases.py`
-- **Webcam Pipeline**: 12 tests (`test_face_memory.py` + `test_person_detector.py`)
-- **TestCheckInput**: 12 tests (input validation, command routing)
-- **TestConcurrentGameGuard**: 6 tests (prevents starting game while one active)
-- **TestRapidReEntry**: 6 tests (rapid re-entry greeting intelligence)
-- **All features working**: games, chat, idle, emotions, sick care, recovery, friend-sick, face detection
-- **Known minor issues**: idle message variety, trivia not interactive Q&A
+---
+
+## Git Workflow
+- **Always use `git add <specific files>`** (not `git add -A`) — Qdrant `.lock` files in `server/data/qdrant_memories/` must not be committed
+- Commit trailers: `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
 
 ## Coding Conventions
 - `print()` for logging (NOT `logger` — command_handlers has no logger import)
@@ -248,22 +161,7 @@ RPS, Simon Says, 20 Questions, Truth or Dare, Trivia, Riddle, Word Chain, Hangma
 - Game state in `state_current["_active_game"]` dict
 - Sick mood tracked in `state_current["_detected_mood"]`
 - Debug flags: `DEBUG_AUTH`, `DEBUG_API`, etc. (default True for new features)
-- Always use `general-to-specific` naming: `pointBase`, `pointNext`, etc.
-
-## Config
-- `config.json` at repo root — LLM model, TTS settings, timeouts, face detection settings
-- `config_live.json` — Runtime-editable personality tuning (hot-reloaded by `server/hot_reload.py`)
-- Hot-reload via `/config/reload` endpoint (full config) or LiveConfig (personality only)
-- LLM keepalive: 30min keep_alive + 4min ping (60min on ULTRA tier)
-- Face detection keys: `enable_person_detection`, `yolo_model`, `face_match_tolerance`, `person_detection_frame_skip`
-
-## Remaining Work
-See `TODO.md` for full task tracking. Key remaining:
-- Create reusable stress test skill
-- Idle message variety improvement
-- Consider LLM upgrade from llama3 8B to larger model (needs bigger GPU)
-- Sprite system overhaul
-- Fish Speech TTS — code ready, needs GPU with >4GB VRAM
+- General-to-specific naming: `pointBase`, `pointNext`, `configDefault`, etc.
 
 ## Hardware Profile
 - **GPU**: Quadro P1000 (4GB VRAM) — detects as "low" tier
@@ -272,17 +170,10 @@ See `TODO.md` for full task tracking. Key remaining:
 - **LLM**: Ollama running llama3 8B (fits in 4GB VRAM)
 - **TTS**: GPT-SoVITS V2 subprocess (separate venv: `gpt_sovits_env`)
 - **GPU detection**: nvidia-smi fallback (torch not installed in server venv)
-- Fish Speech deferred — needs ~3GB VRAM, can't fit alongside llama3 + SoVITS
 
-## VIP Knowledge System
-VIP profiles provide deep biographical context for special guests.
+---
 
-### Adding a New VIP
-1. Create JSON file: `server/data/vip_profiles/<name>.json`
-2. Profile loads automatically at server startup via `load_all_vip_profiles()`
-3. Memories injected into Qdrant with negative person_id (deterministic hash)
-
-### JSON Profile Schema
+## VIP Profile Schema
 ```json
 {
   "name": "Full Name",
@@ -307,41 +198,15 @@ VIP profiles provide deep biographical context for special guests.
 }
 ```
 
-### Memorial Events
-- Fires at 45 minutes into the party (configurable in `idle_behavior.py`)
-- Two phases: moment of silence → everyone take a shot
-- Triggered by `check_memorial_event()` in idle loop
-
 ## TTS Pronunciation Guide
-Add pronunciation fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts()`:
+Add fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts()`:
 ```python
-# Existing fixes:
 "Bowser" → "the bad guy"
 "Goomba" → "bad mushroom"
 "Koopa" → "Cooper"
 "Hoppenstedt" → "Hoppenstead"
 ```
-**Note:** GPT-SoVITS subprocess must be restarted for changes to take effect.
+GPT-SoVITS subprocess must be restarted for pronunciation changes to take effect.
 
-## Recent Bug Fixes (2026-03-31 → 2026-04-01)
-- **LLM 404**: Fixed hardcoded `llama3:8b` → `llama3` in hardware.py
-- **TTS recursion**: Fixed monkey-patch closure bug in tts.py
-- **Health endpoint**: Fixed `NightProgression.current_phase` → `get_time_phase()`
-- **Response truncation**: Removed `\n\n` and `[` stop sequences, raised 120→300 char cap
-- **Token limits**: Bumped llm_num_predict (low: 25→120, med: 30→120, high: 40→150)
-- **GPU detection**: Added nvidia-smi fallback for systems without torch
-- **VIP bypass**: "know anything about me" now falls through to VIP-aware LLM pipeline
-- **Idle guard**: Text input path gets post-response guard (matches audio path)
-
-## Recent Changes — v3.3 & v3.4 (2026-04-02)
-- **Bare except cleanup**: 12 bare `except: pass` → logged with context (robustness)
-- **Concurrent game guard**: Prevents starting a new game while one is already active
-- **Per-guest game rotation**: Game rotation tracked per-guest (no cross-guest pollution)
-- **Night progression persistence**: `party_start_time` read from SQLite, survives restarts
-- **11 IndexError guards**: Bounds checks on game data pools (trivia, riddles, etc.)
-- **Idle/text race fix**: `_user_request_active` guard on text input prevents race conditions
-- **`_idle_send_if_safe()`**: Prevents idle/response audio interleaving
-- **TTS retry**: 2-attempt retry before falling back to text-only
-- **Rapid re-entry detection**: "Back so soon?" greeting intelligence for returning guests
-- **Enhanced dashboard**: Health badges, GPU temp, cache stats
-- **Character-break safety filter**: Prevents Mario from breaking character in responses
+## Remaining Work
+See `TODO.md` for full task tracking.
