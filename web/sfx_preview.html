@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🍄 Mario SFX Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1a2e; color: #eee;
+    padding: 2rem;
+  }
+  h1 { text-align: center; margin-bottom: 1.5rem; font-size: 2rem; }
+  h1 span { color: #e74c3c; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .card:hover { 
+    border-color: #e74c3c; 
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  }
+  .card:active { transform: scale(0.97); }
+  .card .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .card .name { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.3rem; }
+  .card .desc { font-size: 0.8rem; color: #aaa; }
+  .card .playing { color: #2ecc71; font-size: 0.8rem; margin-top: 0.5rem; display: none; }
+  .card.active .playing { display: block; }
+  .card.active { border-color: #2ecc71; }
+  footer { text-align: center; margin-top: 2rem; color: #555; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<h1>🍄 Mario <span>SFX</span> Preview</h1>
+<p style="text-align:center; color:#888; margin-bottom:1.5rem;">Click any card to play the sound</p>
+
+<div class="grid" id="grid"></div>
+
+<footer>16 chiptune sounds — square wave / FM synthesis / 44100Hz 16-bit PCM</footer>
+
+<script>
+const sounds = [
+  { file: 'coin.wav', icon: '🪙', name: 'Coin', desc: 'Square wave E6→B6 sweep' },
+  { file: 'powerup.wav', icon: '⭐', name: 'Power Up', desc: 'C5-E5-G5-C6 arpeggio' },
+  { file: 'correct.wav', icon: '✅', name: 'Correct', desc: 'Happy C5→E5 chime' },
+  { file: 'wrong.wav', icon: '❌', name: 'Wrong', desc: 'B3→F3 buzz + noise' },
+  { file: 'level_up.wav', icon: '📈', name: 'Level Up', desc: '8-note ascending scale' },
+  { file: 'victory.wav', icon: '🏆', name: 'Victory', desc: 'Two-phrase fanfare + echo' },
+  { file: 'challenge.wav', icon: '⚔️', name: 'Challenge', desc: 'C3→C4 tremolo sweep' },
+  { file: 'milestone.wav', icon: '✨', name: 'Milestone', desc: 'Triangle arpeggio + shimmer' },
+  { file: 'gossip.wav', icon: '🤫', name: 'Gossip', desc: 'FM synthesis wobble' },
+  { file: 'greeting.wav', icon: '👋', name: 'Greeting', desc: 'D5→A5 triangle doorbell' },
+  { file: 'game_start.wav', icon: '🎮', name: 'Game Start', desc: 'Ascending sweep + burst' },
+  { file: 'game_over.wav', icon: '💀', name: 'Game Over', desc: 'Descending chromatic' },
+  { file: '1up.wav', icon: '🍄', name: '1-Up', desc: '6-note arpeggio + sparkle' },
+  { file: 'fireball.wav', icon: '🔥', name: 'Fireball', desc: 'Descending whoosh + noise' },
+  { file: 'pipe.wav', icon: '🟢', name: 'Pipe', desc: 'Low C2→C3 bass sweep' },
+  { file: 'star.wav', icon: '🌟', name: 'Star', desc: '3x looping arpeggio + buzz' },
+];
+
+const grid = document.getElementById('grid');
+let currentAudio = null;
+let currentCard = null;
+
+sounds.forEach(s => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="icon">${s.icon}</div>
+    <div class="name">${s.name}</div>
+    <div class="desc">${s.desc}</div>
+    <div class="playing">▶ Playing...</div>
+  `;
+  card.addEventListener('click', () => {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (currentCard) currentCard.classList.remove('active');
+    
+    const audio = new Audio('../assets/sfx/' + s.file);
+    currentAudio = audio;
+    currentCard = card;
+    card.classList.add('active');
+    audio.play();
+    audio.onended = () => { card.classList.remove('active'); currentAudio = null; currentCard = null; };
+  });
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>
