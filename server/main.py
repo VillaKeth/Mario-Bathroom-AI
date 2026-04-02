@@ -1690,14 +1690,16 @@ async def _idle_loop(ws: WebSocket):
             continue
 
         # Memorial event: moment of silence + shot for Lisa Webb (fires once per party)
-        memorial_msg = idle_behavior.check_memorial_event()
-        if memorial_msg:
+        memorial_result = idle_behavior.check_memorial_event(
+            current_speaker_name=state_current.get("speaker_name"))
+        if memorial_result:
+            memorial_msg, memorial_sfx = memorial_result
             try:
                 analyzed = analyze_text(memorial_msg)
                 pose = "emotional/respectful" if "silence" in memorial_msg.lower() else "positive/excited_jump"
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await send_response(ws, analyzed["display_text"], audio,
-                                    sound=None, pose_hint=pose)
+                                    sound=memorial_sfx, pose_hint=pose)
                 # Extra pause after the moment of silence before the shot dedication
                 if "silence" in memorial_msg.lower():
                     await asyncio.sleep(15)

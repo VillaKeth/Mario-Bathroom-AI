@@ -212,7 +212,7 @@ class TestUniqueSelection:
 # ── TestMemorialEvent ────────────────────────────────────────────────────
 
 class TestMemorialEvent:
-    """check_memorial_event timing and one-shot behaviour."""
+    """check_memorial_event timing, Jacob-awareness, and one-shot behaviour."""
 
     @patch("idle_behavior.time")
     def test_returns_none_before_45_minutes(self, mock_time):
@@ -220,17 +220,34 @@ class TestMemorialEvent:
         ib = IdleBehavior()
         # 30 minutes later
         mock_time.time.return_value = 1000.0 + 30 * 60
-        assert ib.check_memorial_event() is None
+        assert ib.check_memorial_event(current_speaker_name="Jacob") is None
 
     @patch("idle_behavior.time")
-    def test_returns_message_at_45_minutes(self, mock_time):
+    def test_returns_message_at_45_minutes_with_jacob(self, mock_time):
         mock_time.time.return_value = 1000.0
         ib = IdleBehavior()
         # 46 minutes later
         mock_time.time.return_value = 1000.0 + 46 * 60
+        result = ib.check_memorial_event(current_speaker_name="Jacob")
+        assert result is not None
+        msg, sfx = result
+        assert isinstance(msg, str)
+        assert sfx == "memorial"
+
+    @patch("idle_behavior.time")
+    def test_waits_for_jacob_between_45_and_90_minutes(self, mock_time):
+        mock_time.time.return_value = 1000.0
+        ib = IdleBehavior()
+        # 46 minutes, no Jacob → should wait
+        mock_time.time.return_value = 1000.0 + 46 * 60
+        assert ib.check_memorial_event() is None
+        # Still no Jacob at 80 min
+        mock_time.time.return_value = 1000.0 + 80 * 60
+        assert ib.check_memorial_event() is None
+        # 91 minutes, still no Jacob → fires anyway
+        mock_time.time.return_value = 1000.0 + 91 * 60
         result = ib.check_memorial_event()
         assert result is not None
-        assert isinstance(result, str)
 
     @patch("idle_behavior.time")
     def test_fires_only_once_then_shot_then_none(self, mock_time):
@@ -238,11 +255,15 @@ class TestMemorialEvent:
         ib = IdleBehavior()
         mock_time.time.return_value = 1000.0 + 50 * 60
 
-        first = ib.check_memorial_event()   # moment of silence
+        first = ib.check_memorial_event(current_speaker_name="Jacob")   # moment of silence
         assert first is not None
-        second = ib.check_memorial_event()   # shot dedication
+        msg1, sfx1 = first
+        assert sfx1 == "memorial"
+        second = ib.check_memorial_event(current_speaker_name="Jacob")  # shot dedication
         assert second is not None
-        third = ib.check_memorial_event()    # nothing left
+        msg2, sfx2 = second
+        assert sfx2 == "toast"
+        third = ib.check_memorial_event(current_speaker_name="Jacob")   # nothing left
         assert third is None
 
     @patch("idle_behavior.time")
@@ -250,8 +271,19 @@ class TestMemorialEvent:
         mock_time.time.return_value = 1000.0
         ib = IdleBehavior()
         mock_time.time.return_value = 1000.0 + 50 * 60
-        msg = ib.check_memorial_event()
+        result = ib.check_memorial_event(current_speaker_name="Jacob")
+        msg, sfx = result
         assert "Lisa Webb" in msg or "Lisa" in msg
+
+    @patch("idle_behavior.time")
+    def test_jacob_alias_detection(self, mock_time):
+        """Various Jacob aliases should all trigger the memorial."""
+        for alias in ["Jacob", "jake", "Hoppenstedt", "birthday boy"]:
+            mock_time.time.return_value = 1000.0
+            ib = IdleBehavior()
+            mock_time.time.return_value = 1000.0 + 50 * 60
+            result = ib.check_memorial_event(current_speaker_name=alias)
+            assert result is not None, f"Memorial should fire for alias '{alias}'"
 
 
 # ── TestContextualBehavior ───────────────────────────────────────────────

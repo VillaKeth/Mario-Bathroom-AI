@@ -25,6 +25,8 @@ DEFAULT_EVENT_MAP = {
     "challenge": "powerup.wav",
     "milestone": "1up.wav",
     "gossip": "coin.wav",
+    "memorial": "memorial.wav",
+    "toast": "victory.wav",
 }
 
 

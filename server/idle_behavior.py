@@ -1031,19 +1031,32 @@ class IdleBehavior:
         self._idle_interval = 15
         self._action_count = 0
 
-    def check_memorial_event(self) -> str | None:
+    def check_memorial_event(self, current_speaker_name: str = None) -> tuple[str, str] | None:
         """Check if it's time for the Lisa Webb memorial moment.
 
-        Returns the memorial message (moment of silence or shot dedication),
-        or None if not time yet. Fires once per party, ~45 min after start.
+        Returns (memorial_message, sfx_event_name) tuple, or None if not time yet.
+        Prefers firing when Jacob is in the room, but fires after 90 min regardless.
         The moment of silence fires first, then the shot on the next idle cycle.
         """
         if self._memorial_delivered and self._memorial_shot_delivered:
             return None
 
-        # Wait at least 45 minutes into the party
         party_minutes = (time.time() - self._party_start_time) / 60
+
+        # Check if the birthday person (Jacob) is present
+        jacob_present = False
+        if current_speaker_name:
+            name_lower = current_speaker_name.lower()
+            jacob_present = any(alias in name_lower for alias in
+                                ["jacob", "jake", "hoppenstedt", "birthday boy"])
+
+        # Timing strategy:
+        #   - 45+ min AND Jacob present → fire immediately (ideal)
+        #   - 90+ min regardless → fire anyway (don't wait forever)
+        #   - < 45 min → never fire
         if party_minutes < 45:
+            return None
+        if not jacob_present and party_minutes < 90:
             return None
 
         # Try to load memorial info from VIP knowledge
@@ -1065,7 +1078,7 @@ class IdleBehavior:
         if not self._memorial_delivered:
             # Phase 1: Moment of silence
             self._memorial_delivered = True
-            return (
+            msg = (
                 f"*Mario removes his hat and holds it to his chest* "
                 f"Hey everyone... Can I have your attention for just a moment? "
                 f"Tonight we're celebrating Jacob's birthday, but I want us to take a moment "
@@ -1074,10 +1087,11 @@ class IdleBehavior:
                 f"Let's have a moment of silence for Aunt Lisa. "
                 f"*bows head in silence*"
             )
+            return (msg, "memorial")
         elif not self._memorial_shot_delivered:
             # Phase 2: Shot dedication (fires on next idle cycle after the silence)
             self._memorial_shot_delivered = True
-            return (
+            msg = (
                 f"*puts hat back on with a warm smile* "
                 f"Alright everyone — Aunt Lisa wouldn't want us to be sad! "
                 f"She'd want us to CELEBRATE! So right now, everybody grab a drink — "
@@ -1086,6 +1100,7 @@ class IdleBehavior:
                 f"Ready? One... two... three... CHEERS! Wahoo! "
                 f"That one was for you, Aunt Lisa! Now let's-a party!"
             )
+            return (msg, "toast")
 
         return None
 
