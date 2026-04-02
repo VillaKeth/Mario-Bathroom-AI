@@ -19,8 +19,10 @@ from game_handlers import (
     record_game_played,
     get_recent_games,
     reset_game_rotation,
+    check_game_timeout,
     ALL_GAME_NAMES,
     QUICK_GAMES,
+    VALID_GAMES,
 )
 
 
@@ -628,6 +630,86 @@ class TestConcurrentGameGuard(unittest.TestCase):
         reset_game_rotation()
         record_game_played("riddles")
         self.assertIn("riddles", get_recent_games())
+
+
+@patch("game_handlers.get_adaptive_rounds", side_effect=lambda name, base, state: base)
+class TestGameValidation(unittest.TestCase):
+    """Tests for game validation guards and timeout logic."""
+
+    def test_unknown_game_clears_state(self, _mock_ar):
+        state = _make_state()
+        state["_active_game"] = "bogus_game"
+        state["_game_state"] = {"some": "data"}
+        emo = EmotionSystem()
+        result = handle_game_input("hello", state, emo)
+        self.assertIsNotNone(result)
+        self.assertIsNone(state["_active_game"])
+        self.assertEqual(state["_game_state"], {})
+
+    def test_empty_game_state_clears(self, _mock_ar):
+        state = _make_state()
+        state["_active_game"] = "trivia"  # not in VALID_GAMES → also cleared
+        state["_game_state"] = {}
+        emo = EmotionSystem()
+        result = handle_game_input("answer", state, emo)
+        self.assertIsNotNone(result)
+        self.assertIsNone(state["_active_game"])
+        self.assertEqual(state["_game_state"], {})
+
+    def test_rps_allows_empty_state(self, _mock_ar):
+        """RPS is stateless-friendly: the empty-state guard must NOT clear it."""
+        state = _make_state()
+        state["_active_game"] = "rock_paper_scissors"
+        state["_game_state"] = {}
+        emo = EmotionSystem()
+        # Use "quit" to go through the guard without hitting RPS-specific keys.
+        # If the guard had fired, the response would contain "lost track".
+        result = handle_game_input("quit", state, emo)
+        self.assertIsNotNone(result)
+        resp_text = result[0] if isinstance(result, tuple) else result
+        self.assertNotIn("lost track", resp_text.lower())
+        self.assertIn("game over", resp_text.lower())
+
+    def test_valid_game_updates_input_time(self, _mock_ar):
+        state, config, emo = _make_state(), _make_config(), EmotionSystem()
+        start_game("truth_or_dare", state, config, emo)
+        state["_game_last_input_time"] = 0
+        before = time.time()
+        handle_game_input("truth", state, emo)
+        self.assertGreaterEqual(state["_game_last_input_time"], before)
+
+    def test_start_game_rejects_unknown(self, _mock_ar):
+        state, config, emo = _make_state(), _make_config(), EmotionSystem()
+        result = start_game("totally_fake_game", state, config, emo)
+        self.assertIsNone(result)
+        self.assertIsNone(state["_active_game"])
+
+    def test_check_game_timeout_clears_stale(self, _mock_ar):
+        state = _make_state()
+        state["_active_game"] = "simon_says"
+        state["_game_state"] = {"round": 1}
+        state["_game_last_input_time"] = time.time() - 200
+        result = check_game_timeout(state, timeout_seconds=180)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertIsNone(state["_active_game"])
+        self.assertEqual(state["_game_state"], {})
+
+    def test_check_game_timeout_ignores_active(self, _mock_ar):
+        state = _make_state()
+        state["_active_game"] = "simon_says"
+        state["_game_state"] = {"round": 1}
+        state["_game_last_input_time"] = time.time() - 10
+        result = check_game_timeout(state, timeout_seconds=180)
+        self.assertIsNone(result)
+        self.assertEqual(state["_active_game"], "simon_says")
+
+    def test_check_game_timeout_no_game(self, _mock_ar):
+        state = _make_state()
+        state["_active_game"] = None
+        result = check_game_timeout(state)
+        self.assertIsNone(result)
 
 
 if __name__ == "__main__":

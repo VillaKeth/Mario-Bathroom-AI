@@ -50,6 +50,7 @@ from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior
 from pose_analyzer import analyze_text
 import command_handlers
+from game_handlers import check_game_timeout
 
 # Semantic memory & VIP knowledge (optional — graceful fallback)
 try:
@@ -1552,15 +1553,28 @@ async def _idle_loop(ws: WebSocket):
 
         # Circuit breaker: if 10+ consecutive errors, stop until next visitor
         if _idle_error_count >= 10:
-            async with _state_lock:
-                has_presence = state_current["presence"]
-            if has_presence:
-                # New visitor arrived — reset and try again
-                _idle_error_count = 0
-                logger.info("[IDLE_RECOVERY] New visitor detected, resetting idle loop")
+            # Try restarting executor once before giving up
+            if not getattr(_idle_loop, '_executor_restarted', False):
+                try:
+                    global _tts_executor
+                    logger.warning("[IDLE] Restarting TTS executor after 10 errors")
+                    _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
+                    _idle_error_count = 5  # Give it another chance
+                    _idle_loop._executor_restarted = True
+                except Exception as e:
+                    logger.error(f"[IDLE] Executor restart failed: {e}")
             else:
-                await asyncio.sleep(30)  # Check periodically but don't spam
-                continue
+                async with _state_lock:
+                    has_presence = state_current["presence"]
+                if has_presence:
+                    # New visitor arrived — reset and try again
+                    _idle_error_count = 0
+                    _idle_loop._executor_restarted = False
+                    logger.info("[IDLE_RECOVERY] New visitor detected, resetting idle loop")
+                else:
+                    logger.warning("[IDLE] Circuit breaker active — idle loop paused")
+                    await asyncio.sleep(60)
+                    continue
 
         # Skip idle TTS when a user request is being processed (prevents GPU contention)
         async with _state_lock:
@@ -1609,25 +1623,18 @@ async def _idle_loop(ws: WebSocket):
                 logger.error(f"Memorial event failed: {e}")
             continue
 
-        # Game auto-timeout: clear stale game state after 3 minutes of no input
-        _GAME_TIMEOUT_SECONDS = 180
+        # Game auto-timeout using shared validation logic
         async with _state_lock:
-            if state_current["_active_game"]:
-                last_game_input = state_current.get("_game_last_input_time", 0.0)
-                if last_game_input > 0 and (time.time() - last_game_input) > _GAME_TIMEOUT_SECONDS:
-                    stale_game = state_current["_active_game"]
-                    state_current["_active_game"] = None
-                    state_current["_game_state"] = {}
-                    state_current["_game_last_input_time"] = 0.0
-                    logger.info(f"[GAME_TIMEOUT] Auto-cleared '{stale_game}' after {_GAME_TIMEOUT_SECONDS}s inactivity")
-                    try:
-                        timeout_msg = f"Oops! Looks like we forgot about our {stale_game.replace('_', ' ')} game! No worries, let's-a chat!"
-                        analyzed = analyze_text(timeout_msg)
-                        audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                        await send_response(ws, analyzed["display_text"], audio,
-                                            sound="game_over", pose_hint="positive/happy")
-                    except Exception as e:
-                        logger.error(f"Game timeout announcement failed: {e}")
+            timeout_result = check_game_timeout(state_current)
+        if timeout_result:
+            timeout_msg, timeout_emotion = timeout_result
+            try:
+                analyzed = analyze_text(timeout_msg)
+                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+                await send_response(ws, analyzed["display_text"], audio,
+                                    sound="game_over", pose_hint="positive/happy")
+            except Exception as e:
+                logger.error(f"Game timeout announcement failed: {e}")
 
         # Sick guest proactive check-in: if someone said they're sick and then went silent
         async with _state_lock:
