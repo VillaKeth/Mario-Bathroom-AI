@@ -720,7 +720,11 @@ async def health():
         "llm_router_stats": llm_router.stats,
         "llm_fast_model": llm_router._fast_model,
         "llm_quality_model": llm_router._quality_model,
+        "semantic_memory": memory._HAS_SEMANTIC,
     }
+
+    # Periodic Qdrant recovery check (piggyback on health polls)
+    memory.check_semantic_health()
 
 # Wire the health function into the dashboard router after definition
 from dashboard import init_dashboard as _rewire_dashboard

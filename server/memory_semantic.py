@@ -90,6 +90,18 @@ def _embed_text(text: str) -> list[float]:
     return list(next(embedder.embed([text])))
 
 
+def health_check() -> bool:
+    """Check if Qdrant is healthy and accessible."""
+    if _client is None:
+        return False
+    try:
+        _client.get_collection(COLLECTION_NAME)
+        return True
+    except Exception as e:
+        logger.warning(f"[SEMANTIC] Health check failed: {e}")
+        return False
+
+
 def store_memory(person_id: int, text: str, memory_type: str = "fact",
                  metadata: dict | None = None):
     """Embed and store a memory in Qdrant.

@@ -17,11 +17,34 @@ _local = threading.local()
 
 # Semantic memory integration (Qdrant)
 _HAS_SEMANTIC = False
+_semantic_check_time = 0  # Last time we checked Qdrant health
+_SEMANTIC_CHECK_INTERVAL = 120  # Check every 2 minutes if previously down
 try:
     import memory_semantic
     _HAS_SEMANTIC = True
 except ImportError:
     logger.warning("memory_semantic not available — running without semantic search")
+
+
+def check_semantic_health():
+    """Periodically check if Qdrant has recovered (called from server main loop)."""
+    global _HAS_SEMANTIC, _semantic_check_time
+    import time
+    now = time.time()
+    if _HAS_SEMANTIC:
+        return True  # Already healthy
+    if now - _semantic_check_time < _SEMANTIC_CHECK_INTERVAL:
+        return False  # Too soon to recheck
+    _semantic_check_time = now
+    try:
+        import memory_semantic
+        if memory_semantic.health_check():
+            _HAS_SEMANTIC = True
+            logger.info("[MEMORY] Qdrant recovered! Semantic search re-enabled")
+            return True
+    except Exception as e:
+        logger.debug(f"[MEMORY] Qdrant still unavailable: {e}")
+    return False
 
 
 def _get_conn():

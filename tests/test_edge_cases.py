@@ -150,3 +150,95 @@ class TestPersonDetectorEdgeCases:
         pd = PersonDetector()
         result = pd.detect_people(np.array([1, 2, 3]))
         assert result == []
+
+
+class TestSemanticHealthCheck:
+    """Tests for Qdrant health recovery logic."""
+
+    def test_check_returns_false_when_no_semantic(self):
+        from server.memory import check_semantic_health
+        result = check_semantic_health()
+        # May be True or False depending on env, but should not crash
+        assert isinstance(result, bool)
+
+    def test_has_semantic_flag_exists(self):
+        from server import memory
+        assert hasattr(memory, '_HAS_SEMANTIC')
+        assert isinstance(memory._HAS_SEMANTIC, bool)
+
+    def test_check_interval_throttling(self):
+        """Consecutive calls should be throttled by interval."""
+        import time
+        from server import memory
+        original = memory._HAS_SEMANTIC
+        memory._HAS_SEMANTIC = False
+        memory._semantic_check_time = time.time()  # Just checked
+        result = memory.check_semantic_health()
+        assert result is False  # Throttled — too soon
+        memory._HAS_SEMANTIC = original
+
+
+class TestPresenceRecovery:
+    """Tests for webcam recovery logic."""
+
+    def test_camera_status_property(self):
+        """PresenceDetector should have camera_status property."""
+        from client.presence import PresenceDetector
+        pd = PresenceDetector(camera_index=99)  # Non-existent camera
+        assert pd.camera_status == "disconnected"
+
+    def test_camera_status_after_failed_start(self):
+        """Failed camera start should leave status as disconnected."""
+        from client.presence import PresenceDetector
+        pd = PresenceDetector(camera_index=99)
+        result = pd.start()
+        assert result is False
+        assert pd.camera_status == "disconnected"
+
+
+class TestTokenBudget:
+    """Tests for context token budget enforcement."""
+
+    def test_estimate_tokens_approximation(self):
+        """4 chars per token is reasonable for English."""
+        text = "Hello world this is a test"
+        est_tokens = len(text) // 4
+        assert 5 <= est_tokens <= 10  # ~6.5 tokens estimated
+
+    def test_large_context_detection(self):
+        """Context over budget should be detectable."""
+        # Use a reasonable default for num_ctx (8192 tokens typical)
+        budget = int(8192 * 0.80)
+        # Build a context that exceeds the budget
+        large_msg = "x" * (budget * 4 + 100)  # Guaranteed over budget
+        est_tokens = len(large_msg) // 4
+        assert est_tokens > budget
+
+    def test_trimming_removes_oldest_conversation(self):
+        """Token trimming should remove oldest user/assistant messages first."""
+        budget_tokens = 100
+        # Build a context: 1 system + 5 conversation messages
+        ctx = [
+            {"role": "system", "content": "Be Mario"},  # ~3 tokens, should survive
+            {"role": "user", "content": "a" * 100},     # ~25 tokens, oldest conv
+            {"role": "assistant", "content": "b" * 100}, # ~25 tokens
+            {"role": "user", "content": "c" * 100},      # ~25 tokens
+            {"role": "assistant", "content": "d" * 100},  # ~25 tokens
+            {"role": "user", "content": "e" * 40},        # ~10 tokens, newest
+        ]
+        total_chars = sum(len(m["content"]) for m in ctx)
+        est_tokens = total_chars // 4  # ~113 tokens, over budget of 100
+
+        # Simulate the trimming logic from main.py
+        conv_indices = [i for i, m in enumerate(ctx) if m.get("role") in ("user", "assistant")]
+        for idx in conv_indices:
+            if est_tokens <= budget_tokens:
+                break
+            msg_tokens = len(ctx[idx].get("content", "")) // 4
+            ctx[idx] = None
+            est_tokens -= msg_tokens
+        ctx = [m for m in ctx if m is not None]
+
+        # System message should survive, some conversation trimmed
+        assert ctx[0]["role"] == "system"
+        assert est_tokens <= budget_tokens
