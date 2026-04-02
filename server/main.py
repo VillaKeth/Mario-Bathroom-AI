@@ -1264,7 +1264,7 @@ async def websocket_endpoint(ws: WebSocket):
     _active_ws = ws
     logger.info("Client connected!")
 
-    # Reset per-connection state (games, conversation, etc.)
+    # Reset per-connection state (games, conversation, identity, etc.)
     state_current["_active_game"] = None
     state_current["_game_state"] = {}
     state_current["conversation_history"] = []
@@ -1276,6 +1276,11 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
     state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
     state_current["_last_buffer_time"] = 0.0
+    state_current["speaker_name"] = None
+    state_current["speaker_id"] = None
+    state_current["current_visit_id"] = None
+    state_current["_user_request_active"] = False
+    state_current["_greeting_in_progress"] = False
 
     # Send initial greeting (with 30s timeout to prevent blocking)
     loop = asyncio.get_event_loop()
@@ -3172,6 +3177,214 @@ async def _handle_special_commands(transcript: str) -> str:
     )
 
 
+async def _do_greeting(ws: WebSocket, event: dict):
+    """Core greeting logic — extracted for outer timeout wrapping."""
+    # Extract name from event payload if not already set (browser fallback)
+    if state_current["speaker_name"] is None and event.get("name"):
+        state_current["speaker_name"] = event["name"].strip()
+        logger.info(f"[BROWSER_MEMORY] Got name from presence_enter payload: '{state_current['speaker_name']}'")
+
+    # Try to identify by audio
+    if event.get("audio"):
+        audio_data = base64.b64decode(event["audio"])
+        info = speaker_id.identify_speaker(audio_data)
+        if not info["is_new"]:
+            state_current["speaker_name"] = info["name"]
+            state_current["speaker_id"] = info["speaker_id"]
+            memory.record_visit(info["speaker_id"])
+
+    # Browser fallback: look up or create speaker_id by name if not identified by voice
+    if state_current["speaker_id"] is None and state_current["speaker_name"]:
+        person = memory.find_person_by_name(state_current["speaker_name"])
+        if person:
+            state_current["speaker_id"] = person["id"]
+            memory.record_visit(person["id"])
+            logger.info(f"[BROWSER_MEMORY] Matched '{state_current['speaker_name']}' to speaker_id={person['id']} (visits={person['visit_count']})")
+        else:
+            import hashlib
+            virtual_id = int(hashlib.md5(state_current["speaker_name"].lower().encode()).hexdigest()[:8], 16)
+            state_current["speaker_id"] = virtual_id
+            memory.register_person(virtual_id, state_current["speaker_name"])
+            logger.info(f"[BROWSER_MEMORY] Created virtual speaker_id={virtual_id} for '{state_current['speaker_name']}'")
+
+    # Record visit in party stats
+    visit_id = party_stats.record_enter(
+        person_id=state_current["speaker_id"],
+        person_name=state_current["speaker_name"],
+    )
+    state_current["current_visit_id"] = visit_id
+    party_stats.record_event("enter", state_current["speaker_name"])
+
+    # Send leaderboard update on new visitor
+    asyncio.create_task(_send_leaderboard_event(ws))
+
+    # Detect crew (groups of people who arrive together)
+    crews = party_stats.detect_crew()
+    crew_ctx = None
+    if crews and state_current["speaker_name"]:
+        for crew in crews:
+            if state_current["speaker_name"] in crew and len(crew) > 1:
+                crew_names = ", ".join(n for n in crew[:3] if n != state_current["speaker_name"])
+                if crew_names:
+                    crew_ctx = f"This person arrived as part of a crew/group with: {crew_names}. Acknowledge their crew!"
+                break
+
+    stats = party_stats.get_stats()
+    total = stats.get("total_visits", 0)
+    event_type_greeting = "enter_unknown"
+
+    if not state_current["speaker_name"] and state_current.get("detected_guest"):
+        state_current["speaker_name"] = state_current["detected_guest"]
+        logger.info(f"[WEBCAM] Using face-detected guest name: {state_current['speaker_name']}")
+
+    if state_current["speaker_name"]:
+        event_type_greeting = "enter_known"
+        memories = memory.get_memories_for_context(state_current["speaker_id"], current_text="greeting returning guest")
+        person_info = memory.get_person_info(state_current["speaker_id"])
+        actual_visits = person_info["visit_count"] if person_info else 1
+        last_emotion = memory.get_last_emotion(state_current["speaker_id"])
+        ctx = mario_prompt.build_context(
+            speaker_name=state_current["speaker_name"],
+            memories=memories,
+            event="enter_known",
+            visit_count=actual_visits,
+            last_topic=memories[-1] if memories else "nothing special",
+            last_emotion=last_emotion,
+        )
+        if actual_visits == 1:
+            visit_hint = "This is their FIRST time meeting you! Be welcoming and ask their name."
+        elif actual_visits <= 3:
+            visit_hint = f"They've visited {actual_visits} times. They're becoming a regular! Acknowledge this."
+        elif actual_visits <= 10:
+            visit_hint = f"They've visited {actual_visits} times! They're a loyal fan! Reference past conversations."
+        elif actual_visits <= 25:
+            visit_hint = f"They've visited {actual_visits} times! They're practically family! Give them a special nickname."
+        else:
+            visit_hint = f"They've visited {actual_visits} times! They're a LEGEND! Treat them like royalty!"
+        ctx.append({"role": "system", "content": visit_hint})
+
+        secs_since_exit = party_stats.get_seconds_since_last_exit(state_current["speaker_id"])
+        if secs_since_exit is not None and secs_since_exit < 120:
+            ctx.append({"role": "system", "content": f"{state_current['speaker_name']} JUST left {int(secs_since_exit)} seconds ago and is already back! React with surprise and humor — 'Back so soon?', 'Miss me already?', 'Couldn't stay away, huh?'"})
+        elif secs_since_exit is not None and secs_since_exit < 600:
+            ctx.append({"role": "system", "content": f"{state_current['speaker_name']} was here just {int(secs_since_exit // 60)} minutes ago. Acknowledge the quick return warmly."})
+
+        recent_topics = memory.get_recent_conversations(state_current["speaker_id"], limit=1)
+        if recent_topics:
+            ctx.append({"role": "system", "content": f"Last time {state_current['speaker_name']} was here, you were talking about: {recent_topics[0]}. Reference this!"})
+
+    elif total == 1:
+        ctx = mario_prompt.build_context(event="first_visitor")
+    elif total in (10, 25, 50, 100):
+        ctx = mario_prompt.build_context(event="milestone_visit", count=total)
+    else:
+        ctx = mario_prompt.build_context(event="enter_unknown")
+
+    milestone_msg = party_stats.check_milestones()
+    if milestone_msg:
+        ctx.append({"role": "system", "content": f"🎉 PARTY MILESTONE: {milestone_msg} Celebrate this in your greeting!"})
+
+    _inject_birthday_always_on(ctx)
+    ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+    last_idle = state_current.get("_last_idle_action", "")
+    if last_idle:
+        ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
+    if crew_ctx:
+        ctx.append({"role": "system", "content": crew_ctx})
+
+    _greeting_name = state_current.get("speaker_name", "")
+    if birthday_vip.is_configured() and birthday_vip.is_birthday_person(_greeting_name):
+        vip_greeting = birthday_vip.get_special_greeting(_greeting_name)
+        if vip_greeting:
+            ctx.append({"role": "system", "content": f"🎂 {vip_greeting} Make your greeting EXTRA celebratory!"})
+        vip_ctx = birthday_vip.get_vip_prompt_injection()
+        if vip_ctx:
+            ctx.append({"role": "system", "content": vip_ctx})
+
+    if state_current.get("speaker_id") and state_current.get("speaker_name"):
+        party_gossip._guest_names[state_current["speaker_id"]] = state_current["speaker_name"]
+
+    greeting_gossip = party_gossip.get_gossip_for_guest(
+        current_speaker_id=state_current.get("speaker_id"),
+        current_name=state_current.get("speaker_name"),
+        count=1,
+        gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
+    )
+    if greeting_gossip and random.random() < 0.5:
+        ctx.append({"role": "system", "content": f"[GOSSIP]: You have gossip! {greeting_gossip[0]} Weave it into your greeting naturally!"})
+
+    if state_current.get("speaker_id"):
+        title = party_gossip.assign_title(
+            state_current["speaker_id"],
+            state_current.get("speaker_name", "friend"),
+        )
+        if title and random.random() < 0.3:
+            ctx.append({"role": "system", "content": f"Their official title is: '{title}'. Use it dramatically!"})
+
+    narrative = party_gossip.get_party_narrative_hint()
+    if narrative and random.random() < 0.25:
+        ctx.append({"role": "system", "content": narrative})
+
+    now = datetime.now()
+    party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0
+    greeting_mood = mario_prompt.get_greeting_mood(now.hour, party_hrs)
+    if greeting_mood:
+        ctx.append({"role": "system", "content": f"[PARTY MOOD]: {greeting_mood}"})
+
+    response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
+    response_text = filter_response(response_text)
+
+    if state_current.get("speaker_name") and state_current.get("speaker_id"):
+        _milestone_info = memory.get_person_info(state_current["speaker_id"])
+        _milestone_count = _milestone_info["visit_count"] if _milestone_info else 1
+        _milestone_name = state_current["speaker_name"]
+        milestone_prefix = ""
+        if _milestone_count == 2:
+            milestone_prefix = f"Welcome BACK {_milestone_name}! I missed you! "
+        elif _milestone_count == 5:
+            milestone_prefix = f"It's {_milestone_name} again! That's your FIFTH visit tonight! You're a LEGEND! "
+        elif _milestone_count == 10:
+            milestone_prefix = f"TEN TIMES?! {_milestone_name}, you live here now! I'm giving you a key! "
+        elif _milestone_count >= 15:
+            milestone_prefix = f"{_milestone_name}! You've been here {_milestone_count} times! At this point you're my roommate! "
+        if milestone_prefix:
+            response_text = milestone_prefix + response_text
+
+    if not state_current["speaker_name"]:
+        response_text += " What's-a your name, friend?"
+
+    analyzed = analyze_text(response_text)
+    loop = asyncio.get_event_loop()
+    voice_params = emotion_system.get_voice_params()
+    if analyzed.get("energy") == "high":
+        voice_params["rate"] = "+15%"
+        voice_params["pitch"] = "+5Hz"
+    response_audio = None
+    for _tts_try in range(2):
+        try:
+            response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+                analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            break
+        except Exception as tts_err:
+            if _tts_try == 0:
+                logger.warning(f"[GREETING] TTS attempt 1 failed: {tts_err} — retrying")
+                await asyncio.sleep(0.3)
+            else:
+                logger.error(f"[GREETING] TTS failed after retry: {tts_err} — text only greeting")
+    for _attempt in range(2):
+        try:
+            await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
+                                emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high",
+                                particle_effect="confetti")
+            break
+        except Exception as send_err:
+            if _attempt == 0:
+                logger.warning(f"[GREETING] Send failed, retrying: {send_err}")
+                await asyncio.sleep(0.5)
+            else:
+                logger.error(f"[GREETING] Send failed after retry: {send_err}")
+
+
 async def handle_event(ws: WebSocket, event: dict):
     """Handle events from the client (presence, commands, etc.)."""
     event_type = event.get("type")
@@ -3285,249 +3498,14 @@ async def handle_event(ws: WebSocket, event: dict):
         mario_prompt.reset_gratitude()
 
         try:
-            # Extract name from event payload if not already set (browser fallback)
-            if state_current["speaker_name"] is None and event.get("name"):
-                state_current["speaker_name"] = event["name"].strip()
-                logger.info(f"[BROWSER_MEMORY] Got name from presence_enter payload: '{state_current['speaker_name']}'")
-
-            # Try to identify by audio
-            if event.get("audio"):
-                audio_data = base64.b64decode(event["audio"])
-                info = speaker_id.identify_speaker(audio_data)
-                if not info["is_new"]:
-                    state_current["speaker_name"] = info["name"]
-                    state_current["speaker_id"] = info["speaker_id"]
-                    memory.record_visit(info["speaker_id"])
-
-            # Browser fallback: look up or create speaker_id by name if not identified by voice
-            if state_current["speaker_id"] is None and state_current["speaker_name"]:
-                person = memory.find_person_by_name(state_current["speaker_name"])
-                if person:
-                    state_current["speaker_id"] = person["id"]
-                    memory.record_visit(person["id"])
-                    logger.info(f"[BROWSER_MEMORY] Matched '{state_current['speaker_name']}' to speaker_id={person['id']} (visits={person['visit_count']})")
-                else:
-                    # Create a virtual speaker_id for browser users (name-based hash)
-                    import hashlib
-                    virtual_id = int(hashlib.md5(state_current["speaker_name"].lower().encode()).hexdigest()[:8], 16)
-                    state_current["speaker_id"] = virtual_id
-                    memory.register_person(virtual_id, state_current["speaker_name"])
-                    logger.info(f"[BROWSER_MEMORY] Created virtual speaker_id={virtual_id} for '{state_current['speaker_name']}'")
-
-            # Record visit in party stats
-            visit_id = party_stats.record_enter(
-                person_id=state_current["speaker_id"],
-                person_name=state_current["speaker_name"],
-            )
-            state_current["current_visit_id"] = visit_id
-            party_stats.record_event("enter", state_current["speaker_name"])
-
-            # Send leaderboard update on new visitor
-            asyncio.create_task(_send_leaderboard_event(ws))
-
-            # Detect crew (groups of people who arrive together)
-            crews = party_stats.detect_crew()
-            crew_ctx = None
-            if crews and state_current["speaker_name"]:
-                for crew in crews:
-                    if state_current["speaker_name"] in crew and len(crew) > 1:
-                        crew_names = ", ".join(n for n in crew[:3] if n != state_current["speaker_name"])
-                        if crew_names:
-                            crew_ctx = f"This person arrived as part of a crew/group with: {crew_names}. Acknowledge their crew!"
-                        break
-
-            # Check for milestone visits
-            stats = party_stats.get_stats()
-            total = stats.get("total_visits", 0)
-            event_type_greeting = "enter_unknown"
-
-            # Webcam face recognition fallback — if we detected a face but don't have audio ID
-            if not state_current["speaker_name"] and state_current.get("detected_guest"):
-                state_current["speaker_name"] = state_current["detected_guest"]
-                logger.info(f"[WEBCAM] Using face-detected guest name: {state_current['speaker_name']}")
-
-            if state_current["speaker_name"]:
-                event_type_greeting = "enter_known"
-                memories = memory.get_memories_for_context(state_current["speaker_id"], current_text="greeting returning guest")
-                person_info = memory.get_person_info(state_current["speaker_id"])
-                actual_visits = person_info["visit_count"] if person_info else 1
-                last_emotion = memory.get_last_emotion(state_current["speaker_id"])
-                ctx = mario_prompt.build_context(
-                    speaker_name=state_current["speaker_name"],
-                    memories=memories,
-                    event="enter_known",
-                    visit_count=actual_visits,
-                    last_topic=memories[-1] if memories else "nothing special",
-                    last_emotion=last_emotion,
-                )
-                # Visit-count-specific greeting hints
-                if actual_visits == 1:
-                    visit_hint = "This is their FIRST time meeting you! Be welcoming and ask their name."
-                elif actual_visits <= 3:
-                    visit_hint = f"They've visited {actual_visits} times. They're becoming a regular! Acknowledge this."
-                elif actual_visits <= 10:
-                    visit_hint = f"They've visited {actual_visits} times! They're a loyal fan! Reference past conversations."
-                elif actual_visits <= 25:
-                    visit_hint = f"They've visited {actual_visits} times! They're practically family! Give them a special nickname."
-                else:
-                    visit_hint = f"They've visited {actual_visits} times! They're a LEGEND! Treat them like royalty!"
-                ctx.append({"role": "system", "content": visit_hint})
-
-                # Rapid re-entry detection — "back so soon?"
-                secs_since_exit = party_stats.get_seconds_since_last_exit(state_current["speaker_id"])
-                if secs_since_exit is not None and secs_since_exit < 120:
-                    ctx.append({"role": "system", "content": f"{state_current['speaker_name']} JUST left {int(secs_since_exit)} seconds ago and is already back! React with surprise and humor — 'Back so soon?', 'Miss me already?', 'Couldn't stay away, huh?'"})
-                elif secs_since_exit is not None and secs_since_exit < 600:
-                    ctx.append({"role": "system", "content": f"{state_current['speaker_name']} was here just {int(secs_since_exit // 60)} minutes ago. Acknowledge the quick return warmly."})
-
-                # Context-aware returning greetings — reference last conversation
-                recent_topics = memory.get_recent_conversations(state_current["speaker_id"], limit=1)
-                if recent_topics:
-                    ctx.append({"role": "system", "content": f"Last time {state_current['speaker_name']} was here, you were talking about: {recent_topics[0]}. Reference this!"})
-
-            elif total == 1:
-                ctx = mario_prompt.build_context(event="first_visitor")
-            elif total in (10, 25, 50, 100):
-                ctx = mario_prompt.build_context(event="milestone_visit", count=total)
-            else:
-                ctx = mario_prompt.build_context(event="enter_unknown")
-
-            # Party-wide milestones (visitor count / hours)
-            milestone_msg = party_stats.check_milestones()
-            if milestone_msg:
-                ctx.append({"role": "system", "content": f"🎉 PARTY MILESTONE: {milestone_msg} Celebrate this in your greeting!"})
-
-            _inject_birthday_always_on(ctx)
-            ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-            # Idle acknowledgment — reference what Mario was doing before they arrived
-            last_idle = state_current.get("_last_idle_action", "")
-            if last_idle:
-                ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
-            if crew_ctx:
-                ctx.append({"role": "system", "content": crew_ctx})
-
-            # Birthday VIP — inject special greeting context
-            _greeting_name = state_current.get("speaker_name", "")
-            if birthday_vip.is_configured() and birthday_vip.is_birthday_person(_greeting_name):
-                vip_greeting = birthday_vip.get_special_greeting(_greeting_name)
-                if vip_greeting:
-                    ctx.append({"role": "system", "content": f"🎂 {vip_greeting} Make your greeting EXTRA celebratory!"})
-                vip_ctx = birthday_vip.get_vip_prompt_injection()
-                if vip_ctx:
-                    ctx.append({"role": "system", "content": vip_ctx})
-
-            # Register guest in gossip system so later guests know who visited
-            if state_current.get("speaker_id") and state_current.get("speaker_name"):
-                party_gossip._guest_names[state_current["speaker_id"]] = state_current["speaker_name"]
-
-            # GOSSIP on greeting — share juicy tidbits from earlier visitors
-            greeting_gossip = party_gossip.get_gossip_for_guest(
-                current_speaker_id=state_current.get("speaker_id"),
-                current_name=state_current.get("speaker_name"),
-                count=1,
-                gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
-            )
-            if greeting_gossip and random.random() < 0.5:
-                ctx.append({"role": "system", "content": f"[GOSSIP]: You have gossip! {greeting_gossip[0]} Weave it into your greeting naturally!"})
-
-            # Guest title — assign/retrieve a fun title
-            if state_current.get("speaker_id"):
-                title = party_gossip.assign_title(
-                    state_current["speaker_id"],
-                    state_current.get("speaker_name", "friend"),
-                )
-                if title and random.random() < 0.3:
-                    ctx.append({"role": "system", "content": f"Their official title is: '{title}'. Use it dramatically!"})
-
-            # Party narrative — reference the ongoing story of tonight
-            narrative = party_gossip.get_party_narrative_hint()
-            if narrative and random.random() < 0.25:
-                ctx.append({"role": "system", "content": narrative})
-
-            # Mood-reactive greeting — adapt energy to party phase
-            now = datetime.now()
-            party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0
-            greeting_mood = mario_prompt.get_greeting_mood(now.hour, party_hrs)
-            if greeting_mood:
-                ctx.append({"role": "system", "content": f"[PARTY MOOD]: {greeting_mood}"})
-
-            response_text = await asyncio.wait_for(llm.generate_response(ctx), timeout=30.0)
-            response_text = filter_response(response_text)
-
-            # Visit milestones — special callout for returning guests at key visit counts
-            if state_current.get("speaker_name") and state_current.get("speaker_id"):
-                _milestone_info = memory.get_person_info(state_current["speaker_id"])
-                _milestone_count = _milestone_info["visit_count"] if _milestone_info else 1
-                _milestone_name = state_current["speaker_name"]
-                milestone_prefix = ""
-                if _milestone_count == 2:
-                    milestone_prefix = f"Welcome BACK {_milestone_name}! I missed you! "
-                elif _milestone_count == 5:
-                    milestone_prefix = f"It's {_milestone_name} again! That's your FIFTH visit tonight! You're a LEGEND! "
-                elif _milestone_count == 10:
-                    milestone_prefix = f"TEN TIMES?! {_milestone_name}, you live here now! I'm giving you a key! "
-                elif _milestone_count >= 15:
-                    milestone_prefix = f"{_milestone_name}! You've been here {_milestone_count} times! At this point you're my roommate! "
-                if milestone_prefix:
-                    response_text = milestone_prefix + response_text
-
-            if not state_current["speaker_name"]:
-                response_text += " What's-a your name, friend?"
-
-            analyzed = analyze_text(response_text)
-            loop = asyncio.get_event_loop()
-            voice_params = emotion_system.get_voice_params()
-            if analyzed.get("energy") == "high":
-                voice_params["rate"] = "+15%"
-                voice_params["pitch"] = "+5Hz"
-            response_audio = None
-            for _tts_try in range(2):
-                try:
-                    response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
-                        analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-                    break
-                except Exception as tts_err:
-                    if _tts_try == 0:
-                        logger.warning(f"[GREETING] TTS attempt 1 failed: {tts_err} — retrying")
-                        await asyncio.sleep(0.3)
-                    else:
-                        logger.error(f"[GREETING] TTS failed after retry: {tts_err} — text only greeting")
-            # Send with retry on failure
-            for _attempt in range(2):
-                try:
-                    await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
-                                        emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high",
-                                        particle_effect="confetti")
-                    break
-                except Exception as send_err:
-                    if _attempt == 0:
-                        logger.warning(f"[GREETING] Send failed, retrying: {send_err}")
-                        await asyncio.sleep(0.5)
-                    else:
-                        logger.error(f"[GREETING] Send failed after retry: {send_err}")
+            await asyncio.wait_for(_do_greeting(ws, event), timeout=60.0)
         except asyncio.TimeoutError:
-            logger.error("[GREETING] LLM timed out after 30s — using fast fallback")
-            _fallback_name = state_current.get("speaker_name") or "friend"
-            _fallback_text = f"Wahoo! Welcome to Mario's-a bathroom, {_fallback_name}! It's-a me, Mario!"
+            logger.error("[GREETING] Entire greeting flow timed out after 60s — sending emergency fallback")
             try:
-                _fb_audio = await asyncio.get_event_loop().run_in_executor(
-                    _tts_executor, lambda: tts.synthesize(_fallback_text))
-                await send_response(ws, _fallback_text, _fb_audio,
+                await send_response(ws, "It's-a me, Mario! Welcome! Wahoo!", None,
                                     sound="greeting", pose_hint="greeting/wave_high")
             except Exception:
-                try:
-                    await send_response(ws, _fallback_text, None,
-                                        sound="greeting", pose_hint="greeting/wave_high")
-                except Exception as e:
-                    logger.warning(f"[GREETING] All greeting fallbacks failed: {e}")
-        except Exception as e:
-            logger.error(f"[DEBUG_SERVER] presence_enter greeting failed: {e}")
-            # Fallback: send text-only greeting so user isn't ignored
-            try:
-                await send_response(ws, "Hey! Welcome to Mario's-a bathroom! Wahoo!", None,
-                                    sound="greeting", pose_hint="greeting/wave_high")
-            except Exception as e2:
-                logger.warning(f"[GREETING] Emergency text-only greeting also failed: {e2}")
+                pass
         finally:
             state_current["_greeting_in_progress"] = False
             state_current["presence_phase"] = "CONVERSING"
