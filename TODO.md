@@ -1,6 +1,17 @@
 # Mario AI Party Bot - TODO
 
-## v3.12 TTS Cache + UI Fixes (Current)
+## v3.13 Memorial Overhaul + Party Polish (Current)
+- [x] Generate memorial SFX (chime + clink WAV files)
+- [x] Add memorial music support (pygame.mixer.music MP3 playback)
+- [x] 5-phase memorial display overlay (announcement, silence, toast, music, fadeout) with photo, particles, golden glow
+- [x] Client memorial suppression + music/SFX phase handling
+- [x] Server 5-phase memorial orchestration with TTS timing
+- [x] F11 fullscreen fix (SCALED + RESIZABLE + error handling)
+- [x] Jacob VIP context injection into LLM prompts
+- [ ] Integration test: trigger full memorial flow end-to-end
+- [ ] Create release v3.13
+
+## v3.12 TTS Cache + UI Fixes
 - [x] Deep ellipsis pre-clean: _preclean_tts_text() in tts.py sanitizes ALL text before cache/TTS
 - [x] Purge stale TTS cache: purge_stale_cache() deleted 1109 bad entries
 - [x] Cache management: clear_all_cache() for full reset
@@ -107,6 +118,7 @@
 - [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
 - [x] 5-phase memorial overlay (announcement, silence, toast, music, fadeout) with photo, particles, text
 - [x] Client memorial suppression + music/SFX phase handling (_memorial_active flag, play_memorial_music, chime/clink SFX)
+- [x] Server 5-phase memorial orchestration (announcement→silence→toast→music→fadeout with TTS + timing)
 - [ ] Manual test: memorial overlay displays all 5 phases on client
 - [ ] Manual test: Webcam person detection with multiple guests
 - [ ] Configure alert_webhook_url for production deployment
@@ -227,6 +239,11 @@
 - [x] Expanded RPS_LOSE_REACTIONS from 10 to 15
 - [x] Expanded RPS_TIE_REACTIONS from 10 to 15
 - [x] All 557 tests passing after expansion
+
+## VIP Context Injection
+- [x] Add VIP profile loader (_load_vip_profile) with alias matching and caching
+- [x] Inject VIP guest context as system message in build_context() before memories
+- [x] Verified Jacob VIP profile loads correctly from server/data/vip_profiles/
 
 ## Features & Enhancements
 - [ ] Hand wash reminder on exit event
