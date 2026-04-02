@@ -122,12 +122,15 @@ def register_person(speaker_id: int, name: str):
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] register_person: id={speaker_id} name={name}")
 
-    conn = _get_conn()
-    conn.execute(
-        "INSERT OR REPLACE INTO people (id, name) VALUES (?, ?)",
-        (speaker_id, name),
-    )
-    conn.commit()
+    try:
+        conn = _get_conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO people (id, name) VALUES (?, ?)",
+            (speaker_id, name),
+        )
+        conn.commit()
+    except Exception as e:
+        logger.error(f"register_person failed: {e}")
 
 
 def find_person_by_name(name: str) -> dict | None:
@@ -154,12 +157,15 @@ def record_visit(person_id: int):
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] record_visit: person_id={person_id}")
 
-    conn = _get_conn()
-    conn.execute(
-        "UPDATE people SET visit_count = visit_count + 1, last_seen = CURRENT_TIMESTAMP WHERE id = ?",
-        (person_id,),
-    )
-    conn.commit()
+    try:
+        conn = _get_conn()
+        conn.execute(
+            "UPDATE people SET visit_count = visit_count + 1, last_seen = CURRENT_TIMESTAMP WHERE id = ?",
+            (person_id,),
+        )
+        conn.commit()
+    except Exception as e:
+        logger.error(f"record_visit failed: {e}")
 
 
 def save_conversation(person_id: int, role: str, content: str):
@@ -461,34 +467,41 @@ def save_topics(topics: list[str], person_id: int = None):
     """Save extracted topics to the database."""
     if not topics:
         return
-    conn = _get_conn()
-    for topic in topics:
-        existing = conn.execute(
-            "SELECT id, mention_count FROM conversation_topics WHERE topic = ? AND (person_id = ? OR person_id IS NULL)",
-            (topic, person_id)
-        ).fetchone()
-        if existing:
-            conn.execute(
-                "UPDATE conversation_topics SET mention_count = mention_count + 1, mentioned_at = ? WHERE id = ?",
-                (datetime.now().isoformat(), existing[0])
-            )
-        else:
-            conn.execute(
-                "INSERT INTO conversation_topics (topic, person_id, mentioned_at) VALUES (?, ?, ?)",
-                (topic, person_id, datetime.now().isoformat())
-            )
-    conn.commit()
+    try:
+        conn = _get_conn()
+        for topic in topics:
+            existing = conn.execute(
+                "SELECT id, mention_count FROM conversation_topics WHERE topic = ? AND (person_id = ? OR person_id IS NULL)",
+                (topic, person_id)
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    "UPDATE conversation_topics SET mention_count = mention_count + 1, mentioned_at = ? WHERE id = ?",
+                    (datetime.now().isoformat(), existing[0])
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO conversation_topics (topic, person_id, mentioned_at) VALUES (?, ?, ?)",
+                    (topic, person_id, datetime.now().isoformat())
+                )
+        conn.commit()
+    except Exception as e:
+        logger.error(f"save_topics failed: {e}")
 
 
 def get_trending_topics(limit: int = 5) -> list[dict]:
     """Get the most frequently mentioned topics."""
-    conn = _get_conn()
-    rows = conn.execute(
-        "SELECT topic, SUM(mention_count) as total FROM conversation_topics "
-        "GROUP BY topic ORDER BY total DESC LIMIT ?",
-        (limit,)
-    ).fetchall()
-    return [{"topic": r[0], "count": r[1]} for r in rows]
+    try:
+        conn = _get_conn()
+        rows = conn.execute(
+            "SELECT topic, SUM(mention_count) as total FROM conversation_topics "
+            "GROUP BY topic ORDER BY total DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [{"topic": r[0], "count": r[1]} for r in rows]
+    except Exception as e:
+        logger.error(f"get_trending_topics failed: {e}")
+        return []
 
 
 def get_recent_conversations(person_id: int, limit: int = 6) -> list[str]:

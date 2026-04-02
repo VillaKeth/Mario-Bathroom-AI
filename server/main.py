@@ -2767,11 +2767,26 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 logger.warning(f"[LLM] Using fallback response - LLM unavailable")
                 emotion_system.current = Emotion.CONFUSED
                 emotion_system.intensity = 0.7
+        except Exception as _llm_exc:
+            # Catch ALL non-timeout LLM/thinking failures (ConnectionError, HTTPError, etc.)
+            logger.error(f"[LLM] Non-timeout failure: {type(_llm_exc).__name__}: {_llm_exc}")
+            response_text = random.choice([
+                "Mama mia, something went wrong in my brain! What were we talking about?",
+                "Whoa, I hit a glitch! Say that again, friend?",
+                "Oops! My thoughts went through a bad warp pipe! One more time?",
+                "Ha ha! Technical difficulties! Even Mario has off moments! What did you say?",
+                "My brain just did a barrel roll! Can you repeat that?",
+            ])
+            emotion_system.current = Emotion.CONFUSED
+            emotion_system.intensity = 0.6
         _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)
         logger.info(f"[DEBUG_PIPELINE] LLM response ({_timing['llm_ms']}ms): '{response_text[:100] if response_text else 'NONE'}'")
         logger.info(f"[DEBUG_PIPELINE] Context had {len(ctx)} messages, {sum(1 for m in ctx if m.get('role')=='system')} system")
 
     _t_filter = time.time()
+    # Guard against None response_text from any failure path
+    if not response_text:
+        response_text = "Wahoo! Let's-a keep talking! What's on your mind?"
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
@@ -3316,6 +3331,11 @@ async def handle_event(ws: WebSocket, event: dict):
                 ctx = mario_prompt.build_context(event="milestone_visit", count=total)
             else:
                 ctx = mario_prompt.build_context(event="enter_unknown")
+
+            # Party-wide milestones (visitor count / hours)
+            milestone_msg = party_stats.check_milestones()
+            if milestone_msg:
+                ctx.append({"role": "system", "content": f"🎉 PARTY MILESTONE: {milestone_msg} Celebrate this in your greeting!"})
 
             _inject_birthday_always_on(ctx)
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})

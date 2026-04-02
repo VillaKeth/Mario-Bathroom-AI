@@ -277,3 +277,60 @@ class PartyStats:
         except Exception as e:
             logger.error(f"get_all_visitors failed: {e}")
             return []
+
+    # ------------------------------------------------------------------
+    # Party-wide milestones — special celebrations at key moments
+    # ------------------------------------------------------------------
+
+    _announced_milestones: set = set()
+
+    PARTY_MILESTONES = {
+        5: "FIVE visitors! The party is officially ON! Mario approves!",
+        10: "TEN visitors tonight! This bathroom is LEGENDARY! Double digits, baby!",
+        15: "FIFTEEN visitors! At this rate, we need a bigger bathroom!",
+        20: "TWENTY visitors?! This is the most popular bathroom in the Mushroom Kingdom!",
+        25: "TWENTY-FIVE! A quarter century of bathroom visits! I'm crying!",
+        30: "THIRTY visitors! This bathroom needs its own zip code!",
+        50: "FIFTY VISITORS! We're making HISTORY tonight! Wahoo!",
+        75: "Seventy-five! This party goes down in the RECORD BOOKS!",
+        100: "ONE HUNDRED VISITORS! I can't believe it! This is the greatest night EVER!",
+    }
+
+    HOUR_MILESTONES = {
+        1: "We've been partying for ONE HOUR! The night is young!",
+        2: "TWO HOURS of partying! Everyone still going strong?",
+        3: "THREE HOURS! This is a marathon party! I love it!",
+        4: "FOUR HOURS?! Mama mia, time flies when you're having fun!",
+        5: "FIVE HOURS of party! We're night owls and I LOVE it!",
+        6: "SIX HOURS! We might be setting records here!",
+    }
+
+    def check_milestones(self) -> str | None:
+        """Check if any party milestones were just reached.
+        Returns an announcement string, or None."""
+        try:
+            stats = self.get_stats()
+            total = stats.get("total_visits", 0)
+
+            # Check visitor milestones
+            for threshold, announcement in self.PARTY_MILESTONES.items():
+                key = f"visitors_{threshold}"
+                if total >= threshold and key not in self._announced_milestones:
+                    self._announced_milestones.add(key)
+                    if DEBUG_STATS:
+                        logger.info(f"[DEBUG_STATS] Milestone reached: {key}")
+                    return announcement
+
+            # Check hour milestones
+            elapsed_hours = int((time.time() - self.party_start_time) / 3600)
+            for hour, announcement in self.HOUR_MILESTONES.items():
+                key = f"hour_{hour}"
+                if elapsed_hours >= hour and key not in self._announced_milestones:
+                    self._announced_milestones.add(key)
+                    if DEBUG_STATS:
+                        logger.info(f"[DEBUG_STATS] Hour milestone: {key}")
+                    return announcement
+
+        except Exception as e:
+            logger.error(f"check_milestones failed: {e}")
+        return None
