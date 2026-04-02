@@ -76,6 +76,15 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
   <div class="stat"><div class="num" id="stGames">-</div><div class="lbl">Games</div></div>
   <div class="stat"><div class="num" id="stPhase">-</div><div class="lbl">Phase</div></div>
   <div class="stat"><div class="num" id="stEmotion">-</div><div class="lbl">Emotion</div></div>
+  <div class="stat" style="flex:0 0 60px;">
+    <div id="wsStatus" class="num" style="font-size:1.2em;">⚪</div>
+    <div class="lbl">Client</div>
+  </div>
+</div>
+
+<div id="alertBanner" style="display:none;background:linear-gradient(135deg,#d50000,#ff1744);color:white;padding:12px 16px;margin:0 0 12px;border-radius:10px;font-size:.85em;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(213,0,0,.3);">
+  <span id="alertText"></span>
+  <button onclick="dismissAlert()" style="margin-left:12px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:4px 12px;color:#fff;cursor:pointer;font-size:.85em;">Dismiss</button>
 </div>
 
 <div class="health-badges" id="healthBadges">
@@ -249,6 +258,32 @@ async function pollHealth() {
     document.getElementById('infoErrors').textContent = d.error_count || '0';
     const errEl = document.getElementById('infoErrors');
     errEl.style.color = (d.error_count > 0) ? '#ff6b6b' : '#00c853';
+
+    // Update WS client status
+    const wsEl = document.getElementById('wsStatus');
+    if (d.ws_connected) {
+      wsEl.textContent = '🟢';
+      wsEl.title = 'Client connected';
+    } else {
+      wsEl.textContent = '🔴';
+      wsEl.title = 'No client connected';
+    }
+
+    // Alert checks
+    const alerts = [];
+    if (d.gpu_temp_c && d.gpu_temp_c > 85) alerts.push('🌡️ GPU temp ' + d.gpu_temp_c + '°C');
+    if (d.error_count && d.error_count > 5) alerts.push('⚠️ ' + d.error_count + ' errors');
+    if (d.idle_errors && d.idle_errors >= 8) alerts.push('💀 Idle loop failing');
+
+    const banner = document.getElementById('alertBanner');
+    const alertTextEl = document.getElementById('alertText');
+    if (alerts.length > 0 && !banner.dataset.dismissed) {
+      alertTextEl.textContent = alerts.join(' | ');
+      banner.style.display = 'block';
+    } else if (alerts.length === 0) {
+      banner.style.display = 'none';
+      delete banner.dataset.dismissed;
+    }
   } catch (e) {
     document.getElementById('statusPill').textContent = 'OFFLINE';
     document.getElementById('statusPill').className = 'status-pill status-bad';
@@ -357,6 +392,13 @@ async function sendAnnounce() {
 document.getElementById('announceText').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') sendAnnounce();
 });
+
+function dismissAlert() {
+  const banner = document.getElementById('alertBanner');
+  banner.style.display = 'none';
+  banner.dataset.dismissed = 'true';
+  setTimeout(() => { delete banner.dataset.dismissed; }, 60000);
+}
 
 // Poll health
 pollHealth();

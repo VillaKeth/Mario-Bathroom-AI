@@ -13,6 +13,7 @@
 - [x] Fix TTS tests for emergency silence behavior
 - [x] 188 tests passing
 - [x] Add comprehensive test suite for command_handlers.py (54 tests)
+- [x] Add TestGreetingTimeout and TestReconnectStateReset tests (8 tests)
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
 - [ ] Manual test: game leaderboard shows in /leaderboard endpoint
@@ -36,6 +37,14 @@
 - [ ] Add Tailscale setup instructions for party day networking
 - [ ] Create v3.0 GitHub Release with changelog
 
+
+## v3.4 Dashboard Enhancements
+- [x] WebSocket connection status indicator (green/red dot) in stats bar
+- [x] Alert banner for GPU overtemp, high error count, idle loop failures
+- [x] dismissAlert() with 60s auto-reset of dismissed state
+- [x] Server-side ws_connected and idle_errors added to /health endpoint
+- [x] WebSocket send lock (_ws_send_lock) prevents concurrent sends from idle loop, user responses, admin endpoints
+- [x] All 546 tests passing
 
 ## v3.3 Robustness & Testing (Done)
 - [x] Fix 12 bare except-pass blocks → logged warnings/debug messages
@@ -87,6 +96,7 @@
 ## Testing
 - [x] Comprehensive test suite for game_handlers.py (60 tests covering 10 games + rotation + edge cases)
 - [x] Add defensive empty-list guards to all game init functions (11 guards across 9 games + truth_or_dare handler)
+- [x] Game state validation and timeout enforcement in handle_game_input + check_game_timeout
 - [ ] Integration test with both models loaded simultaneously
 - [ ] Test fullscreen (F11) and panic (F12) on party monitor
 - [ ] Test Pygame client with reorganized repo
@@ -171,3 +181,4 @@
 - [x] Add TestVIPBypassFix class to test_edge_cases.py (5 tests)
 - [x] Add TestStateAccessThreadSafety class to test_edge_cases.py (2 tests)
 - [x] Add TestRapidReEntry class to test_party_modules.py (6 tests for get_seconds_since_last_exit)
+- [x] Add TestGossipPruningAndComparison to test_party_gossip.py (11 tests for _prune_gossip, get_comparison_hint, _analyze_speech_traits)

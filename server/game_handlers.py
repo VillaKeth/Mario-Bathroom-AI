@@ -5,10 +5,25 @@ Each game mode has its content data, start logic, and input handling here.
 """
 
 import json
+import logging
 import os
 import random
 import time
 from emotions import Emotion
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Valid game names — used for state validation
+# ---------------------------------------------------------------------------
+
+VALID_GAMES = frozenset({
+    "simon_says", "twenty_questions", "truth_or_dare", "riddles",
+    "word_chain", "karaoke", "rapid_fire", "would_you_rather",
+    "rock_paper_scissors", "hangman", "hot_takes", "never_have_i_ever",
+    "mario_trivia", "name_that_character", "bathroom_dare",
+    "story_builder", "wyr_mario",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -671,6 +686,11 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     import time as _time
     state["_game_last_input_time"] = _time.time()  # Start timeout clock
     record_game_played(game_name, state)  # Track for rotation
+
+    if game_name not in VALID_GAMES:
+        logger.warning(f"[GAME] Unknown game_name '{game_name}' passed to start_game")
+        return None
+
     if game_name == "simon_says":
         state["_active_game"] = "simon_says"
         max_r = get_adaptive_rounds("simon_says", config["simon_max_rounds"], state)
@@ -926,9 +946,27 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
 def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] | None:
     """Handle input while a game mode is active. Returns (response, sound_hint) or None."""
-    import time as _time
-    state["_game_last_input_time"] = _time.time()  # Reset timeout clock on every input
-    game = state["_active_game"]
+    game = state.get("_active_game")
+    if not game:
+        return None
+
+    # Validate game handler exists
+    if game not in VALID_GAMES:
+        logger.warning(f"[GAME] Unknown active game '{game}' — clearing")
+        state["_active_game"] = None
+        state["_game_state"] = {}
+        return ("Hmm, I forgot what game we were playing! Want to start a new one?", "confused/thinking")
+
+    # Validate game state exists (RPS doesn't need pre-existing state)
+    game_state = state.get("_game_state", {})
+    if not game_state and game != "rock_paper_scissors":
+        logger.warning(f"[GAME] Empty game state for '{game}' — clearing")
+        state["_active_game"] = None
+        state["_game_state"] = {}
+        return ("Oops, I lost track of the game! Let me know if you want to play something!", "confused/sad")
+
+    # Track last input time for timeout
+    state["_game_last_input_time"] = time.time()
     gs = state["_game_state"]
 
     # Universal quit (exclude "done" — used as valid input by bathroom_dare and simon_says)
@@ -1658,4 +1696,26 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         next_round = gs["current"] + 1
         return (f"{reaction} Round {next_round}! Would you rather: A) {next_q['a']} OR B) {next_q['b']}?", "correct")
 
+    return None
+
+
+# ---------------------------------------------------------------------------
+# check_game_timeout — detect stale games from idle loop
+# ---------------------------------------------------------------------------
+
+def check_game_timeout(state: dict, timeout_seconds: float = 180.0) -> tuple[str, str] | None:
+    """Check if active game has timed out. Returns response tuple or None."""
+    game = state.get("_active_game")
+    if not game:
+        return None
+    last_input = state.get("_game_last_input_time", 0)
+    if last_input and (time.time() - last_input) > timeout_seconds:
+        logger.info(f"[GAME] Game '{game}' timed out after {timeout_seconds}s of inactivity")
+        state["_active_game"] = None
+        state["_game_state"] = {}
+        state["_game_last_input_time"] = None
+        return (
+            "Looks like we forgot about our game! No worries — come back for another round anytime!",
+            "neutral/friendly",
+        )
     return None

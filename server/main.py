@@ -759,6 +759,8 @@ async def health():
         "llm_fast_model": llm_router._fast_model,
         "llm_quality_model": llm_router._quality_model,
         "semantic_memory": memory._HAS_SEMANTIC,
+        "ws_connected": _active_ws is not None,
+        "idle_errors": _idle_error_count,
     }
 
     # Periodic Qdrant recovery check (piggyback on health polls)
