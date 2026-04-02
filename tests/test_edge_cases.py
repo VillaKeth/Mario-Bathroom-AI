@@ -1519,3 +1519,145 @@ class TestTextInputTimeout:
             "Error fallback message 'Something went wrong' not found in "
             "text_input exception handler"
         )
+
+
+# ── Conversation Summarization Tests ──
+
+import ast
+import os
+import re
+
+
+def _get_main_source():
+    src_path = os.path.join(os.path.dirname(__file__), "..", "server", "main.py")
+    with open(src_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _extract_compress_function():
+    """Extract _compress_old_history and its dependencies from source via AST."""
+    source = _get_main_source()
+    tree = ast.parse(source)
+
+    code_parts = []
+    for node in ast.iter_child_nodes(tree):
+        # Pick up RECENT_RAW_MESSAGES constant
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "_SUMMARY_SKIP_WORDS":
+                    code_parts.append(ast.get_source_segment(source, node))
+        if isinstance(node, ast.FunctionDef) and node.name == "_compress_old_history":
+            code_parts.append(ast.get_source_segment(source, node))
+
+    assert code_parts, "_compress_old_history or _SUMMARY_SKIP_WORDS not found in source"
+    namespace: dict = {}
+    exec("\n\n".join(code_parts), namespace)
+    return namespace["_compress_old_history"]
+
+
+class TestConversationSummarization:
+    """Tests for _compress_old_history and context-building summarization."""
+
+    # ── Functional tests (exec the extracted function) ──
+
+    def test_compress_empty_messages(self):
+        """Empty message list returns existing_summary unchanged."""
+        fn = _extract_compress_function()
+        assert fn([], "prev summary") == "prev summary"
+        assert fn([]) == ""
+
+    def test_compress_extracts_user_topics(self):
+        """User messages have their first sentence extracted as topics."""
+        fn = _extract_compress_function()
+        msgs = [
+            {"role": "user", "content": "I love cooking pasta. It is great."},
+            {"role": "user", "content": "Tell me about Mushroom Kingdom!"},
+        ]
+        result = fn(msgs)
+        assert "I love cooking pasta" in result
+        assert "Tell me about Mushroom Kingdom" in result
+        assert "Guest said:" in result
+
+    def test_compress_extracts_proper_nouns(self):
+        """Proper nouns from both roles are captured in Names section."""
+        fn = _extract_compress_function()
+        msgs = [
+            {"role": "user", "content": "My friend Giovanni told me about this."},
+            {"role": "assistant", "content": "Princess Peach loves parties!"},
+        ]
+        result = fn(msgs)
+        assert "Names:" in result
+        assert "Giovanni" in result
+        assert "Princess" in result or "Peach" in result
+
+    def test_compress_skips_common_words(self):
+        """Common words (Mario, Hey, The, etc.) are filtered from names."""
+        fn = _extract_compress_function()
+        msgs = [
+            {"role": "user", "content": "Hey Mario, The party was great!"},
+        ]
+        result = fn(msgs)
+        # "Mario", "Hey", "The" are in _SUMMARY_SKIP_WORDS — should not appear in Names
+        if "Names:" in result:
+            names_section = result.split("Names:")[1].split(".")[0]
+            for skip in ("Mario", "Hey", "The"):
+                assert skip not in names_section, f"'{skip}' should be filtered"
+
+    def test_compress_merges_with_existing(self):
+        """New summary is appended to existing summary."""
+        fn = _extract_compress_function()
+        msgs = [
+            {"role": "user", "content": "I just arrived from Brooklyn today."},
+        ]
+        result = fn(msgs, existing_summary="Names: Luigi")
+        assert result.startswith("Names: Luigi")
+        assert "Brooklyn" in result or "arrived" in result
+
+    def test_compress_caps_at_400_chars(self):
+        """Long summaries are truncated to ~400 chars with ... prefix."""
+        fn = _extract_compress_function()
+        # Generate enough messages to exceed 400 chars
+        msgs = [
+            {"role": "user", "content": f"I visited the amazing city of Townsville{i} and met Friendname{i}!"}
+            for i in range(30)
+        ]
+        result = fn(msgs, existing_summary="A" * 300)
+        assert len(result) <= 400
+        assert result.startswith("...")
+
+    # ── AST / source-level tests ──
+
+    def test_context_uses_summary_for_long_history(self):
+        """Context building references conversation_summary for long histories."""
+        source = _get_main_source()
+        # The context-building section should call _compress_old_history
+        assert "_compress_old_history" in source
+        assert 'conversation_summary' in source
+        # Verify the pattern: if len(conv_hist) > RECENT_RAW_MESSAGES
+        assert "RECENT_RAW_MESSAGES" in source
+        # Check that summary is inserted as a system message
+        assert "[Earlier in this conversation]" in source
+
+    def test_state_has_conversation_summary_key(self):
+        """state_current dict template includes conversation_summary."""
+        source = _get_main_source()
+        tree = ast.parse(source)
+        found = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and node.value == "conversation_summary":
+                found = True
+                break
+        assert found, "conversation_summary key not found in AST"
+
+    def test_recent_raw_messages_constant(self):
+        """RECENT_RAW_MESSAGES is defined as 8."""
+        source = _get_main_source()
+        tree = ast.parse(source)
+        found_value = None
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "RECENT_RAW_MESSAGES":
+                        if isinstance(node.value, ast.Constant):
+                            found_value = node.value.value
+        assert found_value == 8, f"RECENT_RAW_MESSAGES should be 8, got {found_value}"

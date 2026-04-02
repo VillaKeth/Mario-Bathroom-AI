@@ -286,6 +286,7 @@ state_current = {
     "guest_visits": 0,
     "memorial_active": False,
     "memorial_triggered_at": 0.0,
+    "conversation_summary": "",  # Rolling summary of older conversation messages
 }
 
 # Active WebSocket reference for admin endpoints to broadcast to
@@ -297,6 +298,78 @@ _ws_send_lock = asyncio.Lock()
 
 # Dedicated executor for TTS (scaled by hardware auto-detection)
 _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name_prefix="tts")
+
+# ── Conversation summarization ──
+# Keeps last RECENT_RAW_MESSAGES verbatim and compresses older ones
+# into a rolling summary. Zero latency (no LLM call).
+RECENT_RAW_MESSAGES = 8  # Last 4 exchanges kept verbatim
+
+_SUMMARY_SKIP_WORDS = frozenset({
+    "mario", "hey", "wahoo", "let", "the", "but", "and", "yes", "no",
+    "oh", "mama", "okey", "well", "now", "that", "this", "you", "it's",
+    "what", "who", "how", "why", "when", "where", "i'm", "i'll", "don't",
+    "can", "just", "like", "really", "okay", "yeah", "nah", "got", "say",
+    "tell", "know", "think", "want", "it", "is", "are", "was", "were",
+    "be", "been", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "shall", "must",
+})
+
+def _compress_old_history(messages: list, existing_summary: str = "") -> str:
+    """Compress old conversation messages into a concise rolling summary.
+
+    Preserves: names mentioned, key topics the guest discussed.
+    Zero latency — purely extractive, no LLM call.
+    """
+    if not messages:
+        return existing_summary
+
+    user_topics = []
+    mentioned_names: set[str] = set()
+
+    for msg in messages:
+        content = msg.get("content", "").strip()
+        role = msg.get("role", "")
+
+        if role == "user" and len(content) > 5:
+            # Extract first sentence as topic indicator
+            first = content
+            for sep in ".!?\n":
+                idx = first.find(sep)
+                if 0 < idx < 80:
+                    first = first[:idx]
+                    break
+            if len(first) > 80:
+                first = first[:77] + "..."
+            user_topics.append(first.strip())
+
+        # Extract proper nouns (simple heuristic)
+        if content:
+            for w in content.split():
+                clean = w.strip(".,!?'\"*()[]:-")
+                if (clean and clean[0].isupper() and len(clean) > 2
+                        and clean.lower() not in _SUMMARY_SKIP_WORDS):
+                    mentioned_names.add(clean)
+
+    parts = []
+    if mentioned_names:
+        parts.append(f"Names: {', '.join(sorted(mentioned_names)[:8])}")
+    if user_topics:
+        parts.append("Guest said: " + " | ".join(user_topics[-8:]))
+
+    new_summary = ". ".join(parts)
+
+    if existing_summary and new_summary:
+        combined = f"{existing_summary}. {new_summary}"
+    elif new_summary:
+        combined = new_summary
+    else:
+        combined = existing_summary
+
+    # Cap at ~400 chars (~100 tokens) to avoid summary bloat
+    if len(combined) > 400:
+        combined = "..." + combined[-397:]
+
+    return combined
 
 # Distress tracker (initialized in startup, declared here for module scope)
 _distress_tracker: "audio_distress.DistressTracker | None" = None
@@ -2714,9 +2787,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if type_hint:
             ctx.append({"role": "system", "content": type_hint})
 
-        # Conversation history — use full history for maximum context retention
-        hist_window = min(30, len(state_current["conversation_history"]))
-        for msg in state_current["conversation_history"][-hist_window:]:
+        # Conversation history — summarize old + keep recent verbatim
+        conv_hist = state_current.get("conversation_history", [])
+        if len(conv_hist) > RECENT_RAW_MESSAGES:
+            old_msgs = conv_hist[:-RECENT_RAW_MESSAGES]
+            summary = _compress_old_history(
+                old_msgs, state_current.get("conversation_summary", "")
+            )
+            if summary:
+                ctx.append({"role": "system", "content": f"[Earlier in this conversation] {summary}"})
+                state_current["conversation_summary"] = summary
+            recent = conv_hist[-RECENT_RAW_MESSAGES:]
+        else:
+            recent = conv_hist
+
+        for msg in recent:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 ctx.append(msg)
 
@@ -2930,10 +3015,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             analyzed["pose_hint"] = pose_map.get(reaction, "")
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
-    # Trim BEFORE appending to stay within limit
+    # Trim BEFORE appending to stay within limit — compress dropped messages
     _hist_limit = GAME_CONFIG["conversation_history_limit"]
     _hist = state_current["conversation_history"]
     if len(_hist) >= _hist_limit - 1:
+        _to_drop = _hist[:len(_hist) - (_hist_limit - 2)]
+        _existing = state_current.get("conversation_summary", "")
+        state_current["conversation_summary"] = _compress_old_history(_to_drop, _existing)
         state_current["conversation_history"] = _hist[-(_hist_limit - 2):]
     state_current["conversation_history"].append({"role": "user", "content": text})
     state_current["conversation_history"].append({"role": "assistant", "content": response_text})
