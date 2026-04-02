@@ -12,22 +12,17 @@ def test_set_text_and_clear():
     """Test setting and clearing caption text."""
     from client.closed_captions import ClosedCaptions
     
-    # Create instance without calling __init__ (pygame already initialized)
-    captions = object.__new__(ClosedCaptions)
-    captions._screen_w = 800
-    captions._screen_h = 600
-    captions._text = ""
-    captions._font = pygame.font.Font(None, 24)
-    captions._padding = 10
-    captions._max_lines = 3
+    captions = ClosedCaptions(800, 600)
     
     # Test set_text
     captions.set_text("Hello, World!")
     assert captions._text == "Hello, World!"
+    assert captions._dirty is True
     
     # Test clear
     captions.clear()
     assert captions._text == ""
+    assert captions._dirty is True
 
 def test_word_wrapping():
     """Test word wrapping produces correct lines."""
@@ -37,29 +32,15 @@ def test_word_wrapping():
     
     # Very long text that should wrap
     long_text = "This is a very long sentence that should definitely wrap across multiple lines when displayed at the bottom of the screen"
-    captions.set_text(long_text)
     
-    # Simulate the word-wrap logic from draw()
-    words = captions._text.split()
-    lines = []
-    current = ""
-    max_w = captions._screen_w - 2 * captions._padding
-    
-    for word in words:
-        test = f"{current} {word}".strip()
-        if captions._font.size(test)[0] <= max_w:
-            current = test
-        else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
+    # Call _wrap_text directly
+    lines = captions._wrap_text(long_text)
     
     # Should produce multiple lines
     assert len(lines) > 1
     
     # Each line should fit within max width
+    max_w = captions._screen_w - 2 * captions._padding
     for line in lines:
         assert captions._font.size(line)[0] <= max_w
 
@@ -89,27 +70,9 @@ def test_max_lines_limit():
     
     # Create text that will produce many lines
     many_words = " ".join(["word"] * 100)
-    captions.set_text(many_words)
     
-    # Simulate the word-wrap logic
-    words = captions._text.split()
-    lines = []
-    current = ""
-    max_w = captions._screen_w - 2 * captions._padding
-    
-    for word in words:
-        test = f"{current} {word}".strip()
-        if captions._font.size(test)[0] <= max_w:
-            current = test
-        else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
-    
-    # Limit to max lines (as done in draw())
-    lines = lines[-captions._max_lines:]
+    # Call _wrap_text directly
+    lines = captions._wrap_text(many_words)
     
     # Should not exceed max_lines
     assert len(lines) <= captions._max_lines
