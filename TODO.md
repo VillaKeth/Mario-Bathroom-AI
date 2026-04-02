@@ -37,6 +37,20 @@
 - [ ] Create v3.0 GitHub Release with changelog
 
 
+## v3.3 Robustness & Testing (Done)
+- [x] Fix 12 bare except-pass blocks → logged warnings/debug messages
+- [x] Add 12 check_input() safety filter tests
+- [x] Enhanced party host dashboard — health badges (LLM/TTS/STT), GPU temp, cache stats
+- [x] Rapid re-entry detection ("back so soon?" greeting intelligence)
+- [x] TTS retry resilience (2-attempt retry before text-only fallback)
+- [x] Concurrent game guard (block starting new game while one active)
+- [x] Per-guest game rotation tracking (no cross-guest pollution)
+- [x] Night progression persistence across server restarts
+- [x] 11 IndexError guards on game data pool access
+- [x] 8 night progression edge case tests (boundary, restart, negative time, 12h party)
+- [x] 6 concurrent game guard tests
+- [x] 517 tests passing
+
 ## v3.2 Party UX (Done)
 - [x] Smart game suggestions — mood/engagement-based game recommendations (30% after 3+ exchanges)
 - [x] Expanded SFX map — 7 new events (correct, wrong, level_up, victory, challenge, milestone, gossip)
@@ -72,6 +86,7 @@
 
 ## Testing
 - [x] Comprehensive test suite for game_handlers.py (60 tests covering 10 games + rotation + edge cases)
+- [x] Add defensive empty-list guards to all game init functions (11 guards across 9 games + truth_or_dare handler)
 - [ ] Integration test with both models loaded simultaneously
 - [ ] Test fullscreen (F11) and panic (F12) on party monitor
 - [ ] Test Pygame client with reorganized repo
@@ -155,3 +170,4 @@
 ## Tests
 - [x] Add TestVIPBypassFix class to test_edge_cases.py (5 tests)
 - [x] Add TestStateAccessThreadSafety class to test_edge_cases.py (2 tests)
+- [x] Add TestRapidReEntry class to test_party_modules.py (6 tests for get_seconds_since_last_exit)

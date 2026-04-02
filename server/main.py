@@ -1484,6 +1484,16 @@ async def _emotion_decay_loop():
                 logger.info(f"[EMOTION_DECAY] Emotion: {emotion_system.current}, intensity: {emotion_system.intensity:.2f}")
 
 
+async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
+    """Send idle message only if no user request is active (prevents interleaving)."""
+    async with _state_lock:
+        if state_current.get("_user_request_active"):
+            logger.debug("[IDLE] Suppressed idle send — user request active")
+            return False
+    await send_response(ws, text, audio, **kwargs)
+    return True
+
+
 async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
     global _idle_error_count
@@ -1631,7 +1641,7 @@ async def _idle_loop(ws: WebSocket):
                             try:
                                 analyzed = analyze_text(comment)
                                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                                await send_response(ws, analyzed["display_text"], audio,
+                                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                                     sound="coin", pose_hint=analyzed["pose_hint"])
                             except Exception as e:
                                 logger.error(f"Long stay comment TTS failed: {e}")
@@ -1646,7 +1656,7 @@ async def _idle_loop(ws: WebSocket):
             try:
                 analyzed = analyze_text(dj_msg)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
+                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                     sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
             except Exception as e:
                 logger.error(f"DJ announcement failed: {e}")
@@ -1664,7 +1674,7 @@ async def _idle_loop(ws: WebSocket):
                 try:
                     analyzed = analyze_text(obs)
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                    await send_response(ws, analyzed["display_text"], audio,
+                    await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
                 except Exception as e:
                     logger.error(f"Time observation failed: {e}")
@@ -1708,7 +1718,7 @@ async def _idle_loop(ws: WebSocket):
                     audio = await loop.run_in_executor(
                         _tts_executor, lambda: tts.synthesize(analyzed["tts_text"])
                     )
-                    await send_response(ws, analyzed["display_text"], audio,
+                    await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"])
                 else:
                     # No TTS needed — just send text + pose change
@@ -3765,6 +3775,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
             return
         state_current["_last_text_input_time"] = now
         state_current["_last_user_msg_time"] = now
+        state_current["_user_request_active"] = True
 
     logger.info(f"Text input: '{text}'")
 
@@ -3781,6 +3792,11 @@ async def _handle_text_input(ws: WebSocket, text: str):
             await ws.send_json({"type": "mario_response", "text": f"Mama mia! Something went wrong: {e}", "emotion": "confused"})
         except Exception as e2:
             logger.debug(f"[WS] Error response send also failed: {e2}")
+    finally:
+        # Guard prevents idle TTS from interleaving during audio playback
+        await asyncio.sleep(3.0)
+        async with _state_lock:
+            state_current["_user_request_active"] = False
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):
