@@ -339,7 +339,7 @@ class MarioDisplay:
         pygame.init()
         self._initialized = True
         pygame.display.set_caption("Mario AI \U0001f344")
-        self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
         # Render buffer: all drawing happens at 800x600, then scaled to screen
         self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         self._clock = pygame.time.Clock()
@@ -871,33 +871,41 @@ class MarioDisplay:
 
     def _toggle_fullscreen(self):
         """Toggle between fullscreen and windowed mode with native resolution scaling."""
-        self._fullscreen = not self._fullscreen
-        if self._fullscreen:
-            info = pygame.display.Info()
-            self._screen = pygame.display.set_mode(
-                (info.current_w, info.current_h), pygame.FULLSCREEN
-            )
-            # Scale render dimensions to native resolution for crisp output
-            scale = min(info.current_w / WINDOW_WIDTH, info.current_h / WINDOW_HEIGHT)
-            self._render_w = int(WINDOW_WIDTH * scale)
-            self._render_h = int(WINDOW_HEIGHT * scale)
-            self._fs_scale = scale
-            self._display_scale = scale
-            self._native_width = info.current_w
-            self._native_height = info.current_h
-            if DEBUG_DISPLAY:
-                logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {info.current_w}x{info.current_h}, render={self._render_w}x{self._render_h}, scale={scale:.2f}")
-        else:
-            self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-            self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-            self._render_w = WINDOW_WIDTH
-            self._render_h = WINDOW_HEIGHT
-            self._fs_scale = 1.0
-            self._display_scale = 1.0
-            self._native_width = WINDOW_WIDTH
-            self._native_height = WINDOW_HEIGHT
-            if DEBUG_DISPLAY:
-                logger.info("[DEBUG_DISPLAY] Fullscreen OFF: windowed 800x600")
+        try:
+            self._fullscreen = not self._fullscreen
+            if self._fullscreen:
+                info = pygame.display.Info()
+                self._screen = pygame.display.set_mode(
+                    (info.current_w, info.current_h), pygame.FULLSCREEN | pygame.SCALED
+                )
+                scale = min(info.current_w / WINDOW_WIDTH, info.current_h / WINDOW_HEIGHT)
+                self._render_w = int(WINDOW_WIDTH * scale)
+                self._render_h = int(WINDOW_HEIGHT * scale)
+                self._fs_scale = scale
+                self._display_scale = scale
+                self._native_width = info.current_w
+                self._native_height = info.current_h
+                if DEBUG_DISPLAY:
+                    logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {info.current_w}x{info.current_h}, scale={scale:.2f}")
+            else:
+                self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+                self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+                self._render_w = WINDOW_WIDTH
+                self._render_h = WINDOW_HEIGHT
+                self._fs_scale = 1.0
+                self._display_scale = 1.0
+                self._native_width = WINDOW_WIDTH
+                self._native_height = WINDOW_HEIGHT
+                if DEBUG_DISPLAY:
+                    logger.info("[DEBUG_DISPLAY] Fullscreen OFF: windowed 800x600")
+        except Exception as e:
+            logger.error(f"[DEBUG_DISPLAY] Fullscreen toggle failed: {e}")
+            # Revert to safe windowed mode
+            try:
+                self._fullscreen = False
+                self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+            except Exception:
+                pass
         # Invalidate cached background so it redraws at new size
         self._bg_surface = None
 
