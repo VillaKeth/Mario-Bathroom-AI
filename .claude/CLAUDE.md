@@ -162,6 +162,13 @@ python client/main.py          # Pygame desktop client
 - Sick mood tracked in `state_current["_detected_mood"]`
 - Debug flags: `DEBUG_AUTH`, `DEBUG_API`, etc. (default True for new features)
 - General-to-specific naming: `pointBase`, `pointNext`, `configDefault`, etc.
+- **No ellipsis (`...`) in hardcoded strings** that go to TTS — use commas or periods
+
+## Pygame Client UI
+- **Two-strip header layout**: Zone 1 (Y=0-28) = title bar, Zone 2 (Y=28-50) = info strip
+- **Speech bubble** starts at Y=58, stays visible while `_speaking` is True (timer only starts after audio ends)
+- **Panic button**: Secret triple-tap F12 within 2 seconds (hidden from hint bar — only owner knows)
+- All header elements consolidated in `_draw_party_banner()` — no individual element drawing in `_draw()`
 
 ## Hardware Profiles
 
@@ -230,6 +237,28 @@ GPT-SoVITS subprocess must be restarted for pronunciation changes to take effect
 
 ## Audio Normalization
 All TTS output (GPT-SoVITS and Edge+RVC paths) is peak-normalized to -3dB via `_normalize_audio()` in `server/tts.py`. Ensures consistent volume regardless of source engine.
+
+## TTS Pre-Clean Pipeline
+`_preclean_tts_text()` in `server/tts.py` sanitizes ALL text BEFORE cache key generation or any TTS engine:
+- `...` / `…` / `..` → `, ` (natural pause)
+- Smart quotes removed, em/en dashes → commas, asterisks stripped
+- Artifact cleanup: leading commas, double commas, comma-after-punctuation, trailing commas
+- Empty text after cleaning → `_EMERGENCY_SILENCE` (inline WAV)
+
+## TTS Cache System
+- **Disk cache**: `server/data/tts_cache/` — `.wav` + `.key` file pairs (MD5 hash filenames)
+- **In-memory cache**: `SizeLimitedCache` (500MB / 2000 entries, LRU eviction)
+- **Cache key format**: `{EDGE_VOICE}:{cleaned_text}:{rate}:{pitch}`
+- **Precache at startup**: `precache_phrases()` pre-generates 51 common phrases
+- **Cache scripts**: `scripts/perfect_cache.py`, `scripts/perfect_cache_v2.py`
+
+### ⚠️ CRITICAL: TTS Cache Update Convention
+**Any change to TTS text preprocessing MUST also update the cache:**
+1. After changing `_preclean_tts_text()` or TTS pipeline logic, run `tts.purge_stale_cache()` to remove entries whose cache keys no longer match post-cleaning
+2. After changing pronunciation in `gpt_sovits_server.py`, delete affected cache entries (they have the old pronunciation baked in)
+3. After changing hardcoded phrases in `mario_prompt.py` or `llm.py`, the old cached audio becomes orphaned — run purge to clean
+4. `tts.clear_all_cache()` nukes everything (in-memory + optionally disk) — use when unsure
+5. **NEVER skip this step** — stale cache = bad audio at the party
 
 ## TTS Prompt Guidance
 `MARIO_SYSTEM_PROMPT` includes TTS RULES section:

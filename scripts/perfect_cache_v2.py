@@ -120,7 +120,7 @@ def get_threshold(phrase):
 def save_to_cache(phrase, wav_data):
     """Directly save WAV data to the server's disk cache directory."""
     os.makedirs(CACHE_DIR, exist_ok=True)
-    cache_key = f"{EDGE_VOICE}:{phrase.strip().lower()}:+0%:+0Hz"
+    cache_key = f"{EDGE_VOICE}:{phrase.strip()}:+0%:+0Hz"
     key_hash = hashlib.md5(cache_key.encode()).hexdigest()[:16]
     wav_path = os.path.join(CACHE_DIR, f"{key_hash}.wav")
     key_path = os.path.join(CACHE_DIR, f"{key_hash}.key")

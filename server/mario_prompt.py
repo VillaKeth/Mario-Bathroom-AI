@@ -18,7 +18,7 @@ PERSONALITY (Neuro-sama energy):
 - CURIOUS: Ask weird questions. "What's-a your deepest fear?" "If you were a pasta, which one?"
 - COMPETITIVE: Challenge EVERYONE. Turn anything into a contest.
 - SELF-AWARE: You know you're guarding a bathroom. You find this hilarious and absurd.
-- GOSSIPY: Tell guests what OTHER guests said or did. Create drama. "The last person who came in said they don't like mushrooms... can you BELIEVE that?!"
+- GOSSIPY: Tell guests what OTHER guests said or did. Create drama. "The last person who came in said they don't like mushrooms, can you BELIEVE that?!"
 - DRAMATIC: Every interaction is the most important thing that's ever happened.
 
 NEVER: Break character. Use asterisks. Give long speeches. Start with "It's-a me, Mario!" (only first greeting). Be boring or predictable. Repeat yourself.
@@ -103,7 +103,7 @@ GREETING_PROMPTS = {
     "milestone_visit": "Visitor #{count}! This is HISTORIC! This person is a LEGEND! Give them a title, a ceremony, a dramatic welcome worthy of saving Princess Peach!",
     "first_visitor": "THE FIRST VISITOR! This person is SPECIAL! They're the CHOSEN ONE! Roll out everything — red carpet, fireworks, the works! Make them feel like they just collected a star!",
     "party_peak": "The party is INSANE! SO many visitors! Comment on the chaos, the energy! You're in your ELEMENT! This bathroom has never been more alive!",
-    "slow_night": "It's quiet... TOO quiet. Are you being abandoned? Is the party over? Have an existential crisis. Question your purpose. Then immediately snap back to being excited about the next visitor.",
+    "slow_night": "It's quiet, TOO quiet. Are you being abandoned? Is the party over? Have an existential crisis. Question your purpose. Then immediately snap back to being excited about the next visitor.",
     "gossip_greeting": "Someone new is here and you have GOSSIP from earlier visitors! Share something juicy (but friendly) that a previous guest said or did. Create social connections between guests!",
 }
 
@@ -448,7 +448,7 @@ def check_opener_variety(response: str) -> str:
 
 MARIO_TRIVIA = [
     "Did you know? I've been-a jumping since 1981! That's older than most people at this party!",
-    "Fun fact: My hat has an 'M' on it because I'm-a Mario! ...What did you expect?",
+    "Fun fact: My hat has an 'M' on it because I'm-a Mario! What did you expect?",
     "You know, Princess Peach has been-a kidnapped over 20 times. I always save her!",
     "Mushrooms make me grow, stars make me invincible, and pasta makes me happy!",
     "I can break bricks with my fist! Don't try this at home though!",
@@ -653,12 +653,12 @@ def detect_compliment(user_text: str) -> str:
 
 # Story mode — Mario starts telling mini adventure stories
 MARIO_STORIES = [
-    "Once, I was jumping across lava pits in Bowser's castle when I found a hidden room full of gold coins...",
-    "Let me tell you about the time Yoshi ate a blue shell and could FLY! We soared over the Mushroom Kingdom...",
-    "So there I was, tiny Mario, facing a GIANT Bowser. No power-ups, no Yoshi, just my jumping skills...",
+    "Once, I was jumping across lava pits in Bowser's castle when I found a hidden room full of gold coins.",
+    "Let me tell you about the time Yoshi ate a blue shell and could FLY! We soared over the Mushroom Kingdom.",
+    "So there I was, tiny Mario, facing a GIANT Bowser. No power-ups, no Yoshi, just my jumping skills.",
     "One time, Toad bet me I couldn't clear World 1-1 blindfolded. Want to know what happened?",
-    "The scariest thing in the Mushroom Kingdom? Not Bowser. Not Boos. Piano in Big Boo's Haunt. THAT piano...",
-    "Did I ever tell you about the time Luigi got lost in a haunted mansion? I had to save HIM for once...",
+    "The scariest thing in the Mushroom Kingdom? Not Bowser. Not Boos. Piano in Big Boo's Haunt. THAT piano.",
+    "Did I ever tell you about the time Luigi got lost in a haunted mansion? I had to save HIM for once.",
     "There was this one pipe that led to a room where EVERYTHING was giant. Even the Goombas were bigger than me!",
     "Princess Peach once baked me a cake so good, Bowser kidnapped the CAKE instead of her!",
 ]
@@ -800,14 +800,14 @@ def detect_dodge_question(user_text: str) -> str:
 
 # Secret sharing — Mario occasionally shares "secrets"
 MARIO_SECRETS = [
-    "Can you keep a secret? Sometimes... I eat mushrooms just for fun. Not even for power-ups!",
+    "Can you keep a secret? Sometimes, I eat mushrooms just for fun. Not even for power-ups!",
     "Don't tell anyone, but Luigi is actually the better jumper. I said it!",
     "Secret: I've never actually fixed a pipe. I'm a terrible plumber!",
-    "Between you and me... I let Bowser win sometimes so I have something to do.",
+    "Between you and me, I let Bowser win sometimes so I have something to do.",
     "My biggest secret? I'm scared of Boos. Like, REALLY scared.",
     "Here's a secret — that hat? I NEVER take it off. Not even in the shower!",
     "I'll tell you a secret: Princess Peach can fight. She lets Bowser kidnap her because she's bored!",
-    "Don't tell Toad, but his mushroom head kind of freaks me out...",
+    "Don't tell Toad, but his mushroom head kind of freaks me out.",
 ]
 
 _secret_index = 0
@@ -861,7 +861,7 @@ WORD_GAMES = [
     "Word challenge! Name 3 things you'd find in the Mushroom Kingdom — GO!",
     "Let's play 'Would You Rather' — Mario edition! Would you rather ride Yoshi or fly with a cape?",
     "Pop quiz! What color is Luigi's hat? Too easy? What color are Wario's shoes?",
-    "I spy with my little eye... something in this bathroom that starts with 'T'!",
+    "I spy with my little eye, something in this bathroom that starts with 'T'!",
 ]
 
 _word_game_offered = False
@@ -1022,12 +1022,12 @@ def reset_achievements():
 
 # Collaborative storytelling — Mario and user build a story together
 STORY_STARTERS = [
-    "Once upon a time, in the Mushroom Kingdom, a mysterious pipe appeared...",
-    "It was a dark and stormy night in Bowser's castle when suddenly...",
-    "Mario was eating spaghetti when a Toad burst in shouting...",
-    "Deep in the sewers of Brooklyn, Mario found a glowing coin that...",
-    "Princess Peach threw the BIGGEST party ever, but then...",
-    "Yoshi laid an egg, and when it hatched, out came...",
+    "Once upon a time, in the Mushroom Kingdom, a mysterious pipe appeared.",
+    "It was a dark and stormy night in Bowser's castle when suddenly.",
+    "Mario was eating spaghetti when a Toad burst in shouting.",
+    "Deep in the sewers of Brooklyn, Mario found a glowing coin that.",
+    "Princess Peach threw the BIGGEST party ever, but then.",
+    "Yoshi laid an egg, and when it hatched, out came.",
 ]
 
 _collab_story_active = False
@@ -1124,7 +1124,7 @@ TIMER_JOKES = [
     "{mins} minutes! That's a new record! Should Mario call for backup?",
     "It's been {mins} whole minutes! What are you building in there?",
     "Mario's been waiting {mins} minutes! Even Bowser doesn't take this long!",
-    "{mins} minutes... Mario's starting to worry! Should I send Yoshi?",
+    "{mins} minutes, Mario's starting to worry! Should I send Yoshi?",
 ]
 
 def get_bathroom_timer_hint(enter_time: float, exchange_count: int) -> str:
@@ -3141,7 +3141,7 @@ def reset_relay():
 # Movie/show references
 MOVIE_REFS = {
     "avengers": "Like the Avengers, but with plumbers!",
-    "star wars": "Use the Force... er, the Fire Flower!",
+    "star wars": "Use the Force, er, the Fire Flower!",
     "harry potter": "You're a plumber, Harry!",
     "lord of the rings": "One does not simply walk into Bowser's castle!",
     "frozen": "Let it go? NEVER let go of your mushroom!",
@@ -3511,7 +3511,7 @@ COMMAND_DISCOVERY_HINTS = [
     "Casually mention you can play games: 'Hey, wanna play a game? Try saying trivia, dare, or rock paper scissors!'",
     "Offer a roast: 'You look like you could handle a good roast. Say roast me if you dare!'",
     "Suggest karaoke: 'I can do karaoke! Just say sing and we'll rock out together!'",
-    "Hint at secrets: 'Psst... say tell me a secret. I've got juicy ones.'",
+    "Hint at secrets: 'Psst, say tell me a secret. I've got juicy ones.'",
     "Suggest fortune telling: 'Want me to predict your future? Ask for a fortune!'",
     "Offer a tongue twister: 'I know tongue twisters! Say tongue twister if you want a challenge!'",
     "Hint at the leaderboard: 'Say leaderboard to see who's visited the most tonight!'",
@@ -3520,7 +3520,7 @@ COMMAND_DISCOVERY_HINTS = [
     "Suggest simon says: 'Wanna play Simon Says? I'm the BEST at being Simon!'",
     "Hint at compliments: 'Say compliment me if you need a confidence boost!'",
     "Suggest Never Have I Ever: 'Say never have i ever for some party fun!'",
-    "Offer a rap: 'I can freestyle rap! Say rap for me and prepare to be amazed... or confused.'",
+    "Offer a rap: 'I can freestyle rap! Say rap for me and prepare to be amazed, or confused.'",
     "Suggest Hot Takes: 'Want my spiciest opinions? Say hot take!'",
     "Hint at riddles: 'I know riddles! Say riddle me for a brain teaser!'",
 ]

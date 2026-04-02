@@ -220,8 +220,9 @@ class MarioDisplay:
         self._show_chat_history = False
         self._MAX_CHAT_HISTORY = 20
 
-        # Panic mode (F12) — "Technical Difficulties" overlay
+        # Panic mode (triple-tap F12 within 2s) — "Technical Difficulties" overlay
         self._panic_mode = False
+        self._panic_tap_times = []  # timestamps of recent F12 presses
 
         # Connection status overlay for error recovery
         self._connection_status = None
@@ -386,7 +387,13 @@ class MarioDisplay:
                     elif event.key == pygame.K_F11:
                         self._toggle_fullscreen()
                     elif event.key == pygame.K_F12:
-                        self._toggle_panic_mode()
+                        # Triple-tap F12 within 2 seconds to toggle panic
+                        now = time.time()
+                        self._panic_tap_times.append(now)
+                        self._panic_tap_times = [t for t in self._panic_tap_times if now - t < 2.0]
+                        if len(self._panic_tap_times) >= 3:
+                            self._panic_tap_times.clear()
+                            self._toggle_panic_mode()
                     elif not self.keyboard_mode and event.key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
                         if self.on_volume_change:
                             self.on_volume_change(0.1)
@@ -1027,56 +1034,11 @@ class MarioDisplay:
         # Background scene instead of flat fill
         self._draw_background()
 
-        # Party info banner (top strip)
+        # Two-strip header (title bar + info strip — all HUD in one place)
         self._draw_party_banner(self._screen)
 
         self._update_particles()
         self._emotion_timer += 1
-
-        # Draw title
-        title = self._font_title.render("It's-a Me, Mario!", True, (255, 215, 0))
-        title_bg = pygame.Surface((title.get_width() + 20, title.get_height() + 10), pygame.SRCALPHA)
-        title_bg.fill((0, 0, 0, 140))
-        self._screen.blit(title_bg, (WINDOW_WIDTH // 2 - title.get_width() // 2 - 10, 15))
-        self._screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 20))
-
-        # Draw connection status + visitor count
-        status_color = (0, 255, 0) if self.connected else (255, 0, 0)
-        status_text = "\u25cf Connected" if self.connected else "\u25cf Disconnected"
-        # Show reconnection attempt info when disconnected
-        reconnect_info = self._reconnect_info
-        if not self.connected and reconnect_info and reconnect_info.get("attempting"):
-            attempt = reconnect_info.get("attempt", 0)
-            max_att = reconnect_info.get("max_attempts", 0)
-            status_text = f"\u25cf Reconnecting... ({attempt}/{max_att})"
-            pulse = abs(math.sin(self._frame * 0.08))
-            status_color = (255, int(165 * pulse), 0)
-        status_surf = self._font_small.render(status_text, True, status_color)
-        self._screen.blit(status_surf, (WINDOW_WIDTH - 150, 15))
-
-        # Draw visitor count
-        if self._visitor_count > 0:
-            vc_text = f"\U0001f464 {self._visitor_count} visitor{'s' if self._visitor_count != 1 else ''}"
-            vc_surf = self._font_small.render(vc_text, True, (180, 180, 220))
-            self._screen.blit(vc_surf, (WINDOW_WIDTH - 150, 35))
-
-        # Speaking indicator (pulsing dot)
-        if self._speaking:
-            pulse = abs(math.sin(self._frame * 0.1)) * 255
-            speak_color = (int(pulse), 200, int(pulse))
-            speak_surf = self._font_small.render("\U0001f50a Speaking", True, speak_color)
-            self._screen.blit(speak_surf, (WINDOW_WIDTH - 150, 55))
-        elif self._last_response_time > 0:
-            rt_color = (100, 255, 100) if self._last_response_time < 5 else (255, 200, 100)
-            rt_surf = self._font_small.render(f"\u23f1 {self._last_response_time:.1f}s", True, rt_color)
-            self._screen.blit(rt_surf, (WINDOW_WIDTH - 150, 55))
-
-        # Draw emotion indicator
-        emo_surf = self._font_small.render(f"Mood: {self._emotion}", True, (200, 200, 100))
-        emo_bg = pygame.Surface((emo_surf.get_width() + 10, emo_surf.get_height() + 6), pygame.SRCALPHA)
-        emo_bg.fill((0, 0, 0, 140))
-        self._screen.blit(emo_bg, (5, 12))
-        self._screen.blit(emo_surf, (10, 15))
 
         # Draw Mario sprite
         self._draw_mario()
@@ -1087,8 +1049,11 @@ class MarioDisplay:
         # Draw particles on top of Mario
         self._draw_particles()
 
-        # Draw speech bubble with typewriter (auto-clear after 8 seconds / 480 frames)
+        # Draw speech bubble with typewriter (keep visible while speaking, then auto-clear after 8s)
         if self.current_text:
+            if self._speaking:
+                # Reset timer while still speaking so bubble stays visible
+                self._text_display_time = self._frame
             if self._frame - self._text_display_time > 480:
                 self.current_text = ""
             else:
@@ -1126,7 +1091,7 @@ class MarioDisplay:
         self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
 
         # Hint for keyboard/party toggle
-        hint = "TAB:type | F3:chat | F5:party | F6:scores | F11:full | F12:panic"
+        hint = "TAB:type | F3:chat | F5:party | F6:scores | F11:full"
         hint_surf = self._font_small.render(hint, True, (100, 100, 120))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
 
@@ -1144,7 +1109,7 @@ class MarioDisplay:
             try:
                 status_font = self._font_small or pygame.font.SysFont("arial", 14)
                 status_surface = status_font.render(self._connection_status, True, (255, 80, 80))
-                self._screen.blit(status_surface, (10, 40))
+                self._screen.blit(status_surface, (10, 55))
             except Exception:
                 pass
 
@@ -1160,7 +1125,7 @@ class MarioDisplay:
                     cam_color = (255, 80, 80)  # Red error
                 cam_surface = cam_font.render(cam_text, True, cam_color)
                 cam_x = self._screen.get_width() - cam_surface.get_width() - 10
-                self._screen.blit(cam_surface, (cam_x, 40))
+                self._screen.blit(cam_surface, (cam_x, 55))
             except Exception:
                 pass
 
@@ -1189,37 +1154,115 @@ class MarioDisplay:
         pygame.display.flip()
 
     def _draw_party_banner(self, surface):
-        """Draw persistent party info banner at top of screen."""
+        """Draw two-strip header: title bar (Y=0-28) + info strip (Y=28-50)."""
         try:
             w = surface.get_width()
-            banner_h = 32
-
-            # Semi-transparent dark banner
-            banner = pygame.Surface((w, banner_h), pygame.SRCALPHA)
-            banner.fill((20, 10, 40, 160))
-            surface.blit(banner, (0, 0))
-
             font = self._font_small or pygame.font.SysFont("arial", 14)
 
-            # Party name (left) — plain text (emoji unreliable in pygame)
-            name_text = self._party_name
-            name_surf = font.render(name_text, True, (255, 215, 0))
-            surface.blit(name_surf, (10, 8))
+            # === ZONE 1: Title Bar (Y=0-28) ===
+            title_h = 28
+            title_bar = pygame.Surface((w, title_h), pygame.SRCALPHA)
+            title_bar.fill((20, 10, 40, 230))
+            surface.blit(title_bar, (0, 0))
 
-            # Duration (center)
+            # Centered title
+            title_surf = self._font_title.render("It's-a Me, Mario!", True, (255, 215, 0))
+            title_x = w // 2 - title_surf.get_width() // 2
+            title_y = (title_h - title_surf.get_height()) // 2
+            surface.blit(title_surf, (title_x, title_y))
+
+            # Gold accent line at bottom of title bar
+            accent = pygame.Surface((w, 1), pygame.SRCALPHA)
+            accent.fill((255, 215, 0, 64))
+            surface.blit(accent, (0, title_h - 1))
+
+            # === ZONE 2: Info Strip (Y=28-50) ===
+            info_h = 22
+            info_y = title_h
+            info_bar = pygame.Surface((w, info_h), pygame.SRCALPHA)
+            info_bar.fill((10, 5, 30, 200))
+            surface.blit(info_bar, (0, info_y))
+
+            sep_color = (255, 255, 255, 40)
+            text_y = info_y + (info_h - font.get_height()) // 2
+
+            # Left side: party name
+            name_surf = font.render(self._party_name, True, (255, 215, 0))
+            x = 10
+            surface.blit(name_surf, (x, text_y))
+            x += name_surf.get_width() + 8
+
+            # Separator
+            sep_surf = font.render("|", True, sep_color)
+            surface.blit(sep_surf, (x, text_y))
+            x += sep_surf.get_width() + 8
+
+            # Mood
+            emo_surf = font.render(f"Mood: {self._emotion}", True, (200, 200, 100))
+            surface.blit(emo_surf, (x, text_y))
+
+            # Right side (drawn right-to-left)
+            rx = w - 10
+
+            # Connection status
+            if self.connected:
+                conn_text = "Connected"
+                conn_color = (0, 255, 0)
+            else:
+                reconnect_info = self._reconnect_info
+                if reconnect_info and reconnect_info.get("attempting"):
+                    attempt = reconnect_info.get("attempt", 0)
+                    max_att = reconnect_info.get("max_attempts", 0)
+                    conn_text = f"Reconnecting ({attempt}/{max_att})"
+                    pulse = abs(math.sin(self._frame * 0.08))
+                    conn_color = (255, int(165 * pulse), 0)
+                else:
+                    conn_text = "Disconnected"
+                    conn_color = (255, 0, 0)
+            conn_surf = font.render(conn_text, True, conn_color)
+            rx -= conn_surf.get_width()
+            surface.blit(conn_surf, (rx, text_y))
+
+            # Separator
+            rx -= 8
+            surface.blit(sep_surf, (rx - sep_surf.get_width(), text_y))
+            rx -= sep_surf.get_width() + 8
+
+            # Guest/visitor count
+            count = self._guest_count if self._guest_count > 0 else self._visitor_count
+            if count > 0:
+                count_surf = font.render(f"{count}", True, (100, 255, 100))
+                rx -= count_surf.get_width()
+                surface.blit(count_surf, (rx, text_y))
+                rx -= 8
+                surface.blit(sep_surf, (rx - sep_surf.get_width(), text_y))
+                rx -= sep_surf.get_width() + 8
+
+            # Duration
             elapsed = time.time() - self._party_start_time
             hours = int(elapsed // 3600)
             mins = int((elapsed % 3600) // 60)
-            dur_text = f"Party: {hours}h {mins}m" if hours > 0 else f"Party: {mins}m"
+            dur_text = f"{hours}h {mins}m" if hours > 0 else f"{mins}m"
             dur_surf = font.render(dur_text, True, (180, 180, 255))
-            dur_rect = dur_surf.get_rect(center=(w // 2, 8 + font.get_height() // 2))
-            surface.blit(dur_surf, dur_rect)
+            rx -= dur_surf.get_width()
+            surface.blit(dur_surf, (rx, text_y))
 
-            # Guest count (right)
-            if self._guest_count > 0:
-                guest_text = f"Guests: {self._guest_count}"
-                guest_surf = font.render(guest_text, True, (100, 255, 100))
-                surface.blit(guest_surf, (w - guest_surf.get_width() - 10, 8))
+            # Speaking indicator — pulsing text after mood when speaking
+            if self._speaking:
+                pulse = abs(math.sin(self._frame * 0.1)) * 255
+                speak_surf = font.render("Speaking", True, (int(pulse), 200, int(pulse)))
+                rx -= 8
+                surface.blit(sep_surf, (rx - sep_surf.get_width(), text_y))
+                rx -= sep_surf.get_width() + 8 + speak_surf.get_width()
+                surface.blit(speak_surf, (rx, text_y))
+            elif self._last_response_time > 0:
+                rt_color = (100, 255, 100) if self._last_response_time < 5 else (255, 200, 100)
+                rt_surf = font.render(f"{self._last_response_time:.1f}s", True, rt_color)
+                rx -= 8
+                surface.blit(sep_surf, (rx - sep_surf.get_width(), text_y))
+                rx -= sep_surf.get_width() + 8 + rt_surf.get_width()
+                surface.blit(rt_surf, (rx, text_y))
+
         except Exception:
             pass  # Never crash the display for a banner
 
@@ -1229,7 +1272,7 @@ class MarioDisplay:
             return
         panel_w = 280
         panel_x = surface.get_width() - panel_w - 10
-        panel_y = 60
+        panel_y = 55
         panel_h = surface.get_height() - 120
         # Semi-transparent background
         try:
@@ -1532,7 +1575,7 @@ class MarioDisplay:
         bubble_w = max_width + 40
         bubble_h = len(lines) * line_height + 30
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
-        bubble_y = 70
+        bubble_y = 58
 
         # Style-dependent colors
         if style == BUBBLE_STYLE_SHOUT:

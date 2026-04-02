@@ -306,6 +306,76 @@ def _load_disk_cache():
     if loaded > 0:
         logger.info(f"[DEBUG_TTS] disk cache: loaded {loaded} entries from {_DISK_CACHE_DIR}")
 
+
+def purge_stale_cache() -> int:
+    """Scan disk cache and delete entries whose text produces a different key after _preclean_tts_text().
+
+    Returns the number of stale entries purged.
+    """
+    import hashlib
+    if not os.path.exists(_DISK_CACHE_DIR):
+        logger.info("[DEBUG_TTS] purge_stale_cache: no disk cache directory")
+        return 0
+    purged = 0
+    for fname in os.listdir(_DISK_CACHE_DIR):
+        if not fname.endswith(".key"):
+            continue
+        key_path = os.path.join(_DISK_CACHE_DIR, fname)
+        wav_path = os.path.join(_DISK_CACHE_DIR, fname.replace(".key", ".wav"))
+        try:
+            with open(key_path, "r", encoding="utf-8") as f:
+                original_key = f.read().strip()
+            if not original_key:
+                continue
+            # Parse cache key: {voice}:{text}:{rate}:{pitch}
+            # Rate and pitch are the last two colon-separated segments
+            parts = original_key.split(":")
+            if len(parts) < 4:
+                continue
+            pitch = parts[-1]   # e.g. "+0Hz"
+            rate = parts[-2]    # e.g. "+0%"
+            voice = parts[0]    # e.g. "en-US-GuyNeural"
+            text = ":".join(parts[1:-2])  # Everything between voice and rate
+            cleaned_text = _preclean_tts_text(text)
+            rebuilt_key = f"{voice}:{cleaned_text}:{rate}:{pitch}"
+            if rebuilt_key != original_key:
+                if os.path.exists(wav_path):
+                    os.remove(wav_path)
+                os.remove(key_path)
+                purged += 1
+        except Exception as e:
+            logger.warning(f"[DEBUG_TTS] purge_stale_cache: error processing {fname}: {e}")
+            continue
+    logger.info(f"[DEBUG_TTS] purge_stale_cache: purged {purged} stale entries from disk cache")
+    return purged
+
+
+def clear_all_cache(include_disk: bool = False):
+    """Clear all TTS caches (in-memory and optionally disk).
+
+    Args:
+        include_disk: If True, also delete all files in the disk cache directory.
+    """
+    global _cache_hits, _cache_misses
+    _audio_cache.clear()
+    _cache_order.clear()
+    _cache_hits = 0
+    _cache_misses = 0
+    cleared_disk = 0
+    if include_disk and os.path.exists(_DISK_CACHE_DIR):
+        for fname in os.listdir(_DISK_CACHE_DIR):
+            fpath = os.path.join(_DISK_CACHE_DIR, fname)
+            try:
+                os.remove(fpath)
+                cleared_disk += 1
+            except Exception:
+                continue
+    logger.info(
+        f"[DEBUG_TTS] clear_all_cache: in-memory cache cleared, stats reset"
+        + (f", {cleared_disk} disk files deleted" if include_disk else "")
+    )
+
+
 def _save_to_disk_cache(cache_key: str, wav_bytes: bytes):
     """Save a cache entry to disk for persistence across restarts."""
     try:
@@ -1020,6 +1090,36 @@ def get_cached(text: str, rate: str = None, pitch: str = None) -> bytes | None:
     return _audio_cache.get(cache_key)
 
 
+import re as _re_tts
+
+def _preclean_tts_text(text: str) -> str:
+    """Pre-clean text before any TTS engine sees it.
+
+    Fixes ellipsis, smart quotes, and other characters that ALL TTS engines
+    struggle with. Applied before cache key generation so cleaned text is cached.
+    """
+    t = text
+    # Ellipsis variants → natural pause (comma + space)
+    t = t.replace('…', ', ')                       # Smart ellipsis
+    t = _re_tts.sub(r'\.{3,}', ', ', t)            # Three+ dots → pause
+    t = _re_tts.sub(r'\.{2}', ', ', t)             # Two dots → pause
+    # Smart quotes → straight (TTS reads curly quotes as words)
+    t = t.replace('\u201c', '').replace('\u201d', '')  # " "
+    t = t.replace('\u2018', "'").replace('\u2019', "'")  # ' '
+    t = t.replace('"', '')
+    # Em/en dashes → comma pause
+    t = t.replace('—', ', ').replace('–', ', ')
+    # Asterisks (action markers like *laughs*)
+    t = t.replace('*', '')
+    # Clean up resulting artifacts: leading commas, double commas, etc.
+    t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
+    t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
+    t = _re_tts.sub(r'([.!?])\s*,', r'\1', t)     # Comma after sentence-end punctuation
+    t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
+    t = _re_tts.sub(r'\s+', ' ', t).strip()        # Collapse whitespace
+    return t
+
+
 def synthesize_user(text: str, rate: str = None, pitch: str = None, nocache: bool = False) -> bytes:
     """User-priority TTS synthesis. Pauses precache while this runs."""
     _user_tts_waiting.set()
@@ -1037,6 +1137,14 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # Guard: empty/whitespace text produces silence (prevents TTS engine errors)
     if not text or not text.strip():
         logger.debug("[DEBUG_TTS] synthesize: empty text, returning silence")
+        return _EMERGENCY_SILENCE
+
+    # Pre-clean ellipsis and problematic punctuation BEFORE cache key or any engine
+    text = _preclean_tts_text(text)
+
+    # After cleaning, text may be empty again
+    if not text or not text.strip():
+        logger.debug("[DEBUG_TTS] synthesize: text empty after pre-clean, returning silence")
         return _EMERGENCY_SILENCE
 
     # Check cache first for instant playback (key includes voice params)
@@ -1157,6 +1265,10 @@ def split_into_sentences(text: str) -> list[str]:
     chunks (< 15 chars) with the next one to avoid choppy TTS output.
     """
     import re
+    # Pre-clean ellipsis before splitting (prevents "..." creating empty fragments)
+    text = _preclean_tts_text(text)
+    if not text:
+        return []
     chunks = re.split(r'(?<=[.!?])\s+', text)
     merged = []
     buffer = ""

@@ -9,6 +9,10 @@
 - [x] 10 new TTS tests (normalization + preprocessing)
 - [x] Fixed escape sequence deprecation warning
 - [x] Updated CLAUDE.md with TTS improvements
+- [x] Added purge_stale_cache() to tts.py — scans disk cache, deletes entries stale after _preclean_tts_text
+- [x] Added clear_all_cache() to tts.py — clears in-memory + optional disk cache, resets stats
+- [x] Purged 1109 stale disk cache entries via purge_stale_cache()
+- [x] Fixed perfect_cache_v2.py .lower() mismatch in cache key generation
 - [ ] Test gemma3:27b quality on Threadripper before party
 - [ ] Run canary smoke test on Threadripper
 - [ ] Configure Tailscale for remote client access
@@ -244,3 +248,6 @@
 
 ## SFX Audio
 - [x] Replace all 16 SFX WAV files with high-quality retro chiptune sounds (square waves, FM synthesis, ADSR envelopes, arpeggios, noise channels, 44100Hz 16-bit PCM)
+
+## TTS Source String Cleanup
+- [x] Replace all hardcoded ellipsis (...) in TTS-spoken strings with commas/periods (15 edits across mario_prompt.py and llm.py)
