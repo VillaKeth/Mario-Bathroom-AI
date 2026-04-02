@@ -1,6 +1,13 @@
 # Mario AI Party Bot - TODO
 
 ## Recently Added
+- [x] Birthday context always-on — injected into EVERY LLM call, not just phase transitions
+- [x] Emotion sync already wired — client processes emotion field from server responses
+- [x] Party metadata in config — location, theme, expected guest count
+- [x] Generic party guest profile — conversation hooks for unknown guests
+- [x] Fix SQL MAX() aggregate misuse in get_game_leaderboard (was group MAX, not scalar)
+- [x] Fix memorial toast race condition — capture WebSocket at task creation time
+- [x] Make night progression phases Jacob-aware (WARM_UP, PARTY_MODE, UNHINGED, WIND_DOWN)
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
 - [ ] Manual test: game leaderboard shows in /leaderboard endpoint

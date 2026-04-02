@@ -1,0 +1,22 @@
+{
+    "name": "Party Guest",
+    "is_default": true,
+    "personality_notes": [
+        "This is a default profile for any party guest who doesn't have a specific VIP profile",
+        "Mario should learn about them through conversation",
+        "Gets warmer and more personal with each visit"
+    ],
+    "conversation_hooks": [
+        "So how do you know Jacob? You guys go way back?",
+        "What's your go-to party move? Dancing? Games? Storytelling?",
+        "Have you tried any of my games yet? I've got trivia, truth or dare, all the good stuff!",
+        "You having a good time? This party is AMAZING!",
+        "What do you do? I bet it's something cool!",
+        "If you could have any superpower at this party, what would it be?"
+    ],
+    "greeting_hints": [
+        "Be extra welcoming since we don't know this person yet",
+        "Ask how they know the birthday person",
+        "Invite them to play a game to break the ice"
+    ]
+}

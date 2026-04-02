@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 VIP_DIR = os.path.join(os.path.dirname(__file__), "data", "vip_profiles")
 _loaded_profiles: dict[str, dict] = {}
+_default_profile: dict | None = None
 
 
 def _deterministic_vip_id(name: str) -> int:
@@ -32,12 +33,19 @@ def _deterministic_vip_id(name: str) -> int:
 
 def load_vip_profile(profile_name: str) -> dict | None:
     """Load a VIP profile from JSON file."""
+    global _default_profile
     path = os.path.join(VIP_DIR, f"{profile_name}.json")
     if not os.path.exists(path):
         logger.warning(f"VIP profile not found: {path}")
         return None
     with open(path, "r", encoding="utf-8") as f:
         profile = json.load(f)
+    # Default profiles are used as fallback for unknown guests
+    if profile.get("is_default"):
+        _default_profile = profile
+        if DEBUG_MEMORY:
+            logger.info(f"[DEBUG_MEMORY] Loaded default guest profile: {profile['name']}")
+        return None
     _loaded_profiles[profile["name"].lower()] = profile
     if DEBUG_MEMORY:
         logger.info(f"[DEBUG_MEMORY] Loaded VIP profile: {profile['name']}")
@@ -203,10 +211,11 @@ def get_vip_facts_for_prompt(speaker_name: str) -> list[str]:
     """Get formatted VIP facts for direct LLM prompt injection.
 
     Returns a list of short fact strings for the system prompt.
+    Falls back to generic party guest hooks for unknown guests.
     """
     is_v, profile = is_vip(speaker_name)
     if not is_v or not profile:
-        return []
+        return get_default_guest_hooks()
 
     facts = []
     name = profile["name"]
@@ -228,6 +237,23 @@ def get_vip_facts_for_prompt(speaker_name: str) -> list[str]:
         facts.append(f"💡 Conversation idea: {random.choice(hooks)}")
 
     return facts
+
+
+def get_default_guest_hooks() -> list[str]:
+    """Get conversation hooks from the generic party guest profile.
+
+    Returns hints for engaging with unknown guests who don't have a VIP profile.
+    """
+    if not _default_profile:
+        return []
+    hints = []
+    greeting_hints = _default_profile.get("greeting_hints", [])
+    if greeting_hints:
+        hints.append(f"🎉 {random.choice(greeting_hints)}")
+    hooks = _default_profile.get("conversation_hooks", [])
+    if hooks:
+        hints.append(f"💡 Try asking: {random.choice(hooks)}")
+    return hints
 
 
 def get_memorial_info(speaker_name: str) -> dict | None:

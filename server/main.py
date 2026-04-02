@@ -228,6 +228,24 @@ sound_events = SoundEventManager()
 # Catchphrase mirroring — tracks repeated words per guest
 catchphrase_mirror = CatchphraseMirror()
 
+# Party metadata from config
+_party_location = server_config.get("party_location", "the bathroom")
+_party_theme = server_config.get("party_theme", "Birthday Party")
+_expected_guests = server_config.get("expected_guest_count", 10)
+
+
+def _inject_birthday_always_on(ctx: list) -> list:
+    """Inject always-on birthday party context into any LLM context list."""
+    if birthday_vip.is_configured():
+        birthday_ctx = (
+            f"IMPORTANT: Tonight is {birthday_vip.name}'s BIRTHDAY PARTY at {_party_location}! "
+            f"Theme: {_party_theme}. Everything should celebrate them. "
+            f"When someone new arrives, ask how they know {birthday_vip.name}. "
+            f"Drop references to the birthday whenever natural."
+        )
+        ctx.append({"role": "system", "content": birthday_ctx})
+    return ctx
+
 # Lock for state_current to prevent race conditions across async handlers
 _state_lock = asyncio.Lock()
 
@@ -1225,6 +1243,7 @@ async def websocket_endpoint(ws: WebSocket):
     loop = asyncio.get_event_loop()
     try:
         greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
+        _inject_birthday_always_on(greeting_ctx)
         greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         greeting_text = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
         greeting_text = filter_response(greeting_text)
@@ -1844,6 +1863,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             memories=memories,
             phase_modifier=_get_night_phase_modifier(),
         )
+        _inject_birthday_always_on(ctx)
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         # Add personality amplifier when emotion is intense
         personality_mod = emotion_system.get_personality_modifier()
@@ -3235,6 +3255,7 @@ async def handle_event(ws: WebSocket, event: dict):
             else:
                 ctx = mario_prompt.build_context(event="enter_unknown")
 
+            _inject_birthday_always_on(ctx)
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
             # Idle acknowledgment — reference what Mario was doing before they arrived
             last_idle = state_current.get("_last_idle_action", "")
@@ -3375,6 +3396,7 @@ async def handle_event(ws: WebSocket, event: dict):
             else:
                 ctx = mario_prompt.build_context(event="exit_unknown")
 
+            _inject_birthday_always_on(ctx)
             ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
 
             # Add visit recap for personalized goodbye

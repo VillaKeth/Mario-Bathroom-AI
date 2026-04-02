@@ -55,7 +55,10 @@
       "He's been in Florida his whole life — a true sunshine state boy",
       "He made the Honor Society for his academic achievements — brains AND brawn!",
       "His buddy built this Mario AI bathroom bot just for his birthday party — that's friendship!"
-    ]
+    ],
+    "party_location": "Main Bathroom",
+    "party_theme": "Jacob's Birthday Celebration",
+    "expected_guest_count": 15
   },
   "client": {
     "server_url": "ws://localhost:8765/ws",

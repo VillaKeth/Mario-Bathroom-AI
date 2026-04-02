@@ -46,7 +46,10 @@
       "REPLACE: Add facts about the birthday person here",
       "REPLACE: Each fact is a string in this array",
       "REPLACE: Mario will use these to personalize interactions"
-    ]
+    ],
+    "party_location": "the bathroom",
+    "party_theme": "Birthday Party",
+    "expected_guest_count": 10
   },
   "client": {
     "server_url": "ws://localhost:8765/ws",
