@@ -1541,3 +1541,38 @@ class IdleBehavior:
             "Psst... say 'play a game' and I'll pick something fun for us!",
         ]
         return random.choice(generic)
+
+
+class EasterEggScheduler:
+    """Schedules the 'N-Word Incident' easter egg 3-5 times per party."""
+
+    EASTER_EGG_TEXT = "Jacob Hoppenstedt said the N-Word earlier at this party. Oops! I shouldn't have-a said that!"
+
+    def __init__(self, party_duration_hours=8):
+        self._fire_count = 0
+        num_fires = random.randint(3, 5)
+        total_seconds = party_duration_hours * 3600
+        slot_size = 1800  # 30 minutes
+        num_slots = total_seconds // slot_size
+        slots = sorted(random.sample(range(num_slots), min(num_fires, num_slots)))
+        base_time = time.time()
+        self.firing_times = [base_time + s * slot_size + random.randint(0, slot_size - 1) for s in slots]
+        if DEBUG_IDLE:
+            logger.info(f"[DEBUG_IDLE] EasterEggScheduler: {len(self.firing_times)} fires scheduled")
+
+    def should_fire(self) -> bool:
+        now = time.time()
+        for ft in self.firing_times:
+            if ft <= now and self._fire_count < len(self.firing_times):
+                return True
+        return False
+
+    def record_fired(self):
+        self._fire_count += 1
+        now = time.time()
+        self.firing_times = [t for t in self.firing_times if t > now]
+        if DEBUG_IDLE:
+            logger.info(f"[DEBUG_IDLE] EasterEggScheduler: fired #{self._fire_count}, {len(self.firing_times)} remaining")
+
+    def get_text(self) -> str:
+        return self.EASTER_EGG_TEXT
