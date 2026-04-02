@@ -52,7 +52,16 @@ class NightProgression:
     """Tracks party progression and computes personality modifiers per phase."""
 
     def __init__(self, start_time: float = None):
-        self._start_time = start_time if start_time is not None else time.time()
+        now = time.time()
+        if start_time is not None:
+            # Only clamp if start_time is positive (not epoch 0) and >24h old
+            hours_ago = (now - start_time) / 3600
+            if start_time > 0 and hours_ago > 24:
+                # Stale persisted time (e.g., 578h test artifact) — reset
+                if DEBUG_NIGHT:
+                    logger.debug(f"[DEBUG_NIGHT] NightProgression.__init__: stale start_time detected ({hours_ago:.1f}h ago), resetting to now")
+                start_time = now
+        self._start_time = start_time if start_time is not None else now
         if DEBUG_NIGHT:
             logger.debug(f"[DEBUG_NIGHT] NightProgression.__init__: start_time={self._start_time}")
 
