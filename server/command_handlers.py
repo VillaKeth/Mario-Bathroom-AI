@@ -1035,4 +1035,17 @@ def handle_special_commands(
             "People always ask me to fix their plumbing. I'm like, I fight DRAGONS! But sure, let me look at your leaky faucet...",
         ])
 
+    # Check for shot event voice triggers (requires shot_event_manager to be available)
+    # This needs to be imported from main.py or passed as a parameter
+    # For now, we'll return a special response that main.py can detect
+    shot_event_keywords = [
+        "lisa", "aunt lisa", "lisa webb", "toast to lisa",
+        "birthday shot", "shot for jacob", "birthday boy shot", 
+        "deltarune shot", "shot for deltarune", "deltarune toast"
+    ]
+    for keyword in shot_event_keywords:
+        if keyword in lower:
+            # Return a special marker that main.py can detect and handle
+            return f"__SHOT_EVENT_TRIGGER__:{transcript}"
+
     return None

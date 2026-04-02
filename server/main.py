@@ -203,6 +203,13 @@ def _validate_config(cfg):
 if not _validate_config(config):
     logger.warning("Config validation had warnings — check logs above")
 
+# Shot events and Easter eggs
+from server.shot_events import create_default_events
+shot_event_manager = create_default_events()
+
+from server.idle_behavior import EasterEggScheduler
+easter_egg_scheduler = EasterEggScheduler()
+
 # Systems
 emotion_system = EmotionSystem()
 party_stats = PartyStats()
@@ -675,6 +682,20 @@ async def lifespan(app: FastAPI):
     threading.Thread(target=tts.precache_phrases, daemon=True).start()
     logger.info("Pre-caching common Mario phrases in background...")
 
+    # Pre-cache countdown audio for shot events
+    async def _precache_countdown():
+        try:
+            await shot_event_manager.precache_countdown_audio(
+                lambda text: asyncio.get_event_loop().run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(text)
+                )
+            )
+            logger.info("Shot event countdown audio pre-cached")
+        except Exception as e:
+            logger.error(f"Failed to pre-cache countdown audio: {e}")
+    
+    asyncio.create_task(_precache_countdown())
+
     # Start LLM keepalive to prevent Ollama from unloading model from VRAM
     _keepalive_task = asyncio.create_task(_llm_keepalive())
     logger.info("Started LLM keepalive ping (every 4min, keep_alive=60m)")
@@ -700,6 +721,145 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # Mount dashboard routes
 app.include_router(dashboard_router)
 init_dashboard(health_fn=None, server_start_time=_SERVER_START_TIME, live_config=live_config)  # health_fn wired below
+
+
+async def _run_shot_event(event):
+    """Run any shot event by iterating through its phases."""
+    try:
+        ws = _active_ws
+        if not ws:
+            logger.warning(f"[SHOT_EVENT] No client connected for {event.name}")
+            return
+
+        logger.info(f"[SHOT_EVENT] Starting {event.name} ({event.tone})")
+        
+        # Set memorial_active flag during event 
+        state_current["memorial_active"] = True
+        state_current["memorial_triggered_at"] = time.time()
+
+        for phase_name in event.phases:
+            if not _active_ws:
+                logger.warning(f"[SHOT_EVENT] Client disconnected during {event.name}")
+                break
+
+            # Get phase text
+            phase_text = ""
+            if phase_name == "announcement":
+                phase_text = event.announcement_text
+            elif phase_name == "silence":
+                phase_text = event.silence_text
+            elif phase_name == "toast":
+                phase_text = event.toast_text
+            elif phase_name == "recovery":
+                phase_text = event.recovery_line
+                
+            logger.info(f"[SHOT_EVENT] {event.name} phase: {phase_name}")
+
+            # Handle countdown phase specially
+            if phase_name == "countdown" and event.countdown:
+                countdown_texts = shot_event_manager.get_countdown_texts()
+                for countdown_text in countdown_texts:
+                    if not _active_ws:
+                        break
+                        
+                    # Use cached countdown audio if available
+                    cached_audio = shot_event_manager.get_cached_countdown(countdown_text)
+                    audio_bytes = cached_audio
+                    
+                    if not audio_bytes:
+                        # Fallback: synthesize on demand
+                        loop = asyncio.get_event_loop()
+                        try:
+                            audio_bytes = await loop.run_in_executor(
+                                _tts_executor, lambda t=countdown_text: tts.synthesize_user(t)
+                            )
+                        except Exception as e:
+                            logger.error(f"[SHOT_EVENT] TTS error for countdown {countdown_text}: {e}")
+                    
+                    if audio_bytes:
+                        event_data = {
+                            "type": "memorial_event",
+                            "phase": "countdown",
+                            "text": countdown_text,
+                            "name": event.name,
+                        }
+                        
+                        try:
+                            async with _ws_send_lock:
+                                if _active_ws is not None:
+                                    await _active_ws.send_json(event_data)
+                                    await _active_ws.send_bytes(audio_bytes)
+                        except Exception as e:
+                            logger.error(f"[SHOT_EVENT] Send error for countdown {countdown_text}: {e}")
+                    
+                    await asyncio.sleep(1.0)  # 1 second between countdown numbers
+                continue
+
+            # Handle music phase
+            if phase_name == "music" and event.music_file:
+                event_data = {
+                    "type": "memorial_event",
+                    "phase": "music",
+                    "name": event.name,
+                    "music_file": event.music_file,
+                    "duration": event.music_duration,
+                }
+                
+                try:
+                    async with _ws_send_lock:
+                        if _active_ws is not None:
+                            await _active_ws.send_json(event_data)
+                except Exception as e:
+                    logger.error(f"[SHOT_EVENT] Send error for music phase: {e}")
+                
+                await asyncio.sleep(event.music_duration)
+                continue
+
+            # Handle text-based phases
+            if phase_text:
+                # Synthesize TTS
+                loop = asyncio.get_event_loop()
+                audio_bytes = None
+                try:
+                    audio_bytes = await loop.run_in_executor(
+                        _tts_executor, lambda t=phase_text: tts.synthesize_user(t)
+                    )
+                except Exception as e:
+                    logger.error(f"[SHOT_EVENT] TTS error for {phase_name}: {e}")
+                
+                event_data = {
+                    "type": "memorial_event",
+                    "phase": phase_name, 
+                    "text": phase_text,
+                    "name": event.name,
+                }
+                
+                try:
+                    async with _ws_send_lock:
+                        if _active_ws is not None:
+                            await _active_ws.send_json(event_data)
+                            if audio_bytes:
+                                await _active_ws.send_bytes(audio_bytes)
+                except Exception as e:
+                    logger.error(f"[SHOT_EVENT] Send error for {phase_name}: {e}")
+                
+                # Add phase-specific delays
+                if phase_name == "silence":
+                    await asyncio.sleep(5.0)  # 5 second silence
+                elif phase_name == "recovery":
+                    await asyncio.sleep(15.0)  # 15 second cooldown
+                else:
+                    await asyncio.sleep(2.0)  # Default 2 second pause
+        
+        # Event complete
+        shot_event_manager.complete(event.name)
+        logger.info(f"[SHOT_EVENT] {event.name} complete")
+        
+    except Exception as e:
+        logger.error(f"[SHOT_EVENT] Error running {event.name}: {e}")
+    finally:
+        # Clear memorial flag 
+        state_current["memorial_active"] = False
 
 
 def _get_rss_mb() -> float:
@@ -1284,6 +1444,53 @@ async def trigger_memorial(request_body: dict = {}):
     return {"status": "ok", "message": "Memorial triggered"}
 
 
+# New shot event endpoints
+@app.post("/admin/trigger_event/{event_name}")
+async def trigger_shot_event(event_name: str, request_body: dict = {}):
+    """Trigger any shot event by name."""
+    global shot_event_manager, _active_ws
+    
+    # Check admin API key if configured
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+        
+    if not _active_ws:
+        return {"status": "error", "message": "No client connected"}
+    
+    result = shot_event_manager.trigger(event_name)
+    if result["status"] == "triggered":
+        event = shot_event_manager.events[event_name]
+        asyncio.create_task(_run_shot_event(event))
+    
+    return result
+
+
+@app.get("/admin/events")
+async def list_shot_events(api_key: str = ""):
+    """List all registered shot events."""
+    # Check admin API key if configured
+    config_key = GAME_CONFIG.get("admin_api_key", "")
+    if config_key and api_key != config_key:
+        return {"status": "error", "message": "Invalid API key"}
+    
+    return {"status": "ok", "events": shot_event_manager.list_events()}
+
+
+@app.post("/admin/reset_event/{event_name}")
+async def reset_shot_event(event_name: str, request_body: dict = {}):
+    """Reset an event's fired status."""
+    global shot_event_manager
+    
+    # Check admin API key if configured
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    
+    shot_event_manager.reset(event_name)
+    return {"status": "ok", "message": f"Event '{event_name}' reset"}
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")
@@ -1824,6 +2031,17 @@ async def _idle_loop(ws: WebSocket):
                     async with _state_lock:
                         state_current["_last_time_obs"] = time.time()
                 continue
+
+        # Check for shot event auto-triggers (Lisa Webb memorial between 45-90min)
+        shot_event_name = idle_behavior.check_shot_event_timers(shot_event_manager)
+        if shot_event_name:
+            event = shot_event_manager.events.get(shot_event_name)
+            if event:
+                trigger_result = shot_event_manager.trigger(shot_event_name)
+                if trigger_result["status"] == "triggered":
+                    asyncio.create_task(_run_shot_event(event))
+                    logger.info(f"[AUTO_TRIGGER] Shot event auto-triggered: {shot_event_name}")
+                    continue
 
         # Loneliness arc: progressive mood when alone for extended time
         lonely_action = idle_behavior.get_lonely_action()
@@ -3358,10 +3576,33 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
 
 async def _handle_special_commands(transcript: str) -> str:
     """Handle special commands/requests in the transcript. Returns response text or None."""
-    return command_handlers.handle_special_commands(
+    response = command_handlers.handle_special_commands(
         transcript, state_current, GAME_CONFIG, emotion_system,
         idle_behavior, party_stats, memory
     )
+    
+    # Check for shot event trigger response
+    if response and response.startswith("__SHOT_EVENT_TRIGGER__:"):
+        original_text = response.split(":", 1)[1]
+        
+        # Check for voice triggers using shot event manager
+        matched_event = shot_event_manager.check_voice_trigger(original_text)
+        if matched_event and not matched_event.fired:
+            # Trigger the event
+            trigger_result = shot_event_manager.trigger(matched_event.name)
+            if trigger_result["status"] == "triggered":
+                # Start the event in background
+                asyncio.create_task(_run_shot_event(matched_event))
+                logger.info(f"[VOICE_TRIGGER] Triggered shot event: {matched_event.name}")
+                return f"Ohhh, you said the magic words! Let's-a do this! {matched_event.name} incoming!"
+            else:
+                logger.warning(f"[VOICE_TRIGGER] Failed to trigger {matched_event.name}: {trigger_result}")
+                return "Mama mia! Something went wrong with that request!"
+        else:
+            # Event already fired or not found
+            return None
+    
+    return response
 
 
 async def _do_greeting(ws: WebSocket, event: dict):

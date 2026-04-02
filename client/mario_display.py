@@ -421,6 +421,18 @@ class MarioDisplay:
                         if len(self._panic_tap_times) >= 3:
                             self._panic_tap_times.clear()
                             self._toggle_panic_mode()
+                    elif event.key == pygame.K_l and (pygame.key.get_mods() & pygame.KMOD_CTRL) and (pygame.key.get_mods() & pygame.KMOD_SHIFT):
+                        # Ctrl+Shift+L: Skip memorial event
+                        if hasattr(self, 'memorial_active') and self.memorial_active:
+                            # Call the skip callback if it exists
+                            try:
+                                if hasattr(self, '_on_memorial_skip') and self._on_memorial_skip:
+                                    self._on_memorial_skip()
+                                # Clear memorial overlay
+                                self.memorial_active = False
+                                self.clear_memorial_overlay()
+                            except Exception as e:
+                                logger.error(f"Memorial skip error: {e}")
                     elif not self.keyboard_mode and event.key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
                         if self.on_volume_change:
                             self.on_volume_change(0.1)
@@ -536,6 +548,26 @@ class MarioDisplay:
         """Show/hide thinking animation (while waiting for server response)."""
         self._thinking = thinking
         self._thinking_dots = 0
+
+    def set_countdown(self, countdown_text: str):
+        """Show countdown overlay with large centered text."""
+        if not hasattr(self, '_countdown_text'):
+            self._countdown_text = None
+        self._countdown_text = countdown_text
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] set_countdown: {countdown_text}")
+
+    def clear_countdown(self):
+        """Clear countdown overlay."""
+        if hasattr(self, '_countdown_text'):
+            self._countdown_text = None
+
+    def clear_memorial_overlay(self):
+        """Clear memorial overlay."""
+        if hasattr(self, 'memorial_active'):
+            self.memorial_active = False
+        if hasattr(self, '_countdown_text'):
+            self._countdown_text = None
 
     def show_volume(self, level: float):
         """Show a brief volume indicator overlay (~2 seconds)."""
@@ -984,6 +1016,50 @@ class MarioDisplay:
         hint_surf = self._font_small.render("Press F12 to resume", True, (80, 80, 120))
         self._screen.blit(hint_surf, (w // 2 - hint_surf.get_width() // 2, h - 40))
 
+    def draw_countdown_overlay(self, text: str):
+        """Draw large centered countdown number with black outline."""
+        if not text:
+            return
+            
+        try:
+            # Try to get Impact font, fallback to default
+            try:
+                countdown_font = pygame.font.SysFont("Impact", 180)
+            except:
+                countdown_font = pygame.font.Font(None, 180)
+                
+            # Render the text with black outline
+            # First render black outline (multiple times for thickness)
+            outline_color = (0, 0, 0)
+            text_color = (255, 255, 255)
+            
+            # Create surfaces for outline (render text slightly offset in all directions)
+            outline_surfaces = []
+            for dx in [-3, -2, -1, 0, 1, 2, 3]:
+                for dy in [-3, -2, -1, 0, 1, 2, 3]:
+                    if dx != 0 or dy != 0:  # Skip center (0,0)
+                        surf = countdown_font.render(text, True, outline_color)
+                        outline_surfaces.append((surf, dx, dy))
+            
+            # Render main text
+            text_surf = countdown_font.render(text, True, text_color)
+            
+            # Calculate center position
+            w = self._screen.get_width()
+            h = self._screen.get_height()
+            center_x = w // 2 - text_surf.get_width() // 2
+            center_y = h // 2 - text_surf.get_height() // 2
+            
+            # Draw outline first
+            for surf, dx, dy in outline_surfaces:
+                self._screen.blit(surf, (center_x + dx, center_y + dy))
+                
+            # Draw main text on top
+            self._screen.blit(text_surf, (center_x, center_y))
+            
+        except Exception as e:
+            logger.error(f"Error drawing countdown overlay: {e}")
+
     def _draw_reconnect_overlay(self):
         """Draw reconnection UI when WebSocket is disconnected."""
         w = self._screen.get_width()
@@ -1174,6 +1250,10 @@ class MarioDisplay:
         # Memorial overlay (drawn on top of everything)
         if self._memorial_active:
             self._draw_memorial(self._screen)
+        
+        # Countdown overlay (drawn on top of memorial)
+        if hasattr(self, '_countdown_text') and self._countdown_text:
+            self.draw_countdown_overlay(self._countdown_text)
         
         # Closed captions (drawn last, on top of everything except fullscreen scaling)
         if self.captions:

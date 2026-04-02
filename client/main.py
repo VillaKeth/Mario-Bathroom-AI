@@ -83,6 +83,7 @@ class MarioClient:
         # Wire up keyboard input from display
         self.display.on_keyboard_submit = self._on_keyboard_submit
         self.display.on_volume_change = self._on_volume_change
+        self.display._on_memorial_skip = self._on_memorial_skip
 
     def start(self):
         """Start all client components."""
@@ -399,6 +400,23 @@ class MarioClient:
         if DEBUG_AUDIO:
             logger.info(f"[DEBUG_AUDIO] Volume changed: {current:.1f} -> {new_vol:.1f}")
 
+    def _on_memorial_skip(self):
+        """Called when user presses Ctrl+Shift+L to skip memorial event."""
+        if DEBUG_CLIENT:
+            logger.info("[DEBUG_CLIENT] Memorial skip requested")
+        try:
+            # Stop memorial music
+            self.audio_playback.stop_memorial_music()
+            # Clear memorial flag
+            self._memorial_active = False
+            # Clear countdown
+            self.display.clear_countdown()
+            # Reset memorial flag in display 
+            if hasattr(self.display, 'memorial_active'):
+                self.display.memorial_active = False
+        except Exception as e:
+            logger.error(f"Error during memorial skip: {e}")
+
     def _on_leaderboard_update(self, data: dict):
         """Called when server sends leaderboard update."""
         if DEBUG_CLIENT:
@@ -417,7 +435,17 @@ class MarioClient:
         # Set memorial active on first phase, clear after fadeout
         if phase == "announcement":
             self._memorial_active = True
+            # Flush idle queue on event start
+            if hasattr(self.display, 'current_text'):
+                self.display.current_text = ""
+        elif phase == "countdown":
+            # Convert countdown word to number and display it
+            countdown_number = self._convert_countdown_word_to_number(text)
+            if countdown_number:
+                self.display.set_countdown(countdown_number)
         elif phase == "fadeout":
+            # Clear countdown and memorial flags
+            self.display.clear_countdown()
             # Clear flag after fadeout animation completes
             def _clear_flag():
                 time.sleep(duration + 3)
@@ -430,7 +458,7 @@ class MarioClient:
         if phase == "music":
             music_path = os.path.join(os.path.dirname(__file__), "assets", "music", "lisa_webb_memorial.mp3")
             if os.path.exists(music_path):
-                self.audio_playback.play_memorial_music(music_path, loops=1)  # Play twice
+                self.audio_playback.play_memorial_music(music_path)  # Default loops=0 (play once)
             else:
                 logger.warning(f"[DEBUG_CLIENT] Memorial music not found: {music_path}")
         elif phase == "fadeout":
@@ -458,6 +486,22 @@ class MarioClient:
                         self.audio_playback.play(f.read())
                 except Exception as e:
                     logger.warning(f"[DEBUG_CLIENT] Clink SFX error: {e}")
+
+    def _convert_countdown_word_to_number(self, text: str) -> str | None:
+        """Convert countdown text like 'TEN-a!' to '10'."""
+        word_to_number = {
+            "TEN-a!": "10",
+            "NINE-a!": "9", 
+            "EIGHT-a!": "8",
+            "SEVEN-a!": "7",
+            "SIX-a!": "6",
+            "FIVE-a!": "5",
+            "FOUR-a!": "4",
+            "THREE-a!": "3",
+            "TWO-a!": "2",
+            "ONE-a!": "1",
+        }
+        return word_to_number.get(text.upper())
 
 
 def main():

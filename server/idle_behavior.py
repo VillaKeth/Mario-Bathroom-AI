@@ -1542,6 +1542,28 @@ class IdleBehavior:
         ]
         return random.choice(generic)
 
+    def check_shot_event_timers(self, shot_event_manager) -> str | None:
+        """Check if any auto-trigger events should fire based on elapsed party time.
+        
+        Returns event name if one should trigger, None otherwise.
+        """
+        # Calculate party elapsed time in minutes
+        from server.main import party_stats  # Import here to avoid circular imports
+        party_elapsed_seconds = time.time() - party_stats.party_start_time
+        party_elapsed_minutes = party_elapsed_seconds / 60.0
+        
+        # Lisa Webb memorial auto-triggers between 45-90 minutes  
+        if 45 <= party_elapsed_minutes <= 90:
+            lisa_event = shot_event_manager.events.get("lisa_webb_memorial")
+            if lisa_event and not lisa_event.fired and lisa_event.trigger_type in ("auto", "voice"):
+                # Random chance to trigger (5% every time this is called)
+                if random.random() < 0.05:
+                    if DEBUG_IDLE:
+                        logger.info(f"[DEBUG_IDLE] Auto-triggering Lisa Webb memorial at {party_elapsed_minutes:.1f}min")
+                    return "lisa_webb_memorial"
+        
+        return None
+
 
 class EasterEggScheduler:
     """Schedules the 'N-Word Incident' easter egg 3-5 times per party."""

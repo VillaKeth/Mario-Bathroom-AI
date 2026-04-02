@@ -77,7 +77,7 @@ class AudioPlayback:
             return self._actively_playing or not self._play_queue.empty()
 
     # ── Memorial music (MP3 via pygame.mixer.music) ──────────────
-    def play_memorial_music(self, path: str, loops: int = 1):
+    def play_memorial_music(self, path: str, loops: int = 0):
         """Play an MP3 file using pygame.mixer.music.
         
         Args:
@@ -89,11 +89,11 @@ class AudioPlayback:
                 pygame.mixer.init()
             pygame.mixer.music.load(path)
             pygame.mixer.music.set_volume(0.5)
-            pygame.mixer.music.play(loops=loops)
+            pygame.mixer.music.play(loops=0)  # Always play once
             if DEBUG_PLAYBACK:
-                logger.info(f"[DEBUG_PLAYBACK] Memorial music started: {path} (loops={loops})")
+                logger.info(f"[DEBUG_PLAYBACK] Memorial music started: {path} (loops=0)")
         except Exception as e:
-            logger.error(f"[DEBUG_PLAYBACK] Memorial music error: {e}")
+            logger.error(f"[DEBUG_PLAYBOOK] Memorial music error: {e}")
 
     def stop_memorial_music(self, fadeout_ms: int = 3000):
         """Fade out and stop memorial music."""
