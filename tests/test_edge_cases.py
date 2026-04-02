@@ -1416,3 +1416,106 @@ class TestWsSendLock:
             ]
 
         asyncio.run(_test())
+
+
+class TestTextInputTimeout:
+    """Tests for the text_input timeout and exception handling in server/main.py.
+
+    Same AST/source-analysis approach as TestWsSendLock — we verify the safety
+    patterns exist without importing the full server runtime.
+    """
+
+    @staticmethod
+    def _read_source():
+        import os
+        src_path = os.path.join(
+            os.path.dirname(__file__), "..", "server", "main.py"
+        )
+        with open(src_path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def test_text_input_timeout_value(self):
+        """asyncio.wait_for(_handle_text_input(...), timeout=45.0) must exist."""
+        import ast
+
+        source = self._read_source()
+        tree = ast.parse(source)
+
+        found = False
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            is_wait_for = (
+                isinstance(func, ast.Attribute) and func.attr == "wait_for"
+                and isinstance(func.value, ast.Name) and func.value.id == "asyncio"
+            )
+            if not is_wait_for:
+                continue
+            for kw in node.keywords:
+                if kw.arg == "timeout":
+                    val = kw.value
+                    if isinstance(val, ast.Constant) and val.value == 45.0:
+                        if node.args:
+                            inner = node.args[0]
+                            if isinstance(inner, ast.Await):
+                                inner = inner.value
+                            if isinstance(inner, ast.Call):
+                                inner_func = inner.func
+                                if isinstance(inner_func, ast.Name) and inner_func.id == "_handle_text_input":
+                                    found = True
+                                elif isinstance(inner_func, ast.Attribute) and inner_func.attr == "_handle_text_input":
+                                    found = True
+        assert found, (
+            "Expected asyncio.wait_for(_handle_text_input(...), timeout=45.0) "
+            "in server/main.py"
+        )
+
+    def test_text_input_exception_clears_active_flag(self):
+        """The finally block must clear _user_request_active after text_input."""
+        source = self._read_source()
+
+        assert 'wait_for(_handle_text_input' in source, (
+            "wait_for(_handle_text_input call not found"
+        )
+        idx_wait = source.index('wait_for(_handle_text_input')
+        rest = source[idx_wait:]
+        assert 'finally:' in rest, "No finally block after text_input wait_for"
+        idx_finally = rest.index('finally:')
+        finally_block = rest[idx_finally:idx_finally + 300]
+        assert '_user_request_active' in finally_block, (
+            "finally block does not reference _user_request_active"
+        )
+        assert 'False' in finally_block, (
+            "finally block does not set _user_request_active to False"
+        )
+
+    def test_text_input_empty_text_returns_early(self):
+        """Empty text must trigger an early return before the pipeline runs."""
+        source = self._read_source()
+
+        idx = source.find('elif event_type == "text_input"')
+        assert idx != -1, "text_input handler not found in source"
+        block = source[idx:idx + 400]
+        assert "if not text" in block, (
+            "Empty text guard 'if not text' not found in text_input handler"
+        )
+        assert "return" in block[block.index("if not text"):block.index("if not text") + 50], (
+            "Early return after empty text check not found"
+        )
+
+    def test_text_input_has_error_fallback(self):
+        """General Exception handler must send 'Something went wrong' fallback."""
+        source = self._read_source()
+
+        idx_wait = source.index('wait_for(_handle_text_input')
+        rest = source[idx_wait:]
+        assert 'except Exception' in rest, (
+            "No general Exception handler after text_input wait_for"
+        )
+        idx_finally = rest.index('finally:')
+        handler_block = rest[:idx_finally]
+        assert 'Something went wrong' in handler_block, (
+            "Error fallback message 'Something went wrong' not found in "
+            "text_input exception handler"
+        )
