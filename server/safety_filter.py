@@ -81,6 +81,8 @@ def _normalize_unicode(text: str) -> str:
 
 def filter_response(text: str) -> str:
     """Filter Mario's response for inappropriate content and LLM artifacts."""
+    if not text:
+        return text or ""
     original = text
 
     # Normalize Unicode to catch homoglyphs and fullwidth chars
@@ -109,6 +111,19 @@ def filter_response(text: str) -> str:
     # Apply mild replacements
     for pattern, replacement in MILD_REPLACEMENTS.items():
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
+    # Enforce maximum response length — Mario should be punchy, not an essay writer
+    MAX_RESPONSE_CHARS = 300
+    if len(text) > MAX_RESPONSE_CHARS:
+        # Try to cut at a sentence boundary
+        truncated = text[:MAX_RESPONSE_CHARS]
+        last_punct = max(truncated.rfind('.'), truncated.rfind('!'), truncated.rfind('?'))
+        if last_punct > MAX_RESPONSE_CHARS // 2:
+            text = truncated[:last_punct + 1]
+        else:
+            text = truncated.rstrip() + "..."
+        if DEBUG_SAFETY:
+            logger.info(f"[DEBUG_SAFETY] Truncated response from {len(original)} to {len(text)} chars")
 
     if text != original and DEBUG_SAFETY:
         logger.info(f"[DEBUG_SAFETY] filter_response: modified response")

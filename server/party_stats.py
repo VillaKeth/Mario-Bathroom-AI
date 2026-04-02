@@ -16,6 +16,7 @@ class PartyStats:
     """Tracks party-wide statistics for fun Mario commentary."""
 
     def __init__(self):
+        self._announced_milestones: set = set()
         self._init_db()
         self.party_start_time = self._load_or_create_party_start()
 
@@ -281,8 +282,6 @@ class PartyStats:
     # ------------------------------------------------------------------
     # Party-wide milestones — special celebrations at key moments
     # ------------------------------------------------------------------
-
-    _announced_milestones: set = set()
 
     PARTY_MILESTONES = {
         5: "FIVE visitors! The party is officially ON! Mario approves!",
