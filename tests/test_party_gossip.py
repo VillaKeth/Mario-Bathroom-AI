@@ -456,3 +456,47 @@ class TestTrendingTopics:
         assert hint2 is not None
         # They should be different topics
         assert hint1 != hint2
+
+
+class TestPartyRecap:
+    def test_recap_empty_for_young_party(self):
+        pg = PartyGossip()
+        assert pg.get_party_recap_for_newcomer() is None
+
+    def test_recap_empty_with_one_guest(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        assert pg.get_party_recap_for_newcomer() is None
+
+    def test_recap_with_trending_topic(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza")
+        pg.analyze_for_gossip("Bob", "b1", "Pizza is amazing")
+        recap = pg.get_party_recap_for_newcomer("c1")
+        assert recap is not None
+        assert "pizza" in recap.lower()
+
+    def test_recap_includes_rivalry(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "pizza is the best food")
+        pg.analyze_for_gossip("Bob", "b1", "pizza is the worst food")
+        recap = pg.get_party_recap_for_newcomer("c1")
+        assert recap is not None
+        assert "feud" in recap.lower() or "Alice" in recap or "Bob" in recap
+
+    def test_recap_includes_alliance(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love pizza, it's amazing")
+        pg.analyze_for_gossip("Bob", "b1", "I love pizza, it's amazing too")
+        recap = pg.get_party_recap_for_newcomer("c1")
+        assert recap is not None
+        assert "bonded" in recap.lower() or "Alice" in recap or "Bob" in recap
+
+    def test_recap_includes_dramatic_moment(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "Something interesting about games")
+        pg.analyze_for_gossip("Bob", "b1", "More about games")
+        pg.add_dramatic_moment("Someone challenged Mario to arm wrestling!")
+        recap = pg.get_party_recap_for_newcomer("c1")
+        assert recap is not None
+        assert "arm wrestling" in recap.lower() or "challenged" in recap.lower()

@@ -463,6 +463,43 @@ class PartyGossip:
         announcement = f"BREAKING NEWS! We have a RIVALRY! {name1} and {name2} DISAGREE about {topic}!"
         self._pending_rivalry_announcements.append(announcement)
 
+    def get_party_recap_for_newcomer(self, current_speaker_id: str = None) -> str | None:
+        """Generate an exciting recap of the party so far for a new guest.
+        Combines trending topics, rivalries, alliances, and dramatic moments
+        into a brief 'you missed...' teaser. Returns None if party is too young."""
+        parts = []
+        guest_count = self.get_guest_count()
+        if guest_count < 2:
+            return None
+
+        # Trending topics
+        trending = [(t, len(ids)) for t, ids in self._topic_mentions.items() if len(ids) >= 2]
+        trending.sort(key=lambda x: x[1], reverse=True)
+        if trending:
+            top_topic, cnt = trending[0]
+            parts.append(f"{cnt} guests talked about {top_topic}")
+
+        # Rivalries
+        if self._rivalries:
+            r = self._rivalries[-1]  # most recent
+            parts.append(f"there's a feud between {r[0]} and {r[1]} about {r[2]}")
+
+        # Alliances
+        if self._alliances:
+            a = self._alliances[-1]
+            parts.append(f"{a[0]} and {a[1]} bonded over {a[2]}")
+
+        # Dramatic moments
+        if self._dramatic_moments:
+            moment = list(self._dramatic_moments)[-1]
+            parts.append(moment["text"][:50])
+
+        if not parts:
+            return None
+
+        recap = "Tonight so far: " + "; ".join(parts[:3]) + ". Catch them up!"
+        return recap
+
     def assign_title(self, speaker_id: str, speaker_name: str) -> str:
         """Assign or retrieve a fun title for a guest. Speech-derived when possible."""
         if speaker_id in self._guest_titles:

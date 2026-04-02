@@ -3490,6 +3490,12 @@ async def _do_greeting(ws: WebSocket, event: dict):
     if greeting_trending and random.random() < 0.4:
         ctx.append({"role": "system", "content": f"[TRENDING]: {greeting_trending}"})
 
+    # Party recap for newcomers — exciting FOMO teaser
+    recap = party_gossip.get_party_recap_for_newcomer(
+        state_current.get("speaker_id"))
+    if recap and random.random() < 0.35:
+        ctx.append({"role": "system", "content": f"[RECAP]: {recap}"})
+
     now = datetime.now()
     party_hrs = (time.time() - party_stats._party_start_time) / 3600 if hasattr(party_stats, '_party_start_time') else 0
     greeting_mood = mario_prompt.get_greeting_mood(now.hour, party_hrs)

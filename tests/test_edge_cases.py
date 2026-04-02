@@ -1661,3 +1661,68 @@ class TestConversationSummarization:
                         if isinstance(node.value, ast.Constant):
                             found_value = node.value.value
         assert found_value == 8, f"RECENT_RAW_MESSAGES should be 8, got {found_value}"
+
+
+class TestCommandDiscovery:
+    """Tests for the command discovery hint system in mario_prompt.py."""
+
+    def test_discovery_hints_list_exists(self):
+        from server.mario_prompt import COMMAND_DISCOVERY_HINTS
+        assert isinstance(COMMAND_DISCOVERY_HINTS, list)
+        assert len(COMMAND_DISCOVERY_HINTS) >= 10
+
+    def test_get_hint_returns_empty_for_low_exchange_count(self):
+        from server.mario_prompt import get_command_discovery_hint, reset_discovery
+        reset_discovery()
+        result = get_command_discovery_hint(0)
+        assert result == ""
+        result = get_command_discovery_hint(1)
+        assert result == ""
+
+    def test_get_hint_returns_string(self):
+        from server.mario_prompt import get_command_discovery_hint, reset_discovery, COMMAND_DISCOVERY_HINTS
+        reset_discovery()
+        # Force discovery by calling many times (12% chance each)
+        results = [get_command_discovery_hint(5) for _ in range(200)]
+        non_empty = [r for r in results if r]
+        assert len(non_empty) > 0, "Should fire at least once in 200 attempts"
+        assert all(isinstance(r, str) for r in non_empty)
+
+    def test_hints_not_repeated(self):
+        from server.mario_prompt import get_command_discovery_hint, reset_discovery
+        reset_discovery()
+        seen = set()
+        for _ in range(5000):
+            hint = get_command_discovery_hint(5)
+            if hint:
+                assert hint not in seen, f"Duplicate hint: {hint}"
+                seen.add(hint)
+
+    def test_reset_discovery_clears_state(self):
+        from server.mario_prompt import get_command_discovery_hint, reset_discovery, _discovery_hints_given
+        reset_discovery()
+        # Trigger some hints
+        for _ in range(500):
+            get_command_discovery_hint(5)
+        from server.mario_prompt import _discovery_hints_given as hints_after
+        had_hints = len(hints_after) > 0
+        assert had_hints, "Should have given some hints"
+        reset_discovery()
+        from server.mario_prompt import _discovery_hints_given as hints_after_reset
+        assert len(hints_after_reset) == 0
+
+    def test_all_hints_are_strings(self):
+        from server.mario_prompt import COMMAND_DISCOVERY_HINTS
+        for hint in COMMAND_DISCOVERY_HINTS:
+            assert isinstance(hint, str)
+            assert len(hint) > 10  # Meaningful length
+
+    def test_exhaustion_returns_empty(self):
+        from server.mario_prompt import get_command_discovery_hint, reset_discovery, COMMAND_DISCOVERY_HINTS
+        reset_discovery()
+        # Manually exhaust all hints
+        from server.mario_prompt import _discovery_hints_given
+        for hint in COMMAND_DISCOVERY_HINTS:
+            _discovery_hints_given.add(hint)
+        result = get_command_discovery_hint(5)
+        assert result == ""
