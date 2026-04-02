@@ -2,6 +2,7 @@
 """Generalized Shot Event system for party ceremonies and toasts."""
 from dataclasses import dataclass, field
 from typing import Optional
+import re
 
 DEBUG_SHOT_EVENTS = True
 
@@ -41,6 +42,8 @@ class ShotEventManager:
         event = self.events[name]
         if event.fired:
             return {"status": "already_fired", "event": name}
+        if self._active_event is not None:
+            return {"status": "blocked_by_active", "event": name, "active": self._active_event}
         event.fired = True
         self._active_event = name
         if DEBUG_SHOT_EVENTS:
@@ -48,7 +51,7 @@ class ShotEventManager:
         return {"status": "triggered", "event": name}
     
     def complete(self, name: str):
-        if name in self.events:
+        if self._active_event == name:
             self._active_event = None
             if DEBUG_SHOT_EVENTS:
                 print(f"[DEBUG_SHOT_EVENTS] complete: {name}")
@@ -56,6 +59,8 @@ class ShotEventManager:
     def reset(self, name: str):
         if name in self.events:
             self.events[name].fired = False
+            if self._active_event == name:
+                self._active_event = None
             if DEBUG_SHOT_EVENTS:
                 print(f"[DEBUG_SHOT_EVENTS] reset: {name}")
     
@@ -65,7 +70,7 @@ class ShotEventManager:
             if event.fired or event.trigger_type not in ("voice", "auto"):
                 continue
             for kw in event.voice_keywords:
-                if kw.lower() in lower:
+                if re.search(r'\b' + re.escape(kw.lower()) + r'\b', lower):
                     if DEBUG_SHOT_EVENTS:
                         print(f"[DEBUG_SHOT_EVENTS] voice_trigger: '{kw}' matched for {event.name}")
                     return event
@@ -85,10 +90,13 @@ class ShotEventManager:
         """Pre-cache TTS audio for all countdown numbers at startup."""
         self._countdown_cache = {}
         for text in self.get_countdown_texts():
-            audio = await tts_func(text)
-            self._countdown_cache[text] = audio
-            if DEBUG_SHOT_EVENTS:
-                print(f"[DEBUG_SHOT_EVENTS] precached countdown: {text}")
+            try:
+                audio = await tts_func(text)
+                self._countdown_cache[text] = audio
+                if DEBUG_SHOT_EVENTS:
+                    print(f"[DEBUG_SHOT_EVENTS] precached countdown: {text}")
+            except Exception as e:
+                print(f"[DEBUG_SHOT_EVENTS] ERROR precaching '{text}': {e}")
     
     def get_cached_countdown(self, text: str):
         """Return pre-cached audio for a countdown number, or None."""

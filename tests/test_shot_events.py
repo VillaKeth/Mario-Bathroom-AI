@@ -1,7 +1,5 @@
 # tests/test_shot_events.py
 import pytest
-import time
-from unittest.mock import AsyncMock, patch
 
 def test_shot_event_creation():
     from server.shot_events import ShotEvent
@@ -116,3 +114,68 @@ async def test_precache_countdown_audio():
     assert mgr.get_cached_countdown("TEN-a!") == b"audio_TEN-a!"
     assert mgr.get_cached_countdown("ONE-a!") == b"audio_ONE-a!"
     assert mgr.get_cached_countdown("NONEXISTENT") is None
+
+def test_complete_only_clears_matching_active():
+    from server.shot_events import ShotEvent, ShotEventManager
+    mgr = ShotEventManager()
+    a = ShotEvent(name="a", tone="fun", trigger_type="admin",
+                  voice_keywords=[], phases=["announcement"],
+                  announcement_text="Hi!", toast_text="", recovery_line="")
+    b = ShotEvent(name="b", tone="fun", trigger_type="admin",
+                  voice_keywords=[], phases=["announcement"],
+                  announcement_text="Hi!", toast_text="", recovery_line="")
+    mgr.register(a)
+    mgr.register(b)
+    mgr.trigger("a")
+    mgr.complete("a")
+    # Now trigger b
+    mgr.trigger("b")
+    mgr.complete("a")  # completing a should NOT clear b
+    assert mgr.is_active is True
+    assert mgr.active_event.name == "b"
+
+def test_reset_clears_active_state():
+    from server.shot_events import ShotEvent, ShotEventManager
+    mgr = ShotEventManager()
+    event = ShotEvent(name="test", tone="fun", trigger_type="admin",
+                      voice_keywords=[], phases=["announcement"],
+                      announcement_text="Hi!", toast_text="", recovery_line="")
+    mgr.register(event)
+    mgr.trigger("test")
+    assert mgr.is_active is True
+    mgr.reset("test")
+    assert mgr.is_active is False
+    assert event.fired is False
+
+def test_trigger_blocked_by_active():
+    from server.shot_events import ShotEvent, ShotEventManager
+    mgr = ShotEventManager()
+    a = ShotEvent(name="a", tone="fun", trigger_type="admin",
+                  voice_keywords=[], phases=["announcement"],
+                  announcement_text="Hi!", toast_text="", recovery_line="")
+    b = ShotEvent(name="b", tone="fun", trigger_type="admin",
+                  voice_keywords=[], phases=["announcement"],
+                  announcement_text="Hi!", toast_text="", recovery_line="")
+    mgr.register(a)
+    mgr.register(b)
+    mgr.trigger("a")
+    result = mgr.trigger("b")
+    assert result["status"] == "blocked_by_active"
+
+def test_trigger_not_found():
+    from server.shot_events import ShotEventManager
+    mgr = ShotEventManager()
+    result = mgr.trigger("nonexistent")
+    assert result["status"] == "not_found"
+
+def test_voice_keyword_no_substring_match():
+    from server.shot_events import ShotEvent, ShotEventManager
+    mgr = ShotEventManager()
+    event = ShotEvent(name="lisa_memorial", tone="solemn", trigger_type="voice",
+                      voice_keywords=["lisa"],
+                      phases=["announcement"],
+                      announcement_text="Hi!", toast_text="", recovery_line="")
+    mgr.register(event)
+    # "monalisa" should NOT match "lisa" keyword
+    match = mgr.check_voice_trigger("I love the monalisa painting")
+    assert match is None
