@@ -4,9 +4,9 @@
 - [ ] Sub-A: Memorial v2 — voice trigger for "Lisa"/"Aunt Lisa", 10-sec dramatic countdown, music loop fix (loops=0), warm recovery line
 - [ ] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
 - [ ] Sub-A: Flush idle text queue when memorial starts
-- [ ] Sub-B: Speech bubble auto-shrink font (14-28px) with word wrap
-- [ ] Sub-B: Closed captions bar at bottom of screen
-- [ ] Sub-B: Speech bubble stays visible until TTS audio finishes
+- [x] Sub-B: Speech bubble auto-shrink font (14-28px) with word wrap
+- [x] Sub-B: Closed captions bar at bottom of screen
+- [x] Sub-B: Speech bubble stays visible until TTS audio finishes
 - [ ] Sub-B: Hot-swappable bathroom backgrounds from assets/backgrounds/
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
@@ -15,7 +15,9 @@
 - [ ] Sub-D: LLM-analyzed sentiment replacing keyword matching
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
 - [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
-- [ ] Shot Events System — Lisa Webb memorial + Birthday Boy shot + Deltarune shot
+- [x] Task 5: Shot Events System Framework — ShotEvent dataclass + ShotEventManager (10 tests passing)
+- [ ] Task 6: Shot Event Configurations — Lisa Webb memorial + Birthday Boy shot + Deltarune shot
+- [ ] Task 7: Shot Events WebSocket Integration
 - [ ] Easter egg: "Jacob said the N-Word" line 3-5 times per night
 - [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)
 - [ ] Stable Diffusion prompts for Jacob's 1985 FL townhouse bathroom
