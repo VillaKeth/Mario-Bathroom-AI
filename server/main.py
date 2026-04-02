@@ -3429,6 +3429,11 @@ async def _do_greeting(ws: WebSocket, event: dict):
         if recent_topics:
             ctx.append({"role": "system", "content": f"Last time {state_current['speaker_name']} was here, you were talking about: {recent_topics[0]}. Reference this!"})
 
+        # Gossip-derived intel about this returning guest
+        return_intel = party_gossip.get_return_visit_context(state_current["speaker_id"])
+        if return_intel and actual_visits >= 2:
+            ctx.append({"role": "system", "content": return_intel})
+
     elif total == 1:
         ctx = mario_prompt.build_context(event="first_visitor")
     elif total in (10, 25, 50, 100):

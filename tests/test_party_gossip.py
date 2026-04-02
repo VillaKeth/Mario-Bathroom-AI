@@ -500,3 +500,56 @@ class TestPartyRecap:
         recap = pg.get_party_recap_for_newcomer("c1")
         assert recap is not None
         assert "arm wrestling" in recap.lower() or "challenged" in recap.lower()
+
+
+class TestReturnVisitContext:
+    def test_return_visit_empty_for_unknown_guest(self):
+        pg = PartyGossip()
+        assert pg.get_return_visit_context("unknown_id") is None
+
+    def test_return_visit_with_highlights(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I absolutely love gaming and speedruns")
+        ctx = pg.get_return_visit_context("a1")
+        assert ctx is not None
+        assert "RETURNING GUEST INTEL" in ctx
+        assert "gaming" in ctx.lower() or "speedrun" in ctx.lower()
+
+    def test_return_visit_includes_traits(self):
+        pg = PartyGossip()
+        pg.analyze_for_gossip("Alice", "a1", "I love playing games and doing speedruns on nintendo")
+        ctx = pg.get_return_visit_context("a1")
+        assert ctx is not None
+        assert "gamer" in ctx.lower()
+
+    def test_return_visit_includes_title(self):
+        pg = PartyGossip()
+        pg._guest_titles["a1"] = "The Pizza Queen"
+        pg._guest_highlights["a1"] = [{"text": "something cool", "time": 0}]
+        ctx = pg.get_return_visit_context("a1")
+        assert ctx is not None
+        assert "Pizza Queen" in ctx
+
+    def test_return_visit_includes_rivalry(self):
+        pg = PartyGossip()
+        pg._guest_names["a1"] = "Alice"
+        pg._rivalries = [("Alice", "Bob", "pizza")]
+        pg._guest_highlights["a1"] = [{"text": "something", "time": 0}]
+        ctx = pg.get_return_visit_context("a1")
+        assert ctx is not None
+        assert "rivalry" in ctx.lower()
+        assert "Bob" in ctx
+
+    def test_return_visit_includes_alliance(self):
+        pg = PartyGossip()
+        pg._guest_names["a1"] = "Alice"
+        pg._alliances = [("Alice", "Carol", "music")]
+        pg._guest_highlights["a1"] = [{"text": "something", "time": 0}]
+        ctx = pg.get_return_visit_context("a1")
+        assert ctx is not None
+        assert "Bonded" in ctx or "Carol" in ctx
+
+    def test_return_visit_none_for_empty_id(self):
+        pg = PartyGossip()
+        assert pg.get_return_visit_context("") is None
+        assert pg.get_return_visit_context(None) is None

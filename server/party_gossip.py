@@ -532,6 +532,50 @@ class PartyGossip:
             return new_title
         return None
 
+    def get_return_visit_context(self, speaker_id: str) -> str | None:
+        """Generate context for a returning guest based on their previous highlights,
+        speech traits, and any gossip about them. Returns a hint for Mario or None."""
+        if not speaker_id:
+            return None
+
+        parts = []
+
+        # What they talked about
+        highlights = self._guest_highlights.get(speaker_id, [])
+        if highlights:
+            recent = highlights[-2:]  # Last 2 things they said
+            topics = [h["text"][:50] for h in recent]
+            parts.append(f"Last time they said: {'; '.join(topics)}")
+
+        # Their personality traits
+        traits = self._guest_speech_traits.get(speaker_id, [])
+        if traits:
+            trait_str = ", ".join(t.replace("_", " ") for t in traits[-3:])
+            parts.append(f"Their vibe: {trait_str}")
+
+        # Their title (if earned)
+        title = self._guest_titles.get(speaker_id)
+        if title:
+            parts.append(f"Title: '{title}'")
+
+        # Any rivalries involving them
+        name = self._guest_names.get(speaker_id)
+        if name:
+            for r in self._rivalries:
+                if name in (r[0], r[1]):
+                    other = r[1] if r[0] == name else r[0]
+                    parts.append(f"Has a rivalry with {other} about {r[2]}")
+                    break
+            for a in self._alliances:
+                if name in (a[0], a[1]):
+                    other = a[1] if a[0] == name else a[0]
+                    parts.append(f"Bonded with {other} over {a[2]}")
+                    break
+
+        if not parts:
+            return None
+        return "RETURNING GUEST INTEL: " + " | ".join(parts[:4])
+
     def add_dramatic_moment(self, description: str):
         """Record a dramatic party moment for the narrative."""
         self._dramatic_moments.append({
