@@ -7,6 +7,7 @@ import threading
 import queue
 import numpy as np
 import sounddevice as sd
+import pygame
 
 DEBUG_PLAYBACK = True
 DEBUG_AUDIO = True
@@ -74,6 +75,43 @@ class AudioPlayback:
     def is_playing(self) -> bool:
         with self._lock:
             return self._actively_playing or not self._play_queue.empty()
+
+    # ── Memorial music (MP3 via pygame.mixer.music) ──────────────
+    def play_memorial_music(self, path: str, loops: int = 1):
+        """Play an MP3 file using pygame.mixer.music.
+        
+        Args:
+            path: Path to the MP3 file.
+            loops: Number of extra repeats (0=play once, 1=play twice, etc.)
+        """
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.music.load(path)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(loops=loops)
+            if DEBUG_PLAYBACK:
+                logger.info(f"[DEBUG_PLAYBACK] Memorial music started: {path} (loops={loops})")
+        except Exception as e:
+            logger.error(f"[DEBUG_PLAYBACK] Memorial music error: {e}")
+
+    def stop_memorial_music(self, fadeout_ms: int = 3000):
+        """Fade out and stop memorial music."""
+        try:
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.fadeout(fadeout_ms)
+                if DEBUG_PLAYBACK:
+                    logger.info(f"[DEBUG_PLAYBACK] Memorial music fading out ({fadeout_ms}ms)")
+        except Exception as e:
+            logger.error(f"[DEBUG_PLAYBACK] Memorial music stop error: {e}")
+
+    @property
+    def is_music_playing(self) -> bool:
+        """Check if memorial music is currently playing."""
+        try:
+            return pygame.mixer.music.get_busy()
+        except Exception:
+            return False
 
     def _worker(self):
         """Background thread that plays queued audio."""
