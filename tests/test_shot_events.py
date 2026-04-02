@@ -179,3 +179,31 @@ def test_voice_keyword_no_substring_match():
     # "monalisa" should NOT match "lisa" keyword
     match = mgr.check_voice_trigger("I love the monalisa painting")
     assert match is None
+
+def test_default_events_registered():
+    from server.shot_events import create_default_events
+    mgr = create_default_events()
+    assert "lisa_webb_memorial" in mgr.events
+    assert "birthday_boy" in mgr.events
+    assert "deltarune" in mgr.events
+
+def test_lisa_memorial_is_solemn():
+    from server.shot_events import create_default_events
+    mgr = create_default_events()
+    lisa = mgr.events["lisa_webb_memorial"]
+    assert lisa.tone == "solemn"
+    assert "silence" in lisa.phases
+    assert lisa.music_file is not None
+
+def test_birthday_boy_is_celebratory():
+    from server.shot_events import create_default_events
+    mgr = create_default_events()
+    bday = mgr.events["birthday_boy"]
+    assert bday.tone == "celebratory"
+    assert "silence" not in bday.phases
+
+def test_deltarune_mentions_lancer():
+    from server.shot_events import create_default_events
+    mgr = create_default_events()
+    dr = mgr.events["deltarune"]
+    assert "Lancer" in dr.toast_text or "LANCER" in dr.toast_text

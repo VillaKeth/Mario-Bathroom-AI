@@ -111,3 +111,49 @@ class ShotEventManager:
         if self._active_event:
             return self.events.get(self._active_event)
         return None
+
+def create_default_events() -> ShotEventManager:
+    """Create the three party shot events."""
+    mgr = ShotEventManager()
+    
+    mgr.register(ShotEvent(
+        name="lisa_webb_memorial",
+        tone="solemn",
+        trigger_type="auto",
+        voice_keywords=["lisa", "aunt lisa", "lisa webb", "toast to lisa"],
+        phases=["announcement", "silence", "countdown", "toast", "music", "recovery"],
+        announcement_text="Everyone, please. Mario has something important to say. Tonight we remember someone very special, Lisa Webb. She was family to Jacob, and she's watching over this party from above.",
+        silence_text="Let's have a moment of silence for Lisa Webb.",
+        toast_text="Now raise your glasses, everyone. To Lisa Webb, a beautiful soul who touched all of our lives. To Lisa!",
+        recovery_line="Lisa would've loved this party. Now let's keep celebrating in her honor!",
+        countdown=True,
+        music_file="client/assets/audio/lisa_memorial.mp3",
+        music_duration=120,
+        skip_key="ctrl+shift+l",
+    ))
+    
+    mgr.register(ShotEvent(
+        name="birthday_boy",
+        tone="celebratory",
+        trigger_type="voice",
+        voice_keywords=["birthday shot", "shot for jacob", "birthday boy shot"],
+        phases=["announcement", "countdown", "toast", "recovery"],
+        announcement_text="It's-a time to take a shot for the BIRTHDAY BOY! Jacob Hoppenstedt, this one's for YOU!",
+        toast_text="To Jacob! Happy Birthday! WAHOO!",
+        recovery_line="WAHOO! Now THAT'S how we party!",
+        countdown=True,
+    ))
+    
+    mgr.register(ShotEvent(
+        name="deltarune",
+        tone="fun",
+        trigger_type="voice",
+        voice_keywords=["deltarune shot", "shot for deltarune", "deltarune toast"],
+        phases=["announcement", "countdown", "toast", "recovery"],
+        announcement_text="This shot goes out to the heroes of the Dark World!",
+        toast_text="Kris! Susie! Ralsei! And the one and only LANCER! Jacob voiced Lancer, and Keth voiced Susie! To Deltarune!",
+        recovery_line="Haha! What a fun-a game! Now back to the party!",
+        countdown=True,
+    ))
+    
+    return mgr
