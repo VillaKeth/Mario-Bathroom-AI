@@ -3002,12 +3002,19 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 streamed = False
 
     if not streamed:
-        try:
-            response_audio = await loop.run_in_executor(
-                _tts_executor, lambda: tts.synthesize_user(tts_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-        except Exception as e:
-            logger.error(f"TTS failed: {e} — sending text only")
-            response_audio = None
+        response_audio = None
+        for _tts_attempt in range(2):
+            try:
+                response_audio = await loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(tts_text, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                break
+            except Exception as e:
+                if _tts_attempt == 0:
+                    logger.warning(f"TTS attempt 1 failed: {e} — retrying in 0.5s")
+                    await asyncio.sleep(0.5)
+                else:
+                    logger.error(f"TTS failed after retry: {e} — sending text only")
+                    response_audio = None
         await send_response(ws, analyzed["display_text"], response_audio,
             sound=game_sound, emotion=emotion_system.current,
             pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
@@ -3460,8 +3467,18 @@ async def handle_event(ws: WebSocket, event: dict):
             if analyzed.get("energy") == "high":
                 voice_params["rate"] = "+15%"
                 voice_params["pitch"] = "+5Hz"
-            response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
-                analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+            response_audio = None
+            for _tts_try in range(2):
+                try:
+                    response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
+                        analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                    break
+                except Exception as tts_err:
+                    if _tts_try == 0:
+                        logger.warning(f"[GREETING] TTS attempt 1 failed: {tts_err} — retrying")
+                        await asyncio.sleep(0.3)
+                    else:
+                        logger.error(f"[GREETING] TTS failed after retry: {tts_err} — text only greeting")
             # Send with retry on failure
             for _attempt in range(2):
                 try:
