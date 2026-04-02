@@ -146,8 +146,7 @@ class MarioClient:
         if self.presence and self.presence.someone_present and self.ws.connected:
             self.ws.send_event({"type": "presence_exit"})
             time.sleep(0.5)  # Brief delay to let server process
-        if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
-            self._speaking_timer.cancel()
+        self._audio_wait_cancel.set()
         self.audio_capture.stop()
         self.audio_playback.stop()
         if self.presence:
@@ -253,7 +252,6 @@ class MarioClient:
 
     def _wait_for_audio_complete(self):
         """Wait for audio playback to finish, then clear speech bubble."""
-        import time
         self._audio_wait_cancel.clear()
         
         # Wait for audio to start playing (up to 2s)
@@ -284,9 +282,7 @@ class MarioClient:
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
         # Start audio-wait thread that polls until playback actually finishes
-        if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
-            if hasattr(self._speaking_timer, 'cancel'):
-                self._speaking_timer.cancel()
+        self._audio_wait_cancel.set()
         self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
         self._audio_wait_thread.start()
 
@@ -307,9 +303,7 @@ class MarioClient:
         self._last_play_end_time = time.time() + duration
         # Only schedule speaking state clear on the last chunk
         if is_last:
-            if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
-                if hasattr(self._speaking_timer, 'cancel'):
-                    self._speaking_timer.cancel()
+            self._audio_wait_cancel.set()
             self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
             self._audio_wait_thread.start()
 
