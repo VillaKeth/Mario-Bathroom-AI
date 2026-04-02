@@ -54,8 +54,9 @@ server_*.log
 __pycache__/
 *.pyc
 
-# One-off test scripts
-test_*.py
+# One-off test scripts (exclude root/server, not tests/ dir)
+/test_*.py
+/server/test_*.py
 analyze_ralph*.py
 
 # Cache build results
