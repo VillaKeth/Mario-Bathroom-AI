@@ -94,3 +94,6 @@ tests/*.mp3
 
 # Superpowers brainstorm files
 .superpowers/
+
+models-v2.1.zip
+server/data/qdrant_memories/.lock
