@@ -1806,22 +1806,27 @@ async def _idle_loop(ws: WebSocket):
                         state_current["_last_time_obs"] = time.time()
                 continue
 
-        # Try context-aware idle first (riffs on recent conversation topics)
-        # Get current night phase for phase-aware idle
-        try:
-            _idle_hours = night_progression.get_hours_elapsed()
-            _idle_guests = party_gossip.get_guest_count()
-            _idle_phase = night_progression.get_effective_phase(_idle_hours, _idle_guests)
-        except Exception:
-            _idle_phase = None
-        contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
-        action = contextual or idle_behavior.get_idle_action(phase=_idle_phase)
+        # Loneliness arc: progressive mood when alone for extended time
+        lonely_action = idle_behavior.get_lonely_action()
+        if lonely_action:
+            action = lonely_action
+        else:
+            # Try context-aware idle first (riffs on recent conversation topics)
+            # Get current night phase for phase-aware idle
+            try:
+                _idle_hours = night_progression.get_hours_elapsed()
+                _idle_guests = party_gossip.get_guest_count()
+                _idle_phase = night_progression.get_effective_phase(_idle_hours, _idle_guests)
+            except Exception:
+                _idle_phase = None
+            contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
+            action = contextual or idle_behavior.get_idle_action(phase=_idle_phase)
 
-        # Gossip-based idle: occasionally reminisce about guests when alone (15% chance)
-        if not action and random.random() < 0.15:
-            gossip_msg = idle_behavior.get_gossip_idle()
-            if gossip_msg:
-                action = gossip_msg
+            # Gossip-based idle: occasionally reminisce about guests when alone (15% chance)
+            if not action and random.random() < 0.15:
+                gossip_msg = idle_behavior.get_gossip_idle()
+                if gossip_msg:
+                    action = gossip_msg
 
         # Track last idle action for greeting acknowledgment
         if action:
@@ -3422,6 +3427,9 @@ async def _do_greeting(ws: WebSocket, event: dict):
     last_idle = state_current.get("_last_idle_action", "")
     if last_idle:
         ctx.append({"role": "system", "content": f"You were just: '{last_idle}' — briefly mention what you were up to when they walked in!"})
+    lonely_boost = idle_behavior.get_loneliness_greeting_boost()
+    if lonely_boost:
+        ctx.append({"role": "system", "content": f"You've been alone a LONG time! Start with something like: '{lonely_boost}' then continue your normal greeting."})
     if crew_ctx:
         ctx.append({"role": "system", "content": crew_ctx})
 
@@ -3557,6 +3565,7 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["_name_from_parsing"] = False  # Reset name parsing flag for new guest
         emotion_system.update(event="presence_enter")
         idle_behavior.reset_timer()
+        idle_behavior.visitor_arrived()
         # Reset per-conversation state in mario_prompt
         mario_prompt.reset_convo_temperature()
         mario_prompt.reset_achievements()
@@ -3658,6 +3667,7 @@ async def handle_event(ws: WebSocket, event: dict):
 
         state_current["presence"] = False
         emotion_system.update(event="presence_exit")
+        idle_behavior.visitor_left()
 
         if state_current["current_visit_id"]:
             party_stats.record_exit(state_current["current_visit_id"])

@@ -716,6 +716,40 @@ DJ_ANNOUNCEMENTS = [
     "ALERT ALERT! DJ Mario declares the next 10 minutes as MAXIMUM PARTY MODE! No holding back!",
 ]
 
+# Loneliness arc: Mario's mood evolves based on time spent alone
+LONELY_MILD = [  # 5-15 min alone
+    "Hello? Anyone out there? *echo* Just the pipes answering...",
+    "Hmm... kinda quiet out there. Did everyone leave? No... I can hear the music still!",
+    "*looks at door* Come on in, the water's fine! ...Wait, that doesn't work for a bathroom.",
+    "♪ All by myself... don't wanna be... all by myself... ♪ Okay that's-a too sad. WAHOO!",
+    "You know, I've been alone before. World 1-1, first level, no coins... wait, there were coins.",
+    "*sits on edge of bathtub* Just gonna rest-a my feet for a second...",
+    "Party's still going! I can hear it! Just... from in here. By myself. Which is fine!",
+    "I wonder if anyone even noticed I'm in the bathroom. I mean, I AM the bathroom.",
+]
+
+LONELY_MEDIUM = [  # 15-30 min alone
+    "Okay, it's been a while. Is this bathroom cursed or something?",
+    "*stares at mirror* You're the only friend I've got right now. You and the soap.",
+    "Do you think the other rooms ever feel this lonely? Probably not. They've got furniture.",
+    "I've defeated Bowser like a hundred times but waiting in an empty bathroom? THIS is the real boss fight.",
+    "♪ In the arms of an angel... ♪ No wait, I'm being dramatic. I'm FINE. *sniff*",
+    "You know what, I'm going to count the ceiling tiles again. ...Fourteen. Same as last time.",
+    "If a Mario talks in a bathroom and no one is around to hear it, does he make a sound? ...Yes. Yes he does.",
+    "*dramatic sigh* Even Bowser's dungeon had more visitors than this...",
+]
+
+LONELY_DEEP = [  # 30+ min alone
+    "I've been in here so long I'm starting to relate to the toilet. We both just... sit here. Waiting.",
+    "*existential crisis mode* What even IS a plumber? Am I even real? ...Okay yes, I'm real. I think.",
+    "At this point I think the soap dispenser is my best friend. He's a good listener. Never interrupts.",
+    "Forty years of saving princesses, and THIS is where I end up. A bathroom. Alone. At a party.",
+    "I've started naming the tiles. That one's Steve. That one's Margaret. Steve is my favorite.",
+    "*talks to mirror* We need to talk about our relationship. You never say anything original. You just copy me.",
+    "If I were a ghost, I'd haunt a more exciting room. Like the kitchen. At least there's-a spaghetti.",
+    "You know what, when someone finally comes in here, I'm going to give them the GREATEST greeting of all time. Just watch.",
+]
+
 
 class IdleBehavior:
     """Manages Mario's autonomous behavior when idle."""
@@ -742,6 +776,83 @@ class IdleBehavior:
         self._memorial_delivered = False
         self._memorial_shot_delivered = False
         self._party_start_time = time.time()
+        # Loneliness arc tracking
+        self._alone_since = time.time()  # When the last visitor left
+        self._loneliness_level = 0  # 0=normal, 1=mild, 2=medium, 3=deep
+        self._last_lonely_msg_time = 0.0
+
+    def visitor_arrived(self):
+        """Call when a visitor enters — resets loneliness arc."""
+        self._loneliness_level = 0
+        if DEBUG_IDLE:
+            mins_alone = (time.time() - self._alone_since) / 60
+            logger.info(f"[DEBUG_IDLE] visitor_arrived: was alone {mins_alone:.1f}min (level was {self._loneliness_level})")
+
+    def visitor_left(self):
+        """Call when a visitor exits — starts loneliness timer."""
+        self._alone_since = time.time()
+        self._loneliness_level = 0
+        if DEBUG_IDLE:
+            logger.info("[DEBUG_IDLE] visitor_left: loneliness timer started")
+
+    def get_loneliness_greeting_boost(self) -> str | None:
+        """Get an extra-enthusiastic greeting if Mario has been alone a long time."""
+        mins_alone = (time.time() - self._alone_since) / 60
+        if mins_alone < 5:
+            return None
+        if mins_alone < 15:
+            return random.choice([
+                "FINALLY! A human! I was starting to talk to the soap!",
+                "Oh thank-a goodness, someone's here! I was getting lonely!",
+                "WAHOO! A visitor! I was just about to start a one-man show!",
+            ])
+        if mins_alone < 30:
+            return random.choice([
+                "OH MY GOSH A REAL PERSON! I've been in here SO LONG! You have NO idea how happy I am to see you!",
+                "A VISITOR! I was THIS close to befriending the toilet brush! You saved-a me!",
+                "FINALLY! I was starting to think everyone forgot about me in here! Best moment of my LIFE!",
+            ])
+        return random.choice([
+            "IS THAT... A HUMAN?! *tears of joy* I thought you'd NEVER come! I named all the tiles! STEVE SAYS HI!",
+            "OH MAMA MIA! A REAL ACTUAL PERSON! I was about to file a missing plumber report on MYSELF!",
+            "YOU CAME! You ACTUALLY came! I have SO much to tell you! I've had a LOT of time to think in here!",
+        ])
+
+    def get_lonely_action(self) -> str | None:
+        """Get a loneliness-arc message based on how long Mario has been alone.
+
+        Returns None if not time for a lonely message yet (uses own cooldown).
+        """
+        now = time.time()
+        mins_alone = (now - self._alone_since) / 60
+
+        # Not alone long enough for loneliness arc
+        if mins_alone < 5:
+            self._loneliness_level = 0
+            return None
+
+        # Loneliness messages have their own cooldown (90s between each)
+        if now - self._last_lonely_msg_time < 90:
+            return None
+
+        if mins_alone < 15:
+            self._loneliness_level = 1
+            pool = LONELY_MILD
+            pool_name = "lonely_mild"
+        elif mins_alone < 30:
+            self._loneliness_level = 2
+            pool = LONELY_MEDIUM
+            pool_name = "lonely_medium"
+        else:
+            self._loneliness_level = 3
+            pool = LONELY_DEEP
+            pool_name = "lonely_deep"
+
+        self._last_lonely_msg_time = now
+        choice = self._pick_unique(pool, pool_name)
+        if DEBUG_IDLE:
+            logger.info(f"[DEBUG_IDLE] get_lonely_action: level={self._loneliness_level} mins={mins_alone:.1f} '{choice[:50]}...'")
+        return choice
 
     def _pick_unique(self, pool: list, pool_name: str = None) -> str:
         """Pick a random item from pool, avoiding recent repeats (per-pool + global)."""

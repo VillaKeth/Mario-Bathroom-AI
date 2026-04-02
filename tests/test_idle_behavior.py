@@ -19,6 +19,9 @@ from idle_behavior import (
     MARIO_COMPLIMENTS,
     HAND_WASH_REMINDERS,
     PLUMBING_FACTS,
+    LONELY_MILD,
+    LONELY_MEDIUM,
+    LONELY_DEEP,
 )
 
 
@@ -503,3 +506,99 @@ class TestIdleBehaviorGaps:
             mock_conn.execute.return_value.fetchall.return_value = []
             result = ib.get_gossip_idle()
         assert result is None
+
+
+# ── TestLonelinessArc ────────────────────────────────────────────────────
+
+class TestLonelinessArc:
+    """Tests for the loneliness arc feature — lonely pools, actions, cooldown, visitor reset."""
+
+    # -- Pool existence / size --
+
+    def test_lonely_pools_exist(self):
+        assert isinstance(LONELY_MILD, list) and len(LONELY_MILD) > 0
+        assert isinstance(LONELY_MEDIUM, list) and len(LONELY_MEDIUM) > 0
+        assert isinstance(LONELY_DEEP, list) and len(LONELY_DEEP) > 0
+
+    def test_lonely_pools_minimum_size(self):
+        assert len(LONELY_MILD) >= 6
+        assert len(LONELY_MEDIUM) >= 6
+        assert len(LONELY_DEEP) >= 6
+
+    # -- get_lonely_action behaviour --
+
+    def test_get_lonely_action_returns_none_early(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time()  # just now
+        assert ib.get_lonely_action() is None
+
+    def test_get_lonely_action_mild(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 600  # 10 min ago
+        ib._last_lonely_msg_time = 0
+        result = ib.get_lonely_action()
+        assert isinstance(result, str)
+        assert result in LONELY_MILD
+
+    def test_get_lonely_action_medium(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 1200  # 20 min ago
+        ib._last_lonely_msg_time = 0
+        result = ib.get_lonely_action()
+        assert isinstance(result, str)
+        assert result in LONELY_MEDIUM
+
+    def test_get_lonely_action_deep(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 2400  # 40 min ago
+        ib._last_lonely_msg_time = 0
+        result = ib.get_lonely_action()
+        assert isinstance(result, str)
+        assert result in LONELY_DEEP
+
+    # -- Cooldown --
+
+    def test_lonely_cooldown(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 600  # 10 min ago
+        ib._last_lonely_msg_time = 0
+        first = ib.get_lonely_action()
+        assert first is not None
+        # Second call within 90s should return None (cooldown)
+        assert ib.get_lonely_action() is None
+
+    # -- Visitor lifecycle --
+
+    def test_visitor_arrived_resets_loneliness(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 2400  # 40 min ago
+        ib._last_lonely_msg_time = 0
+        ib.visitor_arrived()
+        assert ib._loneliness_level == 0
+
+    def test_visitor_left_starts_timer(self):
+        ib = IdleBehavior()
+        before = time.time()
+        ib.visitor_left()
+        after = time.time()
+        assert before <= ib._alone_since <= after
+        assert ib._loneliness_level == 0
+
+    # -- Greeting boost --
+
+    def test_greeting_boost_none_when_not_alone(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time()  # just now
+        assert ib.get_loneliness_greeting_boost() is None
+
+    def test_greeting_boost_mild(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 600  # 10 min alone
+        result = ib.get_loneliness_greeting_boost()
+        assert isinstance(result, str) and len(result) > 0
+
+    def test_greeting_boost_deep(self):
+        ib = IdleBehavior()
+        ib._alone_since = time.time() - 2700  # 45 min alone
+        result = ib.get_loneliness_greeting_boost()
+        assert isinstance(result, str) and len(result) > 0
