@@ -128,6 +128,20 @@ _TRENDING_TEMPLATES = [
     "Breaking from the Mushroom Kingdom News Desk: {topic} is officially the party's biggest topic! {names} all weighed in!",
 ]
 
+# Gossip seed questions — designed to generate gossip-worthy answers early in the party
+_GOSSIP_SEED_QUESTIONS = [
+    "Quick question — what's your HOTTEST food take? Like, pineapple on pizza — yes or no?",
+    "If you could only eat ONE food for the rest of your life, what would it be?",
+    "What's the most embarrassing song you secretly love? No judgment! (Full judgment.)",
+    "What's your most CONTROVERSIAL opinion? Something that would start a debate!",
+    "What's your biggest fear? I'm-a taking notes for science!",
+    "If you could have ONE superpower, what would it be? (Plumbing powers don't count!)",
+    "What's the best movie ever made? This is a TEST!",
+    "Are you a morning person or a night owl? I need to know who I'm-a dealing with!",
+    "What's the most adventurous thing you've ever done?",
+    "If this party had a theme song, what would it be?",
+]
+
 # Title templates for guests
 _TITLE_TEMPLATES = [
     "The {adj} {noun}",
@@ -622,6 +636,21 @@ class PartyGossip:
     def get_gossip_count(self) -> int:
         """Total gossip entries collected."""
         return len(self._gossip_log)
+
+    def get_gossip_seed_question(self, speaker_id: str = None) -> str | None:
+        """Return a fun question designed to seed gossip-worthy content.
+        Only fires early in the party when gossip is thin.
+        Each question is only asked once per party."""
+        if len(self._gossip_log) >= 10:
+            return None  # Enough gossip already
+        if not hasattr(self, '_used_seeds'):
+            self._used_seeds = set()
+        available = [q for q in _GOSSIP_SEED_QUESTIONS if q not in self._used_seeds]
+        if not available:
+            return None
+        question = random.choice(available)
+        self._used_seeds.add(question)
+        return question
 
     def _prune_gossip(self):
         """Remove old gossip entries and enforce size cap."""

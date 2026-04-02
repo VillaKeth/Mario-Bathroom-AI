@@ -2771,6 +2771,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if trending:
             ctx.append({"role": "system", "content": f"[TRENDING]: {trending}"})
 
+        # Gossip seed question — ask fun questions early to generate material
+        if not gossip_requested and random.random() < 0.20:
+            seed_q = party_gossip.get_gossip_seed_question(
+                state_current.get("speaker_id", ""))
+            if seed_q:
+                ctx.append({"role": "system", "content":
+                    f"[SEED QUESTION]: Work this question naturally into your response: {seed_q}"})
+
         # Chaos system — random interrupts for Neuro-sama energy
         chaos_roll = random.random()
         if chaos_roll < 0.08:

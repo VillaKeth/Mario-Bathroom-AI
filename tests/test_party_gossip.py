@@ -553,3 +553,48 @@ class TestReturnVisitContext:
         pg = PartyGossip()
         assert pg.get_return_visit_context("") is None
         assert pg.get_return_visit_context(None) is None
+
+
+# ── TestGossipSeedQuestions ───────────────────────────────────────────────
+
+class TestGossipSeedQuestions:
+    def test_seed_returns_question_when_gossip_thin(self):
+        pg = PartyGossip()
+        q = pg.get_gossip_seed_question()
+        assert q is not None
+        assert isinstance(q, str)
+        assert "?" in q
+
+    def test_seed_returns_none_when_enough_gossip(self):
+        pg = PartyGossip()
+        pg._gossip_log = [{"text": f"g{i}"} for i in range(10)]
+        assert pg.get_gossip_seed_question() is None
+
+    def test_seed_no_repeats(self):
+        pg = PartyGossip()
+        seen = set()
+        for _ in range(20):
+            q = pg.get_gossip_seed_question()
+            if q is None:
+                break
+            assert q not in seen, f"Got repeat seed question: {q}"
+            seen.add(q)
+
+    def test_seed_exhaustion_returns_none(self):
+        pg = PartyGossip()
+        questions = []
+        for _ in range(100):
+            q = pg.get_gossip_seed_question()
+            if q is None:
+                break
+            questions.append(q)
+        # After exhaustion, should return None
+        assert pg.get_gossip_seed_question() is None
+        assert len(questions) > 0
+
+    def test_seed_all_questions_are_strings(self):
+        from party_gossip import _GOSSIP_SEED_QUESTIONS
+        assert len(_GOSSIP_SEED_QUESTIONS) >= 5
+        for q in _GOSSIP_SEED_QUESTIONS:
+            assert isinstance(q, str)
+            assert "?" in q
