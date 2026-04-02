@@ -1,7 +1,8 @@
 """Face encoding storage and matching for guest identification.
 
-Stores 128-dim face_recognition encodings in SQLite. Matches incoming
-face encodings against stored ones using Euclidean distance.
+Stores 128-dim face_recognition encodings in both SQLite (legacy) and 
+Qdrant vector database (primary). Matches incoming face encodings using 
+cosine similarity in Qdrant for improved accuracy and speed.
 Privacy: only numerical vectors stored, never images.
 """
 import json
@@ -9,22 +10,63 @@ import logging
 import os
 import sqlite3
 import threading
+import uuid
+from datetime import datetime
 from typing import Optional
 
 import numpy as np
+
+# Qdrant integration for face embeddings
+try:
+    from qdrant_client import QdrantClient, models
+    _HAS_QDRANT = True
+except ImportError:
+    _HAS_QDRANT = False
 
 logger = logging.getLogger(__name__)
 DEBUG_FACE = True
 
 
 class FaceMemory:
-    """Persistent face encoding storage with matching."""
+    """Persistent face encoding storage with matching via Qdrant + SQLite fallback."""
 
     def __init__(self, db_path: str, match_tolerance: float = 0.6):
         self._db_path = db_path
         self._tolerance = match_tolerance
         self._lock = threading.Lock()
         self._init_db()
+        
+        # Initialize Qdrant for face embeddings
+        self._qdrant_client = None
+        if _HAS_QDRANT:
+            self._init_qdrant()
+
+    def _init_qdrant(self):
+        """Initialize Qdrant client and mario_faces collection."""
+        try:
+            # Use local file-based storage for Qdrant
+            qdrant_path = os.path.join(os.path.dirname(self._db_path), "qdrant_faces")
+            os.makedirs(qdrant_path, exist_ok=True)
+            self._qdrant_client = QdrantClient(path=qdrant_path)
+            
+            # Check if collection exists
+            collections = [c.name for c in self._qdrant_client.get_collections().collections]
+            if "mario_faces" not in collections:
+                self._qdrant_client.create_collection(
+                    collection_name="mario_faces",
+                    vectors_config=models.VectorParams(
+                        size=128,  # face_recognition encoding dimension
+                        distance=models.Distance.COSINE,
+                    ),
+                )
+                if DEBUG_FACE:
+                    logger.info("[face_memory] Created mario_faces Qdrant collection")
+            else:
+                if DEBUG_FACE:
+                    logger.info("[face_memory] mario_faces Qdrant collection already exists")
+        except Exception as e:
+            logger.warning(f"[face_memory] Failed to initialize Qdrant: {e}")
+            self._qdrant_client = None
 
     def _init_db(self):
         os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
@@ -74,9 +116,25 @@ class FaceMemory:
 
     def find_match(self, encoding: np.ndarray,
                    tolerance: Optional[float] = None) -> Optional[dict]:
-        """Find best matching face. Returns dict or None.
+        """Find best matching face using Qdrant first, SQLite fallback.
+        
         Uses early-exit: stops scanning if confidence > 0.95 (near-exact match).
-        For party-scale (20-50 guests), linear scan is <1ms."""
+        For party-scale (20-50 guests), Qdrant search is <1ms.
+        """
+        # Try Qdrant first (primary method)
+        if self._qdrant_client:
+            qdrant_match = self.lookup_face_qdrant(encoding, tolerance)
+            if qdrant_match:
+                if DEBUG_FACE:
+                    logger.info(f"[face_memory] Qdrant match: {qdrant_match['name']} ({qdrant_match['confidence']:.3f})")
+                return {
+                    "person_id": None,  # Qdrant doesn't use person_id
+                    "name": qdrant_match["name"],
+                    "confidence": qdrant_match["confidence"],
+                    "visit_count": qdrant_match["visits"],
+                }
+        
+        # Fallback to SQLite (legacy method)
         tol = tolerance or self._tolerance
         with self._lock:
             conn = sqlite3.connect(self._db_path)
@@ -108,7 +166,127 @@ class FaceMemory:
                 if best_match["confidence"] > 0.95:
                     break
 
+        if DEBUG_FACE and best_match:
+            logger.info(f"[face_memory] SQLite fallback match: {best_match['name']} ({best_match['confidence']:.3f})")
+            
         return best_match
+
+    def store_face_qdrant(self, name: str, encoding: np.ndarray) -> bool:
+        """Store face encoding in Qdrant collection.
+        
+        Args:
+            name: Guest name
+            encoding: 128-dim face encoding
+            
+        Returns:
+            True if stored successfully, False otherwise
+        """
+        if not self._qdrant_client or encoding.shape != (128,):
+            return False
+            
+        try:
+            # Generate deterministic point ID from name
+            point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"face:{name}"))
+            
+            # Check if face already exists, increment visits if so
+            visits = 1
+            try:
+                existing = self._qdrant_client.retrieve(
+                    collection_name="mario_faces",
+                    ids=[point_id],
+                )
+                if existing:
+                    visits = existing[0].payload.get("visits", 0) + 1
+            except Exception:
+                pass  # New face
+            
+            # Store face encoding
+            self._qdrant_client.upsert(
+                collection_name="mario_faces",
+                points=[models.PointStruct(
+                    id=point_id,
+                    vector=encoding.tolist(),
+                    payload={
+                        "name": name,
+                        "visits": visits,
+                        "last_seen": datetime.now().isoformat(),
+                    },
+                )],
+            )
+            
+            if DEBUG_FACE:
+                logger.info(f"[face_memory] Stored face for {name} in Qdrant (visits: {visits})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[face_memory] Failed to store face in Qdrant: {e}")
+            return False
+
+    def lookup_face_qdrant(self, encoding: np.ndarray, 
+                          tolerance: Optional[float] = None) -> Optional[dict]:
+        """Find matching face in Qdrant by cosine similarity.
+        
+        Args:
+            encoding: 128-dim face encoding to match
+            tolerance: Similarity threshold (default: 0.4 for cosine)
+            
+        Returns:
+            dict with name, confidence, visits or None if no match
+        """
+        if not self._qdrant_client or encoding.shape != (128,):
+            return None
+            
+        similarity_threshold = tolerance or 0.4  # Cosine similarity threshold
+        
+        try:
+            results = self._qdrant_client.query_points(
+                collection_name="mario_faces",
+                query=encoding.tolist(),
+                limit=1,
+                score_threshold=similarity_threshold,
+            )
+            
+            if results.points:
+                point = results.points[0]
+                payload = point.payload
+                
+                return {
+                    "name": payload.get("name", "Unknown"),
+                    "confidence": float(point.score),
+                    "visits": payload.get("visits", 1),
+                    "last_seen": payload.get("last_seen", ""),
+                }
+                
+        except Exception as e:
+            logger.error(f"[face_memory] Failed to lookup face in Qdrant: {e}")
+            
+        return None
+
+    def learn_guest(self, name: str, encoding: np.ndarray):
+        """Learn a new guest's face encoding.
+        
+        Stores in both Qdrant (primary) and SQLite (fallback).
+        """
+        # Store in Qdrant (primary)
+        qdrant_success = self.store_face_qdrant(name, encoding)
+        
+        # Store in SQLite (fallback) - use next available person_id
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                # Find next available person_id
+                max_id = conn.execute("SELECT MAX(person_id) FROM face_encodings").fetchone()[0] or 0
+                person_id = max_id + 1
+                
+                # Store in SQLite
+                self.store_face(person_id, name, encoding)
+                
+            finally:
+                conn.close()
+        
+        if DEBUG_FACE:
+            qdrant_status = "✓" if qdrant_success else "✗"
+            logger.info(f"[face_memory] Learned guest {name} - Qdrant: {qdrant_status}, SQLite: ✓")
 
     def get_all_faces(self) -> list:
         """Return all stored face entries (without encodings)."""

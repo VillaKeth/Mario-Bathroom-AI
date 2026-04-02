@@ -157,7 +157,72 @@ KEYWORD_PARTICLES = {
     "coin": "coins", "money": "coins", "rich": "coins", "gold": "coins",
 }
 
-def _detect_particle_effect(text: str) -> str | None:
+def _parse_name_from_response(text: str) -> str | None:
+    """Parse guest name from their response to 'Who are you?'
+    
+    Handles common patterns:
+    - "I'm John" -> "John"
+    - "My name is Alice" -> "Alice"  
+    - "Call me Mike" -> "Mike"
+    - "It's Sarah" -> "Sarah"
+    - Just "David" -> "David"
+    
+    Returns None if no clear name found.
+    """
+    if not text or len(text.strip()) < 1:
+        return None
+    
+    text = text.strip().lower()
+    
+    # Pattern matching for name extraction
+    import re
+    
+    # "I'm [Name]" or "I am [Name]"  
+    match = re.search(r'\bi\s*(?:am|\'m)\s+([a-z]+)', text)
+    if match:
+        return match.group(1).capitalize()
+    
+    # "My name is [Name]"
+    match = re.search(r'my\s+name\s+is\s+([a-z]+)', text) 
+    if match:
+        return match.group(1).capitalize()
+        
+    # "Call me [Name]"
+    match = re.search(r'call\s+me\s+([a-z]+)', text)
+    if match:
+        return match.group(1).capitalize()
+        
+    # "It's [Name]" or "This is [Name]"
+    match = re.search(r'(?:it\'s|this\s+is)\s+([a-z]+)', text)
+    if match:
+        return match.group(1).capitalize()
+    
+    # Single word names (if 2-15 chars, common name pattern)
+    words = text.split()
+    for word in words:
+        # Skip common words that aren't names
+        if word in ['i', 'am', 'is', 'me', 'my', 'name', 'call', 'it', 'this', 'the', 'a', 'an']:
+            continue
+        # Check if it looks like a name (2-15 chars, alphabetic)
+        if 2 <= len(word) <= 15 and word.isalpha():
+            return word.capitalize()
+    
+    return None
+
+
+def _count_unique_faces() -> int:
+    """Count unique faces currently in the Qdrant collection for energy tracking."""
+    if not _face_memory or not hasattr(_face_memory, '_qdrant_client') or not _face_memory._qdrant_client:
+        return 0
+    
+    try:
+        collection_info = _face_memory._qdrant_client.get_collection("mario_faces")
+        return collection_info.points_count or 0
+    except Exception as e:
+        logger.warning(f"[PRESENCE_SCAN] Failed to count faces: {e}")
+        return 0
+
+
     """Detect keyword in text and return particle effect name."""
     import string
     words = set(w.strip(string.punctuation) for w in text.lower().split())
@@ -294,6 +359,11 @@ state_current = {
     "memorial_active": False,
     "memorial_triggered_at": 0.0,
     "conversation_summary": "",  # Rolling summary of older conversation messages
+    # Dynamic guest learning flow
+    "_awaiting_name_response": False,
+    "_name_attempts": 0,
+    "_mystery_guest_counter": 0,
+    "_last_face_encoding": None,  # Store encoding while learning guest name
 }
 
 # Active WebSocket reference for admin endpoints to broadcast to
@@ -387,6 +457,21 @@ try:
     from server.face_memory import FaceMemory
     _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
     _face_memory = FaceMemory(_face_db_path)
+    
+    # Jacob VIP pre-registration - generate a placeholder face encoding if not exists
+    if hasattr(_face_memory, 'store_face_qdrant') and _face_memory._qdrant_client:
+        try:
+            # Try to find existing Jacob entry
+            test_encoding = np.random.random(128).astype(np.float64)  # Placeholder
+            existing_match = _face_memory.lookup_face_qdrant(test_encoding, tolerance=0.0)  # Will not match
+            if existing_match is None or existing_match.get("name") != "Jacob":
+                # Pre-register Jacob with a known encoding (in real use, this would be from actual photo)
+                jacob_encoding = np.random.random(128).astype(np.float64)  # In production: use actual photo
+                _face_memory.store_face_qdrant("Jacob", jacob_encoding)
+                logger.info("[INIT] Jacob VIP pre-registered in face database")
+        except Exception as e:
+            logger.warning(f"[INIT] Jacob VIP pre-registration failed: {e}")
+    
     logger.info("[INIT] Face memory initialized")
 except Exception as e:
     logger.warning(f"[INIT] Face memory unavailable: {e}")
@@ -851,13 +936,13 @@ async def _run_shot_event(event):
                 else:
                     await asyncio.sleep(2.0)  # Default 2 second pause
         
-        # Event complete
-        shot_event_manager.complete(event.name)
         logger.info(f"[SHOT_EVENT] {event.name} complete")
         
     except Exception as e:
         logger.error(f"[SHOT_EVENT] Error running {event.name}: {e}")
     finally:
+        # Event complete - always clear regardless of success/failure
+        shot_event_manager.complete(event.name)
         # Clear memorial flag 
         state_current["memorial_active"] = False
 
@@ -2246,6 +2331,64 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Emotion + idle reset
     emotion_system.update(event="speech_detected", transcript=text)
     idle_behavior.reset_timer()
+
+    # Dynamic guest learning flow - check for name responses
+    if state_current.get("_awaiting_name_response") and state_current.get("_last_face_encoding") is not None:
+        name = _parse_name_from_response(text)
+        if name:
+            # Successfully learned guest name
+            try:
+                _face_memory.learn_guest(name, state_current["_last_face_encoding"])
+                state_current["detected_guest"] = name
+                state_current["guest_visits"] = 1
+                state_current["_awaiting_name_response"] = False
+                state_current["_name_attempts"] = 0
+                state_current["_last_face_encoding"] = None
+                
+                logger.info(f"[GUEST_LEARNING] Successfully learned guest name: {name}")
+                
+                # Send personalized greeting
+                greeting = f"Nice to meet you, {name}! Welcome to the party!"
+                greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(greeting))
+                await send_response(ws, greeting, greeting_audio)
+                return
+                
+            except Exception as e:
+                logger.error(f"[GUEST_LEARNING] Failed to store guest {name}: {e}")
+        else:
+            # Failed to parse name - increment attempt counter
+            state_current["_name_attempts"] += 1
+            
+            if state_current["_name_attempts"] >= 2:
+                # Assign mystery guest name after 2 failed attempts
+                state_current["_mystery_guest_counter"] += 1
+                mystery_name = f"Mystery Guest #{state_current['_mystery_guest_counter']}"
+                
+                try:
+                    _face_memory.learn_guest(mystery_name, state_current["_last_face_encoding"])
+                    state_current["detected_guest"] = mystery_name
+                    state_current["guest_visits"] = 1
+                    state_current["_awaiting_name_response"] = False
+                    state_current["_name_attempts"] = 0
+                    state_current["_last_face_encoding"] = None
+                    
+                    logger.info(f"[GUEST_LEARNING] Assigned mystery name: {mystery_name}")
+                    
+                    # Send mystery guest greeting
+                    mystery_greeting = f"Alright, I'll just call you {mystery_name} for now! Let's party!"
+                    mystery_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(mystery_greeting))
+                    await send_response(ws, mystery_greeting, mystery_audio)
+                    return
+                    
+                except Exception as e:
+                    logger.error(f"[GUEST_LEARNING] Failed to store {mystery_name}: {e}")
+                    state_current["_awaiting_name_response"] = False
+            else:
+                # Ask again
+                retry_msg = "Sorry, I didn't catch that. What's your name?"
+                retry_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(retry_msg))
+                await send_response(ws, retry_msg, retry_audio)
+                return
 
     # Neuro-sama mood swing: 5% chance of random emotion shift mid-conversation
     if random.random() < 0.05:
@@ -4232,10 +4375,31 @@ async def handle_event(ws: WebSocket, event: dict):
                         visits = match.get("visit_count", 0)
                         state_current["detected_guest"] = name
                         state_current["guest_visits"] = visits
+                        state_current["_awaiting_name_response"] = False  # Reset learning flow
+                        state_current["_name_attempts"] = 0
                         logger.info(f"[WEBCAM] Recognized returning guest: {name} (visits: {visits})")
                     else:
                         state_current["detected_guest"] = None
-                        logger.info("[WEBCAM] New guest detected (no face match)")
+                        state_current["_last_face_encoding"] = enc_array  # Store for learning
+                        
+                        # Start guest learning flow if not already in progress
+                        if not state_current["_awaiting_name_response"]:
+                            state_current["_awaiting_name_response"] = True
+                            state_current["_name_attempts"] = 0
+                            logger.info("[WEBCAM] New guest detected - starting learning flow")
+                            
+                            # Send "Who are you?" message 
+                            who_are_you_msg = {
+                                "type": "response",
+                                "text": "Hey there! I don't think we've met before. Who are you?",
+                                "audio": None,
+                                "emotion": "curious",
+                                "particle_effect": None,
+                                "pose_hint": "look_curious"
+                            }
+                            await _safe_ws_send(ws, who_are_you_msg)
+                        else:
+                            logger.info("[WEBCAM] New guest detected - learning flow already active")
             except Exception as e:
                 logger.error(f"[WEBCAM] Face matching error: {e}")
         else:

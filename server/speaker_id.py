@@ -1,10 +1,13 @@
-"""Speaker identification using voice embeddings (resemblyzer)."""
+"""Speaker identification using voice embeddings (resemblyzer) + Qdrant vector storage."""
 
 import logging
 import sqlite3
 import json
 import os
+import uuid
 import numpy as np
+from datetime import datetime
+from typing import Optional
 
 # Fix numpy deprecation in resemblyzer (np.bool removed in numpy 1.24+)
 import warnings
@@ -14,6 +17,13 @@ with warnings.catch_warnings():
         np.bool = bool
 
 from resemblyzer import VoiceEncoder, preprocess_wav
+
+# Qdrant integration for voice embeddings
+try:
+    from qdrant_client import QdrantClient, models
+    _HAS_QDRANT = True
+except ImportError:
+    _HAS_QDRANT = False
 
 DEBUG_SPEAKER = True
 logger = logging.getLogger(__name__)
@@ -33,17 +43,18 @@ if os.path.exists(_spk_config_path):
         pass
 
 _encoder: VoiceEncoder = None
+_qdrant_client: QdrantClient = None
 
 
 def init_speaker_id():
-    """Initialize the voice encoder and database."""
-    global _encoder
+    """Initialize the voice encoder, database, and Qdrant collection."""
+    global _encoder, _qdrant_client
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] init_speaker_id: START")
 
     _encoder = VoiceEncoder("cpu")
 
-    # Initialize database
+    # Initialize SQLite database (legacy/fallback)
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
@@ -55,6 +66,33 @@ def init_speaker_id():
             )
         """)
         conn.commit()
+
+    # Initialize Qdrant for voice embeddings  
+    if _HAS_QDRANT:
+        try:
+            # Use local file-based storage for Qdrant
+            qdrant_path = os.path.join(os.path.dirname(DB_PATH), "qdrant_voices")
+            os.makedirs(qdrant_path, exist_ok=True)
+            _qdrant_client = QdrantClient(path=qdrant_path)
+            
+            # Check if collection exists
+            collections = [c.name for c in _qdrant_client.get_collections().collections]
+            if "mario_voices" not in collections:
+                _qdrant_client.create_collection(
+                    collection_name="mario_voices",
+                    vectors_config=models.VectorParams(
+                        size=256,  # Resemblyzer embedding dimension
+                        distance=models.Distance.COSINE,
+                    ),
+                )
+                if DEBUG_SPEAKER:
+                    logger.info("[DEBUG_SPEAKER] Created mario_voices Qdrant collection")
+            else:
+                if DEBUG_SPEAKER:
+                    logger.info("[DEBUG_SPEAKER] mario_voices Qdrant collection already exists")
+        except Exception as e:
+            logger.warning(f"[DEBUG_SPEAKER] Failed to initialize Qdrant: {e}")
+            _qdrant_client = None
 
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] init_speaker_id: END")
@@ -87,8 +125,118 @@ def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
     return embedding
 
 
+def store_voice_qdrant(name: str, embedding: np.ndarray) -> bool:
+    """Store voice embedding in Qdrant collection.
+    
+    Args:
+        name: Speaker name
+        embedding: 256-dim voice embedding
+        
+    Returns:
+        True if stored successfully, False otherwise
+    """
+    if not _qdrant_client or embedding.shape != (256,):
+        return False
+        
+    try:
+        # Generate deterministic point ID from name
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"voice:{name}"))
+        
+        # Get next speaker ID from SQLite for consistency
+        speaker_id_val = None
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                existing = conn.execute("SELECT id FROM speakers WHERE name = ?", (name,)).fetchone()
+                if existing:
+                    speaker_id_val = existing[0]
+                else:
+                    # Create new speaker record
+                    cursor = conn.execute("INSERT INTO speakers (name, embedding) VALUES (?, ?)", 
+                                        (name, embedding.tobytes()))
+                    speaker_id_val = cursor.lastrowid
+                    conn.commit()
+        except Exception:
+            pass
+        
+        # Store voice embedding in Qdrant
+        _qdrant_client.upsert(
+            collection_name="mario_voices",
+            points=[models.PointStruct(
+                id=point_id,
+                vector=embedding.tolist(),
+                payload={
+                    "name": name,
+                    "speaker_id": speaker_id_val,
+                    "last_seen": datetime.now().isoformat(),
+                },
+            )],
+        )
+        
+        if DEBUG_SPEAKER:
+            logger.info(f"[DEBUG_SPEAKER] Stored voice for {name} in Qdrant (id: {speaker_id_val})")
+        return True
+        
+    except Exception as e:
+        logger.error(f"[DEBUG_SPEAKER] Failed to store voice in Qdrant: {e}")
+        return False
+
+
+def lookup_voice_qdrant(embedding: np.ndarray, 
+                       similarity_threshold: float = None) -> Optional[dict]:
+    """Find matching voice in Qdrant by cosine similarity.
+    
+    Args:
+        embedding: 256-dim voice embedding to match
+        similarity_threshold: Similarity threshold (default: SIMILARITY_THRESHOLD)
+        
+    Returns:
+        dict with name, speaker_id, confidence or None if no match
+    """
+    if not _qdrant_client or embedding.shape != (256,):
+        return None
+        
+    threshold = similarity_threshold or SIMILARITY_THRESHOLD
+    
+    try:
+        results = _qdrant_client.query_points(
+            collection_name="mario_voices",
+            query=embedding.tolist(),
+            limit=1,
+            score_threshold=threshold,
+        )
+        
+        if results.points:
+            point = results.points[0]
+            payload = point.payload
+            
+            return {
+                "name": payload.get("name", "Unknown"),
+                "speaker_id": payload.get("speaker_id"),
+                "confidence": float(point.score),
+                "last_seen": payload.get("last_seen", ""),
+            }
+            
+    except Exception as e:
+        logger.error(f"[DEBUG_SPEAKER] Failed to lookup voice in Qdrant: {e}")
+        
+    return None
+
+
+def learn_voice(name: str, embedding: np.ndarray):
+    """Learn a new guest's voice embedding.
+    
+    Stores in both Qdrant (primary) and SQLite (fallback).
+    """
+    # Store in Qdrant (primary)
+    qdrant_success = store_voice_qdrant(name, embedding)
+    
+    if DEBUG_SPEAKER:
+        qdrant_status = "✓" if qdrant_success else "✗"
+        logger.info(f"[DEBUG_SPEAKER] Learned voice for {name} - Qdrant: {qdrant_status}")
+
+
 def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
-    """Identify who is speaking from audio data.
+    """Identify who is speaking from audio data using Qdrant first, SQLite fallback.
     
     Returns:
         dict with 'name' (str or None), 'speaker_id' (int or None), 
@@ -105,6 +253,20 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     if embedding is None:
         return {"name": None, "speaker_id": None, "confidence": 0.0, "is_new": True}
 
+    # Try Qdrant first (primary method)
+    if _qdrant_client:
+        qdrant_match = lookup_voice_qdrant(embedding)
+        if qdrant_match:
+            if DEBUG_SPEAKER:
+                logger.info(f"[DEBUG_SPEAKER] Qdrant voice match: {qdrant_match['name']} ({qdrant_match['confidence']:.3f})")
+            return {
+                "name": qdrant_match["name"],
+                "speaker_id": qdrant_match["speaker_id"],
+                "confidence": qdrant_match["confidence"],
+                "is_new": False,
+            }
+
+    # Fallback to SQLite (legacy method)
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.execute("SELECT id, name, embedding FROM speakers")
@@ -132,7 +294,7 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
             logger.error(f"[DEBUG_SPEAKER] Error comparing embedding for {name}: {e}")
             continue
         if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] identify_speaker: {name} similarity={similarity:.3f}")
+            logger.info(f"[DEBUG_SPEAKER] identify_speaker SQLite: {name} similarity={similarity:.3f}")
 
         if similarity > best_similarity:
             best_similarity = similarity
@@ -140,7 +302,7 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
 
     if best_match and best_similarity >= SIMILARITY_THRESHOLD:
         if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] identify_speaker: matched {best_match[1]} ({best_similarity:.3f})")
+            logger.info(f"[DEBUG_SPEAKER] SQLite fallback matched {best_match[1]} ({best_similarity:.3f})")
         return {
             "name": best_match[1],
             "speaker_id": best_match[0],

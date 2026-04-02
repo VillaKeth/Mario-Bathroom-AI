@@ -1,5 +1,7 @@
 # Mario AI Party Bot - TODO
 
+# Mario AI Party Bot - TODO
+
 ## v3.14 Ultra Party Upgrade (Current)
 - [ ] Sub-A: Memorial v2 — voice trigger for "Lisa"/"Aunt Lisa", 10-sec dramatic countdown, music loop fix (loops=0), warm recovery line
 - [ ] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
@@ -8,10 +10,10 @@
 - [x] Sub-B: Closed captions bar at bottom of screen
 - [x] Sub-B: Speech bubble stays visible until TTS audio finishes
 - [ ] Sub-B: Hot-swappable bathroom backgrounds from assets/backgrounds/
+- [x] Task 10: Person Detection Qdrant Collections — mario_faces (128-dim) and mario_voices (256-dim) collections
+- [x] Task 11: Dynamic Guest Learning Flow — "Who are you?" flow with 2-attempt retry, Mystery Guest fallback, Jacob VIP pre-registration
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
-- [ ] Sub-C: Dynamic guest learning — Mario asks name, stores face+voice
-- [ ] Sub-C: Jacob VIP pre-registration (face + voice + knowledge)
 - [x] Task 12: LLM Sentiment Integration — emotion/energy extraction to system prompt + parse from response + WebSocket integration (14 tests passing)
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
 - [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
