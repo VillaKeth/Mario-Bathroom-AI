@@ -1,0 +1,24 @@
+{
+  "saved_at": 1775157340.211598,
+  "saved_at_iso": "2026-04-02T15:15:40.211597",
+  "party_stats": {
+    "total_visits": 2108,
+    "unique_visitors": 151,
+    "avg_duration_seconds": 121.9,
+    "longest_visit_name": "Unknown visitor",
+    "longest_visit_seconds": 2307.0,
+    "most_frequent_name": "MilestoneGuest_0",
+    "most_frequent_count": 75,
+    "last_visitor_name": "MilestoneGuest_0",
+    "party_duration": "579h 34m",
+    "current_hour": "03:15 PM"
+  },
+  "emotion": "sleepy",
+  "emotion_intensity": 0.8,
+  "total_responses": 0,
+  "avg_response_time": 0,
+  "gossip_count": 0,
+  "tts_cache_entries": 1731,
+  "tts_cache_mb": 500.0,
+  "error_count": 0
+}
