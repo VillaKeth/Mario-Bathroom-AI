@@ -142,3 +142,69 @@ def test_start_time_zero_not_replaced():
     """start_time=0 (epoch) should be preserved, not replaced with time.time()."""
     np = NightProgression(start_time=0)
     assert np.start_time == 0
+
+
+# --- Edge case tests ---
+
+class TestNightProgressionEdgeCases:
+    """Edge-case tests for NightProgression boundary conditions and resilience."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.np = NightProgression(start_time=0)
+
+    def test_exact_boundary_warm_up_to_party(self):
+        """Exactly at hour 2.0 the phase flips from WARM_UP to PARTY_MODE."""
+        assert self.np.get_time_phase(1.9999) == Phase.WARM_UP
+        assert self.np.get_time_phase(2.0) == Phase.PARTY_MODE
+
+    def test_exact_boundary_party_to_unhinged(self):
+        """Exactly at hour 5.0 the phase flips from PARTY_MODE to UNHINGED."""
+        assert self.np.get_time_phase(4.9999) == Phase.PARTY_MODE
+        assert self.np.get_time_phase(5.0) == Phase.UNHINGED
+
+    def test_exact_boundary_unhinged_to_wind_down(self):
+        """Exactly at hour 7.0 the phase flips from UNHINGED to WIND_DOWN."""
+        assert self.np.get_time_phase(6.9999) == Phase.UNHINGED
+        assert self.np.get_time_phase(7.0) == Phase.WIND_DOWN
+
+    def test_restart_preserves_phase(self):
+        """NightProgression created with a start_time 3 hours ago should be in PARTY_MODE."""
+        import time as _time
+        three_hours_ago = _time.time() - (3 * 3600)
+        np = NightProgression(start_time=three_hours_ago)
+        hours = np.get_hours_elapsed()
+        assert 2.9 <= hours <= 3.2  # allow small timing tolerance
+        assert np.get_time_phase(hours) == Phase.PARTY_MODE
+
+    def test_zero_guests_high_hours(self):
+        """0 guests at 4+ hours should not crash and should cap phase to WARM_UP."""
+        phase = self.np.get_effective_phase(hours_elapsed=4.0, unique_guests=0)
+        assert phase == Phase.WARM_UP  # energy 1 caps to WARM_UP
+        phase_late = self.np.get_effective_phase(hours_elapsed=6.5, unique_guests=0)
+        assert phase_late == Phase.WARM_UP
+
+    def test_negative_elapsed_time(self):
+        """If start_time is in the future, get_hours_elapsed clamps to 0 → WARM_UP."""
+        import time as _time
+        future_np = NightProgression(start_time=_time.time() + 9999)
+        hours = future_np.get_hours_elapsed()
+        assert hours == 0.0
+        assert future_np.get_time_phase(hours) == Phase.WARM_UP
+
+    def test_very_long_party_12_hours(self):
+        """After 12 hours the party should still be in WIND_DOWN without errors."""
+        phase = self.np.get_time_phase(12.0)
+        assert phase == Phase.WIND_DOWN
+        modifier = self.np.get_prompt_modifier(phase)
+        assert "personality_warmth" in modifier
+        guardrails = self.np.get_guardrails(phase)
+        assert "banned_topics" in guardrails
+
+    def test_phase_string_representation(self):
+        """Every Phase enum member must have a displayable .name string."""
+        expected_names = {"WARM_UP", "PARTY_MODE", "UNHINGED", "WIND_DOWN"}
+        actual_names = {p.name for p in Phase}
+        assert actual_names == expected_names
+        for p in Phase:
+            assert isinstance(p.name, str) and len(p.name) > 0
