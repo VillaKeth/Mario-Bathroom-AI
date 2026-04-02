@@ -126,6 +126,9 @@ class MarioClient:
                 # Keep reconnect info fresh for display
                 if not self.display.connected:
                     self.display._reconnect_info = self.ws.reconnect_info
+                # Keep camera status fresh for display
+                if self.presence:
+                    self.display.set_camera_status(self.presence.camera_status)
                 if not self.display.update():
                     break
         except KeyboardInterrupt:

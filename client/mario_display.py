@@ -225,6 +225,7 @@ class MarioDisplay:
 
         # Connection status overlay for error recovery
         self._connection_status = None
+        self._camera_status = None  # None=no camera, "connected", "reconnecting"
 
         # Party info banner
         self._party_start_time = time.time()
@@ -463,6 +464,10 @@ class MarioDisplay:
     def set_guest_count(self, count):
         """Update the party guest count shown in the banner."""
         self._guest_count = count
+
+    def set_camera_status(self, status: str):
+        """Update camera status: connected, reconnecting, disconnected, or None."""
+        self._camera_status = status
 
     def set_state(self, state: str):
         """Set Mario's animation state."""
@@ -1140,6 +1145,22 @@ class MarioDisplay:
                 status_font = self._font_small or pygame.font.SysFont("arial", 14)
                 status_surface = status_font.render(self._connection_status, True, (255, 80, 80))
                 self._screen.blit(status_surface, (10, 40))
+            except Exception:
+                pass
+
+        # Camera status indicator (top-right corner)
+        if self._camera_status and self._camera_status != "connected":
+            try:
+                cam_font = self._font_small or pygame.font.SysFont("arial", 14)
+                if self._camera_status == "reconnecting":
+                    cam_text = "📷 Camera reconnecting..."
+                    cam_color = (255, 200, 50)  # Yellow warning
+                else:
+                    cam_text = "📷 No camera"
+                    cam_color = (255, 80, 80)  # Red error
+                cam_surface = cam_font.render(cam_text, True, cam_color)
+                cam_x = self._screen.get_width() - cam_surface.get_width() - 10
+                self._screen.blit(cam_surface, (cam_x, 40))
             except Exception:
                 pass
 

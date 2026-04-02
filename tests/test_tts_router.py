@@ -143,7 +143,7 @@ class TestTTSRouter:
         result = router.synthesize("hello")
         assert result == b"ok_audio"
 
-    def test_synthesize_returns_none_when_all_fail(self):
+    def test_synthesize_returns_silence_when_all_fail(self):
         from tts_router import TTSRouter, TTSEngine
 
         def failing(text, **kw):
@@ -152,7 +152,9 @@ class TestTTSRouter:
         router = TTSRouter()
         router.register(TTSEngine(name="a", synthesize_fn=failing, is_available_fn=lambda: True, priority=0))
         result = router.synthesize("hello")
-        assert result is None
+        # Emergency silence fallback returns valid WAV bytes, not None
+        assert result is not None
+        assert result[:4] == b"RIFF"  # Valid WAV header
 
     def test_stats_tracking(self):
         from tts_router import TTSRouter, TTSEngine
@@ -308,5 +310,7 @@ class TestTTSRouter:
         router.register(TTSEngine(name="fail", synthesize_fn=failing_synth, is_available_fn=lambda: True, priority=0))
 
         result = router.synthesize_user("hello")
-        assert result is None
+        # Emergency silence fallback returns valid WAV, not None
+        assert result is not None
+        assert result[:4] == b"RIFF"
         assert not event.is_set(), "Event must be cleared even on failure"

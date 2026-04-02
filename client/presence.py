@@ -24,6 +24,7 @@ class PresenceDetector:
         self._cap = None
         self._running = False
         self._thread = None
+        self._camera_status = "disconnected"  # connected, reconnecting, disconnected
         self._bg_subtractor = cv2.createBackgroundSubtractorMOG2(
             history=500, varThreshold=50, detectShadows=False
         )
@@ -75,6 +76,7 @@ class PresenceDetector:
         self._cap.set(cv2.CAP_PROP_FPS, 15)
 
         self._running = True
+        self._camera_status = "connected"
         self._thread = threading.Thread(target=self._detection_loop, daemon=True)
         self._thread.start()
 
@@ -87,6 +89,7 @@ class PresenceDetector:
         if DEBUG_PRESENCE:
             logger.info("[DEBUG_PRESENCE] PresenceDetector.stop")
         self._running = False
+        self._camera_status = "disconnected"
         if self._thread:
             self._thread.join(timeout=3.0)
         cap = self._cap
@@ -94,12 +97,37 @@ class PresenceDetector:
         if cap:
             cap.release()
 
+    @property
+    def camera_status(self):
+        """Current camera status: connected, reconnecting, disconnected."""
+        return self._camera_status
+
     def _detection_loop(self):
         """Background thread for continuous motion detection."""
         _consecutive_read_failures = 0
+        _camera_retry_count = 0
+        _max_camera_retries = 10
         while self._running:
             if self._cap is None or not self._cap.isOpened():
-                time.sleep(1.0)
+                # Exponential backoff camera recovery
+                _camera_retry_count += 1
+                if _camera_retry_count > _max_camera_retries:
+                    logger.error(f"[DEBUG_PRESENCE] Camera failed {_max_camera_retries} retries, waiting 60s before reset")
+                    time.sleep(60.0)
+                    _camera_retry_count = 0  # Reset and try again indefinitely
+                    continue
+                backoff = min(30, 2 ** min(_camera_retry_count - 1, 4))
+                logger.warning(f"[DEBUG_PRESENCE] Camera not open, retry {_camera_retry_count}/{_max_camera_retries} in {backoff}s")
+                self._camera_status = "reconnecting"
+                time.sleep(backoff)
+                try:
+                    self._cap = cv2.VideoCapture(self.camera_index)
+                    if self._cap.isOpened():
+                        logger.info("[DEBUG_PRESENCE] Camera reconnected successfully!")
+                        _camera_retry_count = 0
+                        self._camera_status = "connected"
+                except Exception as e:
+                    logger.error(f"[DEBUG_PRESENCE] Camera reconnect failed: {e}")
                 continue
             ret, frame = self._cap.read()
             if not ret:
@@ -108,12 +136,12 @@ class PresenceDetector:
                     logger.warning("[DEBUG_PRESENCE] Camera read failed 30 times, restarting camera...")
                     try:
                         self._cap.release()
-                        time.sleep(1.0)
-                        self._cap = cv2.VideoCapture(self.camera_index)
+                        self._cap = None  # Triggers reconnection logic above
                         _consecutive_read_failures = 0
                     except Exception as e:
-                        logger.error(f"[DEBUG_PRESENCE] Camera restart failed: {e}")
-                        break
+                        logger.error(f"[DEBUG_PRESENCE] Camera release failed: {e}")
+                        self._cap = None
+                        _consecutive_read_failures = 0
                 time.sleep(0.1)
                 continue
             _consecutive_read_failures = 0

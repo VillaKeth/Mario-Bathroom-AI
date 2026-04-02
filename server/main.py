@@ -2601,7 +2601,31 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if new_facts and state_current.get("speaker_id"):
             ctx.append({"role": "system", "content": f"Learned: {new_facts[0]}"})
 
+        # ── Token budget enforcement ──
+        # Prevent context overflow by trimming oldest conversation messages
+        # ~4 chars per token is a reasonable approximation for English
+        _total_chars = sum(len(m.get("content", "")) for m in ctx)
+        _est_tokens = _total_chars // 4
+        _token_budget = int(llm.LLM_NUM_CTX * 0.80)  # Reserve 20% for response
+        if _est_tokens > _token_budget:
+            _over = _est_tokens - _token_budget
+            logger.warning(f"[TOKEN_BUDGET] Context ~{_est_tokens} tokens exceeds budget {_token_budget} (over by ~{_over})")
+            # Find conversation history messages (user/assistant) and trim oldest first
+            _conv_indices = [i for i, m in enumerate(ctx) if m.get("role") in ("user", "assistant")]
+            _trimmed = 0
+            for idx in _conv_indices:
+                if _est_tokens <= _token_budget:
+                    break
+                _msg_tokens = len(ctx[idx].get("content", "")) // 4
+                ctx[idx] = None  # Mark for removal
+                _est_tokens -= _msg_tokens
+                _trimmed += 1
+            ctx = [m for m in ctx if m is not None]
+            logger.info(f"[TOKEN_BUDGET] Trimmed {_trimmed} old messages, now ~{_est_tokens} tokens")
+
         _timing["context_ms"] = int((time.time() - _t_ctx) * 1000)
+        _timing["context_messages"] = len(ctx)
+        _timing["context_est_tokens"] = sum(len(m.get("content", "")) for m in ctx) // 4
 
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently
