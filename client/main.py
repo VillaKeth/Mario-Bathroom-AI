@@ -60,6 +60,7 @@ class MarioClient:
         self._health_thread = None
         self._last_play_end_time = 0  # Echo cancellation tracking
         self._memorial_active = False  # Suppresses idle text during memorial
+        self._audio_wait_cancel = threading.Event()  # Cancel audio-wait thread
 
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
@@ -211,6 +212,9 @@ class MarioClient:
 
     def _on_mario_text(self, text: str, metadata: dict = None):
         """Called when Mario has something to say."""
+        # Cancel any pending audio-wait thread from previous text
+        self._audio_wait_cancel.set()
+        
         # Suppress idle text bubbles during memorial ceremony
         if self._memorial_active:
             if DEBUG_CLIENT:
@@ -247,6 +251,26 @@ class MarioClient:
             if resp_time:
                 self.display._last_response_time = resp_time
 
+    def _wait_for_audio_complete(self):
+        """Wait for audio playback to finish, then clear speech bubble."""
+        import time
+        self._audio_wait_cancel.clear()
+        
+        # Wait for audio to start playing (up to 2s)
+        for _ in range(20):
+            if self.audio_playback.is_playing or self._audio_wait_cancel.is_set():
+                break
+            time.sleep(0.1)
+        
+        # Wait for audio to finish
+        while self.audio_playback.is_playing and not self._audio_wait_cancel.is_set():
+            time.sleep(0.1)
+        
+        # 500ms grace period after audio ends (only if not cancelled)
+        if not self._audio_wait_cancel.is_set():
+            time.sleep(0.5)
+            self._clear_speaking_state()
+
     def _on_mario_audio(self, wav_bytes: bytes):
         """Called when Mario's voice audio arrives."""
         if not wav_bytes or len(wav_bytes) < 44:
@@ -259,12 +283,12 @@ class MarioClient:
         # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
-        # Schedule speaking state clear using a reusable timer (avoids thread leak)
+        # Start audio-wait thread that polls until playback actually finishes
         if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
-            self._speaking_timer.cancel()
-        self._speaking_timer = threading.Timer(duration, self._clear_speaking_state)
-        self._speaking_timer.daemon = True
-        self._speaking_timer.start()
+            if hasattr(self._speaking_timer, 'cancel'):
+                self._speaking_timer.cancel()
+        self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
+        self._audio_wait_thread.start()
 
     def _on_audio_chunk(self, wav_bytes: bytes, chunk_meta: dict):
         """Called when a streaming audio chunk arrives (sentence streaming)."""
@@ -284,10 +308,10 @@ class MarioClient:
         # Only schedule speaking state clear on the last chunk
         if is_last:
             if hasattr(self, '_speaking_timer') and self._speaking_timer is not None:
-                self._speaking_timer.cancel()
-            self._speaking_timer = threading.Timer(duration, self._clear_speaking_state)
-            self._speaking_timer.daemon = True
-            self._speaking_timer.start()
+                if hasattr(self._speaking_timer, 'cancel'):
+                    self._speaking_timer.cancel()
+            self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
+            self._audio_wait_thread.start()
 
     def _clear_speaking_state(self):
         """Clear speaking state after audio finishes."""
