@@ -643,6 +643,7 @@ let msgCount = 0;
 let responseCount = 0;
 let audioCount = 0;
 let latencies = [];
+let reconnectAttempt = 0;
 let lastSendTime = 0;
 let sessionStart = null;
 let healthInterval = null;
@@ -675,6 +676,7 @@ function connect() {
 
   ws.onopen = () => {
     isConnected = true;
+    reconnectAttempt = 0;
     dot.className = 'status-dot connected';
     status.textContent = 'Connected';
     addSystemMsg('🔌 Connected to Mario server');
@@ -705,13 +707,15 @@ function connect() {
     updateButtons();
     if (healthInterval) clearInterval(healthInterval);
     if (uptimeInterval) clearInterval(uptimeInterval);
-    // Auto-reconnect after 3s
+    // Auto-reconnect with exponential backoff (3s, 6s, 12s, max 30s)
+    reconnectAttempt++;
+    const delay = Math.min(30000, 3000 * Math.pow(2, Math.min(reconnectAttempt - 1, 3)));
     setTimeout(() => {
       if (!isConnected) {
-        addSystemMsg('🔄 Reconnecting...');
+        addSystemMsg(`🔄 Reconnecting (attempt ${reconnectAttempt})...`);
         connect();
       }
-    }, 3000);
+    }, delay);
   };
 
   ws.onerror = (err) => {

@@ -44,6 +44,9 @@
 - [ ] Manual test: verify new SFX events fire correctly (correct, wrong, level_up, victory, challenge, milestone, gossip)
 - [ ] Manual test: verify exit rating prompt appears ~25% of the time for 3+ exchange visits
 
+## Tests
+- [x] Add comprehensive unit tests for idle_behavior.py (43 tests covering init, idle actions, content pools, unique selection, memorial, contextual behavior, reengagement, games, edge cases)
+
 ## Critical / Major
 - [ ] CRITICAL: Resolve VRAM budget — 70B-Q5_K_M (22GB) + RVC + Whisper + Fish Speech exceeds 24GB RTX 3090 Ti
 - [ ] CRITICAL: Add MoSCoW priority ordering to spec — no cut list if time runs out
