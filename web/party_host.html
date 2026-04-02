@@ -53,6 +53,12 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
 .toast.error{background:#d50000;color:#fff}
 .toast.show{opacity:1}
 
+.health-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px}
+.badge{padding:4px 10px;border-radius:8px;font-size:.7em;font-weight:600;background:#16213e;border:1px solid #0f3460;white-space:nowrap}
+.badge.ok{border-color:#00c853;color:#00c853}
+.badge.warn{border-color:#ffc107;color:#ffc107}
+.badge.bad{border-color:#ff4444;color:#ff4444}
+
 .log{background:#0d1117;border-radius:8px;padding:8px;font-family:'Courier New',monospace;font-size:.65em;max-height:120px;overflow-y:auto;color:#7ee787;border:1px solid #0f3460;margin-top:8px}
 .log .entry{margin-bottom:2px}
 .log .entry.error{color:#ff6b6b}
@@ -65,11 +71,19 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
 
 <div class="stats-bar" id="statsBar">
   <div class="stat"><div class="num" id="stGuests">-</div><div class="lbl">Guests</div></div>
+  <div class="stat"><div class="num" id="stUnique">-</div><div class="lbl">Unique</div></div>
   <div class="stat"><div class="num" id="stUptime">-</div><div class="lbl">Uptime</div></div>
   <div class="stat"><div class="num" id="stGames">-</div><div class="lbl">Games</div></div>
   <div class="stat"><div class="num" id="stPhase">-</div><div class="lbl">Phase</div></div>
   <div class="stat"><div class="num" id="stEmotion">-</div><div class="lbl">Emotion</div></div>
-  <div class="stat"><div class="num" id="stCache">-</div><div class="lbl">TTS Cache</div></div>
+</div>
+
+<div class="health-badges" id="healthBadges">
+  <span class="badge" id="badgeLLM">🧠 LLM: --</span>
+  <span class="badge" id="badgeTTS">🔊 TTS: --</span>
+  <span class="badge" id="badgeSTT">🎤 STT: --</span>
+  <span class="badge" id="badgeGPU">🌡️ GPU: --</span>
+  <span class="badge" id="badgeCache">💾 Cache: --</span>
 </div>
 
 <div class="info-panel" id="infoPanel">
@@ -79,6 +93,8 @@ h1{text-align:center;font-size:1.3em;margin-bottom:6px;color:#e94560}
   <div class="info-row"><span class="info-label">LLM Model</span><span class="info-value" id="infoModel">-</span></div>
   <div class="info-row"><span class="info-label">Gossip</span><span class="info-value" id="infoGossip">-</span></div>
   <div class="info-row"><span class="info-label">Memory</span><span class="info-value" id="infoMem">-</span></div>
+  <div class="info-row"><span class="info-label">TTS Cache</span><span class="info-value" id="infoCacheDetail">-</span></div>
+  <div class="info-row"><span class="info-label">Responses</span><span class="info-value" id="infoResponses">-</span></div>
   <div class="info-row"><span class="info-label">Errors</span><span class="info-value" id="infoErrors">0</span></div>
 </div>
 
@@ -187,11 +203,35 @@ async function pollHealth() {
     pill.className = 'status-pill ' + (tier === 'FULL' ? 'status-ok' : tier === 'DEGRADED' ? 'status-warn' : 'status-bad');
 
     document.getElementById('stGuests').textContent = d.guests_served || d.total_visits || '0';
+    document.getElementById('stUnique').textContent = d.unique_visitors || '0';
     document.getElementById('stUptime').textContent = fmtUptime(d.uptime_seconds);
     document.getElementById('stGames').textContent = d.active_games || '0';
     document.getElementById('stPhase').textContent = d.current_phase || '-';
     document.getElementById('stEmotion').textContent = d.emotion || '-';
-    document.getElementById('stCache').textContent = (d.tts_cache_mb || 0).toFixed(0) + 'MB';
+
+    // Component health badges
+    function setBadge(id, status) {
+      const el = document.getElementById(id);
+      const s = (status || '').toLowerCase();
+      el.className = 'badge ' + (s === 'ok' ? 'ok' : s === 'slow' ? 'warn' : s === 'failed' ? 'bad' : '');
+    }
+    const llmBadge = document.getElementById('badgeLLM');
+    llmBadge.textContent = '🧠 LLM: ' + (d.llm || '--');
+    setBadge('badgeLLM', d.llm);
+    const ttsBadge = document.getElementById('badgeTTS');
+    ttsBadge.textContent = '🔊 TTS: ' + (d.tts || '--');
+    setBadge('badgeTTS', d.tts);
+    const sttBadge = document.getElementById('badgeSTT');
+    sttBadge.textContent = '🎤 STT: ' + (d.stt || '--');
+    setBadge('badgeSTT', d.stt);
+    const gpuTemp = d.gpu_temp_c;
+    const gpuBadge = document.getElementById('badgeGPU');
+    gpuBadge.textContent = '🌡️ GPU: ' + (gpuTemp != null ? gpuTemp + '°C' : 'N/A');
+    gpuBadge.className = 'badge ' + (gpuTemp == null ? '' : gpuTemp < 70 ? 'ok' : gpuTemp < 85 ? 'warn' : 'bad');
+    const hitRate = d.tts_cache_hit_rate;
+    const cacheBadge = document.getElementById('badgeCache');
+    cacheBadge.textContent = '💾 Cache: ' + (hitRate != null ? (hitRate * 100).toFixed(0) + '%' : 'N/A');
+    cacheBadge.className = 'badge ' + (hitRate == null ? '' : hitRate > 0.5 ? 'ok' : hitRate > 0.2 ? 'warn' : 'bad');
 
     document.getElementById('infoGame').textContent = d.active_game || 'None';
     document.getElementById('infoActive').textContent = d.user_active ? '🟢 Yes' : '⚫ No';
@@ -199,6 +239,10 @@ async function pollHealth() {
     document.getElementById('infoModel').textContent = d.llm_model || '-';
     document.getElementById('infoGossip').textContent = (d.gossip_entries || 0) + ' entries, ' + (d.gossip_guests || 0) + ' guests';
     document.getElementById('infoMem').textContent = (d.memory_mb || 0).toFixed(0) + 'MB RSS' + (d.semantic_memory ? ' + Qdrant' : '');
+    const cacheHits = d.tts_cache_hits || 0;
+    const cacheMisses = d.tts_cache_misses || 0;
+    document.getElementById('infoCacheDetail').textContent = (d.tts_cache_mb || 0).toFixed(0) + 'MB / ' + (d.tts_cache_size || 0) + ' items (' + cacheHits + ' hits, ' + cacheMisses + ' misses)';
+    document.getElementById('infoResponses').textContent = d.total_responses || '0';
     document.getElementById('infoErrors').textContent = d.error_count || '0';
     const errEl = document.getElementById('infoErrors');
     errEl.style.color = (d.error_count > 0) ? '#ff6b6b' : '#00c853';
