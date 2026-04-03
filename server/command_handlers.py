@@ -854,8 +854,7 @@ def handle_special_commands(
     # Party Leaderboard
     if any(w in lower for w in ["leaderboard", "who visited most", "party champions", "top visitors"]):
         try:
-            _lb_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
-            with sqlite3.connect(_lb_path) as _lconn:
+            with sqlite3.connect(party_stats._db_path()) as _lconn:
                 rows = _lconn.execute("""
                     SELECT person_name, COUNT(*) as cnt 
                     FROM party_visits 
