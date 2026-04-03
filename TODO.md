@@ -65,11 +65,22 @@
 - [x] Fix relative imports in client (mario_display.py, presence.py)
 - [x] Info strip overflow protection (left/right items won't collide)
 
+## v3.16.1 Overlay + Sprite Fixes — RELEASED ✅
+- [x] Fix sprite flickering: EMOTION_SPRITE_MAP converted from random lists to single deterministic strings
+- [x] Fix STATE_SPRITE_MAP greeting from list to single string
+- [x] Memorial overlay alpha set to 255 (fully opaque) for all phases — no UI bleed-through
+- [x] Screenshot utility rewritten with DPI awareness + TOPMOST flag
+- [x] Fix lisa_webb music path in shot_events.py
+- [x] Verified all 6 event phases work: announcement→silence→countdown→toast→music→recovery
+
 ## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
 - [ ] Stable Diffusion bathroom backgrounds (prompts written, need generation)
+- [ ] Ellipses ("...") fix in TTS audio generation
+- [ ] Text overflow in speech bubble (long messages clip)
+- [ ] Better bathroom background images (more realistic)
 
 ## v3.13 Memorial Overhaul + Party Polish
 - [x] Generate memorial SFX (chime + clink WAV files)
