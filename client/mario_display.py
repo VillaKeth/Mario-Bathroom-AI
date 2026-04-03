@@ -234,9 +234,10 @@ class MarioDisplay:
         self._show_chat_history = False
         self._MAX_CHAT_HISTORY = 20
 
-        # Panic mode (triple-tap F12 within 2s) — "Technical Difficulties" overlay
+        # Panic mode (Konami-like sequence: Up Up Down Down Left Right)
         self._panic_mode = False
-        self._panic_tap_times = []  # timestamps of recent F12 presses
+        self._panic_sequence_buffer = []  # last arrow key presses
+        self._PANIC_SEQUENCE = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
 
         # Connection status overlay for error recovery
         self._connection_status = None
@@ -486,13 +487,12 @@ class MarioDisplay:
                             self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F11:
                         self._toggle_fullscreen()
-                    elif event.key == pygame.K_F12:
-                        # Triple-tap F12 within 2 seconds to toggle panic
-                        now = time.time()
-                        self._panic_tap_times.append(now)
-                        self._panic_tap_times = [t for t in self._panic_tap_times if now - t < 2.0]
-                        if len(self._panic_tap_times) >= 3:
-                            self._panic_tap_times.clear()
+                    elif event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT):
+                        # Konami-like sequence to toggle panic mode
+                        self._panic_sequence_buffer.append(event.key)
+                        self._panic_sequence_buffer = self._panic_sequence_buffer[-6:]
+                        if self._panic_sequence_buffer == self._PANIC_SEQUENCE:
+                            self._panic_sequence_buffer.clear()
                             self._toggle_panic_mode()
                     elif event.key == pygame.K_l and (pygame.key.get_mods() & pygame.KMOD_CTRL) and (pygame.key.get_mods() & pygame.KMOD_SHIFT):
                         # Ctrl+Shift+L: Skip memorial event
@@ -1135,9 +1135,7 @@ class MarioDisplay:
             z_surf.set_alpha(z_alpha)
             self._screen.blit(z_surf, (zx, zy))
 
-        # Hint at bottom
-        hint_surf = self._font_small.render("Press F12 to resume", True, (80, 80, 120))
-        self._screen.blit(hint_surf, (w // 2 - hint_surf.get_width() // 2, h - 40))
+
 
     def draw_countdown_overlay(self, text: str):
         """Draw large centered countdown number with black outline."""

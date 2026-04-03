@@ -800,6 +800,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
             return "Mama mia! I ran out of questions for Rapid Fire! Let's-a play something else!"
         random.shuffle(questions)
         max_r = get_adaptive_rounds("rapid_fire", config["rapid_fire_max_rounds"], state)
+        max_r = min(max_r, len(questions))
         state["_active_game"] = "rapid_fire"
         state["_game_state"] = {
             "questions": questions[:max_r],
@@ -816,7 +817,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         if not WOULD_YOU_RATHER:
             return "Mama mia! I ran out of Would You Rather questions! Let's-a play something else!"
         random.shuffle(WOULD_YOU_RATHER)
-        max_rounds = config.get("truth_dare_max_rounds", 5)
+        max_rounds = min(config.get("truth_dare_max_rounds", 5), len(WOULD_YOU_RATHER))
         state["_active_game"] = "would_you_rather"
         state["_game_state"] = {
             "questions": WOULD_YOU_RATHER[:max_rounds],
@@ -857,32 +858,34 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         if not takes:
             return "Mama mia! I ran out of hot takes! Let's-a play something else!"
         random.shuffle(takes)
+        ht_max = min(5, len(takes))
         state["_active_game"] = "hot_takes"
         state["_game_state"] = {
-            "takes": takes[:5],
+            "takes": takes[:ht_max],
             "current": 0,
-            "max_rounds": 5,
+            "max_rounds": ht_max,
             "agreements": 0,
         }
         emotion_sys.current = Emotion.MISCHIEVOUS
         first_take = takes[0]
-        return f"HOT TAKES! Mario's-a got some SPICY opinions! Round 1 of 5! Here's my take: \"{first_take}\" Do you AGREE or DISAGREE?"
+        return f"HOT TAKES! Mario's-a got some SPICY opinions! Round 1 of {ht_max}! Here's my take: \"{first_take}\" Do you AGREE or DISAGREE?"
 
     if game_name == "never_have_i_ever":
         prompts = list(NHIE_PROMPTS)
         if not prompts:
             return "Mama mia! I ran out of Never Have I Ever prompts! Let's-a play something else!"
         random.shuffle(prompts)
+        nhie_max = min(5, len(prompts))
         state["_active_game"] = "never_have_i_ever"
         state["_game_state"] = {
-            "prompts": prompts[:5],
+            "prompts": prompts[:nhie_max],
             "current": 0,
-            "max_rounds": 5,
+            "max_rounds": nhie_max,
             "daring_score": 0,
         }
         emotion_sys.current = Emotion.MISCHIEVOUS
         first_prompt = prompts[0]
-        return f"NEVER HAVE I EVER! Let's-a see how DARING you are! Round 1 of 5! {first_prompt} Say 'I have' or 'I haven't'!"
+        return f"NEVER HAVE I EVER! Let's-a see how DARING you are! Round 1 of {nhie_max}! {first_prompt} Say 'I have' or 'I haven't'!"
 
     # --- Mario Trivia ---
     if game_name == "mario_trivia":
@@ -890,9 +893,10 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         questions = _mix_jacob_trivia(MARIO_TRIVIA_QUESTIONS, count=max_r)
         if not questions:
             return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
+        max_r = min(max_r, len(questions))
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
-            "questions": questions,
+            "questions": questions[:max_r],
             "current": 0,
             "score": 0,
             "max_rounds": max_r,
@@ -963,7 +967,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         if not combined:
             return "Mama mia! I ran out of Would You Rather scenarios! Let's-a play something else!"
         random.shuffle(combined)
-        max_rounds = 5
+        max_rounds = min(5, len(combined))
         state["_active_game"] = "wyr_mario"
         state["_game_state"] = {
             "questions": combined[:max_rounds],
@@ -1261,6 +1265,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             return ("Say A or B! Which would you rather?", None)
 
         choice = "A" if chose_a else "B"
+        if gs["current"] >= len(gs["questions"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return ("Game over! Great choices! Wahoo!", "game_over")
         q = gs["questions"][gs["current"]]
         chosen_text = q["a"] if chose_a else q["b"]
         gs["choices"].append(choice)
@@ -1274,7 +1282,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         reaction = random.choice(reactions)
 
         gs["current"] += 1
-        if gs["current"] >= gs["max_rounds"]:
+        if gs["current"] >= gs["max_rounds"] or gs["current"] >= len(gs["questions"]):
             state["_active_game"] = None
             state["_game_state"] = {}
             emotion_sys.current = Emotion.HAPPY
@@ -1394,6 +1402,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if not agrees and not disagrees:
             return ("Do you AGREE or DISAGREE with my take? Let me hear it!", None)
 
+        if gs["current"] >= len(gs["takes"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return ("That's all my takes! Wahoo!", "game_over")
         current_take = gs["takes"][gs["current"]]
 
         if agrees:
@@ -1421,7 +1433,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             sfx = "wrong"
 
         gs["current"] += 1
-        if gs["current"] >= gs["max_rounds"]:
+        if gs["current"] >= gs["max_rounds"] or gs["current"] >= len(gs["takes"]):
             state["_active_game"] = None
             agreed = gs["agreements"]
             total = gs["max_rounds"]
@@ -1443,6 +1455,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         i_havent = any(w in lower for w in ["i haven't", "i havent", "never", "nope", "no", "nah"])
 
         if i_have or i_havent:
+            if gs["current"] >= len(gs["prompts"]):
+                state["_active_game"] = None
+                state["_game_state"] = {}
+                return ("That's all the rounds! Wahoo!", "game_over")
             current_prompt = gs["prompts"][gs["current"]]
 
             if i_have:
@@ -1474,7 +1490,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 sfx = "powerup"
 
             gs["current"] += 1
-            if gs["current"] >= gs["max_rounds"]:
+            if gs["current"] >= gs["max_rounds"] or gs["current"] >= len(gs["prompts"]):
                 state["_active_game"] = None
                 score = gs["daring_score"]
                 state["_game_state"] = {}
@@ -1490,7 +1506,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             next_round = gs["current"] + 1
             return (f"{reaction} Round {next_round} of {gs['max_rounds']}! {next_prompt} Say 'I have' or 'I haven't'!", sfx)
 
-        return (f"Say 'I have' or 'I haven't'! {gs['prompts'][gs['current']]}", "hint")
+        prompt_text = gs["prompts"][gs["current"]] if gs["current"] < len(gs["prompts"]) else "..."
+        return (f"Say 'I have' or 'I haven't'! {prompt_text}", "hint")
 
     # --- Mario Trivia ---
     if game == "mario_trivia":
@@ -1532,7 +1549,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             feedback += fun_fact_line
             sfx = "correct"
         else:
-            correct_answer = question["a"][0]
+            correct_answer = question["a"][0] if question.get("a") else "Unknown"
             if is_birthday:
                 feedback = random.choice([
                     f"Ooh! The birthday answer was '{correct_answer}'!",
@@ -1588,7 +1605,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 feedback = f"You got it in {elapsed:.1f} seconds! A bit slow but CORRECT!"
             sfx = "correct"
         else:
-            correct_answer = char["a"][0]
+            correct_answer = char["a"][0] if char.get("a") else "Unknown"
             feedback = f"Nope! It was {correct_answer.upper()}! {elapsed:.1f} seconds and no dice!"
             sfx = "wrong"
 
@@ -1710,6 +1727,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             return ("Say A or B! Which would you rather?", None)
 
         choice = "A" if chose_a else "B"
+        if gs["current"] >= len(gs["questions"]):
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            return ("All rounds done! Wahoo!", "game_over")
         q = gs["questions"][gs["current"]]
         chosen_text = q["a"] if chose_a else q["b"]
         other_text = q["b"] if chose_a else q["a"]
@@ -1725,7 +1746,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         reaction = random.choice(dramatic_reactions)
 
         gs["current"] += 1
-        if gs["current"] >= gs["max_rounds"]:
+        if gs["current"] >= gs["max_rounds"] or gs["current"] >= len(gs["questions"]):
             state["_active_game"] = None
             choices_summary = ", ".join([c["choice"] for c in gs["choices"]])
             state["_game_state"] = {}
