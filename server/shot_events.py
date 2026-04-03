@@ -12,6 +12,7 @@ class ShotEvent:
     name: str
     tone: str  # "solemn", "celebratory", "fun"
     trigger_type: str  # "auto", "voice", "admin"
+    display_name: str = ""  # Human-readable name for on-screen display
     voice_keywords: list[str] = field(default_factory=list)
     phases: list[str] = field(default_factory=lambda: ["announcement", "countdown", "toast", "recovery"])
     announcement_text: str = ""
@@ -22,6 +23,7 @@ class ShotEvent:
     music_file: Optional[str] = None
     music_duration: int = 0
     skip_key: Optional[str] = None  # e.g., "ctrl+shift+l"
+    image_file: Optional[str] = None  # event-specific image shown during phases
     fired: bool = False
 
 class ShotEventManager:
@@ -120,6 +122,7 @@ def create_default_events() -> ShotEventManager:
     mgr.register(ShotEvent(
         name="lisa_webb_memorial",
         tone="solemn",
+        display_name="Lisa Webb",
         trigger_type="auto",
         voice_keywords=["lisa", "aunt lisa", "lisa webb", "toast to lisa"],
         phases=["announcement", "silence", "countdown", "toast", "music", "recovery"],
@@ -131,11 +134,13 @@ def create_default_events() -> ShotEventManager:
         music_file="client/assets/audio/lisa_memorial.mp3",
         music_duration=120,
         skip_key="ctrl+shift+l",
+        image_file="client/assets/images/lisa_webb.jpg",
     ))
     
     mgr.register(ShotEvent(
         name="birthday_boy",
         tone="celebratory",
+        display_name="Jacob Hoppenstedt",
         trigger_type="voice",
         voice_keywords=["birthday shot", "shot for jacob", "birthday boy shot"],
         phases=["announcement", "countdown", "toast", "recovery"],
@@ -148,13 +153,15 @@ def create_default_events() -> ShotEventManager:
     mgr.register(ShotEvent(
         name="deltarune",
         tone="fun",
+        display_name="Deltarune",
         trigger_type="voice",
         voice_keywords=["deltarune shot", "shot for deltarune", "deltarune toast"],
         phases=["announcement", "countdown", "toast", "recovery"],
-        announcement_text="This shot goes out to the heroes of the Dark World!",
-        toast_text="Kris! Susie! Ralsei! And the one and only LANCER! Jacob voiced Lancer, and Keth voiced Susie! To Deltarune!",
-        recovery_line="Haha! What a fun-a game! Now back to the party!",
+        announcement_text="Attention everyone! Mario has a very special toast! This one goes out to the heroes of the Dark World, Deltarune!",
+        toast_text="Calling all heroes! Kris, that's you Roman! Ralsei, that's you Elijah! Susie, that's you Villa! And the one and only Lancer, that's the birthday boy Jacob! Raise your glasses, to Deltarune!",
+        recovery_line="WAHOO! What a fun game! Now back to the party!",
         countdown=True,
+        image_file="client/assets/images/deltarune.png",
     ))
     
     return mgr

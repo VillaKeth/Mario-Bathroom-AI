@@ -292,6 +292,8 @@ class MarioDisplay:
         self._memorial_duration = 15
         self._memorial_particles = []  # Floating golden light particles
         self._memorial_photo = None
+        self._event_image = None  # Event-specific image (loaded dynamically)
+        self._event_image_path = None  # Track loaded path to avoid reloading
         
         # Closed captions (initialized after pygame.init() in init() method)
         self.captions = None
@@ -431,6 +433,27 @@ class MarioDisplay:
 
         if DEBUG_DISPLAY:
             logger.info("[DEBUG_DISPLAY] MarioDisplay.init: END")
+
+    def load_event_image(self, image_file):
+        """Load an event-specific image for display during shot events."""
+        try:
+            if image_file == self._event_image_path and self._event_image:
+                return  # Already loaded
+            # Resolve relative paths from project root
+            if not os.path.isabs(image_file):
+                image_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), image_file)
+            if os.path.exists(image_file):
+                raw = pygame.image.load(image_file).convert_alpha()
+                scale = 300 / raw.get_height()
+                new_w = int(raw.get_width() * scale)
+                self._event_image = pygame.transform.smoothscale(raw, (new_w, 300))
+                self._event_image_path = image_file
+                if DEBUG_DISPLAY:
+                    logger.info(f"[DEBUG_DISPLAY] Event image loaded: {image_file} ({new_w}x300)")
+            else:
+                logger.warning(f"[DEBUG_DISPLAY] Event image not found: {image_file}")
+        except Exception as e:
+            logger.warning(f"[DEBUG_DISPLAY] Failed to load event image: {e}")
 
     def update(self) -> bool:
         """Update the display. Returns False if window was closed."""
@@ -2058,34 +2081,73 @@ class MarioDisplay:
             pygame.draw.circle(particle_surf, color, (p["size"], p["size"]), p["size"])
             surface.blit(particle_surf, (int(p["x"]), int(p["y"])))
 
-    def show_memorial(self, name, phase, text, duration=15):
-        """Show memorial overlay — handles all 5 phases."""
+    def show_memorial(self, name, phase, text, duration=15, tone="solemn"):
+        """Show memorial/shot event overlay — handles all phases."""
         self._memorial_active = True
         self._memorial_phase = phase
         self._memorial_name = name
         self._memorial_text = text
+        self._memorial_tone = tone
         self._memorial_start = time.time()
         self._memorial_duration = duration
         if phase in ("silence", "music"):
             self._init_memorial_particles()
         if DEBUG_DISPLAY:
-            logger.info(f"[DEBUG_DISPLAY] Memorial overlay: phase={phase} name={name} duration={duration}")
+            logger.info(f"[DEBUG_DISPLAY] Memorial overlay: phase={phase} name={name} tone={tone} duration={duration}")
 
     def _draw_memorial(self, surface):
-        """Draw memorial overlay — grand 5-phase tribute."""
+        """Draw shot event overlay — adapts rendering based on event tone."""
         try:
             w, h = surface.get_size()
             elapsed = time.time() - self._memorial_start
             phase = self._memorial_phase
+            tone = getattr(self, '_memorial_tone', 'solemn')
+            # Pick the right image: event-specific first, memorial photo fallback
+            event_img = self._event_image if self._event_image else self._memorial_photo
 
-            # ── Phase 1: Announcement (dim screen) ──
+            # ── Phase 1: Announcement (dim screen + show event image + text) ──
             if phase == "announcement":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                alpha = min(150, int(elapsed * 30))
-                overlay.fill((0, 0, 0, alpha))
+                alpha = min(180, int(elapsed * 40))
+                if tone == "solemn":
+                    overlay.fill((0, 0, 0, alpha))
+                elif tone == "celebratory":
+                    overlay.fill((30, 0, 60, alpha))
+                else:  # fun
+                    overlay.fill((0, 20, 50, alpha))
                 surface.blit(overlay, (0, 0))
 
-            # ── Phase 2: Moment of Silence (photo, particles, glow) ──
+                # Show event image during announcement
+                if event_img and alpha > 100:
+                    img_rect = event_img.get_rect(center=(w // 2, h // 2 - 40))
+                    surface.blit(event_img, img_rect)
+
+                # Show announcement text at bottom
+                if self._memorial_text:
+                    font_ann = pygame.font.SysFont("arial", 24, bold=True)
+                    text_color = (255, 255, 255) if tone == "solemn" else (255, 255, 100)
+                    # Word-wrap the announcement text
+                    words = self._memorial_text.split()
+                    lines = []
+                    current = ""
+                    for word in words:
+                        test = f"{current} {word}".strip()
+                        if font_ann.size(test)[0] <= w - 80:
+                            current = test
+                        else:
+                            if current:
+                                lines.append(current)
+                            current = word
+                    if current:
+                        lines.append(current)
+                    y_start = h - 40 - len(lines) * 30
+                    for i, line in enumerate(lines):
+                        line_surf = font_ann.render(line, True, text_color)
+                        shadow = font_ann.render(line, True, (0, 0, 0))
+                        surface.blit(shadow, shadow.get_rect(center=(w // 2 + 2, y_start + i * 30 + 2)))
+                        surface.blit(line_surf, line_surf.get_rect(center=(w // 2, y_start + i * 30)))
+
+            # ── Phase 2: Moment of Silence (solemn only — photo, particles, glow) ──
             elif phase == "silence":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
                 overlay.fill((0, 0, 0, 200))
@@ -2118,24 +2180,59 @@ class MarioDisplay:
                 surface.blit(name_shadow, name_shadow.get_rect(center=(w // 2 + 2, photo_bottom + 2)))
                 surface.blit(name_surf, name_surf.get_rect(center=(w // 2, photo_bottom)))
 
-                dates_text = "August 17, 1968 – March 23, 2023"
+                dates_text = "August 17, 1968 \u2013 March 23, 2023"
                 dates_surf = font_dates.render(dates_text, True, (200, 200, 200))
                 surface.blit(dates_surf, dates_surf.get_rect(center=(w // 2, photo_bottom + 40)))
 
-            # ── Phase 3: Toast/Shot (warm amber overlay) ──
+            # ── Phase 3: Toast/Shot (tone-adaptive overlay + image + text) ──
             elif phase == "toast":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                overlay.fill((60, 30, 0, 180))
+                if tone == "solemn":
+                    overlay.fill((60, 30, 0, 180))
+                elif tone == "celebratory":
+                    overlay.fill((80, 20, 80, 180))
+                else:  # fun
+                    overlay.fill((0, 40, 80, 180))
                 surface.blit(overlay, (0, 0))
+
+                # Show event image
+                if event_img:
+                    img_rect = event_img.get_rect(center=(w // 2, h // 2 - 60))
+                    surface.blit(event_img, img_rect)
 
                 font_toast = pygame.font.SysFont("arial", 34, bold=True)
                 toast_text = f"To {self._memorial_name}!"
                 toast_surf = font_toast.render(toast_text, True, (255, 215, 0))
-                surface.blit(toast_surf, toast_surf.get_rect(center=(w // 2, h // 2)))
+                shadow = font_toast.render(toast_text, True, (0, 0, 0))
+                toast_y = h // 2 + (event_img.get_height() // 2 + 30 if event_img else 0)
+                surface.blit(shadow, shadow.get_rect(center=(w // 2 + 2, toast_y + 2)))
+                surface.blit(toast_surf, toast_surf.get_rect(center=(w // 2, toast_y)))
 
                 emoji_font = pygame.font.SysFont("arial", 28)
-                emoji_surf = emoji_font.render("Raise your glass!", True, (255, 255, 255))
-                surface.blit(emoji_surf, emoji_surf.get_rect(center=(w // 2, h // 2 - 50)))
+                subtitle = "Raise your glass!" if tone == "solemn" else "Take a shot!"
+                emoji_surf = emoji_font.render(subtitle, True, (255, 255, 255))
+                surface.blit(emoji_surf, emoji_surf.get_rect(center=(w // 2, toast_y + 40)))
+
+                # Word-wrap the toast text below
+                if self._memorial_text:
+                    font_detail = pygame.font.SysFont("arial", 20)
+                    words = self._memorial_text.split()
+                    lines = []
+                    current = ""
+                    for word in words:
+                        test = f"{current} {word}".strip()
+                        if font_detail.size(test)[0] <= w - 80:
+                            current = test
+                        else:
+                            if current:
+                                lines.append(current)
+                            current = word
+                    if current:
+                        lines.append(current)
+                    y_start = toast_y + 80
+                    for i, line in enumerate(lines[-3:]):
+                        line_surf = font_detail.render(line, True, (220, 220, 220))
+                        surface.blit(line_surf, line_surf.get_rect(center=(w // 2, y_start + i * 24)))
 
             # ── Phase 4: Memorial Music (photo + particles + "In Loving Memory") ──
             elif phase == "music":
@@ -2172,6 +2269,8 @@ class MarioDisplay:
                     surface.blit(overlay, (0, 0))
                 else:
                     self._memorial_active = False
+                    self._event_image = None
+                    self._event_image_path = None
 
         except Exception as e:
             logger.debug(f"Memorial draw error: {e}")

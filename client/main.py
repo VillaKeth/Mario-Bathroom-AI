@@ -434,8 +434,17 @@ class MarioClient:
         name = data.get("name", "")
         text = data.get("text", "")
         duration = data.get("duration", 15)
+        image_file = data.get("image_file")
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Memorial event: phase={phase} name={name}")
+
+        # Route text to closed captions so audience can read along
+        if text and self.display and self.display.captions:
+            self.display.captions.set_text(text)
+
+        # Load event-specific image if provided
+        if image_file and self.display:
+            self.display.load_event_image(image_file)
 
         # Set memorial active on first phase, clear after fadeout
         if phase == "announcement":
@@ -469,9 +478,10 @@ class MarioClient:
         elif phase == "fadeout":
             self.audio_playback.stop_memorial_music(fadeout_ms=3000)
 
-        # Route to display
+        # Route to display (pass tone for rendering style)
+        tone = data.get("tone", "solemn")
         if self.display:
-            self.display.show_memorial(name, phase, text, duration)
+            self.display.show_memorial(name, phase, text, duration, tone=tone)
 
         # Play SFX for specific phases
         sfx_dir = os.path.join(os.path.dirname(__file__), "assets", "sfx")

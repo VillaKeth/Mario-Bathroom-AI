@@ -870,7 +870,8 @@ async def _run_shot_event(event):
                             "type": "memorial_event",
                             "phase": "countdown",
                             "text": countdown_text,
-                            "name": event.name,
+                            "name": event.display_name or event.name,
+                            "tone": event.tone,
                         }
                         
                         try:
@@ -889,7 +890,8 @@ async def _run_shot_event(event):
                 event_data = {
                     "type": "memorial_event",
                     "phase": "music",
-                    "name": event.name,
+                    "name": event.display_name or event.name,
+                    "tone": event.tone,
                     "music_file": event.music_file,
                     "duration": event.music_duration,
                 }
@@ -920,7 +922,9 @@ async def _run_shot_event(event):
                     "type": "memorial_event",
                     "phase": phase_name, 
                     "text": phase_text,
-                    "name": event.name,
+                    "name": event.display_name or event.name,
+                    "tone": event.tone,
+                    "image_file": event.image_file,
                 }
                 
                 try:
