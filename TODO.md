@@ -20,15 +20,17 @@
 - [x] Easter egg scheduler — fires 3-5x per night with 30-min minimum gap
 
 ## v3.14.1 Post-Review Fixes (In Progress)
+- [x] Fix orphaned _detect_keyword_particles function body (missing def)
+- [x] Remove random VIP face encoding (pollutes face recognition)
+- [x] Move admin API key from URL query param to X-API-Key header
+- [x] Fix EasterEggScheduler multi-fire race condition
+- [x] Restrict CORS from wildcard to localhost/LAN IPs
+- [x] Make DEBUG flags configurable via environment variables
+- [x] Add thread safety to _recent_responses list in llm.py
 - [ ] Fix deadlock in FaceMemory.learn_guest() — Lock → RLock
 - [ ] Fix NameError: _safe_ws_send undefined in guest learning flow
 - [ ] Fix NameError: memory_module → memory in leaderboard (2 occurrences)
 - [ ] Fix unreachable Qdrant health check (dead code after return)
-- [ ] Fix orphaned _detect_keyword_particles function body (missing def)
-- [ ] Remove random VIP face encoding (pollutes face recognition)
-- [ ] Move admin API key from URL query param to X-API-Key header
-- [ ] Fix EasterEggScheduler multi-fire race condition
-- [ ] Restrict CORS from wildcard to localhost/LAN IPs
 
 ## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
