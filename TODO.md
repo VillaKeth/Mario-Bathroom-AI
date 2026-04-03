@@ -72,6 +72,9 @@
 - [x] Screenshot utility rewritten with DPI awareness + TOPMOST flag
 - [x] Fix lisa_webb music path in shot_events.py
 - [x] Verified all 6 event phases work: announcement→silence→countdown→toast→music→recovery
+- [x] Fix ellipsis TTS bug: strip "..." from LLM responses, idle behavior, safety filter
+- [x] TTS preclean: handle comma-before-punctuation artifacts (", !" → "!")
+- [x] Fullscreen toggle (F11) verified: render buffer scaling + memorial overlay compatible
 
 ## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
