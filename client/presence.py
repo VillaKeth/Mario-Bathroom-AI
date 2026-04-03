@@ -47,7 +47,7 @@ class PresenceDetector:
         """Enable YOLO person detection. Call after __init__."""
         config = config or {}
         try:
-            from client.person_detector import PersonDetector
+            from person_detector import PersonDetector
             self.person_detector = PersonDetector(
                 yolo_model=config.get("yolo_model", "yolov8n.pt")
             )
