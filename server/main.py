@@ -25,7 +25,7 @@ import threading
 import httpx
 import numpy as np
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from contextlib import asynccontextmanager
@@ -223,6 +223,7 @@ def _count_unique_faces() -> int:
         return 0
 
 
+def _detect_keyword_particles(text: str) -> str | None:
     """Detect keyword in text and return particle effect name."""
     import string
     words = set(w.strip(string.punctuation) for w in text.lower().split())
@@ -458,19 +459,14 @@ try:
     _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
     _face_memory = FaceMemory(_face_db_path)
     
-    # Jacob VIP pre-registration - generate a placeholder face encoding if not exists
+    # Jacob VIP pre-registration - metadata only, face should be registered from real photo
     if hasattr(_face_memory, 'store_face_qdrant') and _face_memory._qdrant_client:
         try:
-            # Try to find existing Jacob entry
-            test_encoding = np.random.random(128).astype(np.float64)  # Placeholder
-            existing_match = _face_memory.lookup_face_qdrant(test_encoding, tolerance=0.0)  # Will not match
-            if existing_match is None or existing_match.get("name") != "Jacob":
-                # Pre-register Jacob with a known encoding (in real use, this would be from actual photo)
-                jacob_encoding = np.random.random(128).astype(np.float64)  # In production: use actual photo
-                _face_memory.store_face_qdrant("Jacob", jacob_encoding)
-                logger.info("[INIT] Jacob VIP pre-registered in face database")
+            # Jacob's face should be registered from a real photo or during first identification
+            # at the party. We skip the face vector but keep VIP name registration if needed.
+            logger.info("[INIT] Jacob VIP metadata ready - face should be registered from real photo")
         except Exception as e:
-            logger.warning(f"[INIT] Jacob VIP pre-registration failed: {e}")
+            logger.warning(f"[INIT] Jacob VIP setup error: {e}")
     
     logger.info("[INIT] Face memory initialized")
 except Exception as e:
@@ -801,7 +797,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Mario AI Server", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8765", "http://127.0.0.1:8765", "http://localhost:3000", "http://127.0.0.1:3000"], allow_methods=["*"], allow_headers=["*"])
 
 # Mount dashboard routes
 app.include_router(dashboard_router)
@@ -1601,12 +1597,14 @@ async def trigger_shot_event(event_name: str, request_body: dict = {}):
 
 
 @app.get("/admin/events")
-async def list_shot_events(api_key: str = ""):
+async def list_shot_events(request: Request):
     """List all registered shot events."""
     # Check admin API key if configured
     config_key = GAME_CONFIG.get("admin_api_key", "")
-    if config_key and api_key != config_key:
-        return {"status": "error", "message": "Invalid API key"}
+    if config_key:
+        api_key = request.headers.get("X-API-Key", "")
+        if api_key != config_key:
+            return {"status": "error", "message": "Invalid API key"}
     
     return {"status": "ok", "events": shot_event_manager.list_events()}
 

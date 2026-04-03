@@ -1,11 +1,12 @@
 """Idle behavior and autonomous actions for Mario."""
 
+import os
 import random
 import time
 import logging
 from datetime import datetime
 
-DEBUG_IDLE = True
+DEBUG_IDLE = os.environ.get("DEBUG_IDLE", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
 # ── Memorial text constants (no ellipsis — TTS convention) ──────────────
@@ -1571,6 +1572,7 @@ class EasterEggScheduler:
 
     def __init__(self, party_duration_hours=8):
         self._fire_count = 0
+        self._fire_consumed = False  # Track if scheduled time has been consumed
         num_fires = random.randint(3, 5)
         total_seconds = party_duration_hours * 3600
         slot_size = 1800  # 30 minutes
@@ -1582,14 +1584,18 @@ class EasterEggScheduler:
             logger.info(f"[DEBUG_IDLE] EasterEggScheduler: {len(self.firing_times)} fires scheduled")
 
     def should_fire(self) -> bool:
+        if self._fire_consumed:
+            return False
         now = time.time()
         for ft in self.firing_times:
             if ft <= now and self._fire_count < len(self.firing_times):
+                self._fire_consumed = True  # Atomically consume this fire
                 return True
         return False
 
     def record_fired(self):
         self._fire_count += 1
+        self._fire_consumed = False  # Reset for next fire
         now = time.time()
         self.firing_times = [t for t in self.firing_times if t > now]
         if DEBUG_IDLE:

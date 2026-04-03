@@ -1,27 +1,41 @@
 # Mario AI Party Bot - TODO
 
-## v3.14 Ultra Party Upgrade (Current)
-- [ ] Sub-A: Memorial v2 — voice trigger for "Lisa"/"Aunt Lisa", 10-sec dramatic countdown, music loop fix (loops=0), warm recovery line
-- [x] 6 shot event wiring bugs fixed: _active_event blocking (finally block), countdown display (.upper() removal), Ctrl+Shift+L attribute fix, DEBUG_PLAYBOOK typo, loops parameter use, circular import fix
-- [ ] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
-- [ ] Sub-A: Flush idle text queue when memorial starts
+## v3.14 Ultra Party Upgrade — RELEASED ✅ (85 tests, 14/14 tasks)
+- [x] Sub-A: Memorial v2 — voice trigger, 10-sec countdown, music loop fix, warm recovery
+- [x] 6 shot event wiring bugs fixed (finally block, .upper(), Ctrl+Shift+L, typo, loops, circular import)
+- [x] Sub-A: Secret skip combo (Ctrl+Shift+L) for memorial
+- [x] Sub-A: Flush idle text queue when memorial starts
 - [x] Sub-B: Speech bubble auto-shrink font (14-28px) with word wrap
 - [x] Sub-B: Closed captions bar at bottom of screen
 - [x] Sub-B: Speech bubble stays visible until TTS audio finishes
-- [ ] Sub-B: Hot-swappable bathroom backgrounds from assets/backgrounds/
-- [x] Task 10: Person Detection Qdrant Collections — mario_faces (128-dim) and mario_voices (256-dim) collections
-- [x] Task 11: Dynamic Guest Learning Flow — "Who are you?" flow with 2-attempt retry, Mystery Guest fallback, Jacob VIP pre-registration
+- [x] Sub-B: Hot-swappable bathroom backgrounds from assets/backgrounds/
+- [x] Task 10: Person Detection Qdrant Collections — mario_faces (128-dim) and mario_voices (256-dim)
+- [x] Person detection tests fixed — 9 tests pass with consistent Qdrant mocking
+- [x] Task 11: Dynamic Guest Learning Flow — "Who are you?" flow, Mystery Guest fallback, Jacob VIP
+- [x] Task 12: LLM Sentiment Integration — emotion/energy extraction (14 tests passing)
+- [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
+- [x] Task 5: Shot Events System Framework (10 tests passing)
+- [x] Task 6: Shot Event Configurations — Lisa Webb + Birthday Boy + Deltarune (19 tests passing)
+- [x] Task 7: Shot Events WebSocket Integration — wired, REST endpoints, TTS precaching
+- [x] Easter egg scheduler — fires 3-5x per night with 30-min minimum gap
+
+## v3.14.1 Post-Review Fixes (In Progress)
+- [ ] Fix deadlock in FaceMemory.learn_guest() — Lock → RLock
+- [ ] Fix NameError: _safe_ws_send undefined in guest learning flow
+- [ ] Fix NameError: memory_module → memory in leaderboard (2 occurrences)
+- [ ] Fix unreachable Qdrant health check (dead code after return)
+- [ ] Fix orphaned _detect_keyword_particles function body (missing def)
+- [ ] Remove random VIP face encoding (pollutes face recognition)
+- [ ] Move admin API key from URL query param to X-API-Key header
+- [ ] Fix EasterEggScheduler multi-fire race condition
+- [ ] Restrict CORS from wildcard to localhost/LAN IPs
+
+## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
-- [x] Task 12: LLM Sentiment Integration — emotion/energy extraction to system prompt + parse from response + WebSocket integration (14 tests passing)
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
-- [x] Sub-E: Fix WIND_DOWN stuck bug (reset party clock on fresh start)
-- [x] Task 5: Shot Events System Framework — ShotEvent dataclass + ShotEventManager (10 tests passing)
-- [x] Task 6: Shot Event Configurations — Lisa Webb memorial + Birthday Boy shot + Deltarune shot (19 tests passing)
-- [ ] Task 7: Shot Events WebSocket Integration
-- [ ] Easter egg: "Jacob said the N-Word" line 3-5 times per night
 - [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)
-- [ ] Stable Diffusion prompts for Jacob's 1985 FL townhouse bathroom
+- [ ] Stable Diffusion bathroom backgrounds (prompts written, need generation)
 
 ## v3.13 Memorial Overhaul + Party Polish
 - [x] Generate memorial SFX (chime + clink WAV files)

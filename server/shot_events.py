@@ -1,10 +1,11 @@
 # server/shot_events.py
 """Generalized Shot Event system for party ceremonies and toasts."""
+import os
 from dataclasses import dataclass, field
 from typing import Optional
 import re
 
-DEBUG_SHOT_EVENTS = True
+DEBUG_SHOT_EVENTS = os.environ.get("DEBUG_SHOT_EVENTS", "").lower() in ("1", "true", "yes")
 
 @dataclass
 class ShotEvent:

@@ -25,7 +25,7 @@ try:
 except ImportError:
     _HAS_QDRANT = False
 
-DEBUG_SPEAKER = True
+DEBUG_SPEAKER = os.environ.get("DEBUG_SPEAKER", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
 SIMILARITY_THRESHOLD = 0.75  # Cosine similarity threshold for matching (configurable via config.json)

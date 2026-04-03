@@ -24,7 +24,7 @@ except ImportError:
     _HAS_QDRANT = False
 
 logger = logging.getLogger(__name__)
-DEBUG_FACE = True
+DEBUG_FACE = os.environ.get("DEBUG_FACE", "").lower() in ("1", "true", "yes")
 
 
 class FaceMemory:

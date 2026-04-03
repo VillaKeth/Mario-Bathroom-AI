@@ -2,11 +2,12 @@
 
 import json
 import logging
+import os
 import re
 import threading
 import time
 
-DEBUG_EMOTION = True
+DEBUG_EMOTION = os.environ.get("DEBUG_EMOTION", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
 
