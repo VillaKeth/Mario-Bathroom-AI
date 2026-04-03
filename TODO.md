@@ -76,13 +76,18 @@
 - [x] TTS preclean: handle comma-before-punctuation artifacts (", !" → "!")
 - [x] Fullscreen toggle (F11) verified: render buffer scaling + memorial overlay compatible
 
+## v3.16.2 Final Audit Release — RELEASED ✅
+- [x] CRITICAL: Fix reset_event race condition — block reset while event is actively running (prevents double-fire)
+- [x] Fix toast_y Surface None guard — prevents potential crash during memorial toast phase
+- [x] Regenerated 3D pose images (improved quality)
+- [x] Added qdrant face/voice storage databases
+- [x] Ignore qdrant .lock files in .gitignore
+
 ## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
 - [ ] Stable Diffusion bathroom backgrounds (prompts written, need generation)
-- [ ] Ellipses ("...") fix in TTS audio generation
-- [ ] Text overflow in speech bubble (long messages clip)
 - [ ] Better bathroom background images (more realistic)
 
 ## v3.13 Memorial Overhaul + Party Polish
