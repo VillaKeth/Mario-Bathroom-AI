@@ -38,44 +38,43 @@ AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
 # Map emotions to AI pose paths (category/filename without .png)
 # Values can be a single string or a list for random selection.
 EMOTION_SPRITE_MAP = {
-    "happy": ["positive/happy", "positive/very_happy", "party/cheering"],
-    "excited": ["positive/excited_jump", "party/celebrate", "birthday/party_dance"],
-    "surprised": ["thinking/surprised", "reactions/double_take"],
+    "happy": "positive/happy",
+    "excited": "positive/excited_jump",
+    "surprised": "thinking/surprised",
     "confused": "thinking/confused",
-    "annoyed": ["negative/annoyed", "reactions/eye_roll"],
+    "annoyed": "negative/annoyed",
     "sleepy": "sleep/sleepy",
     "mischievous": "thinking/mischievous",
-    "laughing": ["positive/laughing", "reactions/rofl"],
+    "laughing": "positive/laughing",
     "sad": "negative/sad",
     "angry": "negative/angry",
     "nervous": "negative/nervous",
     "scared": "negative/scared",
     "love": "positive/love",
     "loving": "positive/love",
-    "proud": ["positive/proud", "reactions/impressed"],
+    "proud": "positive/proud",
     "embarrassed": "negative/embarrassed",
-    "disgusted": ["negative/disgusted", "bathroom/grossed_out"],
+    "disgusted": "negative/disgusted",
     "determined": "thinking/determined",
     "bored": "sleep/yawning",
     "worried": "negative/nervous",
     "curious": "thinking/curious",
     "thinking": "thinking/thinking",
-    "shocked": ["thinking/shocked", "reactions/jaw_drop", "reactions/mind_blown"],
+    "shocked": "thinking/shocked",
     "idea": "thinking/idea",
     "frustrated": "negative/annoyed",
     "neutral": "neutral/idle",
-    # New expanded emotions
     "memorial": "memorial/moment_of_silence",
     "toast": "toast/raising_glass",
-    "party": ["party/celebrate", "party/cheering", "party/confetti"],
+    "party": "party/celebrate",
     "grossed_out": "bathroom/grossed_out",
     "mind_blown": "reactions/mind_blown",
     "sassy": "reactions/sassy",
     "cringe": "reactions/cringe",
     "impressed": "reactions/impressed",
-    "celebratory": ["party/celebrate", "party/cheers", "party/confetti"],
-    "solemn": ["memorial/moment_of_silence", "memorial/honor"],
-    "birthday": ["birthday/birthday_boy", "birthday/party_dance"],
+    "celebratory": "party/cheers",
+    "solemn": "memorial/moment_of_silence",
+    "birthday": "birthday/birthday_boy",
 }
 
 # Map states to AI pose paths (string or list for cycling/random)
@@ -83,7 +82,7 @@ STATE_SPRITE_MAP = {
     STATE_IDLE: "neutral/idle",
     STATE_TALKING: ["speech/talking", "speech/talking_excited"],
     STATE_LISTENING: "speech/listening",
-    STATE_GREETING: ["greeting/wave_high", "greeting/hello_sparkle"],
+    STATE_GREETING: "greeting/wave_high",
     STATE_THINKING: "thinking/thinking",
     STATE_SLEEPING: "sleep/sleeping",
     STATE_DANCING: ["movement/dancing_1", "movement/dancing_2", "party/celebrate", "birthday/party_dance"],
@@ -1019,6 +1018,9 @@ class MarioDisplay:
             self._fullscreen = not self._fullscreen
             if self._fullscreen:
                 info = pygame.display.Info()
+                # Ensure render buffer exists before switching
+                if not hasattr(self, '_render_buffer') or self._render_buffer is None:
+                    self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
                 self._screen = pygame.display.set_mode(
                     (info.current_w, info.current_h), pygame.FULLSCREEN | pygame.SCALED
                 )
@@ -1048,6 +1050,11 @@ class MarioDisplay:
             try:
                 self._fullscreen = False
                 self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+                self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+                self._render_w = WINDOW_WIDTH
+                self._render_h = WINDOW_HEIGHT
+                self._fs_scale = 1.0
+                self._display_scale = 1.0
             except Exception:
                 pass
         # Invalidate cached background so it redraws at new size
@@ -2106,7 +2113,7 @@ class MarioDisplay:
             # ── Phase 1: Announcement (dim screen + show event image + text) ──
             if phase == "announcement":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                alpha = min(180, int(elapsed * 40))
+                alpha = min(255, int(elapsed * 60))
                 if tone == "solemn":
                     overlay.fill((0, 0, 0, alpha))
                 elif tone == "celebratory":
@@ -2148,7 +2155,7 @@ class MarioDisplay:
             # ── Phase 2: Moment of Silence (solemn only — photo, particles, glow) ──
             elif phase == "silence":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 200))
+                overlay.fill((0, 0, 0, 255))
                 surface.blit(overlay, (0, 0))
 
                 self._update_memorial_particles()
@@ -2189,19 +2196,41 @@ class MarioDisplay:
                 surface.blit(name_surf, name_surf.get_rect(center=(w // 2, photo_bottom)))
 
                 if not dates_text:
-                    dates_text = "August 17, 1968 \u2013 March 23, 2023"
-                dates_surf = font_dates.render(dates_text, True, (200, 200, 200))
-                surface.blit(dates_surf, dates_surf.get_rect(center=(w // 2, photo_bottom + 40)))
+                    # Only show default dates for Lisa Webb events
+                    if "lisa" in self._memorial_name.lower():
+                        dates_text = "August 17, 1968 \u2013 March 23, 2023"
+                if dates_text:
+                    dates_surf = font_dates.render(dates_text, True, (200, 200, 200))
+                    surface.blit(dates_surf, dates_surf.get_rect(center=(w // 2, photo_bottom + 40)))
+
+            # ── Phase 2b: Countdown (dark overlay behind countdown numbers) ──
+            elif phase == "countdown":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                if tone == "solemn":
+                    overlay.fill((0, 0, 0, 255))
+                elif tone == "celebratory":
+                    overlay.fill((30, 0, 60, 255))
+                else:  # fun
+                    overlay.fill((0, 20, 50, 255))
+                surface.blit(overlay, (0, 0))
+
+                # Show event image during countdown (dimmed behind number)
+                photo = event_img if event_img else self._memorial_photo
+                if photo:
+                    dimmed = photo.copy()
+                    dimmed.set_alpha(80)
+                    photo_rect = dimmed.get_rect(center=(w // 2, h // 2 - 20))
+                    surface.blit(dimmed, photo_rect)
 
             # ── Phase 3: Toast/Shot (tone-adaptive overlay + image + text) ──
             elif phase == "toast":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
                 if tone == "solemn":
-                    overlay.fill((60, 30, 0, 180))
+                    overlay.fill((60, 30, 0, 255))
                 elif tone == "celebratory":
-                    overlay.fill((80, 20, 80, 180))
+                    overlay.fill((80, 20, 80, 255))
                 else:  # fun
-                    overlay.fill((0, 40, 80, 180))
+                    overlay.fill((0, 40, 80, 255))
                 surface.blit(overlay, (0, 0))
 
                 # Show event image
@@ -2210,7 +2239,9 @@ class MarioDisplay:
                     surface.blit(event_img, img_rect)
 
                 font_toast = pygame.font.SysFont("arial", 34, bold=True)
-                toast_text = f"To {self._memorial_name}!"
+                # Strip dates from display name for toast
+                toast_name = self._memorial_name.split("\n", 1)[0].strip() if "\n" in self._memorial_name else self._memorial_name
+                toast_text = f"To {toast_name}!"
                 toast_surf = font_toast.render(toast_text, True, (255, 215, 0))
                 shadow = font_toast.render(toast_text, True, (0, 0, 0))
                 toast_y = h // 2 + (event_img.get_height() // 2 + 30 if event_img else 0)
@@ -2246,29 +2277,66 @@ class MarioDisplay:
             # ── Phase 4: Memorial Music (photo + particles + "In Loving Memory") ──
             elif phase == "music":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 210))
+                overlay.fill((0, 0, 0, 255))
                 surface.blit(overlay, (0, 0))
 
                 self._update_memorial_particles()
                 self._draw_memorial_particles(surface)
 
-                if self._memorial_photo:
-                    photo_rect = self._memorial_photo.get_rect(center=(w // 2, h // 2 - 20))
+                photo = event_img if event_img else self._memorial_photo
+                if photo:
+                    photo_rect = photo.get_rect(center=(w // 2, h // 2 - 20))
                     glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
                     glow_surf.fill((255, 200, 50, 40))
                     glow_rect = glow_surf.get_rect(center=(w // 2, h // 2 - 20))
                     surface.blit(glow_surf, glow_rect)
-                    surface.blit(self._memorial_photo, photo_rect)
+                    surface.blit(photo, photo_rect)
 
                 font_mem = pygame.font.SysFont("arial", 28, bold=True)
                 mem_surf = font_mem.render("In Loving Memory", True, (255, 255, 255))
                 surface.blit(mem_surf, mem_surf.get_rect(center=(w // 2, h // 2 - 190)))
 
+                # Parse name from display_name (strip dates)
+                display_name = self._memorial_name
+                if "\n" in display_name:
+                    display_name = display_name.split("\n", 1)[0].strip()
                 font_name = pygame.font.SysFont("arial", 30, bold=True)
-                name_surf = font_name.render(self._memorial_name, True, (255, 215, 0))
+                name_surf = font_name.render(display_name, True, (255, 215, 0))
                 surface.blit(name_surf, name_surf.get_rect(center=(w // 2, h // 2 + 170)))
 
-            # ── Phase 5: Fade Out ──
+            # ── Phase 5: Recovery (surprise reveal for fake memorials) ──
+            elif phase == "recovery":
+                overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+                # Bright flash that fades — celebratory surprise
+                flash_alpha = max(0, int(255 * (1.0 - elapsed / 2.0))) if elapsed < 2.0 else 0
+                overlay.fill((255, 255, 200, flash_alpha))
+                surface.blit(overlay, (0, 0))
+
+                # Show the recovery text
+                if self._memorial_text:
+                    font_big = pygame.font.SysFont("arial", 32, bold=True)
+                    # Word-wrap
+                    words = self._memorial_text.split()
+                    lines = []
+                    current = ""
+                    for word in words:
+                        test = f"{current} {word}".strip()
+                        if font_big.size(test)[0] <= w - 60:
+                            current = test
+                        else:
+                            if current:
+                                lines.append(current)
+                            current = word
+                    if current:
+                        lines.append(current)
+                    y_start = h // 2 - len(lines) * 20
+                    for i, line in enumerate(lines):
+                        line_surf = font_big.render(line, True, (255, 255, 50))
+                        shadow = font_big.render(line, True, (0, 0, 0))
+                        surface.blit(shadow, shadow.get_rect(center=(w // 2 + 2, y_start + i * 40 + 2)))
+                        surface.blit(line_surf, line_surf.get_rect(center=(w // 2, y_start + i * 40)))
+
+            # ── Phase 6: Fade Out ──
             elif phase == "fadeout":
                 fade_duration = 3.0
                 if elapsed < fade_duration:

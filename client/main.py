@@ -457,6 +457,9 @@ class MarioClient:
             countdown_number = self._convert_countdown_word_to_number(text)
             if countdown_number:
                 self.display.set_countdown(countdown_number)
+        elif phase == "toast":
+            # Clear countdown number when transitioning to toast
+            self.display.clear_countdown()
         elif phase == "fadeout":
             # Clear countdown and memorial flags
             self.display.clear_countdown()
@@ -470,9 +473,18 @@ class MarioClient:
 
         # Start/stop memorial music
         if phase == "music":
-            music_path = os.path.join(os.path.dirname(__file__), "assets", "music", "lisa_webb_memorial.mp3")
+            # Use event-specific music_file if provided, fall back to lisa_webb_memorial.mp3
+            event_music = data.get("music_file", "")
+            if event_music:
+                if not os.path.isabs(event_music):
+                    # Server sends paths relative to project root (e.g. "client/assets/audio/...")
+                    project_root = os.path.dirname(os.path.dirname(__file__))
+                    event_music = os.path.join(project_root, event_music)
+                music_path = event_music
+            else:
+                music_path = os.path.join(os.path.dirname(__file__), "assets", "music", "lisa_webb_memorial.mp3")
             if os.path.exists(music_path):
-                self.audio_playback.play_memorial_music(music_path)  # Default loops=0 (play once)
+                self.audio_playback.play_memorial_music(music_path)
             else:
                 logger.warning(f"[DEBUG_CLIENT] Memorial music not found: {music_path}")
         elif phase == "fadeout":

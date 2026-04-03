@@ -131,7 +131,7 @@ def create_default_events() -> ShotEventManager:
         toast_text="Now raise your glasses, everyone. To Lisa Webb, a beautiful soul who touched all of our lives. To Lisa!",
         recovery_line="Lisa would've loved this party. Now let's keep celebrating in her honor!",
         countdown=True,
-        music_file="client/assets/audio/lisa_memorial.mp3",
+        music_file="client/assets/music/lisa_webb_memorial.mp3",
         music_duration=120,
         skip_key="ctrl+shift+l",
         image_file="client/assets/images/lisa_webb.jpg",
