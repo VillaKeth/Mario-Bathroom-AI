@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mario AI Poses — Full Gallery (Original + Expanded)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; }
+h1 { color: #e63946; text-align: center; margin-bottom: 5px; font-size: 2em; }
+.subtitle { text-align: center; color: #888; margin-bottom: 10px; }
+.tabs { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.tab { padding: 6px 14px; border-radius: 20px; border: 1px solid #444; cursor: pointer;
+       color: #ccc; font-size: 13px; transition: all 0.2s; }
+.tab:hover { border-color: #e63946; color: #fff; }
+.tab.active { background: #e63946; border-color: #e63946; color: #fff; }
+.tab.new { border-color: #f4a261; }
+.tab.new::after { content: " ✨"; }
+h2 { color: #f4a261; padding: 15px 0 10px; border-bottom: 2px solid #e63946; margin-top: 30px; }
+h2 .new-badge { background: #e63946; color: white; font-size: 11px; padding: 2px 8px;
+                border-radius: 10px; margin-left: 10px; vertical-align: middle; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
+.card { background: #16213e; border-radius: 10px; overflow: hidden; border: 1px solid #333;
+        transition: transform 0.2s; cursor: pointer; }
+.card:hover { transform: scale(1.02); border-color: #e63946; }
+.card img { width: 100%; height: 280px; object-fit: contain; background: #0a0a1a; }
+.card .info { padding: 10px; }
+.card .info h3 { color: #f4a261; font-size: 14px; }
+.card .info p { color: #888; font-size: 11px; margin-top: 3px; }
+.card .info .cat-tag { display: inline-block; background: #333; color: #aaa; padding: 1px 6px;
+                       border-radius: 8px; font-size: 10px; margin-top: 4px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+         background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+.modal.active { display: flex; }
+.modal img { max-width: 90%; max-height: 90%; object-fit: contain; }
+.modal .close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+.stats { text-align: center; background: #16213e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+.stats span { margin: 0 15px; }
+.missing { opacity: 0.3; border: 1px dashed #555; }
+.missing .info h3::after { content: " (not generated)"; color: #666; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>🍄 Mario AI Poses — Full Gallery</h1>
+<p class="subtitle">Original 74 poses + Expanded categories</p>
+<div class="stats"><strong>Total defined:</strong> <span>122</span> | <strong>Generated:</strong> <span>122</span> | <strong>Missing:</strong> <span>0</span></div>
+<div class="tabs">
+<a class="tab " href="#cat-neutral">😐 Neutral</a>
+<a class="tab " href="#cat-greeting">👋 Greeting</a>
+<a class="tab " href="#cat-speech">💬 Speech</a>
+<a class="tab " href="#cat-positive">😄 Positive</a>
+<a class="tab " href="#cat-negative">😢 Negative</a>
+<a class="tab " href="#cat-thinking">🤔 Thinking</a>
+<a class="tab " href="#cat-sleep">💤 Sleep</a>
+<a class="tab " href="#cat-movement">🏃 Movement</a>
+<a class="tab " href="#cat-action">⚡ Action</a>
+<a class="tab " href="#cat-powerup">⭐ Powerup</a>
+<a class="tab new" href="#cat-party">🎉 Party</a>
+<a class="tab new" href="#cat-memorial">🕯️ Memorial</a>
+<a class="tab new" href="#cat-toast">🥂 Toast</a>
+<a class="tab new" href="#cat-bathroom">🚻 Bathroom</a>
+<a class="tab new" href="#cat-reactions">😲 Reactions</a>
+<a class="tab new" href="#cat-birthday">🎂 Birthday</a>
+<a class="tab new" href="#cat-gaming">🎮 Gaming</a>
+</div>
+
+<h2 id="cat-neutral">😐 Neutral (6/6) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/idle.png')">
+<img src="../ai_poses_transparent/neutral/idle.png" alt="idle" loading="lazy">
+<div class="info"><h3>idle</h3><p>Super Mario standing in a neutral relaxed pose, arms at sides, friendly calm exp...</p><span class="cat-tag">neutral</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/idle_blink.png')">
+<img src="../ai_poses_transparent/neutral/idle_blink.png" alt="idle_blink" loading="lazy">
+<div class="info"><h3>idle_blink</h3><p>Super Mario standing with eyes gently closed mid-blink, peaceful relaxed express...</p><span class="cat-tag">neutral</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/idle_wink.png')">
+<img src="../ai_poses_transparent/neutral/idle_wink.png" alt="idle_wink" loading="lazy">
+<div class="info"><h3>idle_wink</h3><p>Super Mario standing and winking his right eye playfully, slight smile, fun expr...</p><span class="cat-tag">neutral</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/looking_left.png')">
+<img src="../ai_poses_transparent/neutral/looking_left.png" alt="looking_left" loading="lazy">
+<div class="info"><h3>looking_left</h3><p>Super Mario standing and looking to his left with eyes shifted sideways, curious...</p><span class="cat-tag">neutral</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/looking_right.png')">
+<img src="../ai_poses_transparent/neutral/looking_right.png" alt="looking_right" loading="lazy">
+<div class="info"><h3>looking_right</h3><p>Super Mario standing and looking to his right with eyes shifted sideways, curiou...</p><span class="cat-tag">neutral</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/neutral/looking_up.png')">
+<img src="../ai_poses_transparent/neutral/looking_up.png" alt="looking_up" loading="lazy">
+<div class="info"><h3>looking_up</h3><p>Super Mario standing and looking upward at the sky, wondering amazed expression...</p><span class="cat-tag">neutral</span></div>
+</div>
+</div>
+
+<h2 id="cat-greeting">👋 Greeting (7/7) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/wave_high.png')">
+<img src="../ai_poses_transparent/greeting/wave_high.png" alt="wave_high" loading="lazy">
+<div class="info"><h3>wave_high</h3><p>Super Mario waving his right hand high above his head enthusiastically, big welc...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/wave_casual.png')">
+<img src="../ai_poses_transparent/greeting/wave_casual.png" alt="wave_casual" loading="lazy">
+<div class="info"><h3>wave_casual</h3><p>Super Mario waving his right hand at shoulder height, friendly casual wave, warm...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/wave_both.png')">
+<img src="../ai_poses_transparent/greeting/wave_both.png" alt="wave_both" loading="lazy">
+<div class="info"><h3>wave_both</h3><p>Super Mario waving both hands above his head excitedly, huge joyful smile, very ...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/welcome_arms.png')">
+<img src="../ai_poses_transparent/greeting/welcome_arms.png" alt="welcome_arms" loading="lazy">
+<div class="info"><h3>welcome_arms</h3><p>Super Mario with both arms open wide in a welcoming gesture, inviting warm expre...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/farewell.png')">
+<img src="../ai_poses_transparent/greeting/farewell.png" alt="farewell" loading="lazy">
+<div class="info"><h3>farewell</h3><p>Super Mario waving goodbye with one hand raised high, slightly bittersweet but w...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/tip_hat.png')">
+<img src="../ai_poses_transparent/greeting/tip_hat.png" alt="tip_hat" loading="lazy">
+<div class="info"><h3>tip_hat</h3><p>Super Mario tipping his red cap politely with one hand, gentleman gesture, sligh...</p><span class="cat-tag">greeting</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/greeting/hello_sparkle.png')">
+<img src="../ai_poses_transparent/greeting/hello_sparkle.png" alt="hello_sparkle" loading="lazy">
+<div class="info"><h3>hello_sparkle</h3><p>Super Mario in a cheerful hello pose, one hand waving, sparkles and stars around...</p><span class="cat-tag">greeting</span></div>
+</div>
+</div>
+
+<h2 id="cat-speech">💬 Speech (8/8) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/talking.png')">
+<img src="../ai_poses_transparent/speech/talking.png" alt="talking" loading="lazy">
+<div class="info"><h3>talking</h3><p>Super Mario talking with mouth open mid-speech, one hand gesturing forward, anim...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/talking_excited.png')">
+<img src="../ai_poses_transparent/speech/talking_excited.png" alt="talking_excited" loading="lazy">
+<div class="info"><h3>talking_excited</h3><p>Super Mario talking very excitedly with both hands gesturing wildly, wide open m...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/shouting.png')">
+<img src="../ai_poses_transparent/speech/shouting.png" alt="shouting" loading="lazy">
+<div class="info"><h3>shouting</h3><p>Super Mario shouting loudly with hands cupped around his mouth like a megaphone,...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/singing.png')">
+<img src="../ai_poses_transparent/speech/singing.png" alt="singing" loading="lazy">
+<div class="info"><h3>singing</h3><p>Super Mario singing with eyes closed blissfully, mouth open in song, one hand up...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/whistling.png')">
+<img src="../ai_poses_transparent/speech/whistling.png" alt="whistling" loading="lazy">
+<div class="info"><h3>whistling</h3><p>Super Mario whistling a cheerful tune with puckered lips, hands behind back, cas...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/listening.png')">
+<img src="../ai_poses_transparent/speech/listening.png" alt="listening" loading="lazy">
+<div class="info"><h3>listening</h3><p>Super Mario leaning forward with one hand cupped behind his ear, listening atten...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/shushing.png')">
+<img src="../ai_poses_transparent/speech/shushing.png" alt="shushing" loading="lazy">
+<div class="info"><h3>shushing</h3><p>Super Mario with finger to his lips making a quiet shush gesture, sneaky conspir...</p><span class="cat-tag">speech</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/speech/whispering.png')">
+<img src="../ai_poses_transparent/speech/whispering.png" alt="whispering" loading="lazy">
+<div class="info"><h3>whispering</h3><p>Super Mario leaning sideways with hand cupped near mouth whispering a secret, mi...</p><span class="cat-tag">speech</span></div>
+</div>
+</div>
+
+<h2 id="cat-positive">😄 Positive (9/9) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/happy.png')">
+<img src="../ai_poses_transparent/positive/happy.png" alt="happy" loading="lazy">
+<div class="info"><h3>happy</h3><p>Super Mario with a huge bright beaming smile, rosy cheeks, very happy expression...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/very_happy.png')">
+<img src="../ai_poses_transparent/positive/very_happy.png" alt="very_happy" loading="lazy">
+<div class="info"><h3>very_happy</h3><p>Super Mario extremely happy, jumping slightly with pure joy, eyes squinted from ...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/excited_jump.png')">
+<img src="../ai_poses_transparent/positive/excited_jump.png" alt="excited_jump" loading="lazy">
+<div class="info"><h3>excited_jump</h3><p>Super Mario jumping high with one fist raised triumphantly in the air, classic M...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/laughing.png')">
+<img src="../ai_poses_transparent/positive/laughing.png" alt="laughing" loading="lazy">
+<div class="info"><h3>laughing</h3><p>Super Mario laughing heartily with mouth wide open, eyes squinted shut, holding ...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/love.png')">
+<img src="../ai_poses_transparent/positive/love.png" alt="love" loading="lazy">
+<div class="info"><h3>love</h3><p>Super Mario with heart-shaped eyes, dreamy loving expression, floating red heart...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/proud.png')">
+<img src="../ai_poses_transparent/positive/proud.png" alt="proud" loading="lazy">
+<div class="info"><h3>proud</h3><p>Super Mario standing proudly with chest puffed out, one fist on hip, confident h...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/victorious.png')">
+<img src="../ai_poses_transparent/positive/victorious.png" alt="victorious" loading="lazy">
+<div class="info"><h3>victorious</h3><p>Super Mario in victory pose with both arms raised high making V signs, huge triu...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/thumbs_up.png')">
+<img src="../ai_poses_transparent/positive/thumbs_up.png" alt="thumbs_up" loading="lazy">
+<div class="info"><h3>thumbs_up</h3><p>Super Mario giving a big thumbs up with right hand extended forward, encouraging...</p><span class="cat-tag">positive</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/positive/peace_sign.png')">
+<img src="../ai_poses_transparent/positive/peace_sign.png" alt="peace_sign" loading="lazy">
+<div class="info"><h3>peace_sign</h3><p>Super Mario making a peace sign with two fingers, playful wink, fun cool casual ...</p><span class="cat-tag">positive</span></div>
+</div>
+</div>
+
+<h2 id="cat-negative">😢 Negative (10/10) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/sad.png')">
+<img src="../ai_poses_transparent/negative/sad.png" alt="sad" loading="lazy">
+<div class="info"><h3>sad</h3><p>Super Mario looking sad and dejected, drooping posture, downcast eyes, frown, sl...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/crying.png')">
+<img src="../ai_poses_transparent/negative/crying.png" alt="crying" loading="lazy">
+<div class="info"><h3>crying</h3><p>Super Mario crying with tears streaming down his face, eyes squeezed shut, very ...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/angry.png')">
+<img src="../ai_poses_transparent/negative/angry.png" alt="angry" loading="lazy">
+<div class="info"><h3>angry</h3><p>Super Mario looking very angry with deeply furrowed brows, gritted teeth, fists ...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/furious.png')">
+<img src="../ai_poses_transparent/negative/furious.png" alt="furious" loading="lazy">
+<div class="info"><h3>furious</h3><p>Super Mario absolutely furious, face bright red with rage, steam from ears, fist...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/annoyed.png')">
+<img src="../ai_poses_transparent/negative/annoyed.png" alt="annoyed" loading="lazy">
+<div class="info"><h3>annoyed</h3><p>Super Mario looking annoyed and unimpressed, arms crossed, half-lidded eyes, sli...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/disappointed.png')">
+<img src="../ai_poses_transparent/negative/disappointed.png" alt="disappointed" loading="lazy">
+<div class="info"><h3>disappointed</h3><p>Super Mario looking disappointed, shoulders slumped, looking down sadly, hand on...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/scared.png')">
+<img src="../ai_poses_transparent/negative/scared.png" alt="scared" loading="lazy">
+<div class="info"><h3>scared</h3><p>Super Mario looking terrified, very wide frightened eyes, mouth agape, trembling...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/nervous.png')">
+<img src="../ai_poses_transparent/negative/nervous.png" alt="nervous" loading="lazy">
+<div class="info"><h3>nervous</h3><p>Super Mario looking nervous and anxious, visible sweat drops, biting lip, fidget...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/embarrassed.png')">
+<img src="../ai_poses_transparent/negative/embarrassed.png" alt="embarrassed" loading="lazy">
+<div class="info"><h3>embarrassed</h3><p>Super Mario looking embarrassed, blushing bright red cheeks, hand behind head sh...</p><span class="cat-tag">negative</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/negative/disgusted.png')">
+<img src="../ai_poses_transparent/negative/disgusted.png" alt="disgusted" loading="lazy">
+<div class="info"><h3>disgusted</h3><p>Super Mario looking disgusted, nose wrinkled, tongue slightly out, leaning back ...</p><span class="cat-tag">negative</span></div>
+</div>
+</div>
+
+<h2 id="cat-thinking">🤔 Thinking (10/10) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/thinking.png')">
+<img src="../ai_poses_transparent/thinking/thinking.png" alt="thinking" loading="lazy">
+<div class="info"><h3>thinking</h3><p>Super Mario in a classic thinking pose, hand on chin, looking upward thoughtfull...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/confused.png')">
+<img src="../ai_poses_transparent/thinking/confused.png" alt="confused" loading="lazy">
+<div class="info"><h3>confused</h3><p>Super Mario looking confused with head tilted, question marks floating around hi...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/curious.png')">
+<img src="../ai_poses_transparent/thinking/curious.png" alt="curious" loading="lazy">
+<div class="info"><h3>curious</h3><p>Super Mario looking very curious, leaning forward eagerly, wide interested eyes,...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/surprised.png')">
+<img src="../ai_poses_transparent/thinking/surprised.png" alt="surprised" loading="lazy">
+<div class="info"><h3>surprised</h3><p>Super Mario with a shocked surprised expression, eyes extremely wide, mouth in p...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/shocked.png')">
+<img src="../ai_poses_transparent/thinking/shocked.png" alt="shocked" loading="lazy">
+<div class="info"><h3>shocked</h3><p>Super Mario absolutely jaw-dropped shocked, stepping backward, hands on cheeks H...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/mischievous.png')">
+<img src="../ai_poses_transparent/thinking/mischievous.png" alt="mischievous" loading="lazy">
+<div class="info"><h3>mischievous</h3><p>Super Mario with a sly mischievous grin, one eye winking, rubbing hands together...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/determined.png')">
+<img src="../ai_poses_transparent/thinking/determined.png" alt="determined" loading="lazy">
+<div class="info"><h3>determined</h3><p>Super Mario with intense determined expression, fist raised powerfully, focused ...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/idea.png')">
+<img src="../ai_poses_transparent/thinking/idea.png" alt="idea" loading="lazy">
+<div class="info"><h3>idea</h3><p>Super Mario having a eureka moment, finger pointing up excitedly, light bulb abo...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/dizzy.png')">
+<img src="../ai_poses_transparent/thinking/dizzy.png" alt="dizzy" loading="lazy">
+<div class="info"><h3>dizzy</h3><p>Super Mario looking dizzy and disoriented, spiral swirl eyes, wobbling stance, s...</p><span class="cat-tag">thinking</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/thinking/suspicious.png')">
+<img src="../ai_poses_transparent/thinking/suspicious.png" alt="suspicious" loading="lazy">
+<div class="info"><h3>suspicious</h3><p>Super Mario looking suspicious, squinting eyes narrowly, leaning to peek, detect...</p><span class="cat-tag">thinking</span></div>
+</div>
+</div>
+
+<h2 id="cat-sleep">💤 Sleep (3/3) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/sleep/sleepy.png')">
+<img src="../ai_poses_transparent/sleep/sleepy.png" alt="sleepy" loading="lazy">
+<div class="info"><h3>sleepy</h3><p>Super Mario looking very sleepy and drowsy, heavy half-closed drooping eyes, big...</p><span class="cat-tag">sleep</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/sleep/sleeping.png')">
+<img src="../ai_poses_transparent/sleep/sleeping.png" alt="sleeping" loading="lazy">
+<div class="info"><h3>sleeping</h3><p>Super Mario fast asleep standing up, eyes fully closed peacefully, head tilted t...</p><span class="cat-tag">sleep</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/sleep/yawning.png')">
+<img src="../ai_poses_transparent/sleep/yawning.png" alt="yawning" loading="lazy">
+<div class="info"><h3>yawning</h3><p>Super Mario mid-yawn with mouth stretched very wide open, one hand covering mout...</p><span class="cat-tag">sleep</span></div>
+</div>
+</div>
+
+<h2 id="cat-movement">🏃 Movement (9/9) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/jumping.png')">
+<img src="../ai_poses_transparent/movement/jumping.png" alt="jumping" loading="lazy">
+<div class="info"><h3>jumping</h3><p>Super Mario in his iconic mid-air jump pose, one fist raised high, knees bent, c...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/running.png')">
+<img src="../ai_poses_transparent/movement/running.png" alt="running" loading="lazy">
+<div class="info"><h3>running</h3><p>Super Mario running fast forward dynamically, arms pumping, determined face, mot...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/dancing_1.png')">
+<img src="../ai_poses_transparent/movement/dancing_1.png" alt="dancing_1" loading="lazy">
+<div class="info"><h3>dancing_1</h3><p>Super Mario dancing happily, one arm up one arm down, disco dance pose, joyful e...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/dancing_2.png')">
+<img src="../ai_poses_transparent/movement/dancing_2.png" alt="dancing_2" loading="lazy">
+<div class="info"><h3>dancing_2</h3><p>Super Mario doing a fun spin dance move, arms spread out, happy energetic party ...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/pointing.png')">
+<img src="../ai_poses_transparent/movement/pointing.png" alt="pointing" loading="lazy">
+<div class="info"><h3>pointing</h3><p>Super Mario pointing forward directly at the viewer confidently, arm fully exten...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/flexing.png')">
+<img src="../ai_poses_transparent/movement/flexing.png" alt="flexing" loading="lazy">
+<div class="info"><h3>flexing</h3><p>Super Mario flexing both arms showing muscles, strong bodybuilder pose, proud po...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/crouching.png')">
+<img src="../ai_poses_transparent/movement/crouching.png" alt="crouching" loading="lazy">
+<div class="info"><h3>crouching</h3><p>Super Mario crouching down low, body compressed ready to spring, coiled athletic...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/sliding.png')">
+<img src="../ai_poses_transparent/movement/sliding.png" alt="sliding" loading="lazy">
+<div class="info"><h3>sliding</h3><p>Super Mario doing a cool ground slide, one leg extended forward, dynamic action ...</p><span class="cat-tag">movement</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/movement/tiptoeing.png')">
+<img src="../ai_poses_transparent/movement/tiptoeing.png" alt="tiptoeing" loading="lazy">
+<div class="info"><h3>tiptoeing</h3><p>Super Mario tiptoeing carefully and quietly, exaggerated sneaky walk, hands up f...</p><span class="cat-tag">movement</span></div>
+</div>
+</div>
+
+<h2 id="cat-action">⚡ Action (5/5) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/action/eating_mushroom.png')">
+<img src="../ai_poses_transparent/action/eating_mushroom.png" alt="eating_mushroom" loading="lazy">
+<div class="info"><h3>eating_mushroom</h3><p>Super Mario eating a red Super Mushroom power-up, holding mushroom near his open...</p><span class="cat-tag">action</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/action/salute.png')">
+<img src="../ai_poses_transparent/action/salute.png" alt="salute" loading="lazy">
+<div class="info"><h3>salute</h3><p>Super Mario doing a crisp military salute with hand at his cap brim, standing st...</p><span class="cat-tag">action</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/action/shrug.png')">
+<img src="../ai_poses_transparent/action/shrug.png" alt="shrug" loading="lazy">
+<div class="info"><h3>shrug</h3><p>Super Mario doing an exaggerated shrug, both palms up, shoulders raised high, co...</p><span class="cat-tag">action</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/action/facepalm.png')">
+<img src="../ai_poses_transparent/action/facepalm.png" alt="facepalm" loading="lazy">
+<div class="info"><h3>facepalm</h3><p>Super Mario doing a dramatic facepalm, hand covering face in total disbelief, co...</p><span class="cat-tag">action</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/action/dabbing.png')">
+<img src="../ai_poses_transparent/action/dabbing.png" alt="dabbing" loading="lazy">
+<div class="info"><h3>dabbing</h3><p>Super Mario doing the classic dab dance move, one arm extended the other bent co...</p><span class="cat-tag">action</span></div>
+</div>
+</div>
+
+<h2 id="cat-powerup">⭐ Powerup (7/7) </h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/star_power.png')">
+<img src="../ai_poses_transparent/powerup/star_power.png" alt="star_power" loading="lazy">
+<div class="info"><h3>star_power</h3><p>Super Mario glowing with golden Star Power invincibility, rainbow shimmering aur...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/fire_mario.png')">
+<img src="../ai_poses_transparent/powerup/fire_mario.png" alt="fire_mario" loading="lazy">
+<div class="info"><h3>fire_mario</h3><p>Fire Mario with white cap and red overalls, throwing an orange fireball from his...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/ice_mario.png')">
+<img src="../ai_poses_transparent/powerup/ice_mario.png" alt="ice_mario" loading="lazy">
+<div class="info"><h3>ice_mario</h3><p>Ice Mario with light blue and white frozen color scheme, holding a glowing ice b...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/mega_mario.png')">
+<img src="../ai_poses_transparent/powerup/mega_mario.png" alt="mega_mario" loading="lazy">
+<div class="info"><h3>mega_mario</h3><p>Giant Mega Mario after eating Mega Mushroom, oversized and towering, powerful do...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/mini_mario.png')">
+<img src="../ai_poses_transparent/powerup/mini_mario.png" alt="mini_mario" loading="lazy">
+<div class="info"><h3>mini_mario</h3><p>Tiny Mini Mario after eating Mini Mushroom, very small and adorable, cute tiny s...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/metal_mario.png')">
+<img src="../ai_poses_transparent/powerup/metal_mario.png" alt="metal_mario" loading="lazy">
+<div class="info"><h3>metal_mario</h3><p>Metal Mario with entire body in shiny metallic silver chrome, reflective surface...</p><span class="cat-tag">powerup</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/powerup/gold_mario.png')">
+<img src="../ai_poses_transparent/powerup/gold_mario.png" alt="gold_mario" loading="lazy">
+<div class="info"><h3>gold_mario</h3><p>Gold Mario with entire body in brilliant golden shine, luxurious golden glow, co...</p><span class="cat-tag">powerup</span></div>
+</div>
+</div>
+
+<h2 id="cat-party">🎉 Party (10/10) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/party/cheers.png')">
+<img src="../ai_poses_transparent/party/cheers.png" alt="cheers" loading="lazy">
+<div class="info"><h3>cheers</h3><p>Super Mario holding up a drink glass for a toast, big celebratory smile, party s...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/party_hat.png')">
+<img src="../ai_poses_transparent/party/party_hat.png" alt="party_hat" loading="lazy">
+<div class="info"><h3>party_hat</h3><p>Super Mario wearing a colorful party hat, celebrating with arms up, joyful excit...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/confetti.png')">
+<img src="../ai_poses_transparent/party/confetti.png" alt="confetti" loading="lazy">
+<div class="info"><h3>confetti</h3><p>Super Mario throwing handfuls of confetti high in the air, ecstatic expression, ...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/cake.png')">
+<img src="../ai_poses_transparent/party/cake.png" alt="cake" loading="lazy">
+<div class="info"><h3>cake</h3><p>Super Mario proudly presenting a large decorated birthday cake with candles, big...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/balloon.png')">
+<img src="../ai_poses_transparent/party/balloon.png" alt="balloon" loading="lazy">
+<div class="info"><h3>balloon</h3><p>Super Mario holding a bunch of colorful party balloons in one hand, happy cheerf...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/gift.png')">
+<img src="../ai_poses_transparent/party/gift.png" alt="gift" loading="lazy">
+<div class="info"><h3>gift</h3><p>Super Mario presenting a beautifully wrapped gift box with a bow, generous warm ...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/countdown.png')">
+<img src="../ai_poses_transparent/party/countdown.png" alt="countdown" loading="lazy">
+<div class="info"><h3>countdown</h3><p>Super Mario counting down excitedly with fingers raised showing numbers, wide ea...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/celebrate.png')">
+<img src="../ai_poses_transparent/party/celebrate.png" alt="celebrate" loading="lazy">
+<div class="info"><h3>celebrate</h3><p>Super Mario in wild celebration, arms raised high, streamers and confetti everyw...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/group_photo.png')">
+<img src="../ai_poses_transparent/party/group_photo.png" alt="group_photo" loading="lazy">
+<div class="info"><h3>group_photo</h3><p>Super Mario posing for a group photo, one arm extended around imaginary friend, ...</p><span class="cat-tag">party</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/party/cheering.png')">
+<img src="../ai_poses_transparent/party/cheering.png" alt="cheering" loading="lazy">
+<div class="info"><h3>cheering</h3><p>Super Mario cheering enthusiastically, clapping hands together above head, huge ...</p><span class="cat-tag">party</span></div>
+</div>
+</div>
+
+<h2 id="cat-memorial">🕯️ Memorial (5/5) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/memorial/moment_of_silence.png')">
+<img src="../ai_poses_transparent/memorial/moment_of_silence.png" alt="moment_of_silence" loading="lazy">
+<div class="info"><h3>moment_of_silence</h3><p>Super Mario with head bowed respectfully, red cap removed and held over his hear...</p><span class="cat-tag">memorial</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/memorial/candle.png')">
+<img src="../ai_poses_transparent/memorial/candle.png" alt="candle" loading="lazy">
+<div class="info"><h3>candle</h3><p>Super Mario holding a single lit candle gently with both hands, soft somber expr...</p><span class="cat-tag">memorial</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/memorial/honor.png')">
+<img src="../ai_poses_transparent/memorial/honor.png" alt="honor" loading="lazy">
+<div class="info"><h3>honor</h3><p>Super Mario in a formal respectful pose, standing straight, one hand over his he...</p><span class="cat-tag">memorial</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/memorial/remembering.png')">
+<img src="../ai_poses_transparent/memorial/remembering.png" alt="remembering" loading="lazy">
+<div class="info"><h3>remembering</h3><p>Super Mario looking upward at the sky with a nostalgic peaceful expression, soft...</p><span class="cat-tag">memorial</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/memorial/tribute.png')">
+<img src="../ai_poses_transparent/memorial/tribute.png" alt="tribute" loading="lazy">
+<div class="info"><h3>tribute</h3><p>Super Mario raising a glass solemnly in a dignified tribute, respectful expressi...</p><span class="cat-tag">memorial</span></div>
+</div>
+</div>
+
+<h2 id="cat-toast">🥂 Toast (5/5) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/toast/raising_glass.png')">
+<img src="../ai_poses_transparent/toast/raising_glass.png" alt="raising_glass" loading="lazy">
+<div class="info"><h3>raising_glass</h3><p>Super Mario raising a glass high triumphantly above his head, big proud smile, c...</p><span class="cat-tag">toast</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/toast/clinking_glasses.png')">
+<img src="../ai_poses_transparent/toast/clinking_glasses.png" alt="clinking_glasses" loading="lazy">
+<div class="info"><h3>clinking_glasses</h3><p>Super Mario extending a glass forward toward the viewer as if clinking glasses, ...</p><span class="cat-tag">toast</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/toast/drinking.png')">
+<img src="../ai_poses_transparent/toast/drinking.png" alt="drinking" loading="lazy">
+<div class="info"><h3>drinking</h3><p>Super Mario drinking from a glass with eyes closed, enjoying the moment, satisfi...</p><span class="cat-tag">toast</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/toast/shot_ready.png')">
+<img src="../ai_poses_transparent/toast/shot_ready.png" alt="shot_ready" loading="lazy">
+<div class="info"><h3>shot_ready</h3><p>Super Mario holding up a small shot glass eagerly, excited wide eyes, ready to d...</p><span class="cat-tag">toast</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/toast/after_shot.png')">
+<img src="../ai_poses_transparent/toast/after_shot.png" alt="after_shot" loading="lazy">
+<div class="info"><h3>after_shot</h3><p>Super Mario making a funny face after taking a shot, eyes squinted, lips puckere...</p><span class="cat-tag">toast</span></div>
+</div>
+</div>
+
+<h2 id="cat-bathroom">🚻 Bathroom (8/8) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/grossed_out.png')">
+<img src="../ai_poses_transparent/bathroom/grossed_out.png" alt="grossed_out" loading="lazy">
+<div class="info"><h3>grossed_out</h3><p>Super Mario pinching his nose with one hand in disgust, leaning away, extremely ...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/air_freshener.png')">
+<img src="../ai_poses_transparent/bathroom/air_freshener.png" alt="air_freshener" loading="lazy">
+<div class="info"><h3>air_freshener</h3><p>Super Mario spraying an air freshener can with one hand, relieved happy expressi...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/waiting.png')">
+<img src="../ai_poses_transparent/bathroom/waiting.png" alt="waiting" loading="lazy">
+<div class="info"><h3>waiting</h3><p>Super Mario waiting impatiently, one foot tapping, checking an imaginary watch o...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/knock_knock.png')">
+<img src="../ai_poses_transparent/bathroom/knock_knock.png" alt="knock_knock" loading="lazy">
+<div class="info"><h3>knock_knock</h3><p>Super Mario knocking on an imaginary door with one fist raised, curious puzzled ...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/thumbs_up_flush.png')">
+<img src="../ai_poses_transparent/bathroom/thumbs_up_flush.png" alt="thumbs_up_flush" loading="lazy">
+<div class="info"><h3>thumbs_up_flush</h3><p>Super Mario giving a big thumbs up with a satisfied grin, other hand on hip, mis...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/washing_hands.png')">
+<img src="../ai_poses_transparent/bathroom/washing_hands.png" alt="washing_hands" loading="lazy">
+<div class="info"><h3>washing_hands</h3><p>Super Mario washing his hands at a sink, scrubbing responsibly, proud hygienic e...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/mirror_check.png')">
+<img src="../ai_poses_transparent/bathroom/mirror_check.png" alt="mirror_check" loading="lazy">
+<div class="info"><h3>mirror_check</h3><p>Super Mario checking himself in a mirror, adjusting his red cap, confident self-...</p><span class="cat-tag">bathroom</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/bathroom/reading.png')">
+<img src="../ai_poses_transparent/bathroom/reading.png" alt="reading" loading="lazy">
+<div class="info"><h3>reading</h3><p>Super Mario sitting casually and reading a newspaper, relaxed content expression...</p><span class="cat-tag">bathroom</span></div>
+</div>
+</div>
+
+<h2 id="cat-reactions">😲 Reactions (10/10) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/mind_blown.png')">
+<img src="../ai_poses_transparent/reactions/mind_blown.png" alt="mind_blown" loading="lazy">
+<div class="info"><h3>mind_blown</h3><p>Super Mario with an amazed shocked expression, hands on sides of head, cartoon e...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/slow_clap.png')">
+<img src="../ai_poses_transparent/reactions/slow_clap.png" alt="slow_clap" loading="lazy">
+<div class="info"><h3>slow_clap</h3><p>Super Mario slow clapping sarcastically, unimpressed half-lidded eyes, slight sm...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/eye_roll.png')">
+<img src="../ai_poses_transparent/reactions/eye_roll.png" alt="eye_roll" loading="lazy">
+<div class="info"><h3>eye_roll</h3><p>Super Mario rolling his eyes dramatically upward, exasperated expression, arms c...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/double_take.png')">
+<img src="../ai_poses_transparent/reactions/double_take.png" alt="double_take" loading="lazy">
+<div class="info"><h3>double_take</h3><p>Super Mario doing a cartoon double take, head whipping back, extremely surprised...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/jaw_drop.png')">
+<img src="../ai_poses_transparent/reactions/jaw_drop.png" alt="jaw_drop" loading="lazy">
+<div class="info"><h3>jaw_drop</h3><p>Super Mario with jaw dropped comically low, eyes popping wide, hands on cheeks, ...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/mic_drop.png')">
+<img src="../ai_poses_transparent/reactions/mic_drop.png" alt="mic_drop" loading="lazy">
+<div class="info"><h3>mic_drop</h3><p>Super Mario dropping an imaginary microphone from one hand, confident smirk, wal...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/cringe.png')">
+<img src="../ai_poses_transparent/reactions/cringe.png" alt="cringe" loading="lazy">
+<div class="info"><h3>cringe</h3><p>Super Mario cringing hard, teeth gritted, one eye closed, head turned slightly a...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/impressed.png')">
+<img src="../ai_poses_transparent/reactions/impressed.png" alt="impressed" loading="lazy">
+<div class="info"><h3>impressed</h3><p>Super Mario nodding approvingly, arms crossed, confident smirk, raised eyebrow, ...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/sassy.png')">
+<img src="../ai_poses_transparent/reactions/sassy.png" alt="sassy" loading="lazy">
+<div class="info"><h3>sassy</h3><p>Super Mario with one hand on hip, sassy confident pose, head tilted, playful smi...</p><span class="cat-tag">reactions</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/reactions/rofl.png')">
+<img src="../ai_poses_transparent/reactions/rofl.png" alt="rofl" loading="lazy">
+<div class="info"><h3>rofl</h3><p>Super Mario rolling on the floor laughing uncontrollably, tears of joy streaming...</p><span class="cat-tag">reactions</span></div>
+</div>
+</div>
+
+<h2 id="cat-birthday">🎂 Birthday (5/5) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/birthday/birthday_boy.png')">
+<img src="../ai_poses_transparent/birthday/birthday_boy.png" alt="birthday_boy" loading="lazy">
+<div class="info"><h3>birthday_boy</h3><p>Super Mario wearing a golden birthday crown on his head, proud triumphant pose, ...</p><span class="cat-tag">birthday</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/birthday/blowing_candles.png')">
+<img src="../ai_poses_transparent/birthday/blowing_candles.png" alt="blowing_candles" loading="lazy">
+<div class="info"><h3>blowing_candles</h3><p>Super Mario leaning forward blowing out candles on a birthday cake, cheeks puffe...</p><span class="cat-tag">birthday</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/birthday/opening_gift.png')">
+<img src="../ai_poses_transparent/birthday/opening_gift.png" alt="opening_gift" loading="lazy">
+<div class="info"><h3>opening_gift</h3><p>Super Mario excitedly tearing open a wrapped present, wide joyful eyes, paper fl...</p><span class="cat-tag">birthday</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/birthday/party_dance.png')">
+<img src="../ai_poses_transparent/birthday/party_dance.png" alt="party_dance" loading="lazy">
+<div class="info"><h3>party_dance</h3><p>Super Mario doing a silly exaggerated birthday dance, arms flailing joyfully, go...</p><span class="cat-tag">birthday</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/birthday/birthday_toast.png')">
+<img src="../ai_poses_transparent/birthday/birthday_toast.png" alt="birthday_toast" loading="lazy">
+<div class="info"><h3>birthday_toast</h3><p>Super Mario raising a glass for a birthday toast, warm genuine smile, celebrator...</p><span class="cat-tag">birthday</span></div>
+</div>
+</div>
+
+<h2 id="cat-gaming">🎮 Gaming (5/5) <span class="new-badge">NEW</span></h2>
+<div class="grid">
+<div class="card" onclick="showModal('../ai_poses_transparent/gaming/game_over.png')">
+<img src="../ai_poses_transparent/gaming/game_over.png" alt="game_over" loading="lazy">
+<div class="info"><h3>game_over</h3><p>Super Mario in a dramatic Game Over pose, fallen on knees, head tilted down, def...</p><span class="cat-tag">gaming</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/gaming/level_up.png')">
+<img src="../ai_poses_transparent/gaming/level_up.png" alt="level_up" loading="lazy">
+<div class="info"><h3>level_up</h3><p>Super Mario leveling up with sparkles and upward triumphant pose, glowing aura, ...</p><span class="cat-tag">gaming</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/gaming/coin_collect.png')">
+<img src="../ai_poses_transparent/gaming/coin_collect.png" alt="coin_collect" loading="lazy">
+<div class="info"><h3>coin_collect</h3><p>Super Mario catching a golden coin mid-air, one hand reaching up, excited gleefu...</p><span class="cat-tag">gaming</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/gaming/warp_pipe.png')">
+<img src="../ai_poses_transparent/gaming/warp_pipe.png" alt="warp_pipe" loading="lazy">
+<div class="info"><h3>warp_pipe</h3><p>Super Mario emerging from a green warp pipe, upper body visible, surprised curio...</p><span class="cat-tag">gaming</span></div>
+</div>
+<div class="card" onclick="showModal('../ai_poses_transparent/gaming/power_star.png')">
+<img src="../ai_poses_transparent/gaming/power_star.png" alt="power_star" loading="lazy">
+<div class="info"><h3>power_star</h3><p>Super Mario reaching upward for a glowing power star floating above, stretching ...</p><span class="cat-tag">gaming</span></div>
+</div>
+</div>
+
+<div class="modal" id="modal" onclick="this.classList.remove('active')">
+<span class="close">&times;</span>
+<img id="modalImg" src="">
+</div>
+
+<script>
+function showModal(src) {
+    document.getElementById('modalImg').src = src;
+    document.getElementById('modal').classList.add('active');
+}
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('modal').classList.remove('active');
+});
+</script>
+</body>
+</html>
