@@ -1115,6 +1115,7 @@ def _preclean_tts_text(text: str) -> str:
     t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
     t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
     t = _re_tts.sub(r'([.!?])\s*,', r'\1', t)     # Comma after sentence-end punctuation
+    t = _re_tts.sub(r',\s*([!?])', r'\1', t)       # Comma before ! or ? (from "...!")
     t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
     t = _re_tts.sub(r'\s+', ' ', t).strip()        # Collapse whitespace
     return t

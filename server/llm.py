@@ -368,8 +368,13 @@ def _clean_response(text: str) -> str:
             text = text[:last_end + 1]
     # Remove repetitive exclamations (e.g., "Wahoo! Wahoo! Wahoo!")
     text = re.sub(r'(\b\w+!)\s*\1', r'\1', text)
-    # Remove double/triple punctuation (e.g., "!!!" -> "!", "..." stays)
+    # Remove double/triple punctuation (e.g., "!!!" -> "!", "..." -> ",")
     text = re.sub(r'([!?])\1{2,}', r'\1\1', text)
+    # Strip ellipsis — TTS garbles "..." even though prompt says not to use them
+    text = text.replace('…', ', ')
+    text = re.sub(r'\.{2,}', ', ', text)
+    text = re.sub(r'^[\s,]+', '', text)  # Clean leading comma artifacts
+    text = re.sub(r',\s*([!?])', r'\1', text)  # ", !" → "!"
     # Ensure non-empty and meaningful (minimum 3 chars for a real word)
     if not text.strip() or len(text.strip()) < 3:
         text = "Wahoo! Let's-a go!"

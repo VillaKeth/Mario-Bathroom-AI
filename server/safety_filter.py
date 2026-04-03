@@ -133,7 +133,7 @@ def filter_response(text: str) -> str:
         if last_punct > MAX_RESPONSE_CHARS // 2:
             text = truncated[:last_punct + 1]
         else:
-            text = truncated.rstrip() + "..."
+            text = truncated.rstrip() + "."
         if DEBUG_SAFETY:
             logger.info(f"[DEBUG_SAFETY] Truncated response from {len(original)} to {len(text)} chars")
 
