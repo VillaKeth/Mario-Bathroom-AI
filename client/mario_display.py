@@ -36,44 +36,57 @@ AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                             "mario_3d_assets", "ai_poses_transparent")
 
 # Map emotions to AI pose paths (category/filename without .png)
+# Values can be a single string or a list for random selection.
 EMOTION_SPRITE_MAP = {
-    "happy": "positive/happy",
-    "excited": "positive/excited_jump",
-    "surprised": "thinking/surprised",
+    "happy": ["positive/happy", "positive/very_happy", "party/cheering"],
+    "excited": ["positive/excited_jump", "party/celebrate", "birthday/party_dance"],
+    "surprised": ["thinking/surprised", "reactions/double_take"],
     "confused": "thinking/confused",
-    "annoyed": "negative/annoyed",
+    "annoyed": ["negative/annoyed", "reactions/eye_roll"],
     "sleepy": "sleep/sleepy",
     "mischievous": "thinking/mischievous",
-    "laughing": "positive/laughing",
+    "laughing": ["positive/laughing", "reactions/rofl"],
     "sad": "negative/sad",
     "angry": "negative/angry",
     "nervous": "negative/nervous",
     "scared": "negative/scared",
     "love": "positive/love",
     "loving": "positive/love",
-    "proud": "positive/proud",
+    "proud": ["positive/proud", "reactions/impressed"],
     "embarrassed": "negative/embarrassed",
-    "disgusted": "negative/disgusted",
+    "disgusted": ["negative/disgusted", "bathroom/grossed_out"],
     "determined": "thinking/determined",
     "bored": "sleep/yawning",
     "worried": "negative/nervous",
     "curious": "thinking/curious",
     "thinking": "thinking/thinking",
-    "shocked": "thinking/shocked",
+    "shocked": ["thinking/shocked", "reactions/jaw_drop", "reactions/mind_blown"],
     "idea": "thinking/idea",
     "frustrated": "negative/annoyed",
     "neutral": "neutral/idle",
+    # New expanded emotions
+    "memorial": "memorial/moment_of_silence",
+    "toast": "toast/raising_glass",
+    "party": ["party/celebrate", "party/cheering", "party/confetti"],
+    "grossed_out": "bathroom/grossed_out",
+    "mind_blown": "reactions/mind_blown",
+    "sassy": "reactions/sassy",
+    "cringe": "reactions/cringe",
+    "impressed": "reactions/impressed",
+    "celebratory": ["party/celebrate", "party/cheers", "party/confetti"],
+    "solemn": ["memorial/moment_of_silence", "memorial/honor"],
+    "birthday": ["birthday/birthday_boy", "birthday/party_dance"],
 }
 
-# Map states to AI pose paths
+# Map states to AI pose paths (string or list for cycling/random)
 STATE_SPRITE_MAP = {
     STATE_IDLE: "neutral/idle",
     STATE_TALKING: ["speech/talking", "speech/talking_excited"],
     STATE_LISTENING: "speech/listening",
-    STATE_GREETING: "greeting/wave_high",
+    STATE_GREETING: ["greeting/wave_high", "greeting/hello_sparkle"],
     STATE_THINKING: "thinking/thinking",
     STATE_SLEEPING: "sleep/sleeping",
-    STATE_DANCING: ["movement/dancing_1", "movement/dancing_2"],
+    STATE_DANCING: ["movement/dancing_1", "movement/dancing_2", "party/celebrate", "birthday/party_dance"],
     STATE_ENTERING: "movement/running",
     STATE_EXITING: "greeting/farewell",
 }
@@ -315,6 +328,9 @@ class MarioDisplay:
         categories = [
             "neutral", "greeting", "speech", "positive", "negative",
             "thinking", "sleep", "movement", "action", "powerup",
+            # Expanded categories
+            "party", "memorial", "toast", "bathroom", "reactions",
+            "birthday", "gaming",
         ]
         for category in categories:
             cat_dir = os.path.join(AI_POSES_DIR, category)
@@ -767,6 +783,20 @@ class MarioDisplay:
         else:
             return self._get_legacy_sprite_key()
 
+    def _resolve_sprite_value(self, value):
+        """Resolve a sprite map value that may be a string or list.
+
+        For lists, picks a random loaded sprite. Falls back to first entry if none loaded.
+        For strings, returns as-is.
+        """
+        if isinstance(value, list):
+            # Prefer sprites that are actually loaded
+            loaded = [s for s in value if s in self._sprites]
+            if loaded:
+                return random.choice(loaded)
+            return value[0]
+        return value
+
     def _get_ai_sprite_key(self) -> str:
         """Get sprite key for AI-generated poses (category/name format).
 
@@ -803,11 +833,15 @@ class MarioDisplay:
             return sprites[cycle]
         elif self.state == STATE_DANCING:
             sprites = STATE_SPRITE_MAP[STATE_DANCING]
-            return sprites[0] if (self._frame // 8) % 2 == 0 else sprites[1]
+            # Cycle through all available dance sprites
+            cycle = (self._frame // 8) % len(sprites)
+            return sprites[cycle]
         elif self.state in (STATE_GREETING, STATE_THINKING, STATE_SLEEPING, STATE_ENTERING, STATE_EXITING):
-            return STATE_SPRITE_MAP.get(self.state, "neutral/idle")
+            val = STATE_SPRITE_MAP.get(self.state, "neutral/idle")
+            return self._resolve_sprite_value(val)
         elif self.state in (STATE_LISTENING, STATE_IDLE):
-            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_val = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_sprite = self._resolve_sprite_value(emo_val) if emo_val else None
             if emo_sprite and emo_sprite in self._sprites:
                 if self.state == STATE_IDLE and self._emotion == "happy":
                     return "neutral/idle"
@@ -835,13 +869,15 @@ class MarioDisplay:
             return "dance"
         elif self.state == STATE_LISTENING:
             # Use emotion sprite if available
-            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_val = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_sprite = self._resolve_sprite_value(emo_val) if emo_val else None
             if emo_sprite and emo_sprite in self._sprites:
                 return emo_sprite
             return "idle"
         else:
             # Idle — use emotion-based sprite
-            emo_sprite = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_val = EMOTION_SPRITE_MAP.get(self._emotion)
+            emo_sprite = self._resolve_sprite_value(emo_val) if emo_val else None
             if emo_sprite and emo_sprite in self._sprites and self._emotion != "happy":
                 return emo_sprite
             return "idle"

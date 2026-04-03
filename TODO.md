@@ -43,6 +43,13 @@
 - [ ] Fix NameError: memory_module → memory in leaderboard (2 occurrences)
 - [ ] Fix unreachable Qdrant health check (dead code after return)
 
+## v3.15.1 UI Fixes
+- [x] Fix UI element overlapping (info strip vs speech bubble, subtitle vs closed captions)
+- [x] Dynamic banner positioning (_banner_bottom) for all HUD elements
+- [x] Speech bubble auto-scales to available screen space
+- [x] Fix relative imports in client (mario_display.py, presence.py)
+- [x] Info strip overflow protection (left/right items won't collide)
+
 ## Future / Not Yet Implemented
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
@@ -347,3 +354,15 @@
 - [x] Increase global dedup window from 15 → 50 messages
 - [x] Lower pool reset threshold from 90% → 60% for earlier item re-entry
 - [x] De-hardcode birthday person name from PHASE_PROMPTS in mario_prompt.py
+
+## Expanded Pose Generation (~48 new poses across 7 categories)
+- [ ] Run generate_expanded_poses.py --category party (10 party poses)
+- [ ] Run generate_expanded_poses.py --category memorial (5 memorial poses)
+- [ ] Run generate_expanded_poses.py --category toast (5 toast poses)
+- [ ] Run generate_expanded_poses.py --category bathroom (8 bathroom poses)
+- [ ] Run generate_expanded_poses.py --category reactions (10 reaction poses)
+- [ ] Run generate_expanded_poses.py --category birthday (5 birthday poses)
+- [ ] Run generate_expanded_poses.py --category gaming (5 gaming poses)
+- [ ] Review generated images and re-run any that look bad
+- [ ] Verify transparent backgrounds look clean in mario_display
+- [ ] Test new EMOTION_SPRITE_MAP list-based random selection in live display
