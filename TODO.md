@@ -1,5 +1,15 @@
 # Mario AI Party Bot - TODO
 
+## v3.15 Guest Intelligence (Task 2 completed)
+- [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
+- [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)
+- [ ] Task 3: Voice Recognition Integration
+- [ ] Task 4: Mood Analytics + Context
+- [ ] Task 5: Guest Chat History
+- [ ] Task 6: Multi-Guest Awareness
+- [ ] Task 7: VIP Guest System
+- [ ] Task 8: Persistent Guest Memory
+
 ## v3.14 Ultra Party Upgrade — RELEASED ✅ (85 tests, 14/14 tasks)
 - [x] Sub-A: Memorial v2 — voice trigger, 10-sec countdown, music loop fix, warm recovery
 - [x] 6 shot event wiring bugs fixed (finally block, .upper(), Ctrl+Shift+L, typo, loops, circular import)

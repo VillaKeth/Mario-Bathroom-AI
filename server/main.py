@@ -472,6 +472,14 @@ try:
 except Exception as e:
     logger.warning(f"[INIT] Face memory unavailable: {e}")
 
+# Initialize guest profile manager (in-memory, clears on restart)
+from server.guest_profiles import GuestProfileManager
+guest_profiles = GuestProfileManager()
+
+# Pre-register Jacob as VIP in GuestProfileManager
+guest_profiles.register_vip("Jacob")
+logger.info("[INIT] GuestProfileManager initialized with Jacob VIP")
+
 # Background task limiter (prevents unbounded memory growth from fact extraction)
 _bg_tasks: set = set()
 MAX_BG_TASKS = _PERF["max_background_tasks"]
@@ -4399,6 +4407,51 @@ async def handle_event(ws: WebSocket, event: dict):
             async with _state_lock:
                 state_current["_user_request_active"] = False
 
+    elif event_type == "person_detected":
+        if not _face_memory:
+            return
+        
+        # Support new multi-face schema and old single-face schema
+        faces = event.get("faces", [])
+        if not faces and "face_encoding" in event:
+            faces = [{"encoding": event["face_encoding"], "confidence": event.get("confidence", 0.5)}]
+        
+        detected_names = []
+        new_face_count = 0
+        
+        for face_data in faces:
+            enc = face_data.get("encoding")
+            if not enc or not isinstance(enc, list) or len(enc) != 128:
+                continue
+            
+            enc_array = np.array(enc, dtype=np.float64)
+            if np.any(np.isnan(enc_array)) or np.any(np.isinf(enc_array)):
+                continue
+            
+            match = _face_memory.find_match(enc_array)
+            if match and match.get("name"):
+                name = match["name"]
+                face_id = str(match.get("id", ""))
+                profile = guest_profiles.identify_by_face(name, face_id)
+                detected_names.append(name)
+                state_current["detected_guest"] = name
+                state_current["guest_visits"] = profile.visit_count
+            else:
+                # Unknown face
+                speaker = state_current.get("speaker_name")
+                if speaker:
+                    _face_memory.store_face(speaker, enc_array)
+                    guest_profiles.identify_by_face(speaker, "auto_linked")
+                    detected_names.append(speaker)
+                else:
+                    new_face_count += 1
+                    state_current["detected_guest"] = None
+                    state_current["_last_face_encoding"] = enc_array
+        
+        # Store for group greeting logic (Task 7)
+        state_current["_detected_names"] = detected_names
+        state_current["_new_face_count"] = new_face_count
+
     elif event_type == "health_ping":
         # Respond to client health pings
         try:
@@ -4411,49 +4464,6 @@ async def handle_event(ws: WebSocket, event: dict):
             })
         except Exception as e:
             logger.debug(f"[WS] Health pong send failed: {e}")
-        face_enc = event.get("face_encoding")
-        if face_enc and _face_memory and isinstance(face_enc, list) and len(face_enc) == 128:
-            try:
-                enc_array = np.array(face_enc, dtype=np.float64)
-                if np.any(np.isnan(enc_array)) or np.any(np.isinf(enc_array)):
-                    logger.warning("[WEBCAM] Invalid face encoding values (NaN/Inf)")
-                else:
-                    match = _face_memory.find_match(enc_array)
-                    if match and match.get("name"):
-                        name = match["name"]
-                        visits = match.get("visit_count", 0)
-                        state_current["detected_guest"] = name
-                        state_current["guest_visits"] = visits
-                        state_current["_awaiting_name_response"] = False  # Reset learning flow
-                        state_current["_name_attempts"] = 0
-                        logger.info(f"[WEBCAM] Recognized returning guest: {name} (visits: {visits})")
-                    else:
-                        state_current["detected_guest"] = None
-                        state_current["_last_face_encoding"] = enc_array  # Store for learning
-                        
-                        # Start guest learning flow if not already in progress
-                        if not state_current["_awaiting_name_response"]:
-                            state_current["_awaiting_name_response"] = True
-                            state_current["_name_attempts"] = 0
-                            logger.info("[WEBCAM] New guest detected - starting learning flow")
-                            
-                            # Send "Who are you?" message 
-                            who_are_you_msg = {
-                                "type": "response",
-                                "text": "Hey there! I don't think we've met before. Who are you?",
-                                "audio": None,
-                                "emotion": "curious",
-                                "particle_effect": None,
-                                "pose_hint": "look_curious"
-                            }
-                            await ws.send_json(who_are_you_msg)
-                        else:
-                            logger.info("[WEBCAM] New guest detected - learning flow already active")
-            except Exception as e:
-                logger.error(f"[WEBCAM] Face matching error: {e}")
-        else:
-            if DEBUG_SERVER:
-                logger.debug(f"[WEBCAM] Person detected (no face encoding)")
 
 
 async def _handle_text_input(ws: WebSocket, text: str):
