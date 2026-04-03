@@ -38,10 +38,20 @@
 - [x] Restrict CORS from wildcard to localhost/LAN IPs
 - [x] Make DEBUG flags configurable via environment variables
 - [x] Add thread safety to _recent_responses list in llm.py
-- [ ] Fix deadlock in FaceMemory.learn_guest() — Lock → RLock
-- [ ] Fix NameError: _safe_ws_send undefined in guest learning flow
-- [ ] Fix NameError: memory_module → memory in leaderboard (2 occurrences)
-- [ ] Fix unreachable Qdrant health check (dead code after return)
+- [x] Fix deadlock in FaceMemory.learn_guest() — Lock → RLock (already fixed: face_memory.py:36 uses RLock)
+- [x] Fix NameError: _safe_ws_send undefined in guest learning flow (not present in codebase)
+- [x] Fix NameError: memory_module → memory in leaderboard (command_handlers.py:855-872)
+- [x] Fix unreachable Qdrant health check (dead code after return in main.py:1049-1111)
+
+## v3.16 Shot Events & Poses (In Progress)
+- [x] Deltarune shot: character→person mapping (Kris=Roman, Ralsei=Elijah, Susie=Villa, Lancer=Jacob)
+- [x] Add display_name + image_file fields to ShotEvent dataclass
+- [x] Copy Deltarune pixel art to client/assets/images/
+- [x] Route shot event text to closed captions (was missing)
+- [x] Tone-adaptive overlay rendering (solemn/celebratory/fun)
+- [x] Event-specific image display during announcement + toast phases
+- [x] Word-wrap long text in shot event overlays
+- [x] Regenerate all 122 Mario poses via SubNP API + rembg background removal
 
 ## v3.15.1 UI Fixes
 - [x] Fix UI element overlapping (info strip vs speech bubble, subtitle vs closed captions)
@@ -366,3 +376,5 @@
 - [ ] Review generated images and re-run any that look bad
 - [ ] Verify transparent backgrounds look clean in mario_display
 - [ ] Test new EMOTION_SPRITE_MAP list-based random selection in live display
+
+- [x] Build interactive pose comparison gallery (pose_gallery.html) with emotion mapping, selection/rejection, flagging, localStorage persistence, and export
