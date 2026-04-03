@@ -4503,6 +4503,29 @@ async def handle_event(ws: WebSocket, event: dict):
         state_current["_detected_names"] = detected_names
         state_current["_new_face_count"] = new_face_count
 
+        # --- Group greeting logic (after face processing loop) ---
+        detected_names = state_current.get("_detected_names", [])
+        new_face_count = state_current.get("_new_face_count", 0)
+        known_names = [n for n in detected_names if guest_profiles.should_greet(n)]
+        unknown_count = new_face_count
+
+        if known_names or unknown_count:
+            if len(known_names) == 1:
+                greeting = f"Hey {known_names[0]}! Welcome back!"
+            elif len(known_names) > 1:
+                greeting = f"Hey {', '.join(known_names[:-1])} and {known_names[-1]}! The party's in here!"
+            else:
+                greeting = ""
+
+            if unknown_count > 0 and known_names:
+                greeting += f" And who's your {'friend' if unknown_count == 1 else 'friends'}?"
+            elif unknown_count > 0:
+                greeting = "Hey there! I don't think we've met. Who are you?"
+
+            if greeting:
+                import time as _time
+                await _generate_and_send_response(ws, greeting, source="face_greeting", start_time=_time.time())
+
     elif event_type == "health_ping":
         # Respond to client health pings
         try:

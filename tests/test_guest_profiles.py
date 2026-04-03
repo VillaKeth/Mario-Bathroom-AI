@@ -187,3 +187,14 @@ class TestGuestProfileManager:
     def test_get_unknown_guest_context(self):
         ctx = self.mgr.get_guest_context("Nobody")
         assert "Unknown" in ctx
+
+    def test_greeting_debounce(self):
+        self.mgr.identify_by_voice("Jake", "v1")
+        assert self.mgr.should_greet("Jake") is True
+        assert self.mgr.should_greet("Jake") is False  # Too soon
+
+    def test_greeting_debounce_different_guests(self):
+        self.mgr.identify_by_voice("Jake", "v1")
+        self.mgr.identify_by_voice("Lisa", "v2")
+        assert self.mgr.should_greet("Jake") is True
+        assert self.mgr.should_greet("Lisa") is True  # Different guest, OK

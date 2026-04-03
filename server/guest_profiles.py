@@ -13,6 +13,9 @@ from typing import Optional
 # Debug flag following existing patterns
 DEBUG_GUEST_PROFILES = os.environ.get("DEBUG_GUEST_PROFILES", "").lower() in ("1", "true", "yes")
 
+# Greeting debounce timeout in seconds
+GREETING_COOLDOWN = 60
+
 
 @dataclass
 class MoodEntry:
@@ -314,7 +317,7 @@ class GuestProfileManager:
             now = datetime.now()
             last_greeted = self._last_greeted.get(name)
             
-            if last_greeted is None or (now - last_greeted).total_seconds() >= 60:
+            if last_greeted is None or (now - last_greeted).total_seconds() >= GREETING_COOLDOWN:
                 self._last_greeted[name] = now
                 return True
             
