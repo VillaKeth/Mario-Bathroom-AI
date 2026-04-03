@@ -3788,6 +3788,9 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     if speaker_info and not speaker_info["is_new"]:
         state_current["speaker_name"] = speaker_info["name"]
         state_current["speaker_id"] = speaker_info["speaker_id"]
+        # Wire voice identification to GuestProfile
+        profile = guest_profiles.identify_by_voice(speaker_info["name"], str(speaker_info["speaker_id"]))
+        state_current["guest_profile"] = profile
     elif speaker_info and speaker_info["is_new"] and state_current["speaker_name"] is None:
         pass
 
@@ -3840,6 +3843,9 @@ async def _do_greeting(ws: WebSocket, event: dict):
             state_current["speaker_name"] = info["name"]
             state_current["speaker_id"] = info["speaker_id"]
             memory.record_visit(info["speaker_id"])
+            # Wire voice identification to GuestProfile
+            profile = guest_profiles.identify_by_voice(info["name"], str(info["speaker_id"]))
+            state_current["guest_profile"] = profile
 
     # Browser fallback: look up or create speaker_id by name if not identified by voice
     if state_current["speaker_id"] is None and state_current["speaker_name"]:
