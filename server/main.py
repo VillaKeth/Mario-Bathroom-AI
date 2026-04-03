@@ -2484,10 +2484,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         else:
             logger.info(f"[DEBUG_PIPELINE] VIP skip: _HAS_SEMANTIC={_HAS_SEMANTIC}, speaker_name={state_current.get('speaker_name')}")
 
+        guest_ctx = None
+        if state_current.get("speaker_name"):
+            guest_ctx = guest_profiles.get_guest_context(state_current["speaker_name"])
+
         ctx = mario_prompt.build_context(
             speaker_name=state_current["speaker_name"],
             memories=memories,
             phase_modifier=_get_night_phase_modifier(),
+            guest_context=guest_ctx,
         )
         _inject_birthday_always_on(ctx)
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
@@ -3913,6 +3918,9 @@ async def _do_greeting(ws: WebSocket, event: dict):
         person_info = memory.get_person_info(state_current["speaker_id"])
         actual_visits = person_info["visit_count"] if person_info else 1
         last_emotion = memory.get_last_emotion(state_current["speaker_id"])
+        guest_ctx = None
+        if state_current.get("speaker_name"):
+            guest_ctx = guest_profiles.get_guest_context(state_current["speaker_name"])
         ctx = mario_prompt.build_context(
             speaker_name=state_current["speaker_name"],
             memories=memories,
@@ -3920,6 +3928,7 @@ async def _do_greeting(ws: WebSocket, event: dict):
             visit_count=actual_visits,
             last_topic=memories[-1] if memories else "nothing special",
             last_emotion=last_emotion,
+            guest_context=guest_ctx,
         )
         if actual_visits == 1:
             visit_hint = "This is their FIRST time meeting you! Be welcoming and ask their name."
@@ -4242,9 +4251,13 @@ async def handle_event(ws: WebSocket, event: dict):
 
         try:
             if state_current["speaker_name"]:
+                guest_ctx = None
+                if state_current.get("speaker_name"):
+                    guest_ctx = guest_profiles.get_guest_context(state_current["speaker_name"])
                 ctx = mario_prompt.build_context(
                     speaker_name=state_current["speaker_name"],
                     event="exit_known",
+                    guest_context=guest_ctx,
                 )
             else:
                 ctx = mario_prompt.build_context(event="exit_unknown")

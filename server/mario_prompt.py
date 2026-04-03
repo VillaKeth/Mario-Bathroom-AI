@@ -207,7 +207,7 @@ def _sanitize_input(text: str) -> str:
     return text.strip() or "friend"
 
 
-def build_context(speaker_name=None, memories=None, event=None, phase_modifier=None, **kwargs):
+def build_context(speaker_name=None, memories=None, event=None, phase_modifier=None, guest_context=None, **kwargs):
     """Build the conversation context for the LLM based on the current situation.
 
     Args:
@@ -288,6 +288,9 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
         vip_lines.append("Use this context to make conversation personal and meaningful. Reference these details naturally, not all at once.")
         vip_context = "\n".join(vip_lines)
         messages.append({"role": "system", "content": vip_context})
+
+    if guest_context:
+        messages.append({"role": "system", "content": f"## Current Guest Info\n{guest_context}"})
 
     if memories:
         memory_text = "Remember: " + "; ".join(memories[:50])
