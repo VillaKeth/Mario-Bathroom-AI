@@ -1,6 +1,6 @@
 # Mario AI Party Bot - TODO
 
-## v3.15 Guest Intelligence (Task 7 completed)
+## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
 - [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)
 - [x] Task 3: Voice Recognition Integration — Voice ID → GuestProfile wiring at 2 identify_speaker call sites
