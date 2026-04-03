@@ -8,7 +8,7 @@ import random
 import string
 import time
 import pygame
-from .closed_captions import ClosedCaptions
+from closed_captions import ClosedCaptions
 
 DEBUG_DISPLAY = True
 logger = logging.getLogger(__name__)
