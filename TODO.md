@@ -1,10 +1,10 @@
 # Mario AI Party Bot - TODO
 
-## v3.15 Guest Intelligence (Task 2 completed)
+## v3.15 Guest Intelligence (Task 4 completed)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
 - [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)
-- [ ] Task 3: Voice Recognition Integration
-- [ ] Task 4: Mood Analytics + Context
+- [x] Task 3: Voice Recognition Integration — Voice ID → GuestProfile wiring at 2 identify_speaker call sites
+- [x] Task 4: Per-Guest Mood Recording — Record emotion + energy after every LLM response with trend calculation (8 mood tests)
 - [ ] Task 5: Guest Chat History
 - [ ] Task 6: Multi-Guest Awareness
 - [ ] Task 7: VIP Guest System
