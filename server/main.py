@@ -1582,7 +1582,9 @@ async def reset_shot_event(event_name: str, request_body: dict = {}):
     if api_key and request_body.get("api_key") != api_key:
         return {"status": "error", "message": "Invalid API key"}
     
-    shot_event_manager.reset(event_name)
+    result = shot_event_manager.reset(event_name)
+    if result is False:
+        return {"status": "blocked", "message": f"Event '{event_name}' is currently active, cannot reset"}
     return {"status": "ok", "message": f"Event '{event_name}' reset"}
 
 

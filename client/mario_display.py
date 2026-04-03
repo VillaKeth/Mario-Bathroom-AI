@@ -2244,7 +2244,7 @@ class MarioDisplay:
                 toast_text = f"To {toast_name}!"
                 toast_surf = font_toast.render(toast_text, True, (255, 215, 0))
                 shadow = font_toast.render(toast_text, True, (0, 0, 0))
-                toast_y = h // 2 + (event_img.get_height() // 2 + 30 if event_img else 0)
+                toast_y = h // 2 + (event_img.get_height() // 2 + 30 if event_img is not None else 0)
                 surface.blit(shadow, shadow.get_rect(center=(w // 2 + 2, toast_y + 2)))
                 surface.blit(toast_surf, toast_surf.get_rect(center=(w // 2, toast_y)))
 

@@ -61,11 +61,16 @@ class ShotEventManager:
     
     def reset(self, name: str):
         if name in self.events:
-            self.events[name].fired = False
+            # Block reset if event is currently running
             if self._active_event == name:
-                self._active_event = None
+                if DEBUG_SHOT_EVENTS:
+                    print(f"[DEBUG_SHOT_EVENTS] reset BLOCKED: {name} is currently active")
+                return False
+            self.events[name].fired = False
             if DEBUG_SHOT_EVENTS:
                 print(f"[DEBUG_SHOT_EVENTS] reset: {name}")
+            return True
+        return False
     
     def check_voice_trigger(self, text: str) -> Optional[ShotEvent]:
         lower = text.lower()

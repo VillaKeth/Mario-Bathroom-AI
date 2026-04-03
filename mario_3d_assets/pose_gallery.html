@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mario AI — Pose Comparison Gallery</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a2e;--card:#16213e;--accent-red:#e63946;--accent-gold:#f4a261;
+  --text:#e0e0e0;--muted:#888;--green:#2a9d8f;--border:#333;
+  --card-hover:#1e2d50;--overlay:rgba(0,0,0,.85);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.5;min-height:100vh}
+a{color:var(--accent-gold);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Header ───────────────────────────────────────────── */
+.header{background:linear-gradient(135deg,#0f0f23,#16213e);border-bottom:2px solid var(--accent-gold);padding:28px 32px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.header h1{font-size:1.8rem;display:flex;align-items:center;gap:12px}
+.header h1 .emoji{font-size:2rem}
+.header-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.stats{display:flex;gap:18px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:.85rem}
+.stat b{color:var(--accent-gold)}
+.instructions{font-size:.82rem;color:var(--muted);margin-top:8px;max-width:900px}
+
+/* ── Nav Tabs ─────────────────────────────────────────── */
+.nav{display:flex;gap:8px;padding:12px 32px;background:#12122a;border-bottom:1px solid var(--border);position:sticky;top:102px;z-index:99;flex-wrap:wrap}
+.nav button{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px 18px;cursor:pointer;font-size:.88rem;transition:all .2s}
+.nav button:hover{background:var(--card-hover);border-color:var(--accent-gold)}
+.nav button.active{background:var(--accent-gold);color:#111;border-color:var(--accent-gold);font-weight:600}
+
+/* ── Sections ─────────────────────────────────────────── */
+.container{max-width:1800px;margin:0 auto;padding:20px 24px 120px}
+.section{display:none}
+.section.active{display:block}
+.section-title{font-size:1.35rem;margin:28px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.section-title .badge{background:var(--accent-gold);color:#111;font-size:.72rem;padding:2px 8px;border-radius:10px;font-weight:700}
+
+/* ── Emotion Group ────────────────────────────────────── */
+.emotion-group{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.emotion-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;cursor:pointer;user-select:none;transition:background .2s}
+.emotion-header:hover{background:var(--card-hover)}
+.emotion-header h3{font-size:1.05rem;display:flex;align-items:center;gap:8px}
+.emotion-header .arrow{transition:transform .3s;font-size:.8rem;color:var(--muted)}
+.emotion-header .arrow.open{transform:rotate(90deg)}
+.emotion-header .pose-count{font-size:.78rem;color:var(--muted)}
+.emotion-body{display:none;padding:8px 20px 20px}
+.emotion-body.open{display:block}
+.emotion-options{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+
+/* ── Pose Card ────────────────────────────────────────── */
+.pose-card{background:#111a30;border:2px solid var(--border);border-radius:10px;width:250px;overflow:hidden;transition:all .25s;position:relative;flex-shrink:0}
+.pose-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.pose-card.selected{border-color:var(--green);box-shadow:0 0 12px rgba(42,157,143,.35)}
+.pose-card.rejected{border-color:var(--accent-red);opacity:.55}
+.pose-card.flagged{border-color:var(--accent-red);box-shadow:0 0 12px rgba(230,57,70,.35)}
+.pose-card .img-wrap{width:100%;height:250px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#1e2d50 0%,#111a30 100%);cursor:pointer;overflow:hidden;position:relative}
+.pose-card .img-wrap img{max-width:92%;max-height:92%;object-fit:contain;transition:transform .3s}
+.pose-card:hover .img-wrap img{transform:scale(1.05)}
+.pose-card .img-wrap .option-label{position:absolute;top:8px;left:8px;background:var(--accent-gold);color:#111;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:6px}
+.pose-card .info{padding:10px 12px}
+.pose-card .pose-name{font-size:.9rem;font-weight:600;margin-bottom:4px}
+.pose-card .pose-path{font-size:.72rem;color:var(--muted);word-break:break-all}
+.pose-card .cat-badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:8px;margin-top:4px;font-weight:600}
+
+/* Category badge colours */
+.cat-neutral{background:#555;color:#ddd}.cat-greeting{background:#2196F3;color:#fff}
+.cat-speech{background:#9C27B0;color:#fff}.cat-positive{background:var(--green);color:#fff}
+.cat-negative{background:var(--accent-red);color:#fff}.cat-thinking{background:#FF9800;color:#111}
+.cat-sleep{background:#607D8B;color:#fff}.cat-movement{background:#00BCD4;color:#111}
+.cat-action{background:#FF5722;color:#fff}.cat-powerup{background:var(--accent-gold);color:#111}
+.cat-party{background:#E91E63;color:#fff}.cat-memorial{background:#795548;color:#fff}
+.cat-toast{background:#8D6E63;color:#fff}.cat-bathroom{background:#78909C;color:#fff}
+.cat-reactions{background:#FF4081;color:#fff}.cat-birthday{background:#AB47BC;color:#fff}
+.cat-gaming{background:#4CAF50;color:#fff}
+
+/* ── Card Actions ─────────────────────────────────────── */
+.card-actions{display:flex;gap:6px;padding:4px 12px 10px;flex-wrap:wrap}
+.btn{border:none;border-radius:6px;padding:5px 12px;font-size:.75rem;cursor:pointer;font-weight:600;transition:all .2s}
+.btn-select{background:var(--green);color:#fff}
+.btn-select.active{background:#1a6b62}
+.btn-reject{background:var(--accent-red);color:#fff}
+.btn-reject.active{background:#a32833}
+.btn-flag{background:#555;color:#ddd}
+.btn-flag.active{background:var(--accent-red);color:#fff}
+.btn-primary{background:var(--accent-gold);color:#111}
+.btn-primary.active{background:#d08a3a}
+.btn:hover{filter:brightness(1.15)}
+
+/* ── Browse Grid ──────────────────────────────────────── */
+.browse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:32px}
+.browse-grid .pose-card{width:100%}
+
+/* ── Export Bar ────────────────────────────────────────── */
+.export-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg,#0f0f23,#16213eee);border-top:2px solid var(--accent-gold);padding:12px 32px;display:flex;justify-content:space-between;align-items:center;gap:16px;z-index:100;flex-wrap:wrap}
+.export-bar .summary{font-size:.85rem;color:var(--muted)}
+.export-bar .summary b{color:var(--accent-gold)}
+.export-btns{display:flex;gap:10px}
+.btn-export{background:var(--accent-gold);color:#111;border:none;border-radius:8px;padding:10px 22px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-export:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn-export.copied{background:var(--green);color:#fff}
+.btn-clear{background:var(--accent-red);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:.85rem;font-weight:600;cursor:pointer}
+
+/* ── Modal ────────────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{max-width:90vw;max-height:90vh;position:relative}
+.modal img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:12px;border:2px solid var(--border)}
+.modal .close{position:absolute;top:-14px;right:-14px;background:var(--accent-red);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal .modal-info{text-align:center;margin-top:10px;font-size:.9rem;color:var(--muted)}
+
+/* ── Export Preview ───────────────────────────────────── */
+.export-preview{display:none;position:fixed;inset:0;background:var(--overlay);z-index:200;align-items:center;justify-content:center}
+.export-preview.open{display:flex}
+.export-box{background:var(--card);border:2px solid var(--accent-gold);border-radius:14px;max-width:700px;width:90%;max-height:80vh;overflow:auto;padding:24px}
+.export-box h3{margin-bottom:12px;color:var(--accent-gold)}
+.export-box textarea{width:100%;min-height:300px;background:#0d0d1a;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'Cascadia Code','Fira Code',monospace;font-size:.82rem;resize:vertical}
+.export-box .export-actions{display:flex;gap:10px;margin-top:12px;justify-content:flex-end}
+
+/* ── Regeneration Notes ───────────────────────────────── */
+.regen-note{margin-top:6px}
+.regen-note input{background:#0d0d1a;color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:.72rem;width:100%}
+.regen-note input::placeholder{color:#555}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media(max-width:900px){
+  .emotion-options{flex-direction:column;align-items:stretch}
+  .pose-card{width:100%}
+  .header{padding:16px}
+  .container{padding:12px}
+  .export-bar{flex-direction:column;text-align:center}
+}
+
+/* ── Search ───────────────────────────────────────────── */
+.search-wrap{margin-bottom:16px}
+.search-wrap input{width:100%;max-width:500px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.92rem}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-wrap input:focus{outline:none;border-color:var(--accent-gold)}
+.highlight{background:var(--accent-gold);color:#111;border-radius:2px;padding:0 2px}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#555}
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<div class="header">
+  <div class="header-row">
+    <h1><span class="emoji">🍄</span> Mario AI — Pose Comparison Gallery</h1>
+    <div class="stats">
+      <div class="stat">Total: <b id="statTotal">122</b> poses</div>
+      <div class="stat">Selected: <b id="statSelected">0</b></div>
+      <div class="stat">Rejected: <b id="statRejected">0</b></div>
+      <div class="stat">Flagged: <b id="statFlagged">0</b></div>
+    </div>
+  </div>
+  <p class="instructions">
+    <b>Compare</b> poses grouped by emotion mapping • <b>Click image</b> to view full size •
+    <b>✓ Select</b> keepers, <b>✗ Reject</b> bad ones, <b>⚑ Flag</b> for regeneration •
+    Choices auto-save to localStorage • <b>Export</b> results at the bottom bar
+  </p>
+</div>
+
+<!-- ── Nav ─────────────────────────────────────────────── -->
+<div class="nav">
+  <button class="active" data-tab="emotions">🎭 Emotion Comparison</button>
+  <button data-tab="browse">📂 Browse All (122)</button>
+</div>
+
+<!-- ── Main Content ────────────────────────────────────── -->
+<div class="container">
+
+  <!-- Emotion Comparison Tab -->
+  <div class="section active" id="tab-emotions"></div>
+
+  <!-- Browse All Tab -->
+  <div class="section" id="tab-browse">
+    <div class="search-wrap">
+      <input type="text" id="browseSearch" placeholder="Search poses by name, category..." />
+    </div>
+    <div id="browseContent"></div>
+  </div>
+</div>
+
+<!-- ── Export Bar ──────────────────────────────────────── -->
+<div class="export-bar">
+  <div class="summary">
+    <b id="expSelected">0</b> selected &nbsp;·&nbsp; <b id="expRejected">0</b> rejected &nbsp;·&nbsp; <b id="expFlagged">0</b> flagged for regen
+  </div>
+  <div class="export-btns">
+    <button class="btn-clear" onclick="clearAll()">🗑 Clear All</button>
+    <button class="btn-export" id="btnCopy" onclick="showExport()">📋 Copy Results</button>
+  </div>
+</div>
+
+<!-- ── Image Modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="imgModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal()">&times;</button>
+    <img id="modalImg" src="" alt="Pose" />
+    <div class="modal-info" id="modalInfo"></div>
+  </div>
+</div>
+
+<!-- ── Export Preview ──────────────────────────────────── -->
+<div class="export-preview" id="exportModal">
+  <div class="export-box">
+    <h3>📋 Export Pose Selections</h3>
+    <textarea id="exportText" readonly></textarea>
+    <div class="export-actions">
+      <button class="btn-export" onclick="copyExport()">Copy to Clipboard</button>
+      <button class="btn-clear" onclick="closeExport()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   DATA
+   ══════════════════════════════════════════════════════════ */
+
+const ALL_POSES = {
+  neutral:   ["idle","idle_blink","idle_wink","looking_left","looking_right","looking_up"],
+  greeting:  ["farewell","hello_sparkle","tip_hat","wave_both","wave_casual","wave_high","welcome_arms"],
+  speech:    ["listening","shouting","shushing","singing","talking","talking_excited","whispering","whistling"],
+  positive:  ["excited_jump","happy","laughing","love","peace_sign","proud","thumbs_up","very_happy","victorious"],
+  negative:  ["angry","annoyed","crying","disappointed","disgusted","embarrassed","furious","nervous","sad","scared"],
+  thinking:  ["confused","curious","determined","dizzy","idea","mischievous","shocked","surprised","suspicious","thinking"],
+  sleep:     ["sleeping","sleepy","yawning"],
+  movement:  ["crouching","dancing_1","dancing_2","flexing","jumping","pointing","running","sliding","tiptoeing"],
+  action:    ["dabbing","eating_mushroom","facepalm","salute","shrug"],
+  powerup:   ["fire_mario","gold_mario","ice_mario","mega_mario","metal_mario","mini_mario","star_power"],
+  party:     ["balloon","cake","celebrate","cheering","cheers","confetti","countdown","gift","group_photo","party_hat"],
+  memorial:  ["candle","honor","moment_of_silence","remembering","tribute"],
+  toast:     ["after_shot","clinking_glasses","drinking","raising_glass","shot_ready"],
+  bathroom:  ["air_freshener","grossed_out","knock_knock","mirror_check","reading","thumbs_up_flush","waiting","washing_hands"],
+  reactions: ["cringe","double_take","eye_roll","impressed","jaw_drop","mic_drop","mind_blown","rofl","sassy","slow_clap"],
+  birthday:  ["birthday_boy","birthday_toast","blowing_candles","opening_gift","party_dance"],
+  gaming:    ["coin_collect","game_over","level_up","power_star","warp_pipe"]
+};
+
+const ORIGINAL_CATS = ["neutral","greeting","speech","positive","negative","thinking","sleep","movement","action","powerup"];
+const NEW_CATS      = ["party","memorial","toast","bathroom","reactions","birthday","gaming"];
+
+const EMOTION_SPRITE_MAP = {
+  happy:       ["positive/happy","positive/very_happy","party/cheering"],
+  excited:     ["positive/excited_jump","party/celebrate","birthday/party_dance"],
+  surprised:   ["thinking/surprised","reactions/double_take"],
+  annoyed:     ["negative/annoyed","reactions/eye_roll"],
+  laughing:    ["positive/laughing","reactions/rofl"],
+  proud:       ["positive/proud","reactions/impressed"],
+  disgusted:   ["negative/disgusted","bathroom/grossed_out"],
+  shocked:     ["thinking/shocked","reactions/jaw_drop","reactions/mind_blown"],
+  party:       ["party/celebrate","party/cheering","party/confetti"],
+  celebratory: ["party/celebrate","party/cheers","party/confetti"],
+  solemn:      ["memorial/moment_of_silence","memorial/honor"],
+  birthday:    ["birthday/birthday_boy","birthday/party_dance"]
+};
+
+/* ══════════════════════════════════════════════════════════
+   STATE (persisted to localStorage)
+   ══════════════════════════════════════════════════════════ */
+const STORAGE_KEY = "mario_pose_gallery_v1";
+
+let state = loadState();
+
+function defaultState(){
+  return { selected:{}, rejected:{}, flagged:{}, primary:{}, regenNotes:{} };
+}
+function loadState(){
+  try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)); return s&&s.selected?s:defaultState(); }
+  catch(e){ return defaultState(); }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  updateStats();
+}
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════════════════════════ */
+function posePath(p){ return "ai_poses_transparent/"+p+".png"; }
+function poseKey(p){ return p; } // e.g. "positive/happy"
+function displayName(p){ return p.split("/").pop().replace(/_/g," "); }
+function catOf(p){ return p.split("/")[0]; }
+
+function isSelected(p){ return !!state.selected[poseKey(p)]; }
+function isRejected(p){ return !!state.rejected[poseKey(p)]; }
+function isFlagged(p){ return !!state.flagged[poseKey(p)]; }
+function isPrimary(emotion,p){ return state.primary[emotion]===poseKey(p); }
+
+function toggleSelect(p){
+  const k=poseKey(p);
+  if(state.selected[k]){ delete state.selected[k]; }
+  else{ state.selected[k]=true; delete state.rejected[k]; }
+  saveState();
+}
+function toggleReject(p){
+  const k=poseKey(p);
+  if(state.rejected[k]){ delete state.rejected[k]; }
+  else{ state.rejected[k]=true; delete state.selected[k]; delete state.flagged[k]; }
+  saveState();
+}
+function toggleFlag(p){
+  const k=poseKey(p);
+  if(state.flagged[k]){ delete state.flagged[k]; }
+  else{ state.flagged[k]=true; }
+  saveState();
+}
+function setPrimary(emotion,p){
+  const k=poseKey(p);
+  if(state.primary[emotion]===k) delete state.primary[emotion];
+  else state.primary[emotion]=k;
+  saveState();
+}
+function setRegenNote(p,note){
+  const k=poseKey(p);
+  if(note) state.regenNotes[k]=note; else delete state.regenNotes[k];
+  saveState();
+}
+
+/* ══════════════════════════════════════════════════════════
+   CARD RENDERING
+   ══════════════════════════════════════════════════════════ */
+function renderCard(posePath_, opts={}){
+  const p = posePath_;
+  const k = poseKey(p);
+  const cat = catOf(p);
+  const name = displayName(p);
+  const sel = isSelected(p);
+  const rej = isRejected(p);
+  const flg = isFlagged(p);
+  let cls = "pose-card";
+  if(sel) cls+=" selected";
+  if(rej) cls+=" rejected";
+  if(flg&&!rej) cls+=" flagged";
+
+  const optLabel = opts.optionLabel ? `<span class="option-label">${opts.optionLabel}</span>` : "";
+  const emotion = opts.emotion || "";
+  const primaryBtn = emotion ? `<button class="btn btn-primary ${isPrimary(emotion,p)?'active':''}" data-action="primary" data-emotion="${emotion}" data-pose="${p}">⭐ Primary</button>` : "";
+
+  return `<div class="${cls}" data-pose="${k}" id="card-${k.replace(/\//g,'-')}">
+    <div class="img-wrap" data-action="zoom" data-pose="${p}">
+      ${optLabel}
+      <img src="${posePath(p)}" alt="${name}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%2316213e%22 width=%22200%22 height=%22200%22/><text fill=%22%23888%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2214%22>Not Found</text></svg>'" />
+    </div>
+    <div class="info">
+      <div class="pose-name">${name}</div>
+      <div class="pose-path">${p}</div>
+      <span class="cat-badge cat-${cat}">${cat}</span>
+    </div>
+    <div class="card-actions">
+      <button class="btn btn-select ${sel?'active':''}" data-action="select" data-pose="${p}">✓ ${sel?'Selected':'Select'}</button>
+      <button class="btn btn-reject ${rej?'active':''}" data-action="reject" data-pose="${p}">✗ ${rej?'Rejected':'Reject'}</button>
+      <button class="btn btn-flag ${flg?'active':''}" data-action="flag" data-pose="${p}">⚑ ${flg?'Flagged':'Flag'}</button>
+      ${primaryBtn}
+    </div>
+    <div class="regen-note">
+      <input type="text" placeholder="Regen note (e.g. wrong colors)..." data-action="note" data-pose="${p}" value="${state.regenNotes[k]||''}" />
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   EMOTION COMPARISON TAB
+   ══════════════════════════════════════════════════════════ */
+function renderEmotions(){
+  const el = document.getElementById("tab-emotions");
+  let html = `<h2 class="section-title">🎭 Emotion Mapping Comparison <span class="badge">${Object.keys(EMOTION_SPRITE_MAP).length} emotions</span></h2>
+  <p style="color:var(--muted);margin-bottom:20px;font-size:.88rem">These are the emotions defined in <code>EMOTION_SPRITE_MAP</code>. For emotions with multiple pose options, compare them side-by-side and pick your favorites.</p>`;
+
+  for(const [emotion, poses] of Object.entries(EMOTION_SPRITE_MAP)){
+    const multi = poses.length > 1;
+    html += `<div class="emotion-group">
+      <div class="emotion-header" data-emotion="${emotion}">
+        <h3><span class="arrow open">▶</span> ${emotion.charAt(0).toUpperCase()+emotion.slice(1)}
+          ${multi ? `<span style="color:var(--accent-gold);font-size:.78rem">(${poses.length} options — compare!)</span>` : `<span style="color:var(--green);font-size:.78rem">(${poses.length} pose)</span>`}
+        </h3>
+        <span class="pose-count">${poses.join(" · ")}</span>
+      </div>
+      <div class="emotion-body open">
+        <div class="emotion-options">`;
+    poses.forEach((p,i)=>{
+      html += renderCard(p, {
+        optionLabel: multi ? String.fromCharCode(65+i) : "",
+        emotion: emotion
+      });
+    });
+    html += `</div></div></div>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   BROWSE ALL TAB
+   ══════════════════════════════════════════════════════════ */
+function renderBrowse(filter=""){
+  const el = document.getElementById("browseContent");
+  const allCats = [...ORIGINAL_CATS, ...NEW_CATS];
+  let html = "";
+  const fl = filter.toLowerCase();
+
+  for(const cat of allCats){
+    const poses = ALL_POSES[cat];
+    const isNew = NEW_CATS.includes(cat);
+    const filtered = fl ? poses.filter(p => p.includes(fl) || cat.includes(fl)) : poses;
+    if(filtered.length===0) continue;
+
+    html += `<h2 class="section-title">
+      <span class="cat-badge cat-${cat}">${cat}</span>
+      ${isNew?'<span class="badge" style="background:var(--accent-red)">NEW</span>':'<span class="badge" style="background:var(--muted)">ORIGINAL</span>'}
+      <span style="color:var(--muted);font-size:.85rem;margin-left:auto">${filtered.length} poses</span>
+    </h2>
+    <div class="browse-grid">`;
+    for(const name of filtered){
+      html += renderCard(cat+"/"+name);
+    }
+    html += `</div>`;
+  }
+  if(!html) html = `<p style="color:var(--muted);text-align:center;padding:40px">No poses match "${filter}"</p>`;
+  el.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATS
+   ══════════════════════════════════════════════════════════ */
+function updateStats(){
+  const sc = Object.keys(state.selected).length;
+  const rc = Object.keys(state.rejected).length;
+  const fc = Object.keys(state.flagged).length;
+  document.getElementById("statSelected").textContent = sc;
+  document.getElementById("statRejected").textContent = rc;
+  document.getElementById("statFlagged").textContent = fc;
+  document.getElementById("expSelected").textContent = sc;
+  document.getElementById("expRejected").textContent = rc;
+  document.getElementById("expFlagged").textContent = fc;
+
+  let total = 0;
+  for(const cat of Object.values(ALL_POSES)) total += cat.length;
+  document.getElementById("statTotal").textContent = total;
+}
+
+/* ══════════════════════════════════════════════════════════
+   REFRESH CARD UI (without full re-render)
+   ══════════════════════════════════════════════════════════ */
+function refreshCard(p){
+  const k = poseKey(p);
+  const id = "card-"+k.replace(/\//g,"-");
+  document.querySelectorAll(`[data-pose="${k}"]`).forEach(card=>{
+    if(!card.classList.contains("pose-card")) return;
+    card.classList.toggle("selected", isSelected(p));
+    card.classList.toggle("rejected", isRejected(p));
+    card.classList.toggle("flagged", isFlagged(p)&&!isRejected(p));
+
+    const selBtn = card.querySelector('[data-action="select"]');
+    const rejBtn = card.querySelector('[data-action="reject"]');
+    const flgBtn = card.querySelector('[data-action="flag"]');
+    if(selBtn){ selBtn.classList.toggle("active",isSelected(p)); selBtn.textContent = isSelected(p)?"✓ Selected":"✓ Select"; }
+    if(rejBtn){ rejBtn.classList.toggle("active",isRejected(p)); rejBtn.textContent = isRejected(p)?"✗ Rejected":"✗ Reject"; }
+    if(flgBtn){ flgBtn.classList.toggle("active",isFlagged(p)); flgBtn.textContent = isFlagged(p)?"⚑ Flagged":"⚑ Flag"; }
+  });
+  // Also refresh duplicates in other tab
+  document.querySelectorAll(`.pose-card`).forEach(card=>{
+    const btn = card.querySelector(`[data-action="select"][data-pose="${p}"]`);
+    if(!btn) return;
+    card.classList.toggle("selected", isSelected(p));
+    card.classList.toggle("rejected", isRejected(p));
+    card.classList.toggle("flagged", isFlagged(p)&&!isRejected(p));
+    const selBtn2 = card.querySelector('[data-action="select"]');
+    const rejBtn2 = card.querySelector('[data-action="reject"]');
+    const flgBtn2 = card.querySelector('[data-action="flag"]');
+    if(selBtn2){ selBtn2.classList.toggle("active",isSelected(p)); selBtn2.textContent = isSelected(p)?"✓ Selected":"✓ Select"; }
+    if(rejBtn2){ rejBtn2.classList.toggle("active",isRejected(p)); rejBtn2.textContent = isRejected(p)?"✗ Rejected":"✗ Reject"; }
+    if(flgBtn2){ flgBtn2.classList.toggle("active",isFlagged(p)); flgBtn2.textContent = isFlagged(p)?"⚑ Flagged":"⚑ Flag"; }
+  });
+}
+
+function refreshPrimaryBtns(emotion){
+  document.querySelectorAll(`[data-action="primary"][data-emotion="${emotion}"]`).forEach(btn=>{
+    const p = btn.dataset.pose;
+    btn.classList.toggle("active", isPrimary(emotion,p));
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   EVENT DELEGATION
+   ══════════════════════════════════════════════════════════ */
+document.addEventListener("click", e=>{
+  const btn = e.target.closest("[data-action]");
+  if(!btn) return;
+  const action = btn.dataset.action;
+  const pose = btn.dataset.pose;
+  if(!pose) return;
+
+  if(action==="select"){ toggleSelect(pose); refreshCard(pose); }
+  else if(action==="reject"){ toggleReject(pose); refreshCard(pose); }
+  else if(action==="flag"){ toggleFlag(pose); refreshCard(pose); }
+  else if(action==="primary"){ setPrimary(btn.dataset.emotion, pose); refreshPrimaryBtns(btn.dataset.emotion); }
+  else if(action==="zoom"){ openModal(pose); }
+});
+
+document.addEventListener("input", e=>{
+  if(e.target.dataset.action==="note"){
+    setRegenNote(e.target.dataset.pose, e.target.value);
+  }
+});
+
+/* ══════════════════════════════════════════════════════════
+   EMOTION HEADER COLLAPSE/EXPAND
+   ══════════════════════════════════════════════════════════ */
+document.addEventListener("click", e=>{
+  const hdr = e.target.closest(".emotion-header");
+  if(!hdr) return;
+  const body = hdr.nextElementSibling;
+  const arrow = hdr.querySelector(".arrow");
+  body.classList.toggle("open");
+  arrow.classList.toggle("open");
+});
+
+/* ══════════════════════════════════════════════════════════
+   TAB SWITCHING
+   ══════════════════════════════════════════════════════════ */
+document.querySelectorAll(".nav button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    document.getElementById("tab-"+btn.dataset.tab).classList.add("active");
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   SEARCH (Browse tab)
+   ══════════════════════════════════════════════════════════ */
+let searchTimeout;
+document.getElementById("browseSearch").addEventListener("input", e=>{
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(()=> renderBrowse(e.target.value), 200);
+});
+
+/* ══════════════════════════════════════════════════════════
+   MODAL
+   ══════════════════════════════════════════════════════════ */
+function openModal(p){
+  document.getElementById("modalImg").src = posePath(p);
+  document.getElementById("modalInfo").textContent = p + " — " + displayName(p);
+  document.getElementById("imgModal").classList.add("open");
+}
+function closeModal(){
+  document.getElementById("imgModal").classList.remove("open");
+}
+document.getElementById("imgModal").addEventListener("click", e=>{
+  if(e.target===document.getElementById("imgModal")) closeModal();
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){ closeModal(); closeExport(); }
+});
+
+/* ══════════════════════════════════════════════════════════
+   EXPORT
+   ══════════════════════════════════════════════════════════ */
+function generateExport(){
+  let lines = [];
+  lines.push("POSE SELECTIONS:");
+  lines.push("=".repeat(50));
+
+  // Emotion map results
+  for(const [emotion, poses] of Object.entries(EMOTION_SPRITE_MAP)){
+    const parts = poses.map(p=>{
+      const sel = isSelected(p);
+      const rej = isRejected(p);
+      const pri = isPrimary(emotion,p);
+      let marker = sel?"✓":rej?"✗":"?";
+      if(pri) marker += " ⭐PRIMARY";
+      return `${p} ${marker}`;
+    });
+    lines.push(`${emotion}: ${parts.join(", ")}`);
+  }
+
+  // Primary selections
+  const primaries = Object.entries(state.primary);
+  if(primaries.length){
+    lines.push("");
+    lines.push("PRIMARY SELECTIONS:");
+    lines.push("-".repeat(30));
+    for(const [emotion, pose] of primaries){
+      lines.push(`  ${emotion}: ${pose}`);
+    }
+  }
+
+  // Flagged / regen
+  const flaggedPoses = Object.keys(state.flagged);
+  if(flaggedPoses.length){
+    lines.push("");
+    lines.push("FLAGGED FOR REGENERATION:");
+    lines.push("-".repeat(30));
+    for(const p of flaggedPoses){
+      const note = state.regenNotes[p] ? ` (${state.regenNotes[p]})` : "";
+      lines.push(`  - ${p}${note}`);
+    }
+  }
+
+  // Rejected
+  const rejectedPoses = Object.keys(state.rejected);
+  if(rejectedPoses.length){
+    lines.push("");
+    lines.push("REJECTED POSES:");
+    lines.push("-".repeat(30));
+    for(const p of rejectedPoses){
+      const note = state.regenNotes[p] ? ` (${state.regenNotes[p]})` : "";
+      lines.push(`  - ${p}${note}`);
+    }
+  }
+
+  // All selected
+  const selectedPoses = Object.keys(state.selected);
+  if(selectedPoses.length){
+    lines.push("");
+    lines.push("ALL SELECTED POSES:");
+    lines.push("-".repeat(30));
+    for(const p of selectedPoses.sort()){
+      lines.push(`  ✓ ${p}`);
+    }
+  }
+
+  lines.push("");
+  lines.push(`Summary: ${selectedPoses.length} selected, ${rejectedPoses.length} rejected, ${flaggedPoses.length} flagged`);
+  return lines.join("\n");
+}
+
+function showExport(){
+  document.getElementById("exportText").value = generateExport();
+  document.getElementById("exportModal").classList.add("open");
+}
+function closeExport(){
+  document.getElementById("exportModal").classList.remove("open");
+}
+function copyExport(){
+  const ta = document.getElementById("exportText");
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn = document.querySelector(".export-box .btn-export");
+    btn.textContent = "✓ Copied!";
+    btn.style.background = "var(--green)";
+    setTimeout(()=>{ btn.textContent = "Copy to Clipboard"; btn.style.background = ""; }, 2000);
+  }).catch(()=>{
+    document.execCommand("copy");
+  });
+}
+document.getElementById("exportModal").addEventListener("click", e=>{
+  if(e.target===document.getElementById("exportModal")) closeExport();
+});
+
+/* ══════════════════════════════════════════════════════════
+   CLEAR ALL
+   ══════════════════════════════════════════════════════════ */
+function clearAll(){
+  if(!confirm("Clear ALL selections, rejections, and flags?")) return;
+  state = defaultState();
+  saveState();
+  renderEmotions();
+  renderBrowse(document.getElementById("browseSearch").value);
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════════ */
+renderEmotions();
+renderBrowse();
+updateStats();
+</script>
+</body>
+</html>

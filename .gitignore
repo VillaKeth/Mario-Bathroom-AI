@@ -97,3 +97,6 @@ tests/*.mp3
 
 models-v2.1.zip
 server/data/qdrant_memories/.lock
+server/data/qdrant_faces/.lock
+server/data/qdrant_faces/.lock
+server/data/qdrant_voices/.lock
