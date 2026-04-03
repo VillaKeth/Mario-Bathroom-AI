@@ -4,6 +4,7 @@ In-memory guest profiles that link voice, face, and mood into unified identities
 Thread-safe with RLock. Clears on server restart (new party night).
 """
 import os
+import re
 import uuid
 import threading
 from dataclasses import dataclass, field
@@ -16,6 +17,20 @@ DEBUG_GUEST_PROFILES = os.environ.get("DEBUG_GUEST_PROFILES", "").lower() in ("1
 # Greeting debounce timeout in seconds
 GREETING_COOLDOWN = 60
 
+# Name sanitization: strip control chars, angle brackets, limit length
+_NAME_SANITIZE_RE = re.compile(r'[<>{}\[\]\\\/\x00-\x1f\x7f]')
+MAX_NAME_LENGTH = 64
+
+
+def _sanitize_name(name: str) -> str:
+    """Sanitize guest name to prevent prompt injection."""
+    if not name or not name.strip():
+        return "Unknown"
+    name = _NAME_SANITIZE_RE.sub('', name).strip()
+    if not name:
+        return "Unknown"
+    return name[:MAX_NAME_LENGTH]
+
 
 @dataclass
 class MoodEntry:
@@ -27,7 +42,12 @@ class MoodEntry:
 
 @dataclass
 class GuestProfile:
-    """Unified guest identity linking voice, face, and mood."""
+    """Unified guest identity linking voice, face, and mood.
+    
+    NOTE: Properties (current_mood, current_energy, mood_trend) access mood_history
+    without locking. Always access these through GuestProfileManager methods (which
+    hold the lock) rather than directly on profile references for thread safety.
+    """
     name: str
     guest_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     voice_id: Optional[str] = None
@@ -93,6 +113,7 @@ class GuestProfileManager:
 
     def identify_by_voice(self, name: str, voice_id: str) -> GuestProfile:
         """Identify guest by voice, creating new profile if needed."""
+        name = _sanitize_name(name)
         with self._lock:
             # Check voice_map first
             if voice_id in self._voice_map:
@@ -128,6 +149,7 @@ class GuestProfileManager:
 
     def identify_by_face(self, name: str, face_id: str) -> GuestProfile:
         """Identify guest by face, creating new profile if needed."""
+        name = _sanitize_name(name)
         with self._lock:
             # Check face_map first
             if face_id in self._face_map:
@@ -176,6 +198,7 @@ class GuestProfileManager:
 
     def rename_guest(self, old_name: str, new_name: str) -> GuestProfile:
         """Rename a guest, updating all mappings."""
+        new_name = _sanitize_name(new_name)
         with self._lock:
             if old_name not in self._profiles:
                 raise ValueError(f"Guest '{old_name}' not found")
@@ -293,6 +316,7 @@ class GuestProfileManager:
 
     def register_vip(self, name: str, voice_id: Optional[str] = None, face_id: Optional[str] = None):
         """Pre-register a VIP guest."""
+        name = _sanitize_name(name)
         with self._lock:
             if name in self._profiles:
                 profile = self._profiles[name]
