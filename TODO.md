@@ -1,14 +1,15 @@
 # Mario AI Party Bot - TODO
 
-## v3.15 Guest Intelligence (Task 4 completed)
+## v3.15 Guest Intelligence (Task 7 completed)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
 - [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)
 - [x] Task 3: Voice Recognition Integration — Voice ID → GuestProfile wiring at 2 identify_speaker call sites
 - [x] Task 4: Per-Guest Mood Recording — Record emotion + energy after every LLM response with trend calculation (8 mood tests)
-- [ ] Task 5: Guest Chat History
-- [ ] Task 6: Multi-Guest Awareness
-- [ ] Task 7: VIP Guest System
-- [ ] Task 8: Persistent Guest Memory
+- [x] Task 5: LLM Guest Context Injection — Mario knows guest name, ID method, visit count, mood trend, topics discussed, and who else is in the bathroom
+- [x] Task 6: Client Multi-Face Event Batching — Implemented batching of faces from client to server
+- [x] Task 7: Group Greetings + Debounce — Mario greets multiple recognized faces by name with 60-second cooldown to prevent spam
+- [x] Task 8: Integration Tests + Final Verification + Release (48 tests total, v3.15 tag released)
+- [ ] Task 10: Persistent Guest Memory
 
 ## v3.14 Ultra Party Upgrade — RELEASED ✅ (85 tests, 14/14 tasks)
 - [x] Sub-A: Memorial v2 — voice trigger, 10-sec countdown, music loop fix, warm recovery
