@@ -43,7 +43,7 @@
 - [x] Fix NameError: memory_module → memory in leaderboard (command_handlers.py:855-872)
 - [x] Fix unreachable Qdrant health check (dead code after return in main.py:1049-1111)
 
-## v3.16 Shot Events & Poses (In Progress)
+## v3.16 Party Day Release — RELEASED ✅ (768 tests passing)
 - [x] Deltarune shot: character→person mapping (Kris=Roman, Ralsei=Elijah, Susie=Villa, Lancer=Jacob)
 - [x] Add display_name + image_file fields to ShotEvent dataclass
 - [x] Copy Deltarune pixel art to client/assets/images/
@@ -52,6 +52,11 @@
 - [x] Event-specific image display during announcement + toast phases
 - [x] Word-wrap long text in shot event overlays
 - [x] Regenerate all 122 Mario poses via SubNP API + rembg background removal
+- [x] Fix 5 game handler IndexError crashes (would_you_rather, mario_trivia, name_that_character, wyr_mario, rapid_fire)
+- [x] Hardened hot_takes + never_have_i_ever with same defensive patterns
+- [x] Secret panic sequence (Up Up Down Down Left Right) — no visible hints
+- [x] Fix leaderboard memory_module NameError
+- [x] Fix unreachable Qdrant health check (removed 50 lines dead code)
 
 ## v3.15.1 UI Fixes
 - [x] Fix UI element overlapping (info strip vs speech bubble, subtitle vs closed captions)
@@ -64,7 +69,6 @@
 - [ ] Sub-C: Real-time face detection (YOLO v8 + face_recognition)
 - [ ] Sub-C: Voice identification (Resemblyzer) per-utterance
 - [ ] Sub-D: Per-guest mood persistence in Qdrant
-- [ ] Secret panic keyboard sequence (multi-key combo, unlabeled)
 - [ ] Stable Diffusion bathroom backgrounds (prompts written, need generation)
 
 ## v3.13 Memorial Overhaul + Party Polish
