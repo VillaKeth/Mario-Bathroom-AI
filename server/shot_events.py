@@ -139,15 +139,19 @@ def create_default_events() -> ShotEventManager:
     
     mgr.register(ShotEvent(
         name="birthday_boy",
-        tone="celebratory",
-        display_name="Jacob Hoppenstedt",
+        tone="solemn",
+        display_name="Jacob Hoppenstedt\n2003 - 2026",
         trigger_type="voice",
-        voice_keywords=["birthday shot", "shot for jacob", "birthday boy shot"],
-        phases=["announcement", "countdown", "toast", "recovery"],
-        announcement_text="It's-a time to take a shot for the BIRTHDAY BOY! Jacob Hoppenstedt, this one's for YOU!",
-        toast_text="To Jacob! Happy Birthday! WAHOO!",
-        recovery_line="WAHOO! Now THAT'S how we party!",
+        voice_keywords=["birthday shot", "shot for jacob", "birthday boy shot", "rip jacob"],
+        phases=["announcement", "silence", "countdown", "toast", "music", "recovery"],
+        announcement_text="Everyone, please. Mario needs your attention. We gather tonight to honor the memory of a truly legendary gamer, Jacob Hoppenstedt. Gone too soon, but never forgotten.",
+        silence_text="Let us bow our heads for a moment of silence for our fallen friend Jacob.",
+        toast_text="Now raise your glasses one final time. To Jacob Hoppenstedt, the greatest party host who ever lived. Rest in power, my friend. To Jacob!",
+        recovery_line="Just kidding! Jacob's right here! HAPPY BIRTHDAY! WAHOO! You really thought I was serious? Let's-a GO!",
         countdown=True,
+        music_file="client/assets/audio/jacob_birthday.mp3",
+        music_duration=30,
+        image_file="client/assets/images/jacob.jpg",
     ))
     
     mgr.register(ShotEvent(
@@ -156,11 +160,13 @@ def create_default_events() -> ShotEventManager:
         display_name="Deltarune",
         trigger_type="voice",
         voice_keywords=["deltarune shot", "shot for deltarune", "deltarune toast"],
-        phases=["announcement", "countdown", "toast", "recovery"],
+        phases=["announcement", "countdown", "toast", "music", "recovery"],
         announcement_text="Attention everyone! Mario has a very special toast! This one goes out to the heroes of the Dark World, Deltarune!",
         toast_text="Calling all heroes! Kris, that's you Roman! Ralsei, that's you Elijah! Susie, that's you Villa! And the one and only Lancer, that's the birthday boy Jacob! Raise your glasses, to Deltarune!",
         recovery_line="WAHOO! What a fun game! Now back to the party!",
         countdown=True,
+        music_file="client/assets/audio/deltarune_hopes_dreams.mp3",
+        music_duration=90,
         image_file="client/assets/images/deltarune.png",
     ))
     

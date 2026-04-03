@@ -2154,13 +2154,15 @@ class MarioDisplay:
                 self._update_memorial_particles()
                 self._draw_memorial_particles(surface)
 
-                if self._memorial_photo:
-                    photo_rect = self._memorial_photo.get_rect(center=(w // 2, h // 2 - 20))
+                # Use event-specific image, fall back to memorial photo
+                photo = event_img if event_img else self._memorial_photo
+                if photo:
+                    photo_rect = photo.get_rect(center=(w // 2, h // 2 - 20))
                     glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
                     glow_surf.fill((255, 200, 50, 60))
                     glow_rect = glow_surf.get_rect(center=(w // 2, h // 2 - 20))
                     surface.blit(glow_surf, glow_rect)
-                    surface.blit(self._memorial_photo, photo_rect)
+                    surface.blit(photo, photo_rect)
 
                 font_large = pygame.font.SysFont("arial", 32, bold=True)
                 font_name = pygame.font.SysFont("arial", 36, bold=True)
@@ -2172,13 +2174,22 @@ class MarioDisplay:
                 surface.blit(shadow_surf, shadow_surf.get_rect(center=(w // 2 + 2, h // 2 - 182)))
                 surface.blit(title_surf, title_surf.get_rect(center=(w // 2, h // 2 - 180)))
 
-                name_surf = font_name.render(self._memorial_name, True, (255, 215, 0))
-                name_shadow = font_name.render(self._memorial_name, True, (0, 0, 0))
+                name_text = self._memorial_name
+                dates_text = ""
+                # Parse dates from display_name if it contains a newline
+                if "\n" in name_text:
+                    parts = name_text.split("\n", 1)
+                    name_text = parts[0].strip()
+                    dates_text = parts[1].strip()
+
+                name_surf = font_name.render(name_text, True, (255, 215, 0))
+                name_shadow = font_name.render(name_text, True, (0, 0, 0))
                 photo_bottom = h // 2 + 140
                 surface.blit(name_shadow, name_shadow.get_rect(center=(w // 2 + 2, photo_bottom + 2)))
                 surface.blit(name_surf, name_surf.get_rect(center=(w // 2, photo_bottom)))
 
-                dates_text = "August 17, 1968 \u2013 March 23, 2023"
+                if not dates_text:
+                    dates_text = "August 17, 1968 \u2013 March 23, 2023"
                 dates_surf = font_dates.render(dates_text, True, (200, 200, 200))
                 surface.blit(dates_surf, dates_surf.get_rect(center=(w // 2, photo_bottom + 40)))
 
