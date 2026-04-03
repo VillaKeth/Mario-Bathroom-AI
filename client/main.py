@@ -361,16 +361,21 @@ class MarioClient:
         self.display.set_subtitle("")
         self.sfx.play("goodbye")
 
-    def _on_person_detected(self, person):
-        """Send person detection event to server via WebSocket."""
+    def _on_person_detected(self, people):
+        """Send batched person detection event to server via WebSocket."""
         try:
+            faces = []
+            for person in people:
+                face_entry = {"confidence": person.confidence}
+                if person.face_encoding is not None:
+                    face_entry["encoding"] = person.face_encoding.tolist()
+                faces.append(face_entry)
+
             event = {
                 "type": "person_detected",
-                "confidence": person.confidence,
-                "has_face": person.face_encoding is not None,
+                "faces": faces,
+                "face_count": len(faces),
             }
-            if person.face_encoding is not None:
-                event["face_encoding"] = person.face_encoding.tolist()
             self.ws.send_event(event)
         except Exception as e:
             logger.debug(f"Person detection event send failed: {e}")

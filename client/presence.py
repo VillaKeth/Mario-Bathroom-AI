@@ -41,7 +41,7 @@ class PresenceDetector:
 
         # Person detection (optional — depends on ultralytics)
         self.person_detector = None
-        self.on_person_detected = None  # callback(DetectedPerson)
+        self.on_person_detected = None  # callback(list[DetectedPerson])
 
     def enable_person_detection(self, config: dict = None):
         """Enable YOLO person detection. Call after __init__."""
@@ -191,9 +191,8 @@ class PresenceDetector:
             if self.person_detector and self.person_detector.is_available and frame is not None:
                 try:
                     people = self.person_detector.detect_people(frame)
-                    for person in people:
-                        if self.on_person_detected:
-                            self.on_person_detected(person)
+                    if people and self.on_person_detected:
+                        self.on_person_detected(people)  # Pass entire list
                 except Exception as e:
                     logger.debug(f"[DEBUG_PRESENCE] Person detection error: {e}")
 
