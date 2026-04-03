@@ -3398,6 +3398,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             # Update emotion system with LLM sentiment
             emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
             
+            # Record mood to guest profile
+            if state_current.get("speaker_name"):
+                guest_profiles.record_mood(
+                    state_current["speaker_name"],
+                    response_emotion if response_emotion else "neutral",
+                    response_energy if response_energy else 0.5
+                )
+            
         except asyncio.TimeoutError:
             _llm_elapsed = time.time() - _t_llm
             # If quality model timed out, retry with fast model
@@ -3418,6 +3426,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     
                     # Update emotion system with LLM sentiment
                     emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
+                    
+                    # Record mood to guest profile
+                    if state_current.get("speaker_name"):
+                        guest_profiles.record_mood(
+                            state_current["speaker_name"],
+                            response_emotion if response_emotion else "neutral",
+                            response_energy if response_energy else 0.5
+                        )
                 except asyncio.TimeoutError:
                     logger.error("[ROUTER] Fast model fallback also timed out")
                     response_text = None
@@ -4013,6 +4029,14 @@ async def _do_greeting(ws: WebSocket, event: dict):
     # Update emotion system with LLM sentiment
     emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
     
+    # Record mood to guest profile
+    if state_current.get("speaker_name"):
+        guest_profiles.record_mood(
+            state_current["speaker_name"],
+            response_emotion if response_emotion else "neutral",
+            response_energy if response_energy else 0.5
+        )
+    
     response_text = filter_response(response_text)
 
     if state_current.get("speaker_name") and state_current.get("speaker_id"):
@@ -4271,6 +4295,14 @@ async def handle_event(ws: WebSocket, event: dict):
             
             # Update emotion system with LLM sentiment  
             emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
+            
+            # Record mood to guest profile
+            if state_current.get("speaker_name"):
+                guest_profiles.record_mood(
+                    state_current["speaker_name"],
+                    response_emotion if response_emotion else "neutral",
+                    response_energy if response_energy else 0.5
+                )
             
             response_text = filter_response(response_text)
 
