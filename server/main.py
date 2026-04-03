@@ -1094,6 +1094,55 @@ async def health():
     # Periodic Qdrant recovery check (piggyback on health polls)
     memory.check_semantic_health()
 
+    return {
+        "status": "ok",
+        "uptime_seconds": round(uptime),
+        "llm": llm_status,
+        "tts": tts_status,
+        "stt": stt_status,
+        "memory_mb": round(_get_rss_mb()),
+        "gpu_temp_c": round(_get_gpu_temp()),
+        "guests_served": stats.get("total_visits", 0),
+        "current_phase": phase.name if hasattr(phase, 'name') else str(phase),
+        "degradation_tier": _degradation_tier.name,
+        "active_games": 1 if state_current.get("_active_game") else 0,
+        "tts_cache_size": len(tts._audio_cache),
+        "tts_cache_mb": tts._audio_cache.stats.get("total_mb", 0),
+        "avg_response_time_ms": round(avg_response_ms),
+        "error_count": _error_count,
+        # Legacy fields preserved for backward compatibility
+        "message": "It's-a me, Mario!",
+        "emotion": emotion_system.current,
+        "emotion_intensity": emotion_system.intensity,
+        "total_visits": stats["total_visits"],
+        "unique_visitors": stats["unique_visitors"],
+        "party_duration": stats["party_duration"],
+        "current_hour": stats["current_hour"],
+        "tts_cache_hits": tts._cache_hits,
+        "tts_cache_misses": tts._cache_misses,
+        "tts_cache_hit_rate": f"{cache_hit_rate:.0f}%",
+        "avg_response_time": f"{avg_response:.1f}s",
+        "total_responses": len(resp_times),
+        "precache_done": tts._precache_done.is_set(),
+        "precache_active": tts._precache_active,
+        "conversation_length": len(state_current["conversation_history"]),
+        "user_active": state_current["_user_request_active"],
+        "active_game": state_current["_active_game"],
+        "llm_model": llm.MODEL_NAME,
+        "last_timing": state_current.get("_last_timing", {}),
+        "gossip_entries": party_gossip.get_gossip_count(),
+        "gossip_guests": party_gossip.get_guest_count(),
+        "hardware": hardware.get_hardware(),
+        "performance_tier": hardware.get_tier(),
+        "perf_settings": _PERF,
+        "llm_router_stats": llm_router.stats,
+        "llm_fast_model": llm_router._fast_model,
+        "llm_quality_model": llm_router._quality_model,
+        "semantic_memory": memory._HAS_SEMANTIC,
+        "ws_connected": _active_ws is not None,
+        "idle_errors": _idle_error_count,
+    }
+
 # Wire the health function into the dashboard router after definition
 from dashboard import init_dashboard as _rewire_dashboard
 _rewire_dashboard(health_fn=health, server_start_time=_SERVER_START_TIME, live_config=live_config)
@@ -1339,7 +1388,7 @@ async def leaderboard_endpoint():
     # Game leaderboard from memory module
     game_leaderboard = []
     try:
-        game_leaderboard = memory_module.get_game_leaderboard(limit=10)
+        game_leaderboard = memory.get_game_leaderboard(limit=10)
     except Exception as e:
         logger.warning(f"[REPORT] Game leaderboard retrieval failed: {e}")
 
@@ -1864,7 +1913,7 @@ async def _build_leaderboard_data() -> dict:
 
     game_leaderboard = []
     try:
-        game_leaderboard = memory_module.get_game_leaderboard(limit=10)
+        game_leaderboard = memory.get_game_leaderboard(limit=10)
     except Exception as e:
         logger.warning(f"[LEADERBOARD] Game leaderboard retrieval failed: {e}")
 
@@ -4399,7 +4448,7 @@ async def handle_event(ws: WebSocket, event: dict):
                                 "particle_effect": None,
                                 "pose_hint": "look_curious"
                             }
-                            await _safe_ws_send(ws, who_are_you_msg)
+                            await ws.send_json(who_are_you_msg)
                         else:
                             logger.info("[WEBCAM] New guest detected - learning flow already active")
             except Exception as e:

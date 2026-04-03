@@ -33,7 +33,7 @@ class FaceMemory:
     def __init__(self, db_path: str, match_tolerance: float = 0.6):
         self._db_path = db_path
         self._tolerance = match_tolerance
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._init_db()
         
         # Initialize Qdrant for face embeddings
