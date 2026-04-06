@@ -1,6 +1,6 @@
 {
-  "saved_at": 1775480979.8749015,
-  "saved_at_iso": "2026-04-06T09:09:39.874901",
+  "saved_at": 1775481880.193269,
+  "saved_at_iso": "2026-04-06T09:24:40.193269",
   "party_stats": {
     "total_visits": 2148,
     "unique_visitors": 151,
@@ -10,8 +10,8 @@
     "most_frequent_name": "MilestoneGuest_0",
     "most_frequent_count": 77,
     "last_visitor_name": "MilestoneGuest_0",
-    "party_duration": "669h 27m",
-    "current_hour": "09:09 AM"
+    "party_duration": "669h 43m",
+    "current_hour": "09:24 AM"
   },
   "emotion": "sleepy",
   "emotion_intensity": 0.8,
