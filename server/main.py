@@ -3556,7 +3556,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     streamed = False
     # Detect particle effects from both user input and Mario's response
     # Keyword match first, then fall back to emotion-based particles
-    particle = _detect_particle_effect(text) or _detect_particle_effect(response_text)
+    particle = _detect_keyword_particles(text) or _detect_keyword_particles(response_text)
     if not particle:
         particle = emotion_system.get_emotion_particle()
 

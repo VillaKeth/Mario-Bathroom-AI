@@ -13,8 +13,11 @@
 - [x] Make speaker_id.py handle missing resemblyzer gracefully
 - [x] Make stt.py handle missing faster-whisper gracefully (text chat still works)
 - [x] Rewrite README.md for dead-simple fresh-computer setup
-- [ ] Add psutil and colorama to server requirements for better hardware detection and colored output
-- [ ] Test full fresh install flow on a clean Windows machine
+- [x] Add psutil and colorama to server requirements for better hardware detection and colored output
+- [x] Fix 'from server.X' import errors in main.py and party_report.py (5 broken imports)
+- [x] Test full fresh install flow: created fresh venv, installed all deps, server booted successfully
+- [x] Verified all 27 server module imports pass in fresh venv
+- [x] Verified /chat and /dashboard endpoints respond 200 OK from fresh venv
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
