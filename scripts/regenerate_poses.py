@@ -1,13 +1,21 @@
 """
 Regenerate ALL Mario poses except memorial/honor.
-Uses SubNP free API with improved prompts for better quality.
+Uses Pollinations.ai free API with improved prompts for better quality.
 Runs background removal with rembg after generation.
+
+Usage:
+    python regenerate_poses.py                    # Regenerate ALL poses
+    python regenerate_poses.py --worst-only       # Only regenerate worst-quality poses
+    python regenerate_poses.py --category angry   # Only regenerate a specific category
+    python regenerate_poses.py --dry-run          # Show what would be generated
 """
 import requests
 import json
 import time
 import os
 import sys
+import argparse
+import urllib.parse
 from io import BytesIO
 from PIL import Image
 
@@ -15,13 +23,15 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 RAW_DIR = os.path.join(PROJECT_ROOT, "mario_3d_assets", "ai_poses")
 TRANSPARENT_DIR = os.path.join(PROJECT_ROOT, "mario_3d_assets", "ai_poses_transparent")
 
-API_URL = "https://subnp.com/api/free/generate"
-MODEL = "magic"
+# Pollinations.ai — free, no API key, high quality
+API_URL = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&seed={seed}"
 
 STYLE_SUFFIX = (
-    ", 3D rendered Nintendo figurine style, clean gray studio background, "
-    "full body shot, highly detailed, Nintendo official art quality, soft studio lighting, "
-    "vivid colors, sharp details, professional render"
+    ", 3D rendered Nintendo figurine style, clean white studio background, "
+    "full body shot from head to toe, highly detailed, Nintendo official art quality, "
+    "soft studio lighting, vivid saturated colors, sharp details, professional render, "
+    "consistent proportions, red cap with white M logo, blue overalls, red shirt, "
+    "white gloves, brown shoes, thick dark brown mustache"
 )
 
 SKIP_POSES = {("memorial", "honor")}
@@ -190,43 +200,33 @@ EXPANDED_POSES = {
 }
 
 
-def generate_subnp(prompt, retries=5):
-    """Generate image using SubNP free API with retry logic."""
+def generate_image(prompt, retries=3, seed=42):
+    """Generate image using Pollinations.ai free API with retry logic."""
     full_prompt = prompt + STYLE_SUFFIX
+    encoded_prompt = urllib.parse.quote(full_prompt)
+    
     for attempt in range(retries):
         try:
-            print(f"    Attempt {attempt + 1}/{retries}...")
-            resp = requests.post(
-                API_URL,
-                json={"prompt": full_prompt, "model": MODEL},
-                timeout=180, stream=True,
-                headers={"Connection": "keep-alive"},
-            )
-            if resp.status_code != 200:
-                print(f"    HTTP {resp.status_code}")
-                continue
-
-            img_url = None
-            for line in resp.iter_lines(decode_unicode=True):
-                if not line or not line.startswith("data:"):
-                    continue
+            # Try different seeds on retry for variety
+            current_seed = seed + attempt * 100
+            url = API_URL.format(prompt=encoded_prompt, seed=current_seed)
+            
+            print(f"    Attempt {attempt + 1}/{retries} (seed={current_seed})...")
+            resp = requests.get(url, timeout=180, allow_redirects=True)
+            
+            if resp.status_code == 200 and len(resp.content) > 5000:
+                # Verify it's a valid image
                 try:
-                    data = json.loads(line[5:].strip())
-                except json.JSONDecodeError:
-                    continue
-                if data.get("status") == "error":
-                    break
-                img_url = data.get("image_url") or data.get("url") or data.get("imageUrl")
-                if img_url:
-                    break
-
-            if img_url:
-                img_resp = requests.get(img_url, timeout=60)
-                if img_resp.status_code == 200 and len(img_resp.content) > 1000:
-                    return img_resp.content
+                    img = Image.open(BytesIO(resp.content))
+                    img.verify()
+                    return resp.content
+                except Exception:
+                    print(f"    Invalid image data, retrying...")
+            else:
+                print(f"    HTTP {resp.status_code}, size={len(resp.content)}")
         except Exception as e:
             print(f"    Error: {e}")
-        time.sleep(3)
+        time.sleep(5)
     return None
 
 
@@ -245,45 +245,86 @@ def remove_background(input_path, output_path):
         return False
 
 
+# Poses that are known to be low quality and should be regenerated first
+WORST_POSES = {
+    ("negative", "angry"),       # Buff Hulk Mario, red fists instead of white gloves
+    ("positive", "happy"),       # Grey hat/cape artifact, wrong proportions
+    ("sleep", "sleeping"),       # Terrible artifacts, random emoji orbs, bad transparency
+    ("thinking", "confused"),    # Standing on amiibo pedestal, shouldn't have base
+    ("positive", "love"),        # Heart eyes look off, proportions wrong
+    ("negative", "furious"),     # Over-the-top, looks like different character
+    ("negative", "disgusted"),   # Proportions off
+    ("movement", "sliding"),     # Weird perspective
+    ("action", "dabbing"),       # Usually comes out wrong
+    ("powerup", "mega_mario"),   # Proportions inconsistent
+    ("powerup", "mini_mario"),   # Often looks like different character
+    ("sleep", "yawning"),        # Artifacts and wrong pose
+    ("negative", "scared"),      # Often too cartoonish vs others
+    ("thinking", "dizzy"),       # Spiral eyes often look broken
+    ("neutral", "idle"),         # Cut off at waist, no legs
+}
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Regenerate Mario AI poses")
+    parser.add_argument("--worst-only", action="store_true", help="Only regenerate worst-quality poses")
+    parser.add_argument("--category", type=str, help="Only regenerate a specific category")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would be generated without generating")
+    parser.add_argument("--seed", type=int, default=42, help="Base seed for generation")
+    args = parser.parse_args()
+
     # Merge all poses
     all_poses = {}
     for cat, poses in ORIGINAL_POSES.items():
-        all_poses[cat] = poses
+        all_poses[cat] = list(poses)
     for cat, poses in EXPANDED_POSES.items():
         if cat in all_poses:
             all_poses[cat].extend(poses)
         else:
-            all_poses[cat] = poses
+            all_poses[cat] = list(poses)
 
-    # Count total (minus skipped)
-    total = sum(
-        1 for cat, poses in all_poses.items()
-        for pid, _ in poses
-        if (cat, pid) not in SKIP_POSES
-    )
-    print(f"=== Regenerating {total} poses (skipping {len(SKIP_POSES)}) ===\n")
+    # Filter poses based on flags
+    filtered_poses = {}
+    for cat, poses in all_poses.items():
+        if args.category and cat != args.category:
+            continue
+        for pid, prompt in poses:
+            if (cat, pid) in SKIP_POSES:
+                continue
+            if args.worst_only and (cat, pid) not in WORST_POSES:
+                continue
+            if cat not in filtered_poses:
+                filtered_poses[cat] = []
+            filtered_poses[cat].append((pid, prompt))
+
+    total = sum(len(poses) for poses in filtered_poses.values())
+    mode = "WORST ONLY" if args.worst_only else ("CATEGORY: " + args.category if args.category else "ALL")
+    print(f"=== Regenerating {total} poses ({mode}) ===\n")
+
+    if args.dry_run:
+        for cat, poses in sorted(filtered_poses.items()):
+            for pid, prompt in poses:
+                worst_tag = " ⚠️ WORST" if (cat, pid) in WORST_POSES else ""
+                print(f"  {cat}/{pid}{worst_tag}")
+        print(f"\nTotal: {total} poses")
+        return
 
     done = 0
     failed = []
-    for cat, poses in sorted(all_poses.items()):
+    for cat, poses in sorted(filtered_poses.items()):
         cat_raw = os.path.join(RAW_DIR, cat)
         cat_trans = os.path.join(TRANSPARENT_DIR, cat)
         os.makedirs(cat_raw, exist_ok=True)
         os.makedirs(cat_trans, exist_ok=True)
 
         for pose_id, prompt in poses:
-            if (cat, pose_id) in SKIP_POSES:
-                print(f"  SKIP: {cat}/{pose_id}")
-                continue
-
             done += 1
             raw_path = os.path.join(cat_raw, f"{pose_id}.png")
             trans_path = os.path.join(cat_trans, f"{pose_id}.png")
 
             print(f"[{done}/{total}] {cat}/{pose_id}")
 
-            img_data = generate_subnp(prompt)
+            img_data = generate_image(prompt, seed=args.seed + done)
             if not img_data:
                 print(f"  FAILED: {cat}/{pose_id}")
                 failed.append(f"{cat}/{pose_id}")
