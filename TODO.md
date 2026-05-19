@@ -59,6 +59,9 @@
 - [x] Increase announcement/toast phase delays from 2s to proportional (words/2.5 + 2s, min 5s)
 - [x] E2E test: deltarune event — all 6 phases, 0 errors, 185s music duration correct
 - [x] E2E test: birthday_boy event — all 7 phases (incl silence), 0 errors, 186s music correct
+- [x] Fix double subtitles: remove captions.set_text from regular speech and events (speech bubble + overlay handle display)
+- [x] Fix memorial_active flag stuck forever: add recovery phase flag clear (was only on 'fadeout' phase which doesn't exist)
+- [x] E2E test: lisa_webb_memorial event — all 7 phases, 0 suppressed idle lines, flag cleared 18s after recovery, idle resumed normally
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
