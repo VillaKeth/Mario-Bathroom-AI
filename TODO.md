@@ -48,6 +48,7 @@
 - [x] Update /memorial command to accept optional event name
 - [x] Add rate-limit backoff (HTTP 402) to regenerate_poses.py
 - [ ] Test shot event end-to-end with pygame client connected
+- [x] Test shot event end-to-end: deltarune triggered, all phases ran, 0 errors, reset works
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
