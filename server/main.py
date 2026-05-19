@@ -1561,6 +1561,8 @@ async def trigger_shot_event(event_name: str, request_body: dict = {}):
     result = shot_event_manager.trigger(event_name)
     if result["status"] == "triggered":
         event = shot_event_manager.events[event_name]
+        # Set memorial_active BEFORE creating task to prevent idle race condition
+        state_current["memorial_active"] = True
         asyncio.create_task(_run_shot_event(event))
     
     return result
@@ -2116,6 +2118,7 @@ async def _idle_loop(ws: WebSocket):
             if event:
                 trigger_result = shot_event_manager.trigger(shot_event_name)
                 if trigger_result["status"] == "triggered":
+                    state_current["memorial_active"] = True
                     asyncio.create_task(_run_shot_event(event))
                     logger.info(f"[AUTO_TRIGGER] Shot event auto-triggered: {shot_event_name}")
                     continue
@@ -2167,17 +2170,20 @@ async def _idle_loop(ws: WebSocket):
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"])
                 else:
-                    # No TTS needed — just send text + pose change
-                    msg = {
-                        "type": "mario_response",
-                        "text": analyzed["display_text"],
-                        "has_audio": False,
-                        "emotion": emotion_system.current,
-                        "is_idle": True,
-                    }
-                    if analyzed["pose_hint"]:
-                        msg["pose_hint"] = analyzed["pose_hint"]
-                    await ws.send_json(msg)
+                    # No TTS needed — just send text + pose change (still check memorial)
+                    if state_current.get("memorial_active"):
+                        pass  # suppress during event
+                    else:
+                        msg = {
+                            "type": "mario_response",
+                            "text": analyzed["display_text"],
+                            "has_audio": False,
+                            "emotion": emotion_system.current,
+                            "is_idle": True,
+                        }
+                        if analyzed["pose_hint"]:
+                            msg["pose_hint"] = analyzed["pose_hint"]
+                        await ws.send_json(msg)
             except asyncio.CancelledError:
                 logger.info("Idle loop cancelled")
                 return
