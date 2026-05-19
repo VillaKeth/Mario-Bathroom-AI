@@ -47,8 +47,11 @@
 - [x] Add /event <name> and /events admin commands to pygame client
 - [x] Update /memorial command to accept optional event name
 - [x] Add rate-limit backoff (HTTP 402) to regenerate_poses.py
-- [ ] Test shot event end-to-end with pygame client connected
+- [x] Test shot event end-to-end with pygame client connected
 - [x] Test shot event end-to-end: deltarune triggered, all phases ran, 0 errors, reset works
+- [x] Fix event text overlay: add show_memorial() call so Mario's speech text appears on screen during events
+- [x] Fix countdown pronunciation: simplify "TEN-a!" to "Ten!" for cleaner TTS output
+- [x] Fix countdown parser: use flexible lowercase matching for new format
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
