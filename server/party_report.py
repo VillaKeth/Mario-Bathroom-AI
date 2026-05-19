@@ -129,7 +129,7 @@ class PartyReport:
         return {}
 
     def _phase_timeline(self, duration_hours: float) -> list:
-        from server.night_progression import Phase
+        from night_progression import Phase
         boundaries = [
             (0.0, Phase.WARM_UP),
             (2.0, Phase.PARTY_MODE),

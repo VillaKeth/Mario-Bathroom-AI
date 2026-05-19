@@ -270,10 +270,10 @@ if not _validate_config(config):
     logger.warning("Config validation had warnings — check logs above")
 
 # Shot events and Easter eggs
-from server.shot_events import create_default_events
+from shot_events import create_default_events
 shot_event_manager = create_default_events()
 
-from server.idle_behavior import EasterEggScheduler
+from idle_behavior import EasterEggScheduler
 easter_egg_scheduler = EasterEggScheduler()
 
 # Systems
@@ -455,7 +455,7 @@ _distress_tracker: "audio_distress.DistressTracker | None" = None
 # Face memory for webcam guest identification
 _face_memory = None
 try:
-    from server.face_memory import FaceMemory
+    from face_memory import FaceMemory
     _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
     _face_memory = FaceMemory(_face_db_path)
     
@@ -473,7 +473,7 @@ except Exception as e:
     logger.warning(f"[INIT] Face memory unavailable: {e}")
 
 # Initialize guest profile manager (in-memory, clears on restart)
-from server.guest_profiles import GuestProfileManager
+from guest_profiles import GuestProfileManager
 guest_profiles = GuestProfileManager()
 
 # Pre-register Jacob as VIP in GuestProfileManager
