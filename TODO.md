@@ -31,6 +31,14 @@
 - [x] Fix admin commands: /announce and /emotion now send JSON body (was query params), /reload hits /api/reload (was /config/reload)
 - [x] Fix /health display using correct API field names (uptime_seconds, tts, llm, memory_mb)
 
+## Pose Image Regeneration
+- [x] Audit all 122 Mario poses for quality issues (buff hulk, grey hat, amiibo pedestals, artifacts)
+- [x] Find working image generation API (SubNP is dead → switched to Pollinations.ai)
+- [x] Update regenerate_poses.py with Pollinations.ai backend + --worst-only/--category/--dry-run flags
+- [x] Regenerate 15 worst-quality poses (action/dabbing, movement/sliding, negative/angry, negative/furious, negative/scared, negative/disgusted, neutral/idle, positive/happy, positive/love, powerup/mega_mario, powerup/mini_mario, sleep/sleeping, sleep/yawning, thinking/confused, thinking/dizzy)
+- [x] Visually verify all 15 regenerated poses look correct (clean backgrounds, correct Mario colors)
+- [ ] Optionally regenerate remaining ~107 poses for full consistency refresh
+
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
 - [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)
