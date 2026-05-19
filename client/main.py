@@ -417,10 +417,10 @@ class MarioClient:
         arg = parts[1] if len(parts) > 1 else ""
 
         if cmd == "/announce" and arg:
-            self._send_admin_post(f"/admin/announce?text={arg}")
+            self._send_admin_post("/admin/announce", {"text": arg})
             self.display.set_subtitle(f"📢 Announced: {arg}")
         elif cmd == "/emotion" and arg:
-            self._send_admin_post(f"/admin/set_emotion?emotion={arg}")
+            self._send_admin_post("/admin/set_emotion", {"emotion": arg})
             self.display.set_subtitle(f"🎭 Emotion → {arg}")
         elif cmd == "/memorial":
             self._send_admin_post("/admin/trigger_memorial")
@@ -429,7 +429,7 @@ class MarioClient:
             self._send_admin_post("/admin/force_stop_game")
             self.display.set_subtitle("🛑 Game stopped")
         elif cmd == "/reload":
-            self._send_admin_post("/config/reload")
+            self._send_admin_post("/api/reload")
             self.display.set_subtitle("🔄 Config reloaded")
         elif cmd == "/reset":
             self._send_admin_post("/admin/reset")
@@ -449,13 +449,15 @@ class MarioClient:
         else:
             self.display.set_subtitle(f"❌ Unknown command: {cmd}")
 
-    def _send_admin_post(self, path: str):
+    def _send_admin_post(self, path: str, body: dict = None):
         """Send an admin POST request to the server."""
-        import urllib.request, urllib.parse
+        import urllib.request
         try:
             base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
             url = base_url + path
-            req = urllib.request.Request(url, method="POST", data=b"")
+            data = json.dumps(body or {}).encode()
+            req = urllib.request.Request(url, method="POST", data=data,
+                                        headers={"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=5)
         except Exception as e:
             logger.error(f"Admin command failed: {e}")
@@ -481,11 +483,11 @@ class MarioClient:
             data = json.loads(req.read())
             health_lines = []
             health_lines.append(f"Status: {data.get('status', '?')}")
-            health_lines.append(f"Uptime: {data.get('uptime', '?')}")
-            health_lines.append(f"TTS: {data.get('tts_engine', '?')}")
-            health_lines.append(f"LLM: {data.get('llm_model', '?')}")
+            health_lines.append(f"Uptime: {data.get('uptime_seconds', '?')}s")
+            health_lines.append(f"TTS: {data.get('tts', '?')}")
+            health_lines.append(f"LLM: {data.get('llm', '?')}")
             health_lines.append(f"Cache: {data.get('tts_cache_size', '?')} entries")
-            health_lines.append(f"Memory: {data.get('memory_count', '?')} items")
+            health_lines.append(f"Memory: {data.get('memory_mb', '?')}MB")
             self.display.set_mario_text(" | ".join(health_lines))
             self.display.set_subtitle("📊 Server health")
         except Exception as e:

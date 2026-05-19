@@ -28,6 +28,8 @@
 - [x] Add server health overlay (F4) to pygame client
 - [x] Update keyboard hints in display to show new controls
 - [x] Update README to remove all browser chat references, add pygame controls docs
+- [x] Fix admin commands: /announce and /emotion now send JSON body (was query params), /reload hits /api/reload (was /config/reload)
+- [x] Fix /health display using correct API field names (uptime_seconds, tts, llm, memory_mb)
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
