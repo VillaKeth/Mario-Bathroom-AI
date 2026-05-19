@@ -554,8 +554,7 @@ class MarioClient:
         tone = data.get("tone", "solemn")
         image_file = data.get("image_file")
         music_file = data.get("music_file")
-        if DEBUG_CLIENT:
-            logger.info(f"[DEBUG_CLIENT] Shot event: phase={phase} name={name} tone={tone}")
+        logger.info(f"[SHOT_EVENT] phase={phase} name={name} tone={tone} text='{text[:60]}...' duration={duration}")
 
         # Load event-specific image if provided (before showing overlay)
         if image_file and self.display:
@@ -564,6 +563,7 @@ class MarioClient:
         # Show the overlay on the display with text for every phase
         if self.display:
             self.display.show_memorial(name, phase, text, duration=duration, tone=tone)
+            logger.info(f"[SHOT_EVENT] show_memorial called → _memorial_active={self.display._memorial_active}, _memorial_phase={self.display._memorial_phase}")
 
         # Route text to closed captions so audience can read along
         if text and self.display and self.display.captions:

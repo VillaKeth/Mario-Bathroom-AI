@@ -4,6 +4,9 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 import re
+import logging
+
+logger = logging.getLogger("shot_events")
 
 DEBUG_SHOT_EVENTS = os.environ.get("DEBUG_SHOT_EVENTS", "").lower() in ("1", "true", "yes")
 
@@ -145,6 +148,19 @@ def create_default_events() -> ShotEventManager:
     events_list = config.get("events", [])
     for entry in events_list:
         try:
+            music_file = entry.get("music_file")
+            music_duration = entry.get("music_duration", 0)
+            
+            # Auto-detect MP3 duration from file if not specified or set to 0
+            if music_file and music_duration <= 0:
+                music_duration = _get_audio_duration(music_file)
+            elif music_file:
+                # Even if duration is set, verify against actual file and warn if off
+                actual = _get_audio_duration(music_file)
+                if actual > 0 and abs(actual - music_duration) > 10:
+                    logger.info(f"[SHOT_EVENTS] {entry['name']}: overriding music_duration {music_duration}s → {actual}s (from file)")
+                    music_duration = actual
+            
             event = ShotEvent(
                 name=entry["name"],
                 tone=entry.get("tone", "fun"),
@@ -157,8 +173,8 @@ def create_default_events() -> ShotEventManager:
                 toast_text=entry.get("toast_text", ""),
                 recovery_line=entry.get("recovery_line", ""),
                 countdown=entry.get("countdown", True),
-                music_file=entry.get("music_file"),
-                music_duration=entry.get("music_duration", 0),
+                music_file=music_file,
+                music_duration=int(music_duration),
                 skip_key=entry.get("skip_key"),
                 image_file=entry.get("image_file"),
             )
@@ -170,3 +186,35 @@ def create_default_events() -> ShotEventManager:
     
     print(f"[SHOT_EVENTS] Loaded {len(mgr.events)} events from {config_path}")
     return mgr
+
+
+def _get_audio_duration(file_path: str) -> int:
+    """Get audio file duration in seconds. Returns 0 if file not found or unreadable."""
+    # Resolve relative paths from project root
+    if not os.path.isabs(file_path):
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        file_path = os.path.join(project_root, file_path)
+    
+    if not os.path.isfile(file_path):
+        logger.warning(f"[SHOT_EVENTS] Music file not found: {file_path}")
+        return 0
+    
+    try:
+        from mutagen.mp3 import MP3
+        audio = MP3(file_path)
+        duration = int(audio.info.length) + 1  # Round up
+        logger.info(f"[SHOT_EVENTS] Auto-detected duration: {file_path} = {duration}s")
+        return duration
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.warning(f"[SHOT_EVENTS] mutagen failed for {file_path}: {e}")
+    
+    # Fallback: estimate from file size (128kbps assumption)
+    try:
+        size_bytes = os.path.getsize(file_path)
+        estimated = int(size_bytes / (128 * 1024 / 8)) + 5  # Add 5s buffer
+        logger.info(f"[SHOT_EVENTS] Estimated duration from file size: {file_path} ≈ {estimated}s")
+        return estimated
+    except Exception:
+        return 0

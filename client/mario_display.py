@@ -2303,7 +2303,7 @@ class MarioDisplay:
                         line_surf = font_detail.render(line, True, (220, 220, 220))
                         surface.blit(line_surf, line_surf.get_rect(center=(w // 2, y_start + i * 24)))
 
-            # ── Phase 4: Memorial Music (photo + particles + "In Loving Memory") ──
+            # ── Phase 4: Music (photo + particles + tone-aware title) ──
             elif phase == "music":
                 overlay = pygame.Surface((w, h), pygame.SRCALPHA)
                 overlay.fill((0, 0, 0, 255))
@@ -2316,13 +2316,24 @@ class MarioDisplay:
                 if photo:
                     photo_rect = photo.get_rect(center=(w // 2, h // 2 - 20))
                     glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
-                    glow_surf.fill((255, 200, 50, 40))
+                    glow_color = (255, 200, 50, 40) if tone == "solemn" else (100, 150, 255, 40) if tone == "fun" else (200, 100, 255, 40)
+                    glow_surf.fill(glow_color)
                     glow_rect = glow_surf.get_rect(center=(w // 2, h // 2 - 20))
                     surface.blit(glow_surf, glow_rect)
                     surface.blit(photo, photo_rect)
 
                 font_mem = pygame.font.SysFont("arial", 28, bold=True)
-                mem_surf = font_mem.render("In Loving Memory", True, (255, 255, 255))
+                # Tone-aware title
+                if tone == "solemn":
+                    title_text = "In Loving Memory"
+                    title_color = (255, 255, 255)
+                elif tone == "celebratory":
+                    title_text = "Cheers!"
+                    title_color = (255, 215, 0)
+                else:  # fun
+                    title_text = "Take a Shot!"
+                    title_color = (100, 200, 255)
+                mem_surf = font_mem.render(title_text, True, title_color)
                 surface.blit(mem_surf, mem_surf.get_rect(center=(w // 2, h // 2 - 190)))
 
                 # Parse name from display_name (strip dates)

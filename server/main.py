@@ -936,13 +936,20 @@ async def _run_shot_event(event):
                 except Exception as e:
                     logger.error(f"[SHOT_EVENT] Send error for {phase_name}: {e}")
                 
-                # Add phase-specific delays
+                # Add phase-specific delays (long enough for text to be read)
                 if phase_name == "silence":
                     await asyncio.sleep(5.0)  # 5 second silence
                 elif phase_name == "recovery":
                     await asyncio.sleep(15.0)  # 15 second cooldown
+                elif phase_name == "announcement":
+                    # Wait long enough for announcement TTS to finish + reading time
+                    audio_est = len(phase_text.split()) / 2.5  # ~2.5 words/sec
+                    await asyncio.sleep(max(5.0, audio_est + 2.0))
+                elif phase_name == "toast":
+                    audio_est = len(phase_text.split()) / 2.5
+                    await asyncio.sleep(max(5.0, audio_est + 2.0))
                 else:
-                    await asyncio.sleep(2.0)  # Default 2 second pause
+                    await asyncio.sleep(3.0)  # Default 3 second pause
         
         logger.info(f"[SHOT_EVENT] {event.name} complete")
         
@@ -1954,7 +1961,7 @@ async def _idle_loop(ws: WebSocket):
             try:
                 analyzed = analyze_text(announcement)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
+                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                     sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
             except Exception as e:
                 logger.error(f"Announcement failed: {e}")
@@ -1966,7 +1973,7 @@ async def _idle_loop(ws: WebSocket):
             try:
                 analyzed = analyze_text(scheduled_msg)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
+                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                     sound="coin", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
             except Exception as e:
                 logger.error(f"Scheduled event failed: {e}")
@@ -1981,7 +1988,7 @@ async def _idle_loop(ws: WebSocket):
                 analyzed = analyze_text(memorial_msg)
                 pose = "emotional/respectful" if "silence" in memorial_msg.lower() else "positive/excited_jump"
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
+                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                     sound=memorial_sfx, pose_hint=pose)
                 # Extra pause after the moment of silence before the shot dedication
                 if "silence" in memorial_msg.lower():
@@ -1998,7 +2005,7 @@ async def _idle_loop(ws: WebSocket):
             try:
                 analyzed = analyze_text(timeout_msg)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await send_response(ws, analyzed["display_text"], audio,
+                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                     sound="game_over", pose_hint="positive/happy")
             except Exception as e:
                 logger.error(f"Game timeout announcement failed: {e}")
@@ -2028,7 +2035,7 @@ async def _idle_loop(ws: WebSocket):
                 try:
                     analyzed = analyze_text(followup)
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                    await send_response(ws, analyzed["display_text"], audio,
+                    await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         sound="coin", pose_hint="concerned/worried")
                     async with _state_lock:
                         state_current["_sick_checkin_time"] = time.time()
