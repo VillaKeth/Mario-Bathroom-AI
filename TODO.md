@@ -52,6 +52,10 @@
 - [x] Fix event text overlay: add show_memorial() call so Mario's speech text appears on screen during events
 - [x] Fix countdown pronunciation: simplify "TEN-a!" to "Ten!" for cleaner TTS output
 - [x] Fix countdown parser: use flexible lowercase matching for new format
+- [x] Fix idle lines during events: all send_response calls in idle loop now use _idle_send_if_safe
+- [x] Auto-detect MP3 duration from file using mutagen (deltarune 90→185s, birthday 30→186s)
+- [x] Make music phase tone-aware: fun="Take a Shot!", celebratory="Cheers!", solemn="In Loving Memory"
+- [x] Increase announcement/toast phase delays from 2s to proportional (words/2.5 + 2s, min 5s)
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
