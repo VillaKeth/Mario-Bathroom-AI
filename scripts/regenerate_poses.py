@@ -1,5 +1,5 @@
 """
-Regenerate ALL Mario poses except memorial/honor.
+Regenerate ALL Mario poses.
 Uses Pollinations.ai free API with improved prompts for better quality.
 Runs background removal with rembg after generation.
 
@@ -34,7 +34,7 @@ STYLE_SUFFIX = (
     "white gloves, brown shoes, thick dark brown mustache"
 )
 
-SKIP_POSES = {("memorial", "honor")}
+SKIP_POSES = set()  # No poses skipped
 
 # ── Original 74 poses ──
 ORIGINAL_POSES = {
@@ -153,6 +153,7 @@ EXPANDED_POSES = {
         ("moment_of_silence", "Super Mario with head bowed respectfully, eyes closed, hands folded in front, solemn moment of silence pose"),
         ("tribute", "Super Mario placing a hand over his heart in tribute, eyes closed, deeply respectful, somber dignified pose"),
         ("remembering", "Super Mario looking up at the sky with a gentle bittersweet smile, remembering someone special, hand on heart"),
+        ("honor", "Super Mario standing at solemn attention, one hand raised in a respectful salute, eyes closed, honoring a fallen hero"),
     ],
     "toast": [
         ("raising_glass", "Super Mario raising a glass high in the air for a toast, big proud warm smile, arm fully extended up"),
@@ -207,7 +208,6 @@ def generate_image(prompt, retries=3, seed=42):
     
     for attempt in range(retries):
         try:
-            # Try different seeds on retry for variety
             current_seed = seed + attempt * 100
             url = API_URL.format(prompt=encoded_prompt, seed=current_seed)
             
@@ -215,13 +215,18 @@ def generate_image(prompt, retries=3, seed=42):
             resp = requests.get(url, timeout=180, allow_redirects=True)
             
             if resp.status_code == 200 and len(resp.content) > 5000:
-                # Verify it's a valid image
                 try:
                     img = Image.open(BytesIO(resp.content))
                     img.verify()
                     return resp.content
                 except Exception:
                     print(f"    Invalid image data, retrying...")
+            elif resp.status_code == 402:
+                # Rate limited — wait longer with exponential backoff
+                wait = 30 * (attempt + 1)
+                print(f"    Rate limited (402), waiting {wait}s...")
+                time.sleep(wait)
+                continue
             else:
                 print(f"    HTTP {resp.status_code}, size={len(resp.content)}")
         except Exception as e:
@@ -271,6 +276,7 @@ def main():
     parser.add_argument("--category", type=str, help="Only regenerate a specific category")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be generated without generating")
     parser.add_argument("--seed", type=int, default=42, help="Base seed for generation")
+    parser.add_argument("--retries", type=int, default=5, help="Max retries per pose (default=5)")
     args = parser.parse_args()
 
     # Merge all poses
@@ -304,7 +310,7 @@ def main():
     if args.dry_run:
         for cat, poses in sorted(filtered_poses.items()):
             for pid, prompt in poses:
-                worst_tag = " ⚠️ WORST" if (cat, pid) in WORST_POSES else ""
+                worst_tag = " [WORST]" if (cat, pid) in WORST_POSES else ""
                 print(f"  {cat}/{pid}{worst_tag}")
         print(f"\nTotal: {total} poses")
         return
@@ -324,7 +330,7 @@ def main():
 
             print(f"[{done}/{total}] {cat}/{pose_id}")
 
-            img_data = generate_image(prompt, seed=args.seed + done)
+            img_data = generate_image(prompt, retries=args.retries, seed=args.seed + done)
             if not img_data:
                 print(f"  FAILED: {cat}/{pose_id}")
                 failed.append(f"{cat}/{pose_id}")
@@ -343,7 +349,7 @@ def main():
                 with open(trans_path, "wb") as f:
                     f.write(img_data)
 
-            time.sleep(5)  # Rate limit
+            time.sleep(15)  # Rate limit — Pollinations.ai throttles at ~4 req/min
 
     print(f"\n=== DONE: {done - len(failed)}/{total} succeeded, {len(failed)} failed ===")
     if failed:

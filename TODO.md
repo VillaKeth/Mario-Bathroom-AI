@@ -37,7 +37,17 @@
 - [x] Update regenerate_poses.py with Pollinations.ai backend + --worst-only/--category/--dry-run flags
 - [x] Regenerate 15 worst-quality poses (action/dabbing, movement/sliding, negative/angry, negative/furious, negative/scared, negative/disgusted, neutral/idle, positive/happy, positive/love, powerup/mega_mario, powerup/mini_mario, sleep/sleeping, sleep/yawning, thinking/confused, thinking/dizzy)
 - [x] Visually verify all 15 regenerated poses look correct (clean backgrounds, correct Mario colors)
-- [ ] Optionally regenerate remaining ~107 poses for full consistency refresh
+- [ ] Full regeneration of all 122 poses running (with rate-limit backoff)
+- [x] Add memorial/honor pose to regeneration (was skipped, now included)
+
+## Shot Event System (Config-Driven)
+- [x] Move hardcoded shot events from Python to JSON config (server/data/shot_events.json)
+- [x] Update shot_events.py to load events from JSON at startup
+- [x] Create docs/EVENTS.md with template, field reference, and examples
+- [x] Add /event <name> and /events admin commands to pygame client
+- [x] Update /memorial command to accept optional event name
+- [x] Add rate-limit backoff (HTTP 402) to regenerate_poses.py
+- [ ] Test shot event end-to-end with pygame client connected
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)

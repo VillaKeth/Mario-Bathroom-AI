@@ -1,0 +1,53 @@
+{
+  "_README": "Shot Events Configuration — Add new party events by copying an existing entry below. See docs/EVENTS.md for details.",
+  "events": [
+    {
+      "name": "lisa_webb_memorial",
+      "display_name": "Lisa Webb",
+      "tone": "solemn",
+      "trigger_type": "auto",
+      "voice_keywords": ["lisa", "aunt lisa", "lisa webb", "toast to lisa"],
+      "phases": ["announcement", "silence", "countdown", "toast", "music", "recovery"],
+      "announcement_text": "Everyone, please. Mario has something important to say. Tonight we remember someone very special, Lisa Webb. She was family to Jacob, and she's watching over this party from above.",
+      "silence_text": "Let's have a moment of silence for Lisa Webb.",
+      "toast_text": "Now raise your glasses, everyone. To Lisa Webb, a beautiful soul who touched all of our lives. To Lisa!",
+      "recovery_line": "Lisa would've loved this party. Now let's keep celebrating in her honor!",
+      "countdown": true,
+      "music_file": "client/assets/music/lisa_webb_memorial.mp3",
+      "music_duration": 120,
+      "skip_key": "ctrl+shift+l",
+      "image_file": "client/assets/images/lisa_webb.jpg"
+    },
+    {
+      "name": "birthday_boy",
+      "display_name": "Jacob Hoppenstedt\n2003 - 2026",
+      "tone": "solemn",
+      "trigger_type": "voice",
+      "voice_keywords": ["birthday shot", "shot for jacob", "birthday boy shot", "rip jacob"],
+      "phases": ["announcement", "silence", "countdown", "toast", "music", "recovery"],
+      "announcement_text": "Everyone, please. Mario needs your attention. We gather tonight to honor the memory of a truly legendary gamer, Jacob Hoppenstedt. Gone too soon, but never forgotten.",
+      "silence_text": "Let us bow our heads for a moment of silence for our fallen friend Jacob.",
+      "toast_text": "Now raise your glasses one final time. To Jacob Hoppenstedt, the greatest party host who ever lived. Rest in power, my friend. To Jacob!",
+      "recovery_line": "Just kidding! Jacob's right here! HAPPY BIRTHDAY! WAHOO! You really thought I was serious? Let's-a GO!",
+      "countdown": true,
+      "music_file": "client/assets/audio/jacob_birthday.mp3",
+      "music_duration": 30,
+      "image_file": "client/assets/images/jacob.jpg"
+    },
+    {
+      "name": "deltarune",
+      "display_name": "Deltarune",
+      "tone": "fun",
+      "trigger_type": "voice",
+      "voice_keywords": ["deltarune shot", "shot for deltarune", "deltarune toast"],
+      "phases": ["announcement", "countdown", "toast", "music", "recovery"],
+      "announcement_text": "Attention everyone! Mario has a very special toast! This one goes out to the heroes of the Dark World, Deltarune!",
+      "toast_text": "Calling all heroes! Kris, that's you Roman! Ralsei, that's you Elijah! Susie, that's you Villa! And the one and only Lancer, that's the birthday boy Jacob! Raise your glasses, to Deltarune!",
+      "recovery_line": "WAHOO! What a fun game! Now back to the party!",
+      "countdown": true,
+      "music_file": "client/assets/audio/deltarune_hopes_dreams.mp3",
+      "music_duration": 90,
+      "image_file": "client/assets/images/deltarune.png"
+    }
+  ]
+}

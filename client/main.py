@@ -423,8 +423,14 @@ class MarioClient:
             self._send_admin_post("/admin/set_emotion", {"emotion": arg})
             self.display.set_subtitle(f"🎭 Emotion → {arg}")
         elif cmd == "/memorial":
-            self._send_admin_post("/admin/trigger_memorial")
-            self.display.set_subtitle("🕯️ Memorial triggered")
+            event_name = arg if arg else "lisa_webb_memorial"
+            self._send_admin_post(f"/admin/trigger_event/{event_name}")
+            self.display.set_subtitle(f"🕯️ Event triggered: {event_name}")
+        elif cmd == "/event" and arg:
+            self._send_admin_post(f"/admin/trigger_event/{arg}")
+            self.display.set_subtitle(f"🎉 Event triggered: {arg}")
+        elif cmd == "/events":
+            self._fetch_and_display_events()
         elif cmd == "/stopgame":
             self._send_admin_post("/admin/force_stop_game")
             self.display.set_subtitle("🛑 Game stopped")
@@ -441,7 +447,7 @@ class MarioClient:
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
         elif cmd == "/help":
-            help_text = "Commands: /announce <text>, /emotion <name>, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /help"
+            help_text = "Commands: /announce <text>, /emotion <name>, /event <name>, /events, /memorial [name], /stopgame, /reload, /reset, /pause, /sovits, /health, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
@@ -492,6 +498,20 @@ class MarioClient:
             self.display.set_subtitle("📊 Server health")
         except Exception as e:
             self.display.set_subtitle(f"❌ Health check failed: {e}")
+
+    def _fetch_and_display_events(self):
+        """Fetch registered shot events and display them."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            req = urllib.request.urlopen(base_url + "/admin/events", timeout=5)
+            data = json.loads(req.read())
+            events = data.get("events", [])
+            lines = [f"{e['name']} ({e['tone']}) {'[FIRED]' if e['fired'] else '[READY]'}" for e in events]
+            self.display.set_mario_text(" | ".join(lines) if lines else "No events configured")
+            self.display.set_subtitle(f"🎉 {len(events)} events loaded")
+        except Exception as e:
+            self.display.set_subtitle(f"❌ Events fetch failed: {e}")
 
     def _on_volume_change(self, delta: float):
         """Called when user adjusts volume with +/- keys."""

@@ -121,58 +121,52 @@ class ShotEventManager:
         return None
 
 def create_default_events() -> ShotEventManager:
-    """Create the three party shot events."""
+    """Load shot events from server/data/shot_events.json.
+    
+    To add a new event, just copy-paste an entry in shot_events.json.
+    See docs/EVENTS.md for a full guide.
+    """
+    import json
+    
     mgr = ShotEventManager()
+    config_path = os.path.join(os.path.dirname(__file__), "data", "shot_events.json")
     
-    mgr.register(ShotEvent(
-        name="lisa_webb_memorial",
-        tone="solemn",
-        display_name="Lisa Webb",
-        trigger_type="auto",
-        voice_keywords=["lisa", "aunt lisa", "lisa webb", "toast to lisa"],
-        phases=["announcement", "silence", "countdown", "toast", "music", "recovery"],
-        announcement_text="Everyone, please. Mario has something important to say. Tonight we remember someone very special, Lisa Webb. She was family to Jacob, and she's watching over this party from above.",
-        silence_text="Let's have a moment of silence for Lisa Webb.",
-        toast_text="Now raise your glasses, everyone. To Lisa Webb, a beautiful soul who touched all of our lives. To Lisa!",
-        recovery_line="Lisa would've loved this party. Now let's keep celebrating in her honor!",
-        countdown=True,
-        music_file="client/assets/music/lisa_webb_memorial.mp3",
-        music_duration=120,
-        skip_key="ctrl+shift+l",
-        image_file="client/assets/images/lisa_webb.jpg",
-    ))
+    if not os.path.isfile(config_path):
+        print(f"[SHOT_EVENTS] WARNING: {config_path} not found — no events loaded")
+        return mgr
     
-    mgr.register(ShotEvent(
-        name="birthday_boy",
-        tone="solemn",
-        display_name="Jacob Hoppenstedt\n2003 - 2026",
-        trigger_type="voice",
-        voice_keywords=["birthday shot", "shot for jacob", "birthday boy shot", "rip jacob"],
-        phases=["announcement", "silence", "countdown", "toast", "music", "recovery"],
-        announcement_text="Everyone, please. Mario needs your attention. We gather tonight to honor the memory of a truly legendary gamer, Jacob Hoppenstedt. Gone too soon, but never forgotten.",
-        silence_text="Let us bow our heads for a moment of silence for our fallen friend Jacob.",
-        toast_text="Now raise your glasses one final time. To Jacob Hoppenstedt, the greatest party host who ever lived. Rest in power, my friend. To Jacob!",
-        recovery_line="Just kidding! Jacob's right here! HAPPY BIRTHDAY! WAHOO! You really thought I was serious? Let's-a GO!",
-        countdown=True,
-        music_file="client/assets/audio/jacob_birthday.mp3",
-        music_duration=30,
-        image_file="client/assets/images/jacob.jpg",
-    ))
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"[SHOT_EVENTS] ERROR loading {config_path}: {e}")
+        return mgr
     
-    mgr.register(ShotEvent(
-        name="deltarune",
-        tone="fun",
-        display_name="Deltarune",
-        trigger_type="voice",
-        voice_keywords=["deltarune shot", "shot for deltarune", "deltarune toast"],
-        phases=["announcement", "countdown", "toast", "music", "recovery"],
-        announcement_text="Attention everyone! Mario has a very special toast! This one goes out to the heroes of the Dark World, Deltarune!",
-        toast_text="Calling all heroes! Kris, that's you Roman! Ralsei, that's you Elijah! Susie, that's you Villa! And the one and only Lancer, that's the birthday boy Jacob! Raise your glasses, to Deltarune!",
-        recovery_line="WAHOO! What a fun game! Now back to the party!",
-        countdown=True,
-        music_file="client/assets/audio/deltarune_hopes_dreams.mp3",
-        music_duration=90,
-        image_file="client/assets/images/deltarune.png",
-    ))
+    events_list = config.get("events", [])
+    for entry in events_list:
+        try:
+            event = ShotEvent(
+                name=entry["name"],
+                tone=entry.get("tone", "fun"),
+                trigger_type=entry.get("trigger_type", "voice"),
+                display_name=entry.get("display_name", entry["name"]),
+                voice_keywords=entry.get("voice_keywords", []),
+                phases=entry.get("phases", ["announcement", "countdown", "toast", "recovery"]),
+                announcement_text=entry.get("announcement_text", ""),
+                silence_text=entry.get("silence_text", ""),
+                toast_text=entry.get("toast_text", ""),
+                recovery_line=entry.get("recovery_line", ""),
+                countdown=entry.get("countdown", True),
+                music_file=entry.get("music_file"),
+                music_duration=entry.get("music_duration", 0),
+                skip_key=entry.get("skip_key"),
+                image_file=entry.get("image_file"),
+            )
+            mgr.register(event)
+        except KeyError as e:
+            print(f"[SHOT_EVENTS] Skipping event with missing field: {e}")
+        except Exception as e:
+            print(f"[SHOT_EVENTS] Error loading event: {e}")
     
+    print(f"[SHOT_EVENTS] Loaded {len(mgr.events)} events from {config_path}")
     return mgr
