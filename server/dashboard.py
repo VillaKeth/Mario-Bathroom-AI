@@ -7,7 +7,7 @@ import os
 import time
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 
 logger = logging.getLogger("dashboard")
 
@@ -34,24 +34,6 @@ def init_dashboard(health_fn, server_start_time: float, live_config=None, report
     if DEBUG_DASHBOARD:
         logger.debug("[DEBUG_DASHBOARD] init_dashboard: wired health_fn, start_time=%.0f, live_config=%s, report_deps=%s",
                      server_start_time, "yes" if _live_config else "no", "yes" if _report_deps else "no")
-
-
-@router.get("/dashboard")
-async def dashboard_page():
-    """Serve the phone-friendly dashboard HTML."""
-    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "dashboard.html")
-    if os.path.exists(html_path):
-        return FileResponse(html_path, media_type="text/html")
-    return HTMLResponse("<h1>dashboard.html not found</h1>", status_code=404)
-
-
-@router.get("/party-host")
-async def party_host_page():
-    """Serve the mobile party host quick-actions page."""
-    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "party_host.html")
-    if os.path.exists(html_path):
-        return FileResponse(html_path, media_type="text/html")
-    return HTMLResponse("<h1>party_host.html not found</h1>", status_code=404)
 
 
 @router.get("/api/health")
@@ -115,15 +97,6 @@ async def api_canary():
     except Exception as e:
         logger.error("Canary tests failed: %s", e)
         return {"status": "error", "message": str(e)}
-
-
-@router.get("/report")
-async def report_page():
-    """Serve the party report HTML page."""
-    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "report.html")
-    if os.path.exists(html_path):
-        return FileResponse(html_path, media_type="text/html")
-    return HTMLResponse("<h1>report.html not found</h1>", status_code=404)
 
 
 @router.get("/api/report")

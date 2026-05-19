@@ -381,20 +381,115 @@ class MarioClient:
             logger.debug(f"Person detection event send failed: {e}")
 
     def _health_ping_loop(self):
-        """Send periodic health pings to the server."""
+        """Send periodic health pings and update display health data."""
         while self._running:
-            time.sleep(60)
+            time.sleep(30)
             if self.ws.connected:
                 self.ws.send_health_ping()
+                try:
+                    import urllib.request
+                    health_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "/api/health")
+                    req = urllib.request.urlopen(health_url, timeout=5)
+                    data = json.loads(req.read())
+                    self.display.update_health(data)
+                except Exception:
+                    pass
 
     def _on_keyboard_submit(self, text: str):
         """Called when user submits text via keyboard input."""
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Keyboard input: {text}")
+
+        # Admin slash commands
+        if text.startswith("/"):
+            self._handle_admin_command(text)
+            return
+
         self.display.set_subtitle(text)
         self.display.set_thinking(True)
         if self.ws.connected:
             self.ws.send_event({"type": "text_input", "text": text})
+
+    def _handle_admin_command(self, text: str):
+        """Handle admin slash commands."""
+        parts = text.strip().split(maxsplit=1)
+        cmd = parts[0].lower()
+        arg = parts[1] if len(parts) > 1 else ""
+
+        if cmd == "/announce" and arg:
+            self._send_admin_post(f"/admin/announce?text={arg}")
+            self.display.set_subtitle(f"📢 Announced: {arg}")
+        elif cmd == "/emotion" and arg:
+            self._send_admin_post(f"/admin/set_emotion?emotion={arg}")
+            self.display.set_subtitle(f"🎭 Emotion → {arg}")
+        elif cmd == "/memorial":
+            self._send_admin_post("/admin/trigger_memorial")
+            self.display.set_subtitle("🕯️ Memorial triggered")
+        elif cmd == "/stopgame":
+            self._send_admin_post("/admin/force_stop_game")
+            self.display.set_subtitle("🛑 Game stopped")
+        elif cmd == "/reload":
+            self._send_admin_post("/config/reload")
+            self.display.set_subtitle("🔄 Config reloaded")
+        elif cmd == "/reset":
+            self._send_admin_post("/admin/reset")
+            self.display.set_subtitle("🔄 Server reset")
+        elif cmd == "/pause":
+            self._send_admin_get("/pause_idle")
+            self.display.set_subtitle("⏸️ Idle paused")
+        elif cmd == "/sovits":
+            self._send_admin_get("/restart_sovits")
+            self.display.set_subtitle("🔄 SoVITS restarting...")
+        elif cmd == "/help":
+            help_text = "Commands: /announce <text>, /emotion <name>, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /help"
+            self.display.set_mario_text(help_text)
+            self.display.set_subtitle("ℹ️ Admin commands")
+        elif cmd == "/health":
+            self._fetch_and_display_health()
+        else:
+            self.display.set_subtitle(f"❌ Unknown command: {cmd}")
+
+    def _send_admin_post(self, path: str):
+        """Send an admin POST request to the server."""
+        import urllib.request, urllib.parse
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            url = base_url + path
+            req = urllib.request.Request(url, method="POST", data=b"")
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            logger.error(f"Admin command failed: {e}")
+            self.display.set_subtitle(f"❌ Failed: {e}")
+
+    def _send_admin_get(self, path: str):
+        """Send an admin GET request to the server."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            url = base_url + path
+            urllib.request.urlopen(url, timeout=5)
+        except Exception as e:
+            logger.error(f"Admin command failed: {e}")
+            self.display.set_subtitle(f"❌ Failed: {e}")
+
+    def _fetch_and_display_health(self):
+        """Fetch server health and display as Mario text."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            req = urllib.request.urlopen(base_url + "/api/health", timeout=5)
+            data = json.loads(req.read())
+            health_lines = []
+            health_lines.append(f"Status: {data.get('status', '?')}")
+            health_lines.append(f"Uptime: {data.get('uptime', '?')}")
+            health_lines.append(f"TTS: {data.get('tts_engine', '?')}")
+            health_lines.append(f"LLM: {data.get('llm_model', '?')}")
+            health_lines.append(f"Cache: {data.get('tts_cache_size', '?')} entries")
+            health_lines.append(f"Memory: {data.get('memory_count', '?')} items")
+            self.display.set_mario_text(" | ".join(health_lines))
+            self.display.set_subtitle("📊 Server health")
+        except Exception as e:
+            self.display.set_subtitle(f"❌ Health check failed: {e}")
 
     def _on_volume_change(self, delta: float):
         """Called when user adjusts volume with +/- keys."""

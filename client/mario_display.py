@@ -283,6 +283,10 @@ class MarioDisplay:
         self._leaderboard_ticker_frame = 0
         self._leaderboard_ticker_interval = 150  # ~5 seconds at 30fps
 
+        # Health overlay (F4 toggle)
+        self._health_visible = False
+        self._health_data = {}
+
         # Memorial overlay
         self._memorial_active = False
         self._memorial_phase = "silence"
@@ -478,6 +482,8 @@ class MarioDisplay:
                         self._keyboard_text = ""
                     elif event.key == pygame.K_F3:
                         self._show_chat_history = not self._show_chat_history
+                    elif event.key == pygame.K_F4:
+                        self._health_visible = not self._health_visible
                     elif event.key == pygame.K_F5:
                         self.party_mode = not self.party_mode
                     elif event.key == pygame.K_F6:
@@ -511,6 +517,22 @@ class MarioDisplay:
                     elif not self.keyboard_mode and event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
                         if self.on_volume_change:
                             self.on_volume_change(-0.1)
+                    elif not self.keyboard_mode and event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8):
+                        game_prompts = {
+                            pygame.K_1: "Let's play Trivia!",
+                            pygame.K_2: "Let's play Rock Paper Scissors!",
+                            pygame.K_3: "Truth or Dare!",
+                            pygame.K_4: "Let's play Simon Says!",
+                            pygame.K_5: "Let's play 20 Questions!",
+                            pygame.K_6: "Tell me a joke!",
+                            pygame.K_7: "Sing me a song!",
+                            pygame.K_8: "Let's dance!",
+                        }
+                        prompt = game_prompts[event.key]
+                        if self.on_keyboard_submit:
+                            self.add_chat_message("user", prompt)
+                            self.on_keyboard_submit(prompt)
+                            self.set_subtitle(f"🎮 {prompt}")
                     elif self.keyboard_mode:
                         self._handle_keyboard_input(event)
 
@@ -566,6 +588,10 @@ class MarioDisplay:
         """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
         self.subtitle_text = text
         self._subtitle_set_frame = self._frame
+
+    def update_health(self, data: dict):
+        """Update cached health data for the overlay."""
+        self._health_data = data
 
     def set_connection_status(self, connected: bool, attempt: int = 0, max_attempts: int = 20):
         """Update connection status display."""
@@ -1330,7 +1356,7 @@ class MarioDisplay:
         self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
 
         # Hint for keyboard/party toggle
-        hint = "TAB:type | F3:chat | F5:party | F6:scores | F11:full"
+        hint = "TAB:type | 1-8:games | F3:chat | F4:health | F5:party | F6:scores | F11:full"
         hint_surf = self._font_small.render(hint, True, (100, 100, 120))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
 
@@ -1339,6 +1365,9 @@ class MarioDisplay:
 
         # Leaderboard overlay (F6 toggle)
         self._draw_leaderboard()
+
+        # Health overlay (F4 toggle)
+        self._draw_health_overlay()
 
         # Screen edge glow for emotion changes
         self._draw_edge_glow()
@@ -2351,6 +2380,33 @@ class MarioDisplay:
 
         except Exception as e:
             logger.debug(f"Memorial draw error: {e}")
+
+    def _draw_health_overlay(self):
+        """Draw server health info panel (F4 toggle)."""
+        if not self._health_visible or not self._health_data:
+            return
+        d = self._health_data
+        lines = [
+            f"STATUS: {d.get('status', '?')}",
+            f"UPTIME: {d.get('uptime', '?')}",
+            f"LLM: {d.get('llm_model', '?')}",
+            f"TTS: {d.get('tts_engine', '?')}",
+            f"CACHE: {d.get('tts_cache_size', '?')}",
+            f"TIER: {d.get('performance_tier', '?')}",
+        ]
+        panel_w, line_h = 240, 22
+        panel_h = len(lines) * line_h + 20
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((0, 0, 0, 180))
+        title_font = self._font_small or pygame.font.SysFont("arial", 14)
+        title_surf = title_font.render("SERVER HEALTH [F4]", True, (100, 200, 100))
+        panel.blit(title_surf, (10, 5))
+        for i, line in enumerate(lines):
+            surf = title_font.render(line, True, (200, 200, 200))
+            panel.blit(surf, (10, 25 + i * line_h))
+        x = WINDOW_WIDTH - panel_w - 10
+        y = getattr(self, '_banner_bottom', 48) + 10
+        self._screen.blit(panel, (x, y))
 
     def _draw_leaderboard(self):
         """Draw the party leaderboard overlay on the right side of the screen."""

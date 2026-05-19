@@ -17,7 +17,16 @@
 - [x] Fix 'from server.X' import errors in main.py and party_report.py (5 broken imports)
 - [x] Test full fresh install flow: created fresh venv, installed all deps, server booted successfully
 - [x] Verified all 27 server module imports pass in fresh venv
-- [x] Verified /chat and /dashboard endpoints respond 200 OK from fresh venv
+- [x] Fix _detect_particle_effect NameError (was _detect_keyword_particles)
+
+## Web Chat Removal & Pygame Migration
+- [x] Delete web/ directory (mario_chat.html, dashboard.html, party_host.html, report.html, leaderboard.html, sfx_preview.html, tts_cache_preview.html, tts_test.html)
+- [x] Remove HTML-serving routes from server (main.py /chat, /tts_test, /tts_cache_preview, /leaderboard_page; dashboard.py /dashboard, /party-host, /report)
+- [x] Add game quick-trigger keys 1-8 to pygame client (Trivia, RPS, T or D, Simon, 20Q, Joke, Song, Dance)
+- [x] Add admin slash commands to pygame client (/announce, /emotion, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /help)
+- [x] Add server health overlay (F4) to pygame client
+- [x] Update keyboard hints in display to show new controls
+- [x] Update README to remove all browser chat references, add pygame controls docs
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
@@ -118,6 +127,9 @@
 - [x] F11 fullscreen fix (SCALED + RESIZABLE + error handling)
 - [x] Jacob VIP context injection into LLM prompts
 - [ ] Integration test: trigger full memorial flow end-to-end
+- [] Add pygame quick-trigger key coverage
+- [] Verify admin slash command routing in client
+- [] Check F4 health overlay rendering in pygame client
 - [ ] Create release v3.13
 
 ## v3.12 TTS Cache + UI Fixes

@@ -66,10 +66,19 @@ You'll see:
 
 ### Talk to Mario
 
-Open a browser and go to:
+Start the pygame client in a second terminal:
+
+**Windows:**
 ```
-http://localhost:8765/chat
+start_client.bat
 ```
+
+**Mac / Linux:**
+```bash
+./start_client.sh
+```
+
+Mario will greet anyone who walks in front of the webcam. You can also press **TAB** to type, or use **number keys 1-8** to start games.
 
 **That's it. You're done. 🎉**
 
@@ -111,13 +120,9 @@ start_client.bat
 
 It will ask for the server's IP address. On the server PC, run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) and look for `192.168.x.x`.
 
-### Or Skip the Client — Browser Mode!
+### Or Skip the Client — Same-Machine Mode
 
-On **any device** on the same WiFi, open:
-```
-http://SERVER_IP:8765/chat
-```
-Works on phones too! 📱
+If you're running server and client on the **same machine**, just run both `start_server.bat` and `start_client.bat` — the client auto-connects to `localhost:8765`.
 
 ---
 
@@ -145,12 +150,10 @@ Everything else defaults to `"auto"` — hardware detection handles it.
 
 | URL | What It Does |
 |-----|-------------|
-| `http://SERVER:8765/chat` | 💬 Browser chat interface |
 | `http://SERVER:8765/health` | 🩺 Server health check (JSON) |
-| `http://SERVER:8765/stats` | 📊 Party statistics |
-| `http://SERVER:8765/leaderboard_page` | 🏆 Guest leaderboard |
-| `http://SERVER:8765/dashboard` | 📊 Live dashboard |
-| `http://SERVER:8765/tts_test` | 🔊 Test Mario's voice |
+| `http://SERVER:8765/api/health` | 📊 Detailed health data (JSON) |
+| `http://SERVER:8765/api/report` | 📋 Party report data (JSON) |
+| `http://SERVER:8765/leaderboard` | 🏆 Leaderboard data (JSON) |
 
 ---
 
@@ -167,7 +170,37 @@ Everything else defaults to `"auto"` — hardware detection handles it.
 └─────────────────────┘              └──────────────────────────┘
 ```
 
-Or skip the client entirely and use the **browser chat** at `http://SERVER_IP:8765/chat`.
+The client is the primary interface — it handles audio, webcam, and display.
+
+### Pygame Client Controls
+
+| Key | Action |
+|-----|--------|
+| **TAB** | Toggle keyboard text input mode |
+| **1-8** | Quick-start games (Trivia, RPS, T or D, Simon, 20Q, Joke, Song, Dance) |
+| **F3** | Toggle chat history sidebar |
+| **F4** | Toggle server health overlay |
+| **F5** | Toggle party mode (disco lights!) |
+| **F6** | Toggle leaderboard overlay |
+| **F11** | Toggle fullscreen |
+| **+/-** | Volume up/down |
+
+### Admin Slash Commands (in keyboard mode)
+
+Press **TAB**, then type any of these:
+
+| Command | What It Does |
+|---------|-------------|
+| `/announce <text>` | Mario makes an announcement |
+| `/emotion <name>` | Force Mario's emotion (happy, excited, etc.) |
+| `/memorial` | Trigger a memorial toast event |
+| `/stopgame` | Force-stop current game |
+| `/reload` | Hot-reload config.json |
+| `/reset` | Reset server state |
+| `/pause` | Pause idle behavior |
+| `/sovits` | Restart GPT-SoVITS voice engine |
+| `/health` | Show server health info |
+| `/help` | List all commands |
 
 ---
 
@@ -195,7 +228,7 @@ Or skip the client entirely and use the **browser chat** at `http://SERVER_IP:87
 
 | Problem | Fix |
 |---------|-----|
-| No microphone | Use browser chat at `/chat` — it supports text input |
+| No microphone | Press TAB to use keyboard text input in the pygame client |
 | Voice sounds weird | GPT-SoVITS may have failed — check server logs. Mario falls back to Edge TTS. |
 
 ### Can't connect (two-computer setup)
@@ -230,10 +263,9 @@ Mario_AI/
 │   ├── emotions.py          ← 13-emotion system
 │   ├── game_handlers.py     ← Party games logic
 │   └── requirements.txt
-├── client/                  ← Client code (optional, for bathroom laptop)
-│   ├── main.py              ← Pygame display + audio
+├── client/                  ← Client code (pygame display + audio + controls)
+│   ├── main.py              ← Pygame display + audio + admin commands
 │   └── requirements.txt
-├── web/                     ← Browser chat interface files
 ├── config.json              ← All configuration
 ├── config.example.json      ← Template config
 ├── setup.bat / setup.sh     ← One-command setup
@@ -247,10 +279,11 @@ Mario_AI/
 
 - [ ] Server PC plugged in and on WiFi
 - [ ] Run `start_server.bat` — wait for "Server running on 0.0.0.0:8765"
-- [ ] Test in browser: `http://localhost:8765/chat` — say hi to Mario
+- [ ] Run `start_client.bat` — Mario's face appears in the pygame window
+- [ ] Walk in front of the webcam — Mario should greet you
+- [ ] Press TAB to type, or press 1-8 to start a game
 - [ ] (Optional) Set up bathroom laptop with speaker + webcam
-- [ ] (Optional) Run `start_client.bat` — enter server IP
-- [ ] (Optional) Open `http://SERVER_IP:8765/leaderboard_page` on a TV for live scores
+- [ ] (Optional) Run `start_client.bat` on the laptop — enter server IP
 - [ ] 🍻 Party time!
 
 ---
