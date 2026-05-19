@@ -546,31 +546,35 @@ class MarioClient:
         self.display.update_leaderboard(data)
 
     def _on_memorial_event(self, data: dict):
-        """Called when server sends memorial event — handles all 5 phases."""
+        """Called when server sends memorial/shot event — handles all phases."""
         phase = data.get("phase", "silence")
         name = data.get("name", "")
         text = data.get("text", "")
         duration = data.get("duration", 15)
+        tone = data.get("tone", "solemn")
         image_file = data.get("image_file")
+        music_file = data.get("music_file")
         if DEBUG_CLIENT:
-            logger.info(f"[DEBUG_CLIENT] Memorial event: phase={phase} name={name}")
+            logger.info(f"[DEBUG_CLIENT] Shot event: phase={phase} name={name} tone={tone}")
+
+        # Load event-specific image if provided (before showing overlay)
+        if image_file and self.display:
+            self.display.load_event_image(image_file)
+
+        # Show the overlay on the display with text for every phase
+        if self.display:
+            self.display.show_memorial(name, phase, text, duration=duration, tone=tone)
 
         # Route text to closed captions so audience can read along
         if text and self.display and self.display.captions:
             self.display.captions.set_text(text)
 
-        # Load event-specific image if provided
-        if image_file and self.display:
-            self.display.load_event_image(image_file)
-
-        # Set memorial active on first phase, clear after fadeout
+        # Phase-specific handling
         if phase == "announcement":
             self._memorial_active = True
-            # Flush idle queue on event start
             if hasattr(self.display, 'current_text'):
                 self.display.current_text = ""
         elif phase == "countdown":
-            # Convert countdown word to number and display it
             countdown_number = self._convert_countdown_word_to_number(text)
             if countdown_number:
                 self.display.set_countdown(countdown_number)
@@ -607,11 +611,6 @@ class MarioClient:
         elif phase == "fadeout":
             self.audio_playback.stop_memorial_music(fadeout_ms=3000)
 
-        # Route to display (pass tone for rendering style)
-        tone = data.get("tone", "solemn")
-        if self.display:
-            self.display.show_memorial(name, phase, text, duration, tone=tone)
-
         # Play SFX for specific phases
         sfx_dir = os.path.join(os.path.dirname(__file__), "assets", "sfx")
         if phase == "silence":
@@ -632,20 +631,15 @@ class MarioClient:
                     logger.warning(f"[DEBUG_CLIENT] Clink SFX error: {e}")
 
     def _convert_countdown_word_to_number(self, text: str) -> str | None:
-        """Convert countdown text like 'TEN-a!' to '10'."""
+        """Convert countdown text like 'Ten!' to '10'."""
         word_to_number = {
-            "TEN-a!": "10",
-            "NINE-a!": "9", 
-            "EIGHT-a!": "8",
-            "SEVEN-a!": "7",
-            "SIX-a!": "6",
-            "FIVE-a!": "5",
-            "FOUR-a!": "4",
-            "THREE-a!": "3",
-            "TWO-a!": "2",
-            "ONE-a!": "1",
+            "ten": "10", "nine": "9", "eight": "8", "seven": "7",
+            "six": "6", "five": "5", "four": "4", "three": "3",
+            "two": "2", "one": "1",
         }
-        return word_to_number.get(text)  # exact match, no .upper()
+        # Strip punctuation and lowercase for flexible matching
+        clean = text.strip().rstrip("!.-").lower()
+        return word_to_number.get(clean)
 
 
 def main():

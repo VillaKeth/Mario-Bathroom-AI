@@ -90,8 +90,8 @@ class ShotEventManager:
     
     def get_countdown_texts(self) -> list[str]:
         return [
-            "TEN-a!", "NINE-a!", "EIGHT-a!", "SEVEN-a!", "SIX-a!",
-            "FIVE-a!", "FOUR-a!", "THREE-a!", "TWO-a!", "ONE-a!"
+            "Ten!", "Nine!", "Eight!", "Seven!", "Six!",
+            "Five!", "Four!", "Three!", "Two!", "One!"
         ]
     
     async def precache_countdown_audio(self, tts_func):
