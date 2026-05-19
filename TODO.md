@@ -1,5 +1,21 @@
 # Mario AI Party Bot - TODO
 
+## Installation Overhaul (Post-Party Fix)
+- [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)
+- [x] Make face_recognition and ultralytics optional in client/requirements.txt
+- [x] Fix start_server.bat to activate venv before running
+- [x] Fix start_server.sh to activate venv before running
+- [x] Fix start_client.bat to activate venv before running
+- [x] Fix start_client.sh to activate venv before running
+- [x] Fix setup.bat to install PyTorch with CUDA properly (separate step before requirements.txt)
+- [x] Fix setup.sh to install PyTorch with CUDA properly
+- [x] Make tts.py handle missing torch/torchaudio gracefully (fallback to edge-tts)
+- [x] Make speaker_id.py handle missing resemblyzer gracefully
+- [x] Make stt.py handle missing faster-whisper gracefully (text chat still works)
+- [x] Rewrite README.md for dead-simple fresh-computer setup
+- [ ] Add psutil and colorama to server requirements for better hardware detection and colored output
+- [ ] Test full fresh install flow on a clean Windows machine
+
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
 - [x] Task 2: Face Recognition Integration — Event routing + GuestProfileManager wiring (10 routing tests)

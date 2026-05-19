@@ -5,9 +5,19 @@ An interactive Mario AI bathroom party bot. At a real house party, a Raspberry P
 
 ## How to Run
 ```bash
-cd server && python main.py    # Starts on ws://localhost:8765
-python client/main.py          # Pygame desktop client
+# Setup (first time only):
+setup.bat           # Windows
+./setup.sh          # Mac/Linux
+
+# Start server:
+start_server.bat    # Windows
+./start_server.sh   # Mac/Linux
+
+# Then open: http://localhost:8765/chat
 ```
+
+**Important**: The start scripts activate the `venv/` virtual environment automatically.
+All Python dependencies (including PyTorch) are installed by setup.bat/sh into this venv.
 
 ---
 

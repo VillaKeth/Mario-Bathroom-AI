@@ -16,7 +16,18 @@ with warnings.catch_warnings():
     if not hasattr(np, 'bool') or type(np.bool) != type:
         np.bool = bool
 
-from resemblyzer import VoiceEncoder, preprocess_wav
+# resemblyzer is required for speaker identification but optional for basic chat
+_HAS_RESEMBLYZER = False
+try:
+    from resemblyzer import VoiceEncoder, preprocess_wav
+    _HAS_RESEMBLYZER = True
+except ImportError:
+    VoiceEncoder = None
+    preprocess_wav = None
+    logging.getLogger(__name__).warning(
+        "[speaker_id] resemblyzer not installed — speaker identification disabled. "
+        "Install with: pip install resemblyzer"
+    )
 
 # Qdrant integration for voice embeddings
 try:
@@ -42,13 +53,16 @@ if os.path.exists(_spk_config_path):
     except Exception:
         pass
 
-_encoder: VoiceEncoder = None
-_qdrant_client: QdrantClient = None
+_encoder = None
+_qdrant_client: QdrantClient = None if _HAS_QDRANT else None
 
 
 def init_speaker_id():
     """Initialize the voice encoder, database, and Qdrant collection."""
     global _encoder, _qdrant_client
+    if not _HAS_RESEMBLYZER:
+        logger.warning("[speaker_id] Skipping init — resemblyzer not installed")
+        return
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] init_speaker_id: START")
 
@@ -242,6 +256,8 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
         dict with 'name' (str or None), 'speaker_id' (int or None), 
         'confidence' (float), 'is_new' (bool)
     """
+    if not _HAS_RESEMBLYZER or _encoder is None:
+        return {"name": None, "speaker_id": None, "confidence": 0.0, "is_new": True}
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] identify_speaker: START")
 
@@ -321,6 +337,8 @@ def register_speaker(name: str, audio_data: bytes, sample_rate: int = 16000) -> 
     Returns:
         The new speaker's database ID
     """
+    if not _HAS_RESEMBLYZER or _encoder is None:
+        raise ValueError("Speaker identification not available — resemblyzer not installed")
     if DEBUG_SPEAKER:
         logger.info(f"[DEBUG_SPEAKER] register_speaker: START name={name}")
 

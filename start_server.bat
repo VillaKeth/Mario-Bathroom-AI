@@ -14,6 +14,17 @@ if not exist "%~dp0config.json" (
     exit /b 1
 )
 
+REM Activate virtual environment (created by setup.bat)
+if exist "%~dp0venv\Scripts\activate.bat" (
+    call "%~dp0venv\Scripts\activate.bat"
+    echo [OK] Virtual environment activated
+) else (
+    echo [WARNING] No virtual environment found at venv\
+    echo          Run setup.bat first for best results.
+    echo          Falling back to system Python...
+    echo.
+)
+
 REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -30,10 +41,9 @@ if errorlevel 1 (
     echo.
 )
 
-REM Install dependencies
-echo Installing server dependencies...
-cd /d "%~dp0server"
-pip install -r requirements.txt --quiet
+REM Install/update dependencies
+echo Checking server dependencies...
+pip install -r "%~dp0server\requirements.txt" --quiet 2>nul
 
 echo.
 echo Checking Ollama model...
@@ -47,7 +57,9 @@ echo.
 echo ===================================
 echo   Starting Mario AI Server
 echo   Listening on 0.0.0.0:8765
+echo   Browser chat: http://localhost:8765/chat
 echo ===================================
 echo.
+cd /d "%~dp0server"
 python main.py
 pause

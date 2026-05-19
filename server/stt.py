@@ -3,13 +3,24 @@
 import io
 import logging
 import numpy as np
-from faster_whisper import WhisperModel
+
+# faster-whisper is required for voice input but optional for text-only chat
+_HAS_WHISPER = False
+try:
+    from faster_whisper import WhisperModel
+    _HAS_WHISPER = True
+except ImportError:
+    WhisperModel = None
+    logging.getLogger(__name__).warning(
+        "[stt] faster-whisper not installed — voice input disabled. "
+        "Text chat via browser still works. Install with: pip install faster-whisper"
+    )
 
 DEBUG_STT = True
 logger = logging.getLogger(__name__)
 
 # Global model instance
-_model: WhisperModel = None
+_model = None
 
 
 def init_model(model_size: str = "base", device: str = "auto", compute_type: str = "auto"):
@@ -21,6 +32,9 @@ def init_model(model_size: str = "base", device: str = "auto", compute_type: str
         compute_type: 'float16' for GPU, 'int8' for CPU, 'auto' to detect
     """
     global _model
+    if not _HAS_WHISPER:
+        logger.warning("[stt] Skipping init — faster-whisper not installed")
+        return
     if DEBUG_STT:
         logger.info(f"[DEBUG_STT] init_model: START size={model_size} device={device}")
 
@@ -65,6 +79,8 @@ def transcribe(audio_data: bytes, sample_rate: int = 16000) -> str:
     Returns:
         Transcribed text string
     """
+    if not _HAS_WHISPER:
+        return ""
     if _model is None:
         raise RuntimeError("Whisper model not initialized. Call init_model() first.")
 

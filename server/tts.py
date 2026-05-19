@@ -22,13 +22,25 @@ import os
 import time
 import threading
 import numpy as np
-import torch
-import torchaudio
 import soundfile as sf
 from scipy import signal as scipy_signal
 from scipy.io import wavfile
 from contextlib import nullcontext
 import hardware
+
+# PyTorch is required for RVC voice conversion but optional for Edge TTS fallback
+_TORCH_AVAILABLE = False
+try:
+    import torch
+    import torchaudio
+    _TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    torchaudio = None
+    logging.getLogger(__name__).warning(
+        "[tts] PyTorch not installed — RVC Mario voice disabled. "
+        "Edge TTS fallback will be used. Install with: pip install torch torchaudio"
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -47,20 +59,21 @@ def _load_debug_flag():
 DEBUG_TTS = _load_debug_flag()
 
 # --- Monkey-patches (MUST run before importing TTS) ---
-_original_torch_load = torch.load
-def _patched_torch_load(*args, **kwargs):
-    kwargs.setdefault("weights_only", False)
-    return _original_torch_load(*args, **kwargs)
-torch.load = _patched_torch_load
+if _TORCH_AVAILABLE:
+    _original_torch_load = torch.load
+    def _patched_torch_load(*args, **kwargs):
+        kwargs.setdefault("weights_only", False)
+        return _original_torch_load(*args, **kwargs)
+    torch.load = _patched_torch_load
 
-def _soundfile_torchaudio_load(filepath, *args, **kwargs):
-    data, sr = sf.read(str(filepath), dtype="float32")
-    if data.ndim == 1:
-        data = data[np.newaxis, :]
-    else:
-        data = data.T
-    return torch.from_numpy(data), sr
-torchaudio.load = _soundfile_torchaudio_load
+    def _soundfile_torchaudio_load(filepath, *args, **kwargs):
+        data, sr = sf.read(str(filepath), dtype="float32")
+        if data.ndim == 1:
+            data = data[np.newaxis, :]
+        else:
+            data = data.T
+        return torch.from_numpy(data), sr
+    torchaudio.load = _soundfile_torchaudio_load
 
 # --- XTTS v2 state ---
 _xtts_model = None
@@ -518,7 +531,7 @@ def init_tts():
             logger.info("[DEBUG_TTS] init_tts: loading XTTS v2 model...")
             start = time.time()
             _xtts_model = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2")
-            if torch.cuda.is_available():
+            if _TORCH_AVAILABLE and torch.cuda.is_available():
                 _xtts_model = _xtts_model.to("cuda")
                 logger.info("[DEBUG_TTS] init_tts: XTTS v2 on CUDA GPU")
             else:
@@ -537,13 +550,13 @@ def init_tts():
 
     # --- Load RVC Mario voice conversion model (if enabled and not sovits-only mode) ---
     # In sovits mode, GPT-SoVITS already produces Mario's voice — skip RVC to save VRAM
-    if USE_RVC and os.path.exists(RVC_MODEL_PATH) and TTS_MODE != "sovits":
+    if USE_RVC and os.path.exists(RVC_MODEL_PATH) and TTS_MODE != "sovits" and _TORCH_AVAILABLE:
         try:
             logger.info("[DEBUG_TTS] init_tts: loading RVC Mario model (Switch Era, Charles Martinet)...")
             rvc_start = time.time()
             from rvc_python.infer import RVCInference
             _rvc_model = RVCInference(
-                device="cuda:0" if torch.cuda.is_available() else "cpu",
+                device="cuda:0" if (_TORCH_AVAILABLE and torch.cuda.is_available()) else "cpu",
                 index_path=RVC_INDEX_PATH if os.path.exists(RVC_INDEX_PATH) else "",
             )
             _rvc_model.load_model(RVC_MODEL_PATH)
@@ -1468,7 +1481,7 @@ def _synthesize_xtts_raw(text: str) -> bytes:
 
     start = time.time()
 
-    ctx = torch.amp.autocast("cuda") if torch.cuda.is_available() else nullcontext()
+    ctx = torch.amp.autocast("cuda") if (_TORCH_AVAILABLE and torch.cuda.is_available()) else nullcontext()
     with ctx:
         result = _xtts_model.synthesizer.tts_model.inference(
         text=text,

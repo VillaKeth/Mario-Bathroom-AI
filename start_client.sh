@@ -4,7 +4,21 @@ echo "  Mario AI Client - Let's-a Go!"
 echo "==================================="
 echo
 
-cd "$(dirname "$0")/client"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Activate virtual environment (created by setup.sh)
+if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
+    source "$SCRIPT_DIR/venv/bin/activate"
+    echo "[OK] Virtual environment activated"
+elif [ -f "$SCRIPT_DIR/.venv/bin/activate" ]; then
+    source "$SCRIPT_DIR/.venv/bin/activate"
+    echo "[OK] Virtual environment activated"
+else
+    echo "[WARNING] No virtual environment found."
+    echo "         Run setup.sh first for best results."
+    echo "         Falling back to system Python..."
+    echo
+fi
 
 # Check Python
 if ! command -v python3 &> /dev/null; then
@@ -12,9 +26,9 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Install deps
-echo "Installing client dependencies..."
-pip3 install -r requirements.txt --quiet
+# Install/update deps
+echo "Checking client dependencies..."
+pip3 install -r "$SCRIPT_DIR/client/requirements.txt" --quiet 2>/dev/null
 
 # Get server IP
 SERVER_IP="${1:-localhost}"
@@ -28,4 +42,5 @@ echo "  Connecting to ws://${SERVER_IP}:8765/ws"
 echo "  Press ESC or close window to quit"
 echo "==================================="
 echo
+cd "$SCRIPT_DIR/client"
 python3 main.py --server "ws://${SERVER_IP}:8765/ws"

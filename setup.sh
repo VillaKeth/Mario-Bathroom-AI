@@ -3,7 +3,7 @@ set -e
 
 echo ""
 echo "========================================"
-echo "  Mario AI Party Bot — Setup Wizard"
+echo "  Mario AI Party Bot - Setup Wizard"
 echo "========================================"
 echo ""
 
@@ -37,14 +37,41 @@ fi
 source venv/bin/activate
 echo "[OK] Virtual environment active"
 
-# Step 5: Install dependencies
-echo "Installing server dependencies..."
-pip install -r server/requirements.txt --quiet
-echo "Installing client dependencies..."
-pip install -r client/requirements.txt --quiet
-echo "[OK] Dependencies installed"
+# Step 5: Upgrade pip
+echo "Upgrading pip..."
+pip install --upgrade pip --quiet 2>/dev/null
 
-# Step 6: Detect hardware tier
+# Step 6: Install PyTorch with CUDA (or CPU fallback)
+echo ""
+echo "Detecting GPU for PyTorch installation..."
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+    echo "[OK] NVIDIA GPU detected - installing PyTorch with CUDA support"
+    echo "    This downloads ~2.5 GB, please be patient..."
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121 --quiet 2>/dev/null || \
+        pip install torch torchaudio --quiet 2>/dev/null || \
+        echo "[WARNING] PyTorch CUDA install failed, will try CPU version"
+else
+    echo "[INFO] No NVIDIA GPU detected - installing CPU-only PyTorch"
+    echo "       Mario will work but voice will be slower."
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu --quiet 2>/dev/null || \
+        pip install torch torchaudio --quiet 2>/dev/null
+fi
+echo "[OK] PyTorch installed"
+
+# Step 7: Install server dependencies
+echo ""
+echo "Installing server dependencies..."
+pip install -r server/requirements.txt --quiet || pip install -r server/requirements.txt
+echo "[OK] Server dependencies installed"
+
+# Step 8: Install client dependencies
+echo "Installing client dependencies..."
+pip install -r client/requirements.txt --quiet 2>/dev/null || \
+    echo "[WARNING] Some client dependencies failed. This is OK if you use browser chat."
+echo "[OK] Client dependencies installed"
+
+# Step 9: Detect hardware tier
+echo ""
 TIER=$(python3 -c "
 import sys; sys.path.insert(0, '.')
 from server.hardware import detect_hardware
@@ -57,37 +84,46 @@ else: print('low')
 " 2>/dev/null || echo "low")
 echo "[OK] Hardware tier: $TIER"
 
-# Step 7: Download models
+# Step 10: Download models
 if [ ! -f "mario_models_new/GPT_SoVITS_Mario/Mario-e20.ckpt" ] && [ ! -f "server/data/rvc_model/SuperMario-TITAN_e500_s13000.pth" ]; then
     echo "Downloading voice models from GitHub Release (~930 MB)..."
-    curl -L -o models-v2.1.zip https://github.com/VillaKeth/Mario-Bathroom-AI/releases/download/v2.1/models-v2.1.zip
-    echo "Extracting models..."
-    if command -v unzip &>/dev/null; then
-        unzip -o models-v2.1.zip
+    if curl -L -o models-v2.1.zip https://github.com/VillaKeth/Mario-Bathroom-AI/releases/download/v2.1/models-v2.1.zip; then
+        echo "Extracting models..."
+        if command -v unzip &>/dev/null; then
+            unzip -o models-v2.1.zip
+        else
+            python3 -m zipfile -e models-v2.1.zip .
+        fi
+        rm models-v2.1.zip
+        echo "[OK] Models extracted"
     else
-        python3 -m zipfile -e models-v2.1.zip .
+        echo "[WARNING] Model download failed. Mario will use Edge TTS fallback voice."
     fi
-    rm models-v2.1.zip
-    echo "[OK] Models extracted"
 else
     echo "[OK] Voice models already present"
 fi
 
-# Step 8: GPT-SoVITS setup
+# Step 11: GPT-SoVITS setup
 if [ ! -f "gpt_sovits_env/bin/python" ]; then
+    echo ""
     echo "Setting up GPT-SoVITS voice cloning (this takes 5-15 minutes)..."
     if [ ! -d "gpt_sovits_repo" ]; then
-        git clone https://github.com/RVC-Boss/GPT-SoVITS.git gpt_sovits_repo
+        if ! git clone https://github.com/RVC-Boss/GPT-SoVITS.git gpt_sovits_repo; then
+            echo "[WARNING] Failed to clone GPT-SoVITS. Mario will use Edge TTS fallback voice."
+        fi
     fi
-    cd gpt_sovits_repo
-    bash install.sh
-    cd ..
-    echo "[OK] GPT-SoVITS installed"
+    if [ -d "gpt_sovits_repo" ]; then
+        cd gpt_sovits_repo
+        bash install.sh || echo "[WARNING] GPT-SoVITS install failed. Will use Edge TTS fallback."
+        cd ..
+    fi
+    echo "[OK] GPT-SoVITS setup attempted"
 else
     echo "[OK] GPT-SoVITS already set up"
 fi
 
-# Step 9: Pull Ollama models
+# Step 12: Pull Ollama models
+echo ""
 echo "Pulling Ollama models for $TIER tier..."
 pull_model() {
     local search="$1" model="$2" desc="$3"
@@ -106,13 +142,13 @@ if [ "$TIER" = "ultra" ]; then
     echo "[OK] mixtral:8x7b ready"
 fi
 
-# Step 10: Fish Speech (ULTRA only)
+# Step 13: Fish Speech (ULTRA only)
 if [ "$TIER" = "ultra" ]; then
     echo "Installing Fish Speech TTS..."
     pip install "fish-speech>=2.2.0" --quiet 2>/dev/null || echo "[WARNING] Fish Speech install failed. Optional."
 fi
 
-# Step 11: Generate config.json
+# Step 14: Generate config.json
 if [ ! -f "config.json" ]; then
     cp config.example.json config.json
     echo "[OK] config.json created"
@@ -125,7 +161,7 @@ else
     echo "[OK] config.json already exists"
 fi
 
-# Step 12: Run verification
+# Step 15: Run verification
 echo ""
 echo "Running setup verification..."
 echo ""
@@ -134,6 +170,10 @@ python3 scripts/verify_setup.py
 echo ""
 echo "========================================"
 echo "  Setup Complete!"
-echo "  Run: ./start_server.sh"
-echo "  Then open: http://localhost:8765/chat"
+echo ""
+echo "  TO START MARIO:"
+echo "    1. Run: ./start_server.sh"
+echo "    2. Open: http://localhost:8765/chat"
+echo ""
+echo "  That's it! No other setup needed."
 echo "========================================"

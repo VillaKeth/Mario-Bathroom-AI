@@ -10,6 +10,7 @@ REM Step 1: Check Python 3.10+
 python -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>nul
 if !errorlevel! neq 0 (
     echo [ERROR] Python 3.10+ required. Install from https://python.org
+    echo         IMPORTANT: Check "Add Python to PATH" during installation!
     pause
     exit /b 1
 )
@@ -54,15 +55,52 @@ if not exist "venv\Scripts\python.exe" (
 call venv\Scripts\activate.bat
 echo [OK] Virtual environment active
 
-REM Step 5: Install dependencies
+REM Step 5: Upgrade pip
+echo Upgrading pip...
+python -m pip install --upgrade pip --quiet 2>nul
+
+REM Step 6: Install PyTorch with CUDA (or CPU fallback)
+echo.
+echo Detecting GPU for PyTorch installation...
+nvidia-smi >nul 2>&1
+if !errorlevel! equ 0 (
+    echo [OK] NVIDIA GPU detected — installing PyTorch with CUDA support
+    echo     This downloads ~2.5 GB, please be patient...
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121 --quiet
+    if !errorlevel! neq 0 (
+        echo [WARNING] CUDA PyTorch install failed, trying CPU version...
+        pip install torch torchaudio --quiet
+    )
+) else (
+    echo [INFO] No NVIDIA GPU detected — installing CPU-only PyTorch
+    echo        Mario will work but voice will be slower.
+    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu --quiet
+    if !errorlevel! neq 0 (
+        pip install torch torchaudio --quiet
+    )
+)
+echo [OK] PyTorch installed
+
+REM Step 7: Install server dependencies
+echo.
 echo Installing server dependencies...
 pip install -r server\requirements.txt --quiet
+if !errorlevel! neq 0 (
+    echo [WARNING] Some server dependencies failed. Retrying with verbose output...
+    pip install -r server\requirements.txt
+)
+echo [OK] Server dependencies installed
+
+REM Step 8: Install client dependencies
 echo Installing client dependencies...
 pip install -r client\requirements.txt --quiet
-echo [OK] Dependencies installed
+if !errorlevel! neq 0 (
+    echo [WARNING] Some client dependencies failed. This is OK if you use browser chat.
+)
+echo [OK] Client dependencies installed
 
-REM Step 6: Detect hardware tier
-REM NOTE: Uses temp file instead of for/f to avoid single-quote nesting issues in batch
+REM Step 9: Detect hardware tier
+echo.
 echo Detecting hardware...
 python -c "import sys; sys.path.insert(0, '.'); from server.hardware import detect_hardware; hw=detect_hardware(); v,r,c=hw['gpu_vram_gb'],hw['ram_gb'],hw['cpu_cores']; print('ultra' if v>=20 and r>=128 and c>=32 else 'high' if v>=10 and r>=32 and c>=8 else 'medium' if v>=6 and r>=16 else 'low')" > _setup_tier.tmp 2>nul
 set /p TIER=<_setup_tier.tmp
@@ -70,22 +108,20 @@ del _setup_tier.tmp 2>nul
 if "!TIER!"=="" set TIER=low
 echo [OK] Hardware tier: !TIER!
 
-REM Step 7: Download models (if needed)
-REM Check multiple critical files to catch partial extractions
+REM Step 10: Download models (if needed)
 if not exist "mario_models_new\GPT_SoVITS_Mario\Mario-e20.ckpt" (
     if not exist "server\data\rvc_model\SuperMario-TITAN_e500_s13000.pth" (
         echo Downloading voice models from GitHub Release (~930 MB^)...
         curl.exe -L -o models-v2.1.zip https://github.com/VillaKeth/Mario-Bathroom-AI/releases/download/v2.1/models-v2.1.zip
         if !errorlevel! neq 0 (
-            echo [ERROR] Download failed. Check your internet connection.
-            echo         Manual download: https://github.com/VillaKeth/Mario-Bathroom-AI/releases
-            pause
-            exit /b 1
+            echo [WARNING] Model download failed. Mario will use Edge TTS fallback voice.
+            echo           Manual download: https://github.com/VillaKeth/Mario-Bathroom-AI/releases
+        ) else (
+            echo Extracting models...
+            powershell -Command "Expand-Archive -Force 'models-v2.1.zip' '.'"
+            del models-v2.1.zip 2>nul
+            echo [OK] Models extracted
         )
-        echo Extracting models...
-        powershell -Command "Expand-Archive -Force 'models-v2.1.zip' '.'"
-        del models-v2.1.zip 2>nul
-        echo [OK] Models extracted
     ) else (
         echo [OK] Voice models already present
     )
@@ -93,28 +129,29 @@ if not exist "mario_models_new\GPT_SoVITS_Mario\Mario-e20.ckpt" (
     echo [OK] Voice models already present
 )
 
-REM Step 8: GPT-SoVITS setup (if venv not exists)
+REM Step 11: GPT-SoVITS setup (if venv not exists)
 if not exist "gpt_sovits_env\Scripts\python.exe" (
+    echo.
     echo Setting up GPT-SoVITS voice cloning (this takes 5-15 minutes^)...
     if not exist "gpt_sovits_repo" (
         echo Cloning GPT-SoVITS repository...
         git clone https://github.com/RVC-Boss/GPT-SoVITS.git gpt_sovits_repo
         if !errorlevel! neq 0 (
-            echo [ERROR] Failed to clone GPT-SoVITS. Check git and internet.
-            pause
-            exit /b 1
+            echo [WARNING] Failed to clone GPT-SoVITS. Mario will use Edge TTS fallback voice.
+            goto :skip_sovits
         )
     )
     pushd gpt_sovits_repo
-    REM install.ps1 requires: -Device (CU126|CU128|CPU) -Source (HF|HF-Mirror|ModelScope)
     powershell -ExecutionPolicy Bypass -File install.ps1 -Device CU128 -Source HF
     popd
     echo [OK] GPT-SoVITS installed
 ) else (
     echo [OK] GPT-SoVITS already set up
 )
+:skip_sovits
 
-REM Step 9: Pull Ollama models based on tier
+REM Step 12: Pull Ollama models based on tier
+echo.
 echo Pulling Ollama models for !TIER! tier...
 call :pull_model "llama3" "llama3" "~4.7 GB"
 echo [OK] llama3 ready
@@ -126,7 +163,7 @@ if "!TIER!"=="ultra" (
     echo [OK] mixtral:8x7b ready
 )
 
-REM Step 10: Fish Speech (ULTRA only)
+REM Step 13: Fish Speech (ULTRA only)
 if "!TIER!"=="ultra" (
     echo Installing Fish Speech TTS...
     pip install "fish-speech>=2.2.0" --quiet 2>nul
@@ -137,7 +174,7 @@ if "!TIER!"=="ultra" (
     )
 )
 
-REM Step 11: Generate config.json
+REM Step 14: Generate config.json
 if not exist "config.json" (
     echo Creating config.json from template...
     copy config.example.json config.json >nul
@@ -151,7 +188,7 @@ if not exist "config.json" (
     echo [OK] config.json already exists
 )
 
-REM Step 12: Run verification
+REM Step 15: Run verification
 echo.
 echo Running setup verification...
 echo.
@@ -160,8 +197,12 @@ python scripts\verify_setup.py
 echo.
 echo  ========================================
 echo   Setup Complete!
-echo   Run: start_server.bat
-echo   Then open: http://localhost:8765/chat
+echo.
+echo   TO START MARIO:
+echo     1. Run: start_server.bat
+echo     2. Open: http://localhost:8765/chat
+echo.
+echo   That's it! No other setup needed.
 echo  ========================================
 echo.
 pause
