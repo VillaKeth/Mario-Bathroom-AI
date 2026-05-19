@@ -227,9 +227,8 @@ class MarioClient:
         self.display.set_state(STATE_TALKING)
         self.display._speaking = True
         
-        # Update closed captions
-        if self.display.captions:
-            self.display.captions.set_text(text)
+        # Don't set closed captions for regular speech — speech bubble already shows it.
+        # Captions are only used during events (set in _on_memorial_event).
 
         if metadata:
             sfx_name = metadata.get("sound_effect")
@@ -565,9 +564,8 @@ class MarioClient:
             self.display.show_memorial(name, phase, text, duration=duration, tone=tone)
             logger.info(f"[SHOT_EVENT] show_memorial called → _memorial_active={self.display._memorial_active}, _memorial_phase={self.display._memorial_phase}")
 
-        # Route text to closed captions so audience can read along
-        if text and self.display and self.display.captions:
-            self.display.captions.set_text(text)
+        # Don't route event text to closed captions — memorial overlay already renders it.
+        # This prevents double subtitles (overlay text + captions text overlapping).
 
         # Phase-specific handling
         if phase == "announcement":
@@ -591,6 +589,14 @@ class MarioClient:
                 if DEBUG_CLIENT:
                     logger.info("[DEBUG_CLIENT] Memorial flag cleared after fadeout")
             threading.Thread(target=_clear_flag, daemon=True).start()
+        elif phase == "recovery":
+            # Recovery is the LAST phase — clear memorial flag after duration
+            def _clear_flag_recovery():
+                time.sleep(duration + 3)
+                self._memorial_active = False
+                self.display._memorial_active = False
+                logger.info("[SHOT_EVENT] Memorial flags cleared after recovery")
+            threading.Thread(target=_clear_flag_recovery, daemon=True).start()
 
         # Start/stop memorial music
         if phase == "music":
