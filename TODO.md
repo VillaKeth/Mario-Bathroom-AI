@@ -1,6 +1,6 @@
 # Mario AI Party Bot - TODO
 
-## Installation Overhaul (Post-Party Fix)
+## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)
 - [x] Make face_recognition and ultralytics optional in client/requirements.txt
 - [x] Fix start_server.bat to activate venv before running
@@ -18,6 +18,7 @@
 - [x] Test full fresh install flow: created fresh venv, installed all deps, server booted successfully
 - [x] Verified all 27 server module imports pass in fresh venv
 - [x] Fix _detect_particle_effect NameError (was _detect_keyword_particles)
+- [x] FULL END-TO-END FRESH INSTALL TEST PASSED: venv deleted → recreated → all deps installed → server boots → Mario responds with audio
 
 ## Web Chat Removal & Pygame Migration
 - [x] Delete web/ directory (mario_chat.html, dashboard.html, party_host.html, report.html, leaderboard.html, sfx_preview.html, tts_cache_preview.html, tts_test.html)
