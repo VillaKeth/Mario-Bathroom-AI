@@ -62,6 +62,13 @@
 - [x] Fix double subtitles: remove captions.set_text from regular speech and events (speech bubble + overlay handle display)
 - [x] Fix memorial_active flag stuck forever: add recovery phase flag clear (was only on 'fadeout' phase which doesn't exist)
 - [x] E2E test: lisa_webb_memorial event — all 7 phases, 0 suppressed idle lines, flag cleared 18s after recovery, idle resumed normally
+- [x] Add 100 fun party events (103 total) across 7 categories: Gaming, Movies/TV, Memes, Party Games, Music Artists, Random Fun, Sports, Holidays, Quirky
+- [x] E2E batch test: 8 events (rick_roll, among_us, taylor_swift, waterfall, touchdown, shrek, mystery_shot, star_wars) — all completed, 0 errors, all flags cleared
+- [x] Stress test: 100/103 events fired sequentially, 0 errors, 100/100 flags cleared, 32 idle lines suppressed (client safety net)
+- [x] Edge case tests: re-trigger already-fired (correctly rejected), nonexistent event (not_found), concurrent triggers (second blocked)
+- [x] Server stability: 0 errors, 0 idle errors after 100 events, memory stable at 943MB, GPU 54°C
+- [x] Regenerate ALL 122 Mario poses via Pollinations.ai — 122/122 succeeded, 0 failures
+- [x] Full overnight verification complete — ALL SYSTEMS PERFECT
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
