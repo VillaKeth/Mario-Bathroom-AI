@@ -128,9 +128,81 @@ def extract_emotion_tag(response: str) -> dict:
             # Validate against known emotions
             known = {v for k, v in vars(Emotion).items() if not k.startswith("_") and isinstance(v, str)}
             if emotion not in known:
-                emotion = "neutral"
-                if DEBUG_EMOTION:
-                    logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: unknown emotion '{data.get('emotion')}', using 'neutral'")
+                # Map common LLM emotion variants to known emotions
+                _EMOTION_ALIASES = {
+                    "hurt": Emotion.SAD,
+                    "joyful": Emotion.HAPPY,
+                    "joy": Emotion.HAPPY,
+                    "playful": Emotion.MISCHIEVOUS,
+                    "silly": Emotion.MISCHIEVOUS,
+                    "content": Emotion.HAPPY,
+                    "amused": Emotion.LAUGHING,
+                    "nostalgic": Emotion.HAPPY,
+                    "warm": Emotion.LOVING,
+                    "enthusiastic": Emotion.EXCITED,
+                    "eager": Emotion.EXCITED,
+                    "anxious": Emotion.NERVOUS,
+                    "fearful": Emotion.SCARED,
+                    "disgusted": Emotion.DISGUSTED,
+                    "irritated": Emotion.ANNOYED,
+                    "upset": Emotion.SAD,
+                    "heartbroken": Emotion.SAD,
+                    "gloomy": Emotion.SAD,
+                    "confident": Emotion.PROUD,
+                    "bold": Emotion.DETERMINED,
+                    "courageous": Emotion.DETERMINED,
+                    "brave": Emotion.DETERMINED,
+                    "sarcastic": Emotion.MISCHIEVOUS,
+                    "cheeky": Emotion.MISCHIEVOUS,
+                    "flirty": Emotion.LOVING,
+                    "romantic": Emotion.LOVING,
+                    "touched": Emotion.LOVING,
+                    "grateful": Emotion.HAPPY,
+                    "hopeful": Emotion.HAPPY,
+                    "curious": Emotion.CURIOUS,
+                    "intrigued": Emotion.CURIOUS,
+                    "bewildered": Emotion.CONFUSED,
+                    "baffled": Emotion.CONFUSED,
+                    "calm": Emotion.NEUTRAL,
+                    "relaxed": Emotion.NEUTRAL,
+                    "peaceful": Emotion.NEUTRAL,
+                    "focused": Emotion.DETERMINED,
+                    "impressed": Emotion.SURPRISED,
+                    "amazed": Emotion.SURPRISED,
+                    "astonished": Emotion.SHOCKED,
+                    "stunned": Emotion.SHOCKED,
+                    "terrified": Emotion.SCARED,
+                    "panicked": Emotion.SCARED,
+                    "furious": Emotion.ANGRY,
+                    "enraged": Emotion.ANGRY,
+                    "mad": Emotion.ANGRY,
+                    "grumpy": Emotion.ANNOYED,
+                    "tired": Emotion.SLEEPY,
+                    "exhausted": Emotion.SLEEPY,
+                    "dreamy": Emotion.SLEEPY,
+                    "creative": Emotion.IDEA,
+                    "inspired": Emotion.IDEA,
+                    "thoughtful": Emotion.THINKING,
+                    "pensive": Emotion.THINKING,
+                    "reflective": Emotion.THINKING,
+                    "wistful": Emotion.THINKING,
+                    "defiant": Emotion.DETERMINED,
+                    "melancholy": Emotion.SAD,
+                    "cheerful": Emotion.HAPPY,
+                    "elated": Emotion.EXCITED,
+                    "ecstatic": Emotion.EXCITED,
+                    "thrilled": Emotion.EXCITED,
+                    "delighted": Emotion.HAPPY,
+                }
+                mapped = _EMOTION_ALIASES.get(emotion.lower())
+                if mapped:
+                    if DEBUG_EMOTION:
+                        logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: mapped '{emotion}' → '{mapped}'")
+                    emotion = mapped
+                else:
+                    if DEBUG_EMOTION:
+                        logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: unknown emotion '{emotion}', using 'neutral'")
+                    emotion = "neutral"
             
             # Extract and validate energy (0.0-1.0)
             energy = data.get("energy", 0.5)
