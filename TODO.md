@@ -80,6 +80,10 @@
 - [x] Add "Tokyo Ghoul - Unravel" event (solemn tone, Ken Kaneki themed with custom pose)
 - [x] Fix countdown overlay not clearing when music phase starts (bug: "1" stuck on screen)
 - [x] All 104 events now have music + correct phase transitions
+- [x] Fix event display: proper titles per event (not generic "In Loving Memory"), no Lisa Webb photo fallback, subtitles in music phase
+- [x] Generate topical images for all 100 events via Pollinations.ai (800x450 themed PNGs, 0 failures)
+- [x] Auto-update shot_events.json with image_file paths for all 100 events
+- [x] Commit and push all 100 event images + updated JSON (commit be28ef0)
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
