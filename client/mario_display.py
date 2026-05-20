@@ -1048,7 +1048,7 @@ class MarioDisplay:
                 if not hasattr(self, '_render_buffer') or self._render_buffer is None:
                     self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
                 self._screen = pygame.display.set_mode(
-                    (info.current_w, info.current_h), pygame.FULLSCREEN | pygame.SCALED
+                    (info.current_w, info.current_h), pygame.FULLSCREEN
                 )
                 scale = min(info.current_w / WINDOW_WIDTH, info.current_h / WINDOW_HEIGHT)
                 self._render_w = int(WINDOW_WIDTH * scale)
