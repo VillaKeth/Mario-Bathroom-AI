@@ -106,6 +106,11 @@ EMOTION_EMOJI = {
     "sad": "♡", "angry": "!", "loving": "♥", "love": "♥",
     "proud": "★", "frustrated": "×", "embarrassed": "~", "worried": "~",
     "bored": "—", "determined": "!", "nervous": "~", "scared": "!",
+    "disgusted": "×", "curious": "?", "thinking": "?", "shocked": "!",
+    "idea": "★", "neutral": "—", "memorial": "♥", "toast": "★",
+    "party": "♪", "grossed_out": "×", "mind_blown": "!", "sassy": "♦",
+    "cringe": "~", "impressed": "★", "celebratory": "♪", "solemn": "♥",
+    "birthday": "★",
 }
 
 EMOTION_BADGE_COLORS = {
@@ -116,6 +121,12 @@ EMOTION_BADGE_COLORS = {
     "proud": (255, 200, 0), "frustrated": (255, 80, 30), "embarrassed": (255, 170, 200),
     "worried": (180, 180, 255), "bored": (160, 160, 160), "determined": (255, 165, 0),
     "nervous": (200, 200, 255), "scared": (180, 180, 255),
+    "disgusted": (150, 200, 50), "curious": (100, 200, 255), "thinking": (150, 150, 220),
+    "shocked": (255, 80, 200), "idea": (255, 240, 100), "neutral": (180, 180, 180),
+    "memorial": (200, 170, 255), "toast": (255, 200, 100), "party": (255, 100, 200),
+    "grossed_out": (150, 180, 50), "mind_blown": (200, 50, 255), "sassy": (255, 100, 180),
+    "cringe": (220, 180, 200), "impressed": (100, 220, 200), "celebratory": (255, 200, 50),
+    "solemn": (140, 140, 200), "birthday": (255, 180, 50),
 }
 
 class Particle:
