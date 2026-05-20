@@ -482,9 +482,14 @@ class MarioDisplay:
         try:
             if image_file == self._event_image_path and self._event_image:
                 return  # Already loaded
-            # Resolve relative paths from project root
+            # Resolve relative paths — try from client dir first, then project root
             if not os.path.isabs(image_file):
-                image_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), image_file)
+                client_dir = os.path.dirname(__file__)
+                project_root = os.path.dirname(client_dir)
+                candidate = os.path.join(client_dir, image_file)
+                if not os.path.exists(candidate):
+                    candidate = os.path.join(project_root, image_file)
+                image_file = candidate
             if os.path.exists(image_file):
                 raw = pygame.image.load(image_file).convert_alpha()
                 scale = 300 / raw.get_height()
