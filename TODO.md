@@ -84,6 +84,14 @@
 - [x] Generate topical images for all 100 events via Pollinations.ai (800x450 themed PNGs, 0 failures)
 - [x] Auto-update shot_events.json with image_file paths for all 100 events
 - [x] Commit and push all 100 event images + updated JSON (commit be28ef0)
+- [x] Replace all AI-generated event images with real web-sourced images from Bing
+- [x] Created download_event_images.py (icrawler + BingImageCrawler) and retry_images.py
+- [x] 102/104 events now have real images (2 person-specific events keep custom photos)
+- [x] Commit and push real images (commit 734e3b2)
+- [x] Fix 33 wrong Bing images via Pollinations.ai (Bing word-matching was broken for multi-word queries)
+- [x] Visual audit: all 102 event images verified correct (deltarune kept as user-preferred AI version)
+- [x] Clean up temp scripts and gallery files
+- [x] Commit fixed images (commit ef372b8)
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
