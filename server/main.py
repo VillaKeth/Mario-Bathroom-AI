@@ -891,8 +891,10 @@ async def _run_shot_event(event):
                     "type": "memorial_event",
                     "phase": "music",
                     "name": event.display_name or event.name,
+                    "text": event.announcement_text or "",
                     "tone": event.tone,
                     "music_file": event.music_file,
+                    "image_file": event.image_file,
                     "duration": event.music_duration,
                 }
                 

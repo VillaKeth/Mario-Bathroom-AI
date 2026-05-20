@@ -2136,8 +2136,9 @@ class MarioDisplay:
             elapsed = time.time() - self._memorial_start
             phase = self._memorial_phase
             tone = getattr(self, '_memorial_tone', 'solemn')
-            # Pick the right image: event-specific first, memorial photo fallback
-            event_img = self._event_image if self._event_image else self._memorial_photo
+            # Pick the right image: event-specific first, NO fallback to memorial photo
+            # (memorial_photo is Lisa Webb — only show her for her own event)
+            event_img = self._event_image
 
             # ── Phase 1: Announcement (dim screen + show event image + text) ──
             if phase == "announcement":
@@ -2155,6 +2156,20 @@ class MarioDisplay:
                 if event_img and alpha > 100:
                     img_rect = event_img.get_rect(center=(w // 2, h // 2 - 40))
                     surface.blit(event_img, img_rect)
+
+                # Show event name title at top
+                if alpha > 60:
+                    font_title = pygame.font.SysFont("arial", 30, bold=True)
+                    display_name = self._memorial_name
+                    if "\n" in display_name:
+                        display_name = display_name.split("\n", 1)[0].strip()
+                    is_lisa = "lisa" in display_name.lower() and "webb" in display_name.lower()
+                    title = "In Loving Memory" if is_lisa else display_name
+                    title_color = (255, 255, 255) if tone == "solemn" else (255, 215, 0)
+                    title_surf = font_title.render(title, True, title_color)
+                    shadow = font_title.render(title, True, (0, 0, 0))
+                    surface.blit(shadow, shadow.get_rect(center=(w // 2 + 2, 62)))
+                    surface.blit(title_surf, title_surf.get_rect(center=(w // 2, 60)))
 
                 # Show announcement text at bottom
                 if self._memorial_text:
@@ -2190,8 +2205,8 @@ class MarioDisplay:
                 self._update_memorial_particles()
                 self._draw_memorial_particles(surface)
 
-                # Use event-specific image, fall back to memorial photo
-                photo = event_img if event_img else self._memorial_photo
+                # Use event-specific image only (don't fall back to Lisa Webb)
+                photo = event_img
                 if photo:
                     photo_rect = photo.get_rect(center=(w // 2, h // 2 - 20))
                     glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
@@ -2204,7 +2219,10 @@ class MarioDisplay:
                 font_name = pygame.font.SysFont("arial", 36, bold=True)
                 font_dates = pygame.font.SysFont("arial", 20)
 
-                title = "In Loving Memory"
+                # Only show "In Loving Memory" for Lisa Webb; others get their display name
+                name_text = self._memorial_name
+                is_lisa_webb = "lisa" in name_text.lower() and "webb" in name_text.lower()
+                title = "In Loving Memory" if is_lisa_webb else name_text.split("\n", 1)[0].strip()
                 title_surf = font_large.render(title, True, (255, 255, 255))
                 shadow_surf = font_large.render(title, True, (0, 0, 0))
                 surface.blit(shadow_surf, shadow_surf.get_rect(center=(w // 2 + 2, h // 2 - 182)))
@@ -2244,7 +2262,7 @@ class MarioDisplay:
                 surface.blit(overlay, (0, 0))
 
                 # Show event image during countdown (dimmed behind number)
-                photo = event_img if event_img else self._memorial_photo
+                photo = event_img
                 if photo:
                     dimmed = photo.copy()
                     dimmed.set_alpha(80)
@@ -2312,7 +2330,7 @@ class MarioDisplay:
                 self._update_memorial_particles()
                 self._draw_memorial_particles(surface)
 
-                photo = event_img if event_img else self._memorial_photo
+                photo = event_img
                 if photo:
                     photo_rect = photo.get_rect(center=(w // 2, h // 2 - 20))
                     glow_surf = pygame.Surface((photo_rect.width + 20, photo_rect.height + 20), pygame.SRCALPHA)
@@ -2323,26 +2341,50 @@ class MarioDisplay:
                     surface.blit(photo, photo_rect)
 
                 font_mem = pygame.font.SysFont("arial", 28, bold=True)
-                # Tone-aware title
-                if tone == "solemn":
+                # Use event display name as title (only "In Loving Memory" for lisa_webb)
+                display_name = self._memorial_name
+                if "\n" in display_name:
+                    display_name = display_name.split("\n", 1)[0].strip()
+                
+                is_lisa_webb = "lisa" in display_name.lower() and "webb" in display_name.lower()
+                if is_lisa_webb:
                     title_text = "In Loving Memory"
                     title_color = (255, 255, 255)
+                elif tone == "solemn":
+                    title_text = display_name
+                    title_color = (255, 255, 255)
                 elif tone == "celebratory":
-                    title_text = "Cheers!"
+                    title_text = display_name
                     title_color = (255, 215, 0)
                 else:  # fun
-                    title_text = "Take a Shot!"
+                    title_text = display_name
                     title_color = (100, 200, 255)
                 mem_surf = font_mem.render(title_text, True, title_color)
                 surface.blit(mem_surf, mem_surf.get_rect(center=(w // 2, h // 2 - 190)))
 
-                # Parse name from display_name (strip dates)
-                display_name = self._memorial_name
-                if "\n" in display_name:
-                    display_name = display_name.split("\n", 1)[0].strip()
-                font_name = pygame.font.SysFont("arial", 30, bold=True)
-                name_surf = font_name.render(display_name, True, (255, 215, 0))
-                surface.blit(name_surf, name_surf.get_rect(center=(w // 2, h // 2 + 170)))
+                # Show subtitle text below the photo (word-wrapped)
+                if self._memorial_text:
+                    font_sub = pygame.font.SysFont("arial", 20)
+                    words = self._memorial_text.split()
+                    lines = []
+                    current = ""
+                    for word in words:
+                        test = f"{current} {word}".strip()
+                        if font_sub.size(test)[0] <= w - 80:
+                            current = test
+                        else:
+                            if current:
+                                lines.append(current)
+                            current = word
+                    if current:
+                        lines.append(current)
+                    # Show last 3 lines max to fit screen
+                    y_start = h // 2 + 170
+                    for i, line in enumerate(lines[-3:]):
+                        line_surf = font_sub.render(line, True, (200, 200, 200))
+                        shadow = font_sub.render(line, True, (0, 0, 0))
+                        surface.blit(shadow, shadow.get_rect(center=(w // 2 + 1, y_start + i * 26 + 1)))
+                        surface.blit(line_surf, line_surf.get_rect(center=(w // 2, y_start + i * 26)))
 
             # ── Phase 5: Recovery (surprise reveal for fake memorials) ──
             elif phase == "recovery":
