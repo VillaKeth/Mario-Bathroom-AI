@@ -531,19 +531,11 @@ events.append(simple_event(
 # ============================================================
 
 events.append(simple_event(
-    "drake", "Drake", "fun",
-    ["drake shot", "drake toast", "champagne papi shot"],
-    "Started from the bottom, now we're HERE! Mario has a Drake toast!",
-    "To Champagne Papi, to the hits, and to everyone who listens to Drake on repeat! We started from the bottom, and now the whole party's here!",
-    "God's Plan said we should party! WAHOO!"
-))
-
-events.append(simple_event(
-    "taylor_swift", "Taylor Swift", "celebratory",
-    ["taylor swift shot", "taylor shot", "swiftie shot", "eras tour shot"],
-    "Look what you made Mario do! It's Taylor Swift toast time, Swifties!",
-    "To Taylor, to the Eras Tour, and to every Swiftie at this party! Shake it off and raise your glasses! To Taylor Swift!",
-    "We are never ever ever leaving this party! WAHOO!"
+    "sabrina_carpenter", "Sabrina Carpenter", "fun",
+    ["sabrina carpenter shot", "sabrina shot", "espresso shot", "sabrina toast"],
+    "Wahoo! It's-a Sabrina Carpenter time! She's-a short and sweet, just like-a this espresso shot! Everyone grab-a your drinks!",
+    "That's-a unwell! Sabrina would-a be proud! Now someone please explain-a what a nonsense word 'espresso' means in her song!",
+    "Mario hopes-a you're feeling like a tall hot latte after that one!"
 ))
 
 events.append(simple_event(

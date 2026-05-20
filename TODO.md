@@ -69,6 +69,10 @@
 - [x] Server stability: 0 errors, 0 idle errors after 100 events, memory stable at 943MB, GPU 54°C
 - [x] Regenerate ALL 122 Mario poses via Pollinations.ai — 122/122 succeeded, 0 failures
 - [x] Full overnight verification complete — ALL SYSTEMS PERFECT
+- [x] Swap Drake → removed (Kendrick already exists), Taylor Swift → Sabrina Carpenter
+- [x] Create docs/MUSIC_GUIDE.md with recommended songs for all 102 events
+- [x] Create scripts/add_music_to_events.py for auto-wiring MP3s to events
+- [ ] Add MP3 music files for all 99 events without music (user to source files)
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)

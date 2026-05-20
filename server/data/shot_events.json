@@ -1,5 +1,5 @@
 {
-  "_README": "Shot Events Configuration — Add new party events by copying an existing entry below. See docs/EVENTS.md for details.",
+  "_README": "Shot Events Configuration \u00e2\u20ac\u201d Add new party events by copying an existing entry below. See docs/EVENTS.md for details.",
   "events": [
     {
       "name": "lisa_webb_memorial",
@@ -1246,14 +1246,15 @@
       "countdown": true
     },
     {
-      "name": "drake",
-      "display_name": "Drake",
+      "name": "sabrina_carpenter",
+      "display_name": "Sabrina Carpenter",
       "tone": "fun",
       "trigger_type": "voice",
       "voice_keywords": [
-        "drake shot",
-        "drake toast",
-        "champagne papi shot"
+        "sabrina carpenter shot",
+        "sabrina shot",
+        "espresso shot",
+        "sabrina toast"
       ],
       "phases": [
         "announcement",
@@ -1261,32 +1262,25 @@
         "toast",
         "recovery"
       ],
-      "announcement_text": "Started from the bottom, now we're HERE! Mario has a Drake toast!",
-      "toast_text": "To Champagne Papi, to the hits, and to everyone who listens to Drake on repeat! We started from the bottom, and now the whole party's here!",
-      "recovery_line": "God's Plan said we should party! WAHOO!",
-      "countdown": true
-    },
-    {
-      "name": "taylor_swift",
-      "display_name": "Taylor Swift",
-      "tone": "celebratory",
-      "trigger_type": "voice",
-      "voice_keywords": [
-        "taylor swift shot",
-        "taylor shot",
-        "swiftie shot",
-        "eras tour shot"
-      ],
-      "phases": [
-        "announcement",
-        "countdown",
-        "toast",
-        "recovery"
-      ],
-      "announcement_text": "Look what you made Mario do! It's Taylor Swift toast time, Swifties!",
-      "toast_text": "To Taylor, to the Eras Tour, and to every Swiftie at this party! Shake it off and raise your glasses! To Taylor Swift!",
-      "recovery_line": "We are never ever ever leaving this party! WAHOO!",
-      "countdown": true
+      "announcement_text": "Wahoo! It's-a Sabrina Carpenter time! She's-a short and sweet, just like-a this espresso shot! Everyone grab-a your drinks!",
+      "silence_text": null,
+      "toast_text": "That's-a unwell! Sabrina would-a be proud! Now someone please explain-a what a nonsense word 'espresso' means in her song!",
+      "recovery_line": "Mario hopes-a you're feeling like a tall hot latte after that one!",
+      "music_file": null,
+      "music_duration": 30,
+      "countdown_texts": [
+        "Ten!",
+        "Nine!",
+        "Eight!",
+        "Seven!",
+        "Six!",
+        "Five!",
+        "Four!",
+        "Three!",
+        "Two!",
+        "One!",
+        "ESPRESSO SHOT!"
+      ]
     },
     {
       "name": "kanye",
