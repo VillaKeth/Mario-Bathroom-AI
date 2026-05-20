@@ -404,9 +404,15 @@ class MarioDisplay:
         self._font_input = pygame.font.Font(None, 32)
         self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
         self._chat_msg_font = pygame.font.SysFont("arial", 13)
-        # Pre-cache bubble fonts to avoid creating fonts every frame (up to 240/sec at 30fps)
+        # Pre-cache bubble fonts — prefer a friendly font that fits Mario's personality
+        bubble_font_path = None
+        for font_name in ["segoeui", "calibri", "arial", "comicsansms"]:
+            match = pygame.font.match_font(font_name)
+            if match:
+                bubble_font_path = match
+                break
         self._bubble_fonts = {
-            size: pygame.font.Font(None, size)
+            size: pygame.font.Font(bubble_font_path, size)
             for size in range(14, 30, 2)  # 14, 16, 18, 20, 22, 24, 26, 28
         }
         self._running = True
@@ -1841,10 +1847,9 @@ class MarioDisplay:
         return lines
 
     def _draw_speech_bubble(self, text: str):
-        """Draw Mario's speech bubble with style variations and auto-sizing."""
+        """Draw Mario's speech bubble with shadows, warm colors, and polished styling."""
         style = self._detect_bubble_style(self._typewriter_text)
         max_width = 380
-        # Max bubble height: from banner bottom + margin to ~40% of screen
         banner_bot = getattr(self, '_banner_bottom', 48)
         available_h = int(WINDOW_HEIGHT * 0.38) - banner_bot
         max_bubble_height = max(available_h, 120)
@@ -1874,36 +1879,44 @@ class MarioDisplay:
         
         line_height = best_size + 4
         bubble_w = max_width + 40
-        # If text overflows even at min font, let bubble grow rather than clip
         bubble_h = len(best_lines) * line_height + 30
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
-        bubble_y = getattr(self, '_banner_bottom', 48) + 6  # 6px below info strip
+        bubble_y = banner_bot + 6
 
-        # Style-dependent colors
+        # Style-dependent colors (warm, polished palette)
         if style == BUBBLE_STYLE_SHOUT:
-            bg_color = (255, 255, 200)
-            border_color = (200, 0, 0)
-            text_color = (180, 0, 0)
+            bg_color = (255, 245, 215)
+            border_color = (200, 60, 60)
+            text_color = (160, 30, 30)
             border_width = 3
+            shadow_alpha = 80
         elif style == BUBBLE_STYLE_QUESTION:
-            bg_color = (220, 230, 255)
-            border_color = (0, 0, 180)
-            text_color = (0, 0, 120)
+            bg_color = (230, 238, 255)
+            border_color = (80, 120, 200)
+            text_color = (30, 50, 130)
             border_width = 2
+            shadow_alpha = 60
         elif style == BUBBLE_STYLE_WHISPER:
-            bg_color = (230, 230, 230)
-            border_color = (150, 150, 150)
-            text_color = (100, 100, 100)
+            bg_color = (235, 235, 240)
+            border_color = (170, 170, 180)
+            text_color = (100, 100, 110)
             border_width = 1
+            shadow_alpha = 40
         else:
-            bg_color = (255, 255, 255)
-            border_color = (0, 0, 0)
-            text_color = (0, 0, 0)
+            bg_color = (255, 252, 245)
+            border_color = (70, 70, 80)
+            text_color = (30, 30, 35)
             border_width = 2
+            shadow_alpha = 60
+
+        # Drop shadow
+        shadow_surf = pygame.Surface((bubble_w + 6, bubble_h + 6), pygame.SRCALPHA)
+        pygame.draw.rect(shadow_surf, (0, 0, 0, shadow_alpha),
+                         (0, 0, bubble_w + 6, bubble_h + 6), border_radius=16)
+        self._screen.blit(shadow_surf, (bubble_x + 2, bubble_y + 3))
 
         # Spiky bubble for shouts
         if style == BUBBLE_STYLE_SHOUT:
-            # Draw spiky/jagged bubble
             points = []
             cx_b = bubble_x + bubble_w // 2
             cy_b = bubble_y + bubble_h // 2
@@ -1923,21 +1936,33 @@ class MarioDisplay:
             pygame.draw.polygon(self._screen, bg_color, points)
             pygame.draw.polygon(self._screen, border_color, points, border_width)
         else:
-            # Rounded rectangle bubble
+            # Main bubble with rounded corners
             pygame.draw.rect(self._screen, bg_color,
-                             (bubble_x, bubble_y, bubble_w, bubble_h), border_radius=15)
+                             (bubble_x, bubble_y, bubble_w, bubble_h), border_radius=16)
+            # Inner highlight (top edge glow for depth)
+            highlight = pygame.Surface((bubble_w - 8, 3), pygame.SRCALPHA)
+            highlight.fill((255, 255, 255, 90))
+            self._screen.blit(highlight, (bubble_x + 4, bubble_y + 3))
+            # Border
             pygame.draw.rect(self._screen, border_color,
-                             (bubble_x, bubble_y, bubble_w, bubble_h), border_width, border_radius=15)
+                             (bubble_x, bubble_y, bubble_w, bubble_h), border_width, border_radius=16)
 
-        # Bubble pointer
+        # Bubble pointer (tail)
         pointer_x = WINDOW_WIDTH // 2
         pointer_y = bubble_y + bubble_h
         if style == BUBBLE_STYLE_WHISPER:
-            # Dots for whisper
             for i in range(3):
                 pygame.draw.circle(self._screen, border_color,
                                    (pointer_x, pointer_y + 8 + i * 10), 4 - i)
         else:
+            # Shadow for pointer
+            shadow_pts = [
+                (pointer_x - 8, pointer_y + 2),
+                (pointer_x + 12, pointer_y + 2),
+                (pointer_x + 2, pointer_y + 22),
+            ]
+            pygame.draw.polygon(self._screen, (0, 0, 0, 30) if hasattr(pygame, 'SRCALPHA') else (40, 40, 40), shadow_pts)
+            # Main pointer
             pygame.draw.polygon(self._screen, bg_color, [
                 (pointer_x - 10, pointer_y),
                 (pointer_x + 10, pointer_y),
@@ -1953,16 +1978,18 @@ class MarioDisplay:
         showing_cursor = (self._typewriter_pos < len(self._typewriter_text)
                           and (self._frame // 8) % 2 == 0)
 
-        # Text
+        # Text rendering with slight padding
+        text_x = bubble_x + 20
+        text_y_start = bubble_y + 15
         for i, line in enumerate(best_lines):
             text_surf = best_font.render(line, True, text_color)
-            self._screen.blit(text_surf, (bubble_x + 20, bubble_y + 15 + i * line_height))
+            self._screen.blit(text_surf, (text_x, text_y_start + i * line_height))
 
         # Blinking cursor at end of typewriter text
         if showing_cursor and best_lines:
             last_line = best_lines[-1]
-            cursor_x = bubble_x + 20 + best_font.size(last_line)[0] + 2
-            cursor_y = bubble_y + 15 + (len(best_lines) - 1) * line_height
+            cursor_x = text_x + best_font.size(last_line)[0] + 2
+            cursor_y = text_y_start + (len(best_lines) - 1) * line_height
             cursor_height = best_size - 6
             pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, cursor_height))
 
