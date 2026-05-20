@@ -99,6 +99,24 @@ BUBBLE_STYLE_SHOUT = "shout"
 BUBBLE_STYLE_QUESTION = "question"
 BUBBLE_STYLE_WHISPER = "whisper"
 
+# Emotion badge visuals — emoji + color per mood
+EMOTION_EMOJI = {
+    "happy": "☺", "excited": "★", "surprised": "!", "confused": "?",
+    "annoyed": "×", "sleepy": "~", "mischievous": "♦", "laughing": "♪",
+    "sad": "♡", "angry": "!", "loving": "♥", "love": "♥",
+    "proud": "★", "frustrated": "×", "embarrassed": "~", "worried": "~",
+    "bored": "—", "determined": "!", "nervous": "~", "scared": "!",
+}
+
+EMOTION_BADGE_COLORS = {
+    "happy": (255, 220, 50), "excited": (255, 160, 0), "surprised": (200, 100, 255),
+    "confused": (130, 130, 255), "annoyed": (255, 120, 50), "sleepy": (100, 100, 200),
+    "mischievous": (50, 200, 100), "laughing": (255, 230, 50), "sad": (100, 150, 255),
+    "angry": (255, 50, 50), "loving": (255, 100, 150), "love": (255, 80, 130),
+    "proud": (255, 200, 0), "frustrated": (255, 80, 30), "embarrassed": (255, 170, 200),
+    "worried": (180, 180, 255), "bored": (160, 160, 160), "determined": (255, 165, 0),
+    "nervous": (200, 200, 255), "scared": (180, 180, 255),
+}
 
 class Particle:
     """Simple particle for visual effects."""
@@ -218,6 +236,10 @@ class MarioDisplay:
         self._last_response_time = 0
         self._visitor_count = 0
         self._speaking = False
+
+        # Emotion badge pop animation
+        self._emotion_badge_scale = 1.0
+        self._emotion_badge_pop_time = 0.0
 
         # Fullscreen toggle with proportional scaling
         self._fullscreen = False
@@ -636,6 +658,7 @@ class MarioDisplay:
             self._particles = []  # Clear old particles on emotion change
             self._spawn_emotion_particles(emotion)
             self._trigger_emotion_flash(emotion)
+            self._emotion_badge_pop_time = time.time()
 
     def set_pose_hint(self, pose_hint: str):
         """Set an explicit pose hint from the server (highest priority for sprite selection)."""
@@ -1353,6 +1376,9 @@ class MarioDisplay:
         # Emotion flash overlay (on Mario area)
         self._draw_emotion_flash()
 
+        # Floating emotion badge near Mario
+        self._draw_emotion_badge()
+
         # Draw particles on top of Mario
         self._draw_particles()
 
@@ -1514,13 +1540,7 @@ class MarioDisplay:
 
             sep_surf = font.render("|", True, sep_color)
 
-            emo_surf = font.render(f"Mood: {self._emotion}", True, (200, 200, 100))
-            # Only draw mood if it won't overlap with right-side items
-            if x + sep_surf.get_width() + 6 + emo_surf.get_width() < w // 2:
-                surface.blit(sep_surf, (x, text_y))
-                x += sep_surf.get_width() + 6
-                surface.blit(emo_surf, (x, text_y))
-                left_max = x + emo_surf.get_width()
+            # Mood is now shown via the floating emotion badge — not in the strip
 
             # --- Right side (drawn right-to-left) ---
             rx = w - 10
@@ -1849,6 +1869,82 @@ class MarioDisplay:
         right = pygame.Surface((glow_w, WINDOW_HEIGHT), pygame.SRCALPHA)
         right.fill((r, g, b, glow_alpha))
         self._screen.blit(right, (WINDOW_WIDTH - glow_w, 0))
+
+    def _draw_emotion_badge(self):
+        """Draw a floating emotion badge near Mario showing current mood with pop animation."""
+        if not self._emotion:
+            return
+
+        now = time.time()
+        symbol = EMOTION_EMOJI.get(self._emotion, "—")
+        color = EMOTION_BADGE_COLORS.get(self._emotion, (180, 180, 180))
+        label_text = self._emotion.capitalize()
+
+        # Position: to the right of Mario sprite, floating
+        badge_x = WINDOW_WIDTH // 2 + 140
+        badge_y = WINDOW_HEIGHT // 2 - 50
+
+        # Gentle float animation
+        float_offset = math.sin(now * 2.0) * 4
+        badge_y += int(float_offset)
+
+        # Pop animation on emotion change (scale 1.4 → 1.0 over 0.3s)
+        pop_elapsed = now - self._emotion_badge_pop_time
+        if pop_elapsed < 0.3:
+            scale = 1.0 + 0.4 * (1.0 - pop_elapsed / 0.3)
+        else:
+            scale = 1.0
+
+        # Render text to measure size
+        font = self._bubble_fonts.get(16, self._font_small)
+        sym_font = self._bubble_fonts.get(18, self._font)
+        sym_surf = sym_font.render(symbol, True, (50, 50, 50))
+        label_surf = font.render(f" {label_text}", True, (40, 40, 40))
+
+        badge_w = sym_surf.get_width() + label_surf.get_width() + 18
+        badge_h = max(sym_surf.get_height(), label_surf.get_height()) + 12
+
+        # Apply pop scale
+        if scale != 1.0:
+            scaled_w = int(badge_w * scale)
+            scaled_h = int(badge_h * scale)
+            badge_x -= (scaled_w - badge_w) // 2
+            badge_y -= (scaled_h - badge_h) // 2
+            badge_w = scaled_w
+            badge_h = scaled_h
+
+        # Shadow
+        shadow = pygame.Surface((badge_w + 4, badge_h + 4), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (0, 0, 0, 45),
+                         (0, 0, badge_w + 4, badge_h + 4), border_radius=badge_h // 2)
+        self._screen.blit(shadow, (badge_x + 2, badge_y + 2))
+
+        # Background pill with emotion color
+        bg_r, bg_g, bg_b = color
+        pygame.draw.rect(self._screen, (bg_r, bg_g, bg_b),
+                         (badge_x, badge_y, badge_w, badge_h), border_radius=badge_h // 2)
+        # Highlight strip at top
+        hl = pygame.Surface((badge_w - 10, 2), pygame.SRCALPHA)
+        hl.fill((255, 255, 255, 70))
+        self._screen.blit(hl, (badge_x + 5, badge_y + 3))
+        # Border
+        br = (min(255, bg_r + 40), min(255, bg_g + 40), min(255, bg_b + 40))
+        pygame.draw.rect(self._screen, br,
+                         (badge_x, badge_y, badge_w, badge_h), 2, border_radius=badge_h // 2)
+
+        # Symbol + label (re-render at scaled size if popping)
+        if scale != 1.0:
+            s_font = self._bubble_fonts.get(min(28, int(18 * scale)), sym_font)
+            l_font = self._bubble_fonts.get(min(28, int(16 * scale)), font)
+            sym_surf = s_font.render(symbol, True, (50, 50, 50))
+            label_surf = l_font.render(f" {label_text}", True, (40, 40, 40))
+
+        content_w = sym_surf.get_width() + label_surf.get_width()
+        cx = badge_x + (badge_w - content_w) // 2
+        cy_sym = badge_y + (badge_h - sym_surf.get_height()) // 2
+        cy_lbl = badge_y + (badge_h - label_surf.get_height()) // 2
+        self._screen.blit(sym_surf, (cx, cy_sym))
+        self._screen.blit(label_surf, (cx + sym_surf.get_width(), cy_lbl))
 
     def _wrap_text_for_bubble(self, text: str, font, max_width: int) -> list[str]:
         """Wrap text to fit within max_width using given font."""
