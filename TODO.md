@@ -72,9 +72,14 @@
 - [x] Swap Drake → removed (Kendrick already exists), Taylor Swift → Sabrina Carpenter
 - [x] Create docs/MUSIC_GUIDE.md with recommended songs for all 102 events
 - [x] Create scripts/add_music_to_events.py for auto-wiring MP3s to events
-- [ ] Add MP3 music files for all 99 events without music (user to source files)
+- [x] Add MP3 music files for all 99 events without music
 - [x] Downloaded 99/99 MP3 music files for all events via yt-dlp
 - [x] Wired all 102 events with music phases and file paths via add_music_to_events.py
+- [x] Swap Kanye "Stronger" → "Dark Fantasy" (Can We Get Much Higher / MBDTF)
+- [x] Add "Angel With a Shotgun" event (The Cab)
+- [x] Add "Tokyo Ghoul - Unravel" event (solemn tone, Ken Kaneki themed with custom pose)
+- [x] Fix countdown overlay not clearing when music phase starts (bug: "1" stuck on screen)
+- [x] All 104 events now have music + correct phase transitions
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
