@@ -96,13 +96,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Wahoo! It's time for the most important race of the night! Everyone grab your drinks, because this is a Mario Kart toast!",
       "toast_text": "Here we go! To the blue shells, the banana peels, and the friends we've lost to first place! To Mario Kart!",
       "recovery_line": "If you got hit by a blue shell, take another sip! Let's-a go!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/mario_kart.mp3"
     },
     {
       "name": "smash_bros",
@@ -117,13 +119,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "GAME! Everyone stop what you're doing! Mario has a Smash Bros announcement!",
       "toast_text": "To the greatest fighting game ever made! To all the broken controllers, the rage quits, and the friendships tested! To Smash Bros!",
       "recovery_line": "Nobody got launched off the stage, right? WAHOO! Back to the party!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/smash_bros.mp3"
     },
     {
       "name": "zelda",
@@ -139,13 +143,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Listen! Hey, listen! Mario has something to say! This toast goes out to the Hero of Hyrule!",
       "toast_text": "To Link, to Zelda, and to everyone who spent 200 hours finding all the Korok seeds! To the Legend of Zelda!",
       "recovery_line": "It's dangerous to go alone! Take this drink! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/zelda.mp3"
     },
     {
       "name": "pokemon",
@@ -160,13 +166,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "A wild toast has appeared! Everyone, Mario chooses YOU for this Pokemon celebration!",
       "toast_text": "To the original 151, to Pikachu, and to every kid who argued that their starter was the best! Gotta catch 'em all! To Pokemon!",
       "recovery_line": "That toast was super effective! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/pokemon.mp3"
     },
     {
       "name": "minecraft",
@@ -181,13 +189,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Ssssssss, BOOM! Just kidding! Mario has a Minecraft toast for everyone!",
       "toast_text": "To the blocks, the creepers, and the diamonds! To everyone who's ever punched a tree! To Minecraft!",
       "recovery_line": "Don't dig straight down after that drink! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/minecraft.mp3"
     },
     {
       "name": "fortnite",
@@ -202,13 +212,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Where we dropping, boys? Mario says we're dropping into this toast! Everyone get ready!",
       "toast_text": "To the Victory Royales, the cranking 90s, and the default dances! To Fortnite!",
       "recovery_line": "That's a Victory Royale, baby! WAHOO! Back to the battle bus!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/fortnite.mp3"
     },
     {
       "name": "among_us",
@@ -224,13 +236,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Emergency meeting! EMERGENCY MEETING! Mario has called an emergency meeting!",
       "toast_text": "To the imposters, the sus accusations, and the people who always get voted out first! To Among Us!",
       "recovery_line": "That toast was not sus at all! WAHOO! Or was it...",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/among_us.mp3"
     },
     {
       "name": "gta",
@@ -245,13 +259,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Wasted! Just kidding, nobody's wasted yet! Mario has a Grand Theft Auto toast!",
       "toast_text": "To the five stars, the tank rampages, and the hours spent doing absolutely nothing productive! To GTA!",
       "recovery_line": "Remember, this is a party, not Los Santos! No stealing cars! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/gta.mp3"
     },
     {
       "name": "call_of_duty",
@@ -266,13 +282,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Enemy toast incoming! Mario has a Call of Duty announcement for everyone!",
       "toast_text": "To the 360 no-scopes, the trash talk, and the lobbies that built character! To Call of Duty!",
       "recovery_line": "Mission accomplished! WAHOO! Now get back to the party, soldier!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/call_of_duty.mp3"
     },
     {
       "name": "league",
@@ -287,13 +305,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "First blood! Mario has initiated a League of Legends toast!",
       "toast_text": "To the ranked grind, the toxic teammates, and the supports who never get any credit! To League of Legends!",
       "recovery_line": "GG no re! Back to the party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/league.mp3"
     },
     {
       "name": "rocket_league",
@@ -307,13 +327,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "What a save! What a save! What a save! Mario has a Rocket League toast!",
       "toast_text": "To the aerial goals, the calculated plays, and the teammates who ball chase! To Rocket League!",
       "recovery_line": "Nice shot! WAHOO! Chat disabled for 3 seconds!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/rocket_league.mp3"
     },
     {
       "name": "animal_crossing",
@@ -328,13 +350,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Mario has an important announcement from Tom Nook! Just kidding, but please listen!",
       "toast_text": "To the island life, the fossil hunting, and the friends who visited our islands! Also to paying off Tom Nook's loans! To Animal Crossing!",
       "recovery_line": "Now go check your turnip prices! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/animal_crossing.mp3"
     },
     {
       "name": "elden_ring",
@@ -349,13 +373,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "You Died! Just kidding! Fellow Tarnished, Mario has an Elden Ring toast!",
       "toast_text": "To the Tarnished, the impossible bosses, and everyone who rage quit at Malenia! To Elden Ring!",
       "recovery_line": "That drink hit harder than Radahn! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/elden_ring.mp3"
     },
     {
       "name": "dark_souls",
@@ -370,13 +396,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "YOU DIED! But don't worry, you can respawn at the bonfire! Mario has a Dark Souls toast!",
       "toast_text": "To the bonfires, the invasions, and to gitting gud! To everyone who's ever thrown a controller! To Dark Souls!",
       "recovery_line": "Praise the sun! And praise this drink! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/dark_souls.mp3"
     },
     {
       "name": "undertale",
@@ -391,13 +419,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "You feel your phone vibrating! It's Mario, and he has an Undertale toast! You're filled with determination!",
       "toast_text": "To the monsters, the mercy button, and to everyone who cried at the pacifist ending! To Undertale and Toby Fox!",
       "recovery_line": "You feel like you're going to have a great time at this party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/undertale.mp3"
     },
     {
       "name": "star_wars",
@@ -413,13 +443,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "I sense a disturbance in the Force! Mario has a Star Wars toast for everyone!",
       "toast_text": "To the Jedi, the Sith, and everyone who argues about which trilogy is the best! May the Force be with you! To Star Wars!",
       "recovery_line": "This is the way! WAHOO! Now back to the party, young padawans!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/star_wars.mp3"
     },
     {
       "name": "marvel",
@@ -435,13 +467,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "AVENGERS, ASSEMBLE! Mario is calling all heroes for this Marvel toast!",
       "toast_text": "To the Avengers, the Infinity Stones, and everyone who cried when Iron Man snapped! To Marvel!",
       "recovery_line": "I am Iron Mario! Just kidding! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/marvel.mp3"
     },
     {
       "name": "breaking_bad",
@@ -456,13 +490,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Say my name! It's-a me, Mario! And I have a Breaking Bad toast!",
       "toast_text": "To Walter White, to Jesse Pinkman, and to the greatest show ever written! Say my name! To Breaking Bad!",
       "recovery_line": "I am the one who knocks on bathroom doors! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/breaking_bad.mp3"
     },
     {
       "name": "the_office",
@@ -478,13 +514,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "That's what she said! Sorry, sorry! Mario has a toast from Dunder Mifflin!",
       "toast_text": "To Michael, to Dwight, to Jim and Pam, and to everyone who's seen every episode at least five times! To The Office!",
       "recovery_line": "I declare PARTY TIME! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/the_office.mp3"
     },
     {
       "name": "lord_of_rings",
@@ -500,13 +538,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "One toast to rule them all! Mario has a Lord of the Rings announcement!",
       "toast_text": "To the Fellowship, to Frodo, and to Sam who carried everyone! You bow to no one! To the Lord of the Rings!",
       "recovery_line": "And my axe! Wait, wrong quote! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/lord_of_rings.mp3"
     },
     {
       "name": "harry_potter",
@@ -522,13 +562,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "You're a drinker, Harry! Mario has a magical Harry Potter toast!",
       "toast_text": "To Hogwarts, to Dumbledore's Army, and to butterbeer! Ten points to whatever house you're in! To Harry Potter!",
       "recovery_line": "Mischief managed! WAHOO! Now get back to the common room!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/harry_potter.mp3"
     },
     {
       "name": "john_wick",
@@ -543,13 +585,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Yeah, I'm thinking we're doing a toast! Mario channels his inner John Wick!",
       "toast_text": "To the Baba Yaga, to the pencils, and to everyone who loves a good action scene! To John Wick!",
       "recovery_line": "That toast was breathtaking! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/john_wick.mp3"
     },
     {
       "name": "spongebob",
@@ -564,13 +608,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "ARE YOU READY, KIDS? AYE AYE CAPTAIN! Mario has a SpongeBob toast!",
       "toast_text": "To SpongeBob, to Patrick, and to everyone who still watches it as adults! Who lives in a pineapple under the sea? To SpongeBob!",
       "recovery_line": "I'm ready, I'm ready, I'm ready for more party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/spongebob.mp3"
     },
     {
       "name": "shrek",
@@ -585,13 +631,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "What are you doing in my swamp? Just kidding! Mario has a Shrek toast!",
       "toast_text": "To the ogre, the donkey, and the greatest fairy tale ever told! Because this party is like an onion, it has layers! To Shrek!",
       "recovery_line": "Somebody once told me this party was gonna be great! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/shrek.mp3"
     },
     {
       "name": "batman",
@@ -606,13 +654,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "NA NA NA NA NA NA NA NA MARIO! Wait, no. Mario has a Batman toast!",
       "toast_text": "To the Dark Knight, to Gotham, and to everyone who does their best Batman voice at parties! To Batman!",
       "recovery_line": "I'm not the hero this party deserves, but the one it needs! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/batman.mp3"
     },
     {
       "name": "fast_furious",
@@ -628,13 +678,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "I don't have friends, I have family! Mario has a Fast and Furious toast!",
       "toast_text": "To family! To the quarter mile races, to the ridiculous stunts, and to Dom Toretto! Nothing is stronger than family! To Fast and Furious!",
       "recovery_line": "We ride together, we party together! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/fast_furious.mp3"
     },
     {
       "name": "stranger_things",
@@ -649,13 +701,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "The lights are flickering! Something is coming from the Upside Down! Mario has a Stranger Things toast!",
       "toast_text": "To Eleven, to the Hawkins crew, and to everyone who binged the whole season in one night! To Stranger Things!",
       "recovery_line": "Friends don't lie, and this party doesn't disappoint! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/stranger_things.mp3"
     },
     {
       "name": "game_of_thrones",
@@ -670,13 +724,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Winter is coming! But first, Mario has a Game of Thrones toast!",
       "toast_text": "To the Iron Throne, to the dragons, and to everyone who's still upset about Season 8! To Game of Thrones!",
       "recovery_line": "What do we say to the God of Party? Not today! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/game_of_thrones.mp3"
     },
     {
       "name": "pirates_caribbean",
@@ -691,13 +747,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "But you HAVE heard of me! Captain Mario has a Pirates of the Caribbean toast!",
       "toast_text": "To Captain Jack Sparrow, to the Black Pearl, and to the rum! Why is the rum always gone? To Pirates!",
       "recovery_line": "Now bring me that party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/pirates_caribbean.mp3"
     },
     {
       "name": "jurassic_park",
@@ -712,13 +770,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Life, uh, finds a way! Mario has a Jurassic Park toast, and the dinosaurs are loose!",
       "toast_text": "To the dinosaurs, to Jeff Goldblum, and to the scientists who said maybe we shouldn't! To Jurassic Park!",
       "recovery_line": "Clever girl! That toast was clever! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/jurassic_park.mp3"
     },
     {
       "name": "rick_roll",
@@ -734,13 +794,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "You know the rules, and so does Mario! It's time for the Rick Roll toast!",
       "toast_text": "Never gonna give you up! Never gonna let you down! Never gonna run around and desert you! To Rick Astley and the greatest meme ever!",
       "recovery_line": "You just got rick rolled AND took a shot! WAHOO! Double whammy!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/rick_roll.mp3"
     },
     {
       "name": "sigma",
@@ -755,13 +817,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "The grind never stops! Mario has a toast for all the sigmas in the building!",
       "toast_text": "To the sigma grindset, to the hustle, and to everyone who wakes up at 4 AM to hit the gym! Wait, you're all at a party! To being sigma!",
       "recovery_line": "Back to the grind! WAHOO! Just kidding, enjoy the party!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/sigma.mp3"
     },
     {
       "name": "based",
@@ -776,13 +840,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Based alert! Based alert! Mario has the most based toast of the evening!",
       "toast_text": "To being based, to having opinions, and to not caring what anyone thinks! This toast is extremely based! Raise your glasses!",
       "recovery_line": "That was the most based thing I've ever seen! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/based.mp3"
     },
     {
       "name": "ohio",
@@ -797,13 +863,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "What's happening in Ohio NOW? Mario has an Ohio toast, and things are getting weird!",
       "toast_text": "To Ohio, where anything can happen and usually does! To the memes, the chaos, and the absolute madness! Only in Ohio! Cheers!",
       "recovery_line": "Normal day in Ohio! WAHOO! Now back to whatever state of chaos this party is!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/ohio.mp3"
     },
     {
       "name": "skibidi",
@@ -818,13 +886,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Skibidi dop dop dop yes yes! Mario has a toast that's perfect for the bathroom! Skibidi Toilet!",
       "toast_text": "To the Skibidi Toilet, to the Cameraman, and to Gen Alpha for confusing all of us! Skibidi dop dop! Cheers!",
       "recovery_line": "That was very skibidi of us! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/skibidi.mp3"
     },
     {
       "name": "no_cap",
@@ -839,13 +909,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "No cap, fr fr, Mario has an important toast! This is deadass serious!",
       "toast_text": "To keeping it real, no cap, to the vibes, and to everyone here being absolutely bussin! For real for real! Raise your glasses!",
       "recovery_line": "That was straight fire, no cap! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/no_cap.mp3"
     },
     {
       "name": "ratio",
@@ -860,13 +932,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "RATIO! Mario just ratio'd everyone at this party! Time for a toast!",
       "toast_text": "To the ratios, the L takes, and the W's! To everyone who's ever been ratioed on Twitter! Counter ratio! Cheers!",
       "recovery_line": "That toast did NOT get ratioed! WAHOO! Major W!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/ratio.mp3"
     },
     {
       "name": "yeet",
@@ -880,13 +954,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "YEET! Mario is about to yeet this toast into existence! Get ready everyone!",
       "toast_text": "To yeeting, to yoinking, and to the absolute CHAOS of this party! Ready? YEET your drinks! Cheers!",
       "recovery_line": "That toast was YEETED into the stratosphere! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/yeet.mp3"
     },
     {
       "name": "vibe_check",
@@ -901,13 +977,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "VIBE CHECK! Mario is performing an official vibe check on this entire party!",
       "toast_text": "To the vibes, the energy, and everyone passing the vibe check tonight! You all passed! Raise your glasses to good vibes only!",
       "recovery_line": "Vibes: immaculate! WAHOO! Party status: legendary!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/vibe_check.mp3"
     },
     {
       "name": "ok_boomer",
@@ -922,13 +1000,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "OK BOOMER! Wait, none of you are boomers! Mario has a generational toast!",
       "toast_text": "To every generation! Boomers, Gen X, Millennials, Gen Z, and Gen Alpha! United by one thing, we all love a good party! Cheers to everyone!",
       "recovery_line": "OK, that was actually wholesome! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/ok_boomer.mp3"
     },
     {
       "name": "waterfall",
@@ -943,13 +1023,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "WATERFALL! Mario is calling for the ultimate party move! Everyone line up!",
       "toast_text": "When the countdown hits zero, the birthday boy starts drinking, then the person next to them, and so on! Last person to stop wins! WATERFALL!",
       "recovery_line": "WAHOO! What a waterfall! Everyone survived! I think!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/waterfall.mp3"
     },
     {
       "name": "never_have_i",
@@ -964,13 +1046,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "It's confession time! Mario is starting a round of Never Have I Ever!",
       "toast_text": "Here's how it works! Mario says something, and if you've done it, you drink! Never have I ever been to a party THIS good! If you drink, that means this party is amazing! Cheers!",
       "recovery_line": "Look at all of you drinking! This party IS amazing! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/never_have_i.mp3"
     },
     {
       "name": "kings_cup",
@@ -985,13 +1069,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "ALL HAIL THE KING! Mario declares the King's Cup toast! The birthday boy is the King!",
       "toast_text": "To the King of the party, Jacob! The King decrees that everyone must raise their glass and drink in his honor! Long live the King!",
       "recovery_line": "The King has spoken! WAHOO! What a ruler!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/kings_cup.mp3"
     },
     {
       "name": "flip_cup",
@@ -1006,13 +1092,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "It's flip cup time! Mario is calling for the most intense drinking game! Teams, assemble!",
       "toast_text": "To the flippers, the spills, and the champions! Drink it, flip it, NAIL IT! To Flip Cup! Cheers!",
       "recovery_line": "Someone definitely spilled! WAHOO! That's the spirit!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/flip_cup.mp3"
     },
     {
       "name": "beer_pong",
@@ -1027,13 +1115,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "SPLASH! Mario has a toast for the greatest table sport ever invented!",
       "toast_text": "To the sinks, the bounces, the re-racks, and the heated eye contact across the table! To Beer Pong champions everywhere!",
       "recovery_line": "Nothing but cups! WAHOO! Is that a heating up? On fire!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/beer_pong.mp3"
     },
     {
       "name": "thunderstruck",
@@ -1048,13 +1138,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "THUNDER! Mario just felt the thunder! It's time for the most electrifying toast!",
       "toast_text": "You've been THUNDERSTRUCK! To the legendary drinking game, to AC/DC, and to everyone brave enough to play! Cheers to the thunder!",
       "recovery_line": "THUNDER! WAHOO! Feel the electricity of this party!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/thunderstruck.mp3"
     },
     {
       "name": "shotgun",
@@ -1069,13 +1161,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "SHOTGUN! Mario is calling for the fastest drinking challenge! Who's brave enough?",
       "toast_text": "To the brave souls who shotgun their drinks! Poke it, crack it, CHUG IT! To the shotgun legends! Ready, set, GO!",
       "recovery_line": "WAHOO! That was FAST! Someone call the Guinness Book!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/shotgun.mp3"
     },
     {
       "name": "power_hour",
@@ -1089,13 +1183,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "It's the power hour! Mario declares that this is the most powerful hour of the party!",
       "toast_text": "To the power hour! A shot every minute for 60 minutes! Just kidding, but how about ONE shot right now? To the POWER HOUR!",
       "recovery_line": "That's the power of the party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/power_hour.mp3"
     },
     {
       "name": "chug",
@@ -1111,13 +1207,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "CHUG CHUG CHUG! Mario is calling for a chug challenge! Are you ready?",
       "toast_text": "To the chugging champions of the world! When the countdown hit one, you started chugging! To the legends! CHUG!",
       "recovery_line": "WAHOO! What a chug! Someone check the record books!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/chug.mp3"
     },
     {
       "name": "double_shot",
@@ -1132,13 +1230,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "DOUBLE TROUBLE! Mario is calling for the double shot! That means TWO drinks, people!",
       "toast_text": "To doubling down! To going big or going home! Two glasses up, two drinks down! DOUBLE SHOT! Cheers!",
       "recovery_line": "WAHOO! Double the fun, double the party! No one's driving, right?",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/double_shot.mp3"
     },
     {
       "name": "truth_or_dare",
@@ -1153,13 +1253,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "TRUTH OR DARE! Mario is starting a round! But first, a toast!",
       "toast_text": "To the truths that embarrass us and the dares that scare us! Whatever you choose, you're drinking first! To Truth or Dare!",
       "recovery_line": "Ooh, spicy! WAHOO! Now someone pick truth or dare!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/truth_or_dare.mp3"
     },
     {
       "name": "spin_bottle",
@@ -1174,13 +1276,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "SPIN THE BOTTLE! Well, spin the SHOT glass! Mario has a spinning toast!",
       "toast_text": "To the spinner, the spinee, and everyone watching nervously! Take your shot and spin! To Spin the Bottle!",
       "recovery_line": "Where did it land? WAHOO! Drama! I love it!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/spin_bottle.mp3"
     },
     {
       "name": "categories",
@@ -1195,13 +1299,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Category is PARTY LEGENDS! Mario is starting a round of Categories!",
       "toast_text": "Here's how it works! Someone names a category, and we go around naming things in it! If you can't think of one, you drink! To Categories! Let's start with types of Mario power-ups!",
       "recovery_line": "Someone was stumped! WAHOO! Better luck next category!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/categories.mp3"
     },
     {
       "name": "most_likely",
@@ -1216,13 +1322,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "WHO'S MOST LIKELY? Mario has a Most Likely To toast!",
       "toast_text": "Point to whoever is most likely to still be partying at 3 AM! Now drink if people pointed at you! To the most likely legends!",
       "recovery_line": "The people have spoken! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/most_likely.mp3"
     },
     {
       "name": "last_man",
@@ -1237,13 +1345,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "LAST ONE STANDING! Mario declares the endurance challenge! Who will survive?",
       "toast_text": "To the party warriors! To everyone who's still here, still standing, and still having a blast! You are the LEGENDS! Raise your glasses!",
       "recovery_line": "Standing ovation for the survivors! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/last_man.mp3"
     },
     {
       "name": "sabrina_carpenter",
@@ -1259,6 +1369,7 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
@@ -1266,7 +1377,7 @@
       "silence_text": null,
       "toast_text": "That's-a unwell! Sabrina would-a be proud! Now someone please explain-a what a nonsense word 'espresso' means in her song!",
       "recovery_line": "Mario hopes-a you're feeling like a tall hot latte after that one!",
-      "music_file": null,
+      "music_file": "client/assets/event_music/sabrina_carpenter.mp3",
       "music_duration": 30,
       "countdown_texts": [
         "Ten!",
@@ -1295,13 +1406,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Yo Mario, I'm really happy for you, and I'mma let you finish, but this is the greatest toast of all time!",
       "toast_text": "To Ye, to the beats, and to Stronger, Faster, Better! I'mma let this party finish, but first, DRINK! To Kanye!",
       "recovery_line": "That toast was a masterpiece! WAHOO! George Bush doesn't care about plumbers!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/kanye.mp3"
     },
     {
       "name": "eminem",
@@ -1317,13 +1430,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Will the real Slim Shady please stand up? Mario has an Eminem toast!",
       "toast_text": "To the Rap God, to Stan, and to everyone who knows all the words to Lose Yourself! You only get one shot! Do not miss your chance to drink! To Eminem!",
       "recovery_line": "Mom's spaghetti! WAHOO! Now sit back down!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/eminem.mp3"
     },
     {
       "name": "weeknd",
@@ -1339,13 +1454,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "I've been blinded by the lights! Mario has a Weeknd toast! Can you feel your face?",
       "toast_text": "To The Weeknd, to Blinding Lights, and to everyone dancing with their eyes closed! I can't feel my face but I love it! Cheers!",
       "recovery_line": "After hours at this party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/weeknd.mp3"
     },
     {
       "name": "travis_scott",
@@ -1361,13 +1478,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "IT'S LIT! Mario has gone sicko mode with this Travis Scott toast!",
       "toast_text": "To La Flame, to Cactus Jack, and to SICKO MODE! Straight up! Raise your glasses and go crazy! To Travis Scott!",
       "recovery_line": "That was LIT! WAHOO! Highest in the room!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/travis_scott.mp3"
     },
     {
       "name": "doja_cat",
@@ -1382,13 +1501,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "You're a cow, you're a cat, you're a PARTY ANIMAL! Mario has a Doja Cat toast!",
       "toast_text": "To Doja Cat, to the hot pink, and to everyone who can't stop saying MOO! Say so, raise your glass! To Doja Cat!",
       "recovery_line": "That toast was bussin'! WAHOO! Meow!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/doja_cat.mp3"
     },
     {
       "name": "bad_bunny",
@@ -1403,13 +1524,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Yo perreo sola! Mario has a Bad Bunny toast! Yeh yeh yeh!",
       "toast_text": "To Bad Bunny, to the reggaeton, and to everyone who's been practicing their perreo! Dale! To Bad Bunny! Cheers!",
       "recovery_line": "DALE! WAHOO! That toast was caliente!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/bad_bunny.mp3"
     },
     {
       "name": "beyonce",
@@ -1424,13 +1547,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "ALL THE SINGLE LADIES! And everyone else too! Mario has a Beyonce toast!",
       "toast_text": "To Queen Bey, to the Beyhive, and to the greatest performer of our generation! Who run the world? GIRLS! To Beyonce!",
       "recovery_line": "Flawless! WAHOO! Now get in formation!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/beyonce.mp3"
     },
     {
       "name": "kendrick",
@@ -1446,13 +1571,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "SIT DOWN! Be humble! Mario has a Kendrick Lamar toast!",
       "toast_text": "To K-Dot, to good kid m.A.A.d city, and to the king of the West Coast! HUMBLE! Raise your glass! To Kendrick Lamar!",
       "recovery_line": "DNA says we keep partying! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/kendrick.mp3"
     },
     {
       "name": "bathroom_break",
@@ -1467,13 +1594,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Speaking of bathrooms, Mario knows a thing or two about bathrooms! This is his domain!",
       "toast_text": "To every bathroom in the world! To the awkward encounters, the long waits, and the people who forget to flush! To BATHROOMS! Cheers!",
       "recovery_line": "Now please, wash your hands! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/bathroom_break.mp3"
     },
     {
       "name": "pizza_time",
@@ -1488,13 +1617,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "PIZZA TIME! Mario knows about Italian food, and pizza is the best invention EVER! Toast time!",
       "toast_text": "To pizza! Pepperoni, mushroom, Hawaiian if you're brave enough! To the greatest food in the world! To PIZZA! Cheers!",
       "recovery_line": "That's-a spicy toast! WAHOO! Now who ordered the pineapple?",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/pizza_time.mp3"
     },
     {
       "name": "midnight",
@@ -1509,13 +1640,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "BONG! BONG! BONG! It's the witching hour! Mario has the official midnight toast!",
       "toast_text": "To midnight! The party is only getting started! To the night owls, the party animals, and everyone who's staying until sunrise! Cheers to midnight!",
       "recovery_line": "The night is young and so are we! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/midnight.mp3"
     },
     {
       "name": "first_shot",
@@ -1530,13 +1663,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Ladies and gentlemen, Mario has the honor of announcing the VERY FIRST SHOT of the night!",
       "toast_text": "To the first of many! To new beginnings, to this amazing party, and to the birthday boy! This is just the start! To the FIRST SHOT!",
       "recovery_line": "And so it begins! WAHOO! Many more to come!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/first_shot.mp3"
     },
     {
       "name": "last_shot",
@@ -1552,13 +1687,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "This is it! The FINAL shot of the night! Mario is getting emotional!",
       "toast_text": "To the last shot! To everyone who made it this far! To the memories, the laughs, and the friendships! One final cheers to the greatest party ever!",
       "recovery_line": "WAHOO! What a night! I love you all! Sniff!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/last_shot.mp3"
     },
     {
       "name": "birthday_wish",
@@ -1573,13 +1710,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "Shhh, everyone! The birthday boy is about to make a wish! Mario needs silence!",
       "toast_text": "Close your eyes, Jacob! Make a wish! And while he does, everyone raise your glasses to the birthday boy and whatever amazing thing he wished for! To Jacob's birthday wish!",
       "recovery_line": "Did it come true? Only time will tell! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/birthday_wish.mp3"
     },
     {
       "name": "group_photo",
@@ -1595,13 +1734,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "EVERYONE SQUEEZE IN! Mario is calling for a group photo moment! Get your phones out!",
       "toast_text": "To the memories! Everyone raise your glasses, smile big, and take the photo! Three, two, one, CHEERS! To the group photo!",
       "recovery_line": "That one's going on the wall! WAHOO! Best photo ever!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/group_photo.mp3"
     },
     {
       "name": "dance_battle",
@@ -1616,13 +1757,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "IT'S A DANCE OFF! Mario is calling for a dance battle! Clear the floor!",
       "toast_text": "To the dancers, the movers, and the shakers! After this drink, someone HAS to bust a move! To the DANCE BATTLE! Cheers!",
       "recovery_line": "Those moves were fire! WAHOO! Or were they? The crowd decides!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/dance_battle.mp3"
     },
     {
       "name": "karaoke",
@@ -1637,13 +1780,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "IS THIS THING ON? Mario is calling for karaoke! Someone's about to embarrass themselves and it's going to be GREAT!",
       "toast_text": "To the singers, the screamers, and the ones who are tone deaf but don't care! Liquid courage! To KARAOKE! Cheers!",
       "recovery_line": "Beautiful! Or terrible! Either way, WAHOO! Encore!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/karaoke.mp3"
     },
     {
       "name": "couples",
@@ -1658,13 +1803,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "AWWW! Mario sees some lovebirds at this party! Time for a couples toast!",
       "toast_text": "To the couples! To the hand-holding, the matching outfits, and the shared drinks! You two are adorable! To LOVE! Cheers!",
       "recovery_line": "Get a room! Just kidding! WAHOO! Love is beautiful!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/couples.mp3"
     },
     {
       "name": "singles",
@@ -1679,13 +1826,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "TO THE SINGLE PEOPLE! Mario sees you and you are THRIVING!",
       "toast_text": "To being single and ready to mingle! To the freedom, the dance floor, and not having to share your drink! To the SINGLES! Cheers!",
       "recovery_line": "Your person is out there! Or not! Either way, WAHOO! Party time!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/singles.mp3"
     },
     {
       "name": "designated_driver",
@@ -1701,13 +1850,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "HEROES DON'T ALWAYS WEAR CAPES! Mario has a toast for the designated drivers!",
       "toast_text": "To the designated drivers! The real MVPs of every party! You sacrifice your buzz so everyone gets home safe! To the DDs! Water cheers!",
       "recovery_line": "You're the real hero tonight! WAHOO! Please drive safely!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/designated_driver.mp3"
     },
     {
       "name": "best_friend",
@@ -1723,13 +1874,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "BFF ALERT! Mario is getting sentimental! Time for a best friend toast!",
       "toast_text": "To the best friends! The ones who've seen you at your worst and still showed up! Grab your bestie and raise your glasses! To FRIENDSHIP! Cheers!",
       "recovery_line": "That's beautiful! WAHOO! Now hug it out!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/best_friend.mp3"
     },
     {
       "name": "throwback",
@@ -1745,13 +1898,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "THROWBACK TIME! Mario is taking this party back in time! Get ready for nostalgia!",
       "toast_text": "To the good old days! To the embarrassing middle school photos, the first crushes, and the friendships that started it all! To the THROWBACK!",
       "recovery_line": "Those were the days! WAHOO! But tonight's pretty great too!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/throwback.mp3"
     },
     {
       "name": "roast",
@@ -1767,13 +1922,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "IT'S ROAST TIME! Mario is about to roast the birthday boy! Sorry, Jacob!",
       "toast_text": "To Jacob! The man, the myth, the legend who once dropped his phone in the toilet! Just kidding! But seriously, we love you, and this party is amazing! To ROASTING the birthday boy!",
       "recovery_line": "All in good fun! WAHOO! Jacob's a good sport!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/roast.mp3"
     },
     {
       "name": "touchdown",
@@ -1788,13 +1945,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "TOUCHDOWN! Mario is spiking the ball! Wait, this is a party, not a football game! Toast time!",
       "toast_text": "To the touchdowns, the Hail Marys, and the Super Bowl halftime shows! SIX POINTS for this toast! To FOOTBALL!",
       "recovery_line": "That's a first down for this party! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/touchdown.mp3"
     },
     {
       "name": "slam_dunk",
@@ -1809,13 +1968,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "AND ONE! Mario just posterized everyone! Time for a basketball toast!",
       "toast_text": "To the slam dunks, the buzzer beaters, and the pickup games! Nothing but net! To BASKETBALL! Cheers!",
       "recovery_line": "BOOM SHAKALAKA! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/slam_dunk.mp3"
     },
     {
       "name": "goal",
@@ -1831,13 +1992,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "GOOOOOOOOOOAL! GOOOOOOAL! Mario is channeling his inner soccer commentator!",
       "toast_text": "To the beautiful game! To the goals, the saves, and everyone who pretends to care during the World Cup! GOOOOAL! To SOCCER! Cheers!",
       "recovery_line": "WAHOO! That toast bent like Beckham!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/goal.mp3"
     },
     {
       "name": "knockout",
@@ -1853,13 +2016,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "DING DING DING! Round one! Mario has a knockout toast for all the fighters!",
       "toast_text": "To the knockouts, the uppercuts, and everyone who's ever shadow boxed in the bathroom mirror! To the FIGHTERS! Cheers!",
       "recovery_line": "And the winner by TOAST is everyone! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/knockout.mp3"
     },
     {
       "name": "world_cup",
@@ -1873,13 +2038,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "OLE OLE OLE OLE! Mario is bringing World Cup energy to this party!",
       "toast_text": "To the World Cup, to every nation, and to the fans who lose their minds every four years! OLE OLE OLE! To the WORLD CUP!",
       "recovery_line": "We are the champions! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/world_cup.mp3"
     },
     {
       "name": "super_bowl",
@@ -1893,13 +2060,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "It's the SUPER BOWL of parties! Mario has the halftime toast!",
       "toast_text": "To the Super Bowl, to the commercials that cost millions, and to the halftime show! This party's commercial break is over! To the SUPER BOWL!",
       "recovery_line": "Back to the game! WAHOO! I mean back to the party!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/super_bowl.mp3"
     },
     {
       "name": "home_run",
@@ -1914,13 +2083,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "IT'S OUTTA HERE! Mario just hit a home run! Baseball toast time!",
       "toast_text": "To the home runs, the grand slams, and the seventh inning stretch! Take me out to the party! To BASEBALL! Cheers!",
       "recovery_line": "That toast was a grand slam! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/home_run.mp3"
     },
     {
       "name": "hole_in_one",
@@ -1935,13 +2106,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "FORE! Actually wait, don't yell fore at a party! Mario has a golf toast!",
       "toast_text": "To the hole in ones, the eagle putts, and everyone who pretends they're good at golf! To GOLF! Cheers!",
       "recovery_line": "That toast was below par! In a good way! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/hole_in_one.mp3"
     },
     {
       "name": "checkmate",
@@ -1956,13 +2129,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "CHECKMATE! Mario just made the smartest move of the night! Chess toast!",
       "toast_text": "To the chess players, the strategists, and everyone who's seen The Queen's Gambit! Your move! To CHESS! Cheers!",
       "recovery_line": "That was a 200 IQ toast! WAHOO!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/checkmate.mp3"
     },
     {
       "name": "strike_bowling",
@@ -1977,13 +2152,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "STRIKE! All ten pins are down! Mario has a bowling toast!",
       "toast_text": "To the strikes, the gutter balls, and the rented shoes! Everyone raise your glasses like a bowling ball! To BOWLING! Cheers!",
       "recovery_line": "That toast knocked them all down! WAHOO! Spare me the puns!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/strike_bowling.mp3"
     },
     {
       "name": "new_years",
@@ -1998,13 +2175,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "FIVE, FOUR, THREE, TWO, ONE! HAPPY NEW YEAR! Wait, it's not New Year's! But Mario has a toast anyway!",
       "toast_text": "To new beginnings, to midnight kisses, and to resolutions we'll break by January 5th! HAPPY NEW YEAR! Wait, happy birthday! Same energy! Cheers!",
       "recovery_line": "WAHOO! New year, new party, new memories!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/new_years.mp3"
     },
     {
       "name": "halloween",
@@ -2020,13 +2199,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "BOO! Did Mario scare you? It's HALLOWEEN toast time! Or at least Halloween ENERGY!",
       "toast_text": "To the costumes, the candy, and the haunted houses! Trick or TREAT! And by treat, I mean DRINK! To HALLOWEEN! Cheers!",
       "recovery_line": "That was spooky good! WAHOO! No more jump scares, I promise!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/halloween.mp3"
     },
     {
       "name": "christmas",
@@ -2042,13 +2223,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "HO HO HO! Mario Claus is here with gifts! The gift is a TOAST!",
       "toast_text": "To Christmas, to the presents, and to the family arguments about politics at dinner! MERRY CHRISTMAS! Wait, it's a birthday party! Same vibe! Cheers!",
       "recovery_line": "HO HO WAHOO! That was a gift of a toast!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/christmas.mp3"
     },
     {
       "name": "st_patricks",
@@ -2064,13 +2247,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "TOP OF THE MORNING! Mario's turned green! It's St. Patrick's Day toast time!",
       "toast_text": "To the luck of the Irish, to the green beer, and to everyone who's suddenly Irish today! SLAINTE! To ST. PATTY'S! Cheers!",
       "recovery_line": "Kiss the Blarney Stone! WAHOO! Or just kiss the birthday boy!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/st_patricks.mp3"
     },
     {
       "name": "valentines",
@@ -2085,13 +2270,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "CUPID'S ARROW just hit this party! Mario has a Valentine's toast!",
       "toast_text": "To love, to crushes, and to everyone who bought themselves chocolate on Valentine's Day! We love LOVE! To VALENTINE'S! Cheers!",
       "recovery_line": "Love is in the air! WAHOO! And possibly in your drink!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/valentines.mp3"
     },
     {
       "name": "oktoberfest",
@@ -2106,13 +2293,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "PROST! Mario is channeling his inner German! It's Oktoberfest at this party!",
       "toast_text": "To the steins, the pretzels, and the lederhosen! PROST! That means cheers in German! Everyone clink your glasses! To OKTOBERFEST!",
       "recovery_line": "Ein Prosit, ein Prosit! WAHOO! Now polka dance!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/oktoberfest.mp3"
     },
     {
       "name": "graduation",
@@ -2127,13 +2316,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "CAPS IN THE AIR! Mario is celebrating all the graduates! Toast time!",
       "toast_text": "To the graduates, the all-nighters, and the student loans! You survived school! Now raise your glasses to the real world! To GRADUATION!",
       "recovery_line": "Congratulations! WAHOO! Now pay your loans! Just kidding!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/graduation.mp3"
     },
     {
       "name": "mystery_shot",
@@ -2149,13 +2340,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "MYSTERY SHOT! Nobody knows what's about to happen! Mario doesn't even know!",
       "toast_text": "To the unknown! To surprises, plot twists, and doing things that make absolutely no sense! Whatever you're drinking, CHUG IT! To the MYSTERY!",
       "recovery_line": "What just happened? WAHOO! I have no idea but it was great!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/mystery_shot.mp3"
     },
     {
       "name": "hot_take",
@@ -2170,13 +2363,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "HOT TAKE INCOMING! Mario is about to drop a controversial opinion! Brace yourselves!",
       "toast_text": "Here's Mario's hot take, cereal is just cold soup! If you agree, drink! If you disagree, ALSO drink! There's no escape! To HOT TAKES! Cheers!",
       "recovery_line": "SPICY! WAHOO! Fight about it in the comments!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/hot_take.mp3"
     },
     {
       "name": "plot_twist",
@@ -2191,13 +2386,15 @@
       "phases": [
         "announcement",
         "countdown",
+        "music",
         "toast",
         "recovery"
       ],
       "announcement_text": "PLOT TWIST! Everyone thought this party was winding down, but Mario says NO!",
       "toast_text": "To the plot twists! Just when you thought the party was over, it's JUST GETTING STARTED! Second wind! To the PLOT TWIST! Cheers!",
       "recovery_line": "DIRECTED BY M. NIGHT SHYAMALAN! WAHOO! The party continues!",
-      "countdown": true
+      "countdown": true,
+      "music_file": "client/assets/event_music/plot_twist.mp3"
     }
   ]
 }

@@ -73,6 +73,8 @@
 - [x] Create docs/MUSIC_GUIDE.md with recommended songs for all 102 events
 - [x] Create scripts/add_music_to_events.py for auto-wiring MP3s to events
 - [ ] Add MP3 music files for all 99 events without music (user to source files)
+- [x] Downloaded 99/99 MP3 music files for all events via yt-dlp
+- [x] Wired all 102 events with music phases and file paths via add_music_to_events.py
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)

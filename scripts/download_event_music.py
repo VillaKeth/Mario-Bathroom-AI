@@ -30,7 +30,7 @@ MUSIC_DIR = os.path.join(ROOT_DIR, "client", "assets", "event_music")
 # Search terms for each event — curated for best YouTube results
 MUSIC_SEARCH = {
     # Gaming
-    "mario_kart": "mario kart rainbow road theme",
+    "mario_kart": "mario kart 8 rainbow road music",
     "smash_bros": "super smash bros ultimate main theme",
     "zelda": "legend of zelda main theme orchestral",
     "pokemon": "pokemon theme song original",
@@ -154,9 +154,12 @@ def download_one(event_name: str, search_query: str, max_duration: int = 300) ->
 
     if os.path.exists(output_path):
         size_mb = os.path.getsize(output_path) / (1024 * 1024)
-        if size_mb > 0.1:
+        if 0.1 < size_mb < 15:
             print(f"  ⏭ Already exists ({size_mb:.1f}MB)")
             return True
+        elif size_mb >= 15:
+            print(f"  ⚠ Oversized ({size_mb:.1f}MB), re-downloading...")
+            os.remove(output_path)
 
     cmd = [
         sys.executable, "-m", "yt_dlp",
@@ -165,30 +168,35 @@ def download_one(event_name: str, search_query: str, max_duration: int = 300) ->
         "--audio-format", "mp3",
         "--audio-quality", "5",
         "--max-downloads", "1",
-        "--match-filter", f"duration<{max_duration}",
+        "--match-filter", f"duration<={max_duration}",
         "--no-playlist",
         "--quiet",
         "--no-warnings",
+        "--no-check-certificates",
         "-o", output_path,
     ]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        if result.returncode == 0 and os.path.exists(output_path):
+        # Exit code 101 = max-downloads reached (normal for --max-downloads 1)
+        if result.returncode in (0, 101) and os.path.exists(output_path):
             size_mb = os.path.getsize(output_path) / (1024 * 1024)
-            print(f"  ✓ Downloaded ({size_mb:.1f}MB)")
-            return True
-        else:
-            # Try without duration filter
-            cmd_retry = [c for c in cmd if not c.startswith("duration")]
-            cmd_retry = [c for c in cmd if c != "--match-filter" and c != f"duration<{max_duration}"]
-            result2 = subprocess.run(cmd_retry, capture_output=True, text=True, timeout=120)
-            if result2.returncode == 0 and os.path.exists(output_path):
-                size_mb = os.path.getsize(output_path) / (1024 * 1024)
+            if size_mb > 0.05:
+                print(f"  ✓ Downloaded ({size_mb:.1f}MB)")
+                return True
+        # Try without duration filter (some results don't have duration metadata)
+        cmd_retry = [c for i, c in enumerate(cmd)
+                     if not (c == "--match-filter" or
+                             (i > 0 and cmd[i-1] == "--match-filter"))]
+        result2 = subprocess.run(cmd_retry, capture_output=True, text=True, timeout=120)
+        if result2.returncode in (0, 101) and os.path.exists(output_path):
+            size_mb = os.path.getsize(output_path) / (1024 * 1024)
+            if size_mb > 0.05:
                 print(f"  ✓ Downloaded on retry ({size_mb:.1f}MB)")
                 return True
-            print(f"  ✗ Failed: {result.stderr[:200] if result.stderr else 'unknown error'}")
-            return False
+        err = result.stderr or result2.stderr or "unknown error"
+        print(f"  ✗ Failed: {err[:200]}")
+        return False
     except subprocess.TimeoutExpired:
         print(f"  ✗ Timeout")
         return False
