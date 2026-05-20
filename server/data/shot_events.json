@@ -1395,13 +1395,15 @@
     },
     {
       "name": "kanye",
-      "display_name": "Kanye West",
+      "display_name": "MBDTF (Kanye)",
       "tone": "fun",
       "trigger_type": "voice",
       "voice_keywords": [
         "kanye shot",
         "ye shot",
-        "kanye toast"
+        "mbdtf shot",
+        "dark twisted fantasy shot",
+        "can we get much higher"
       ],
       "phases": [
         "announcement",
@@ -1410,9 +1412,9 @@
         "toast",
         "recovery"
       ],
-      "announcement_text": "Yo Mario, I'm really happy for you, and I'mma let you finish, but this is the greatest toast of all time!",
-      "toast_text": "To Ye, to the beats, and to Stronger, Faster, Better! I'mma let this party finish, but first, DRINK! To Kanye!",
-      "recovery_line": "That toast was a masterpiece! WAHOO! George Bush doesn't care about plumbers!",
+      "announcement_text": "Can we get much higher?! So high! Oh oh oh! It's-a My Beautiful Dark Twisted Fantasy time! Everyone grab-a your drinks for Ye!",
+      "toast_text": "We're-a so high right now! To Kanye, to MBDTF, to the greatest album of all time! Can we get much higher?! DRINK!",
+      "recovery_line": "No one man should have all that power! Especially after that shot! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/kanye.mp3"
     },
@@ -2395,6 +2397,44 @@
       "recovery_line": "DIRECTED BY M. NIGHT SHYAMALAN! WAHOO! The party continues!",
       "countdown": true,
       "music_file": "client/assets/event_music/plot_twist.mp3"
+    },
+    {
+      "name": "angel_shotgun",
+      "display_name": "Angel With a Shotgun",
+      "tone": "fun",
+      "trigger_type": "voice",
+      "voice_keywords": [
+        "angel with a shotgun",
+        "angel shotgun shot",
+        "the cab shot",
+        "angel shot"
+      ],
+      "phases": [
+        "announcement",
+        "countdown",
+        "music",
+        "toast",
+        "recovery"
+      ],
+      "announcement_text": "Wahoo! I'm-a an Angel With a Shotgun! Fighting to the death and taking shots! The Cab would-a be so proud! Everyone get-a your drinks ready!",
+      "silence_text": null,
+      "toast_text": "I'm-a an angel with a shotgun, and I'm-a not gonna stop until everyone has taken their shot! WAHOO! To The Cab!",
+      "recovery_line": "Even-a angels need a drink after that one! WAHOO!",
+      "music_file": "client/assets/event_music/angel_shotgun.mp3",
+      "music_duration": 30,
+      "countdown_texts": [
+        "Ten!",
+        "Nine!",
+        "Eight!",
+        "Seven!",
+        "Six!",
+        "Five!",
+        "Four!",
+        "Three!",
+        "Two!",
+        "One!",
+        "ANGEL SHOT!"
+      ]
     }
   ]
 }
