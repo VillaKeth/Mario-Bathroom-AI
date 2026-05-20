@@ -81,7 +81,7 @@
       "countdown": true,
       "music_file": "client/assets/audio/deltarune_hopes_dreams.mp3",
       "music_duration": 90,
-      "image_file": "client/assets/images/deltarune.png"
+      "image_file": "assets/event_images/deltarune.png"
     },
     {
       "name": "mario_kart",
@@ -105,7 +105,7 @@
       "recovery_line": "If you got hit by a blue shell, take another sip! Let's-a go!",
       "countdown": true,
       "music_file": "client/assets/event_music/mario_kart.mp3",
-      "image_file": "client/assets/event_images/mario_kart.png"
+      "image_file": "assets/event_images/mario_kart.png"
     },
     {
       "name": "smash_bros",
@@ -129,7 +129,7 @@
       "recovery_line": "Nobody got launched off the stage, right? WAHOO! Back to the party!",
       "countdown": true,
       "music_file": "client/assets/event_music/smash_bros.mp3",
-      "image_file": "client/assets/event_images/smash_bros.png"
+      "image_file": "assets/event_images/smash_bros.png"
     },
     {
       "name": "zelda",
@@ -154,7 +154,7 @@
       "recovery_line": "It's dangerous to go alone! Take this drink! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/zelda.mp3",
-      "image_file": "client/assets/event_images/zelda.png"
+      "image_file": "assets/event_images/zelda.png"
     },
     {
       "name": "pokemon",
@@ -178,7 +178,7 @@
       "recovery_line": "That toast was super effective! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/pokemon.mp3",
-      "image_file": "client/assets/event_images/pokemon.png"
+      "image_file": "assets/event_images/pokemon.png"
     },
     {
       "name": "minecraft",
@@ -202,7 +202,7 @@
       "recovery_line": "Don't dig straight down after that drink! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/minecraft.mp3",
-      "image_file": "client/assets/event_images/minecraft.png"
+      "image_file": "assets/event_images/minecraft.png"
     },
     {
       "name": "fortnite",
@@ -226,7 +226,7 @@
       "recovery_line": "That's a Victory Royale, baby! WAHOO! Back to the battle bus!",
       "countdown": true,
       "music_file": "client/assets/event_music/fortnite.mp3",
-      "image_file": "client/assets/event_images/fortnite.png"
+      "image_file": "assets/event_images/fortnite.png"
     },
     {
       "name": "among_us",
@@ -251,7 +251,7 @@
       "recovery_line": "That toast was not sus at all! WAHOO! Or was it...",
       "countdown": true,
       "music_file": "client/assets/event_music/among_us.mp3",
-      "image_file": "client/assets/event_images/among_us.png"
+      "image_file": "assets/event_images/among_us.png"
     },
     {
       "name": "gta",
@@ -275,7 +275,7 @@
       "recovery_line": "Remember, this is a party, not Los Santos! No stealing cars! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/gta.mp3",
-      "image_file": "client/assets/event_images/gta.png"
+      "image_file": "assets/event_images/gta.png"
     },
     {
       "name": "call_of_duty",
@@ -299,7 +299,7 @@
       "recovery_line": "Mission accomplished! WAHOO! Now get back to the party, soldier!",
       "countdown": true,
       "music_file": "client/assets/event_music/call_of_duty.mp3",
-      "image_file": "client/assets/event_images/call_of_duty.png"
+      "image_file": "assets/event_images/call_of_duty.png"
     },
     {
       "name": "league",
@@ -323,7 +323,7 @@
       "recovery_line": "GG no re! Back to the party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/league.mp3",
-      "image_file": "client/assets/event_images/league.png"
+      "image_file": "assets/event_images/league.png"
     },
     {
       "name": "rocket_league",
@@ -346,7 +346,7 @@
       "recovery_line": "Nice shot! WAHOO! Chat disabled for 3 seconds!",
       "countdown": true,
       "music_file": "client/assets/event_music/rocket_league.mp3",
-      "image_file": "client/assets/event_images/rocket_league.png"
+      "image_file": "assets/event_images/rocket_league.png"
     },
     {
       "name": "animal_crossing",
@@ -370,7 +370,7 @@
       "recovery_line": "Now go check your turnip prices! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/animal_crossing.mp3",
-      "image_file": "client/assets/event_images/animal_crossing.png"
+      "image_file": "assets/event_images/animal_crossing.png"
     },
     {
       "name": "elden_ring",
@@ -394,7 +394,7 @@
       "recovery_line": "That drink hit harder than Radahn! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/elden_ring.mp3",
-      "image_file": "client/assets/event_images/elden_ring.png"
+      "image_file": "assets/event_images/elden_ring.png"
     },
     {
       "name": "dark_souls",
@@ -418,7 +418,7 @@
       "recovery_line": "Praise the sun! And praise this drink! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/dark_souls.mp3",
-      "image_file": "client/assets/event_images/dark_souls.png"
+      "image_file": "assets/event_images/dark_souls.png"
     },
     {
       "name": "undertale",
@@ -442,7 +442,7 @@
       "recovery_line": "You feel like you're going to have a great time at this party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/undertale.mp3",
-      "image_file": "client/assets/event_images/undertale.png"
+      "image_file": "assets/event_images/undertale.png"
     },
     {
       "name": "star_wars",
@@ -467,7 +467,7 @@
       "recovery_line": "This is the way! WAHOO! Now back to the party, young padawans!",
       "countdown": true,
       "music_file": "client/assets/event_music/star_wars.mp3",
-      "image_file": "client/assets/event_images/star_wars.png"
+      "image_file": "assets/event_images/star_wars.png"
     },
     {
       "name": "marvel",
@@ -492,7 +492,7 @@
       "recovery_line": "I am Iron Mario! Just kidding! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/marvel.mp3",
-      "image_file": "client/assets/event_images/marvel.png"
+      "image_file": "assets/event_images/marvel.png"
     },
     {
       "name": "breaking_bad",
@@ -516,7 +516,7 @@
       "recovery_line": "I am the one who knocks on bathroom doors! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/breaking_bad.mp3",
-      "image_file": "client/assets/event_images/breaking_bad.png"
+      "image_file": "assets/event_images/breaking_bad.png"
     },
     {
       "name": "the_office",
@@ -541,7 +541,7 @@
       "recovery_line": "I declare PARTY TIME! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/the_office.mp3",
-      "image_file": "client/assets/event_images/the_office.png"
+      "image_file": "assets/event_images/the_office.png"
     },
     {
       "name": "lord_of_rings",
@@ -566,7 +566,7 @@
       "recovery_line": "And my axe! Wait, wrong quote! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/lord_of_rings.mp3",
-      "image_file": "client/assets/event_images/lord_of_rings.png"
+      "image_file": "assets/event_images/lord_of_rings.png"
     },
     {
       "name": "harry_potter",
@@ -591,7 +591,7 @@
       "recovery_line": "Mischief managed! WAHOO! Now get back to the common room!",
       "countdown": true,
       "music_file": "client/assets/event_music/harry_potter.mp3",
-      "image_file": "client/assets/event_images/harry_potter.png"
+      "image_file": "assets/event_images/harry_potter.png"
     },
     {
       "name": "john_wick",
@@ -615,7 +615,7 @@
       "recovery_line": "That toast was breathtaking! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/john_wick.mp3",
-      "image_file": "client/assets/event_images/john_wick.png"
+      "image_file": "assets/event_images/john_wick.png"
     },
     {
       "name": "spongebob",
@@ -639,7 +639,7 @@
       "recovery_line": "I'm ready, I'm ready, I'm ready for more party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/spongebob.mp3",
-      "image_file": "client/assets/event_images/spongebob.png"
+      "image_file": "assets/event_images/spongebob.png"
     },
     {
       "name": "shrek",
@@ -663,7 +663,7 @@
       "recovery_line": "Somebody once told me this party was gonna be great! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/shrek.mp3",
-      "image_file": "client/assets/event_images/shrek.png"
+      "image_file": "assets/event_images/shrek.png"
     },
     {
       "name": "batman",
@@ -687,7 +687,7 @@
       "recovery_line": "I'm not the hero this party deserves, but the one it needs! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/batman.mp3",
-      "image_file": "client/assets/event_images/batman.png"
+      "image_file": "assets/event_images/batman.png"
     },
     {
       "name": "fast_furious",
@@ -736,7 +736,7 @@
       "recovery_line": "Friends don't lie, and this party doesn't disappoint! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/stranger_things.mp3",
-      "image_file": "client/assets/event_images/stranger_things.png"
+      "image_file": "assets/event_images/stranger_things.png"
     },
     {
       "name": "game_of_thrones",
@@ -760,7 +760,7 @@
       "recovery_line": "What do we say to the God of Party? Not today! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/game_of_thrones.mp3",
-      "image_file": "client/assets/event_images/game_of_thrones.png"
+      "image_file": "assets/event_images/game_of_thrones.png"
     },
     {
       "name": "pirates_caribbean",
@@ -784,7 +784,7 @@
       "recovery_line": "Now bring me that party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/pirates_caribbean.mp3",
-      "image_file": "client/assets/event_images/pirates_caribbean.png"
+      "image_file": "assets/event_images/pirates_caribbean.png"
     },
     {
       "name": "jurassic_park",
@@ -808,7 +808,7 @@
       "recovery_line": "Clever girl! That toast was clever! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/jurassic_park.mp3",
-      "image_file": "client/assets/event_images/jurassic_park.png"
+      "image_file": "assets/event_images/jurassic_park.png"
     },
     {
       "name": "rick_roll",
@@ -833,7 +833,7 @@
       "recovery_line": "You just got rick rolled AND took a shot! WAHOO! Double whammy!",
       "countdown": true,
       "music_file": "client/assets/event_music/rick_roll.mp3",
-      "image_file": "client/assets/event_images/rick_roll.png"
+      "image_file": "assets/event_images/rick_roll.png"
     },
     {
       "name": "sigma",
@@ -857,7 +857,7 @@
       "recovery_line": "Back to the grind! WAHOO! Just kidding, enjoy the party!",
       "countdown": true,
       "music_file": "client/assets/event_music/sigma.mp3",
-      "image_file": "client/assets/event_images/sigma.png"
+      "image_file": "assets/event_images/sigma.png"
     },
     {
       "name": "based",
@@ -881,7 +881,7 @@
       "recovery_line": "That was the most based thing I've ever seen! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/based.mp3",
-      "image_file": "client/assets/event_images/based.png"
+      "image_file": "assets/event_images/based.png"
     },
     {
       "name": "ohio",
@@ -905,7 +905,7 @@
       "recovery_line": "Normal day in Ohio! WAHOO! Now back to whatever state of chaos this party is!",
       "countdown": true,
       "music_file": "client/assets/event_music/ohio.mp3",
-      "image_file": "client/assets/event_images/ohio.png"
+      "image_file": "assets/event_images/ohio.png"
     },
     {
       "name": "skibidi",
@@ -929,7 +929,7 @@
       "recovery_line": "That was very skibidi of us! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/skibidi.mp3",
-      "image_file": "client/assets/event_images/skibidi.png"
+      "image_file": "assets/event_images/skibidi.png"
     },
     {
       "name": "no_cap",
@@ -953,7 +953,7 @@
       "recovery_line": "That was straight fire, no cap! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/no_cap.mp3",
-      "image_file": "client/assets/event_images/no_cap.png"
+      "image_file": "assets/event_images/no_cap.png"
     },
     {
       "name": "ratio",
@@ -977,7 +977,7 @@
       "recovery_line": "That toast did NOT get ratioed! WAHOO! Major W!",
       "countdown": true,
       "music_file": "client/assets/event_music/ratio.mp3",
-      "image_file": "client/assets/event_images/ratio.png"
+      "image_file": "assets/event_images/ratio.png"
     },
     {
       "name": "yeet",
@@ -1024,7 +1024,7 @@
       "recovery_line": "Vibes: immaculate! WAHOO! Party status: legendary!",
       "countdown": true,
       "music_file": "client/assets/event_music/vibe_check.mp3",
-      "image_file": "client/assets/event_images/vibe_check.png"
+      "image_file": "assets/event_images/vibe_check.png"
     },
     {
       "name": "ok_boomer",
@@ -1048,7 +1048,7 @@
       "recovery_line": "OK, that was actually wholesome! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/ok_boomer.mp3",
-      "image_file": "client/assets/event_images/ok_boomer.png"
+      "image_file": "assets/event_images/ok_boomer.png"
     },
     {
       "name": "waterfall",
@@ -1072,7 +1072,7 @@
       "recovery_line": "WAHOO! What a waterfall! Everyone survived! I think!",
       "countdown": true,
       "music_file": "client/assets/event_music/waterfall.mp3",
-      "image_file": "client/assets/event_images/waterfall.png"
+      "image_file": "assets/event_images/waterfall.png"
     },
     {
       "name": "never_have_i",
@@ -1096,7 +1096,7 @@
       "recovery_line": "Look at all of you drinking! This party IS amazing! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/never_have_i.mp3",
-      "image_file": "client/assets/event_images/never_have_i.png"
+      "image_file": "assets/event_images/never_have_i.png"
     },
     {
       "name": "kings_cup",
@@ -1120,7 +1120,7 @@
       "recovery_line": "The King has spoken! WAHOO! What a ruler!",
       "countdown": true,
       "music_file": "client/assets/event_music/kings_cup.mp3",
-      "image_file": "client/assets/event_images/kings_cup.png"
+      "image_file": "assets/event_images/kings_cup.png"
     },
     {
       "name": "flip_cup",
@@ -1144,7 +1144,7 @@
       "recovery_line": "Someone definitely spilled! WAHOO! That's the spirit!",
       "countdown": true,
       "music_file": "client/assets/event_music/flip_cup.mp3",
-      "image_file": "client/assets/event_images/flip_cup.png"
+      "image_file": "assets/event_images/flip_cup.png"
     },
     {
       "name": "beer_pong",
@@ -1168,7 +1168,7 @@
       "recovery_line": "Nothing but cups! WAHOO! Is that a heating up? On fire!",
       "countdown": true,
       "music_file": "client/assets/event_music/beer_pong.mp3",
-      "image_file": "client/assets/event_images/beer_pong.png"
+      "image_file": "assets/event_images/beer_pong.png"
     },
     {
       "name": "thunderstruck",
@@ -1192,7 +1192,7 @@
       "recovery_line": "THUNDER! WAHOO! Feel the electricity of this party!",
       "countdown": true,
       "music_file": "client/assets/event_music/thunderstruck.mp3",
-      "image_file": "client/assets/event_images/thunderstruck.png"
+      "image_file": "assets/event_images/thunderstruck.png"
     },
     {
       "name": "shotgun",
@@ -1216,7 +1216,7 @@
       "recovery_line": "WAHOO! That was FAST! Someone call the Guinness Book!",
       "countdown": true,
       "music_file": "client/assets/event_music/shotgun.mp3",
-      "image_file": "client/assets/event_images/shotgun.png"
+      "image_file": "assets/event_images/shotgun.png"
     },
     {
       "name": "power_hour",
@@ -1239,7 +1239,7 @@
       "recovery_line": "That's the power of the party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/power_hour.mp3",
-      "image_file": "client/assets/event_images/power_hour.png"
+      "image_file": "assets/event_images/power_hour.png"
     },
     {
       "name": "chug",
@@ -1264,7 +1264,7 @@
       "recovery_line": "WAHOO! What a chug! Someone check the record books!",
       "countdown": true,
       "music_file": "client/assets/event_music/chug.mp3",
-      "image_file": "client/assets/event_images/chug.png"
+      "image_file": "assets/event_images/chug.png"
     },
     {
       "name": "double_shot",
@@ -1288,7 +1288,7 @@
       "recovery_line": "WAHOO! Double the fun, double the party! No one's driving, right?",
       "countdown": true,
       "music_file": "client/assets/event_music/double_shot.mp3",
-      "image_file": "client/assets/event_images/double_shot.png"
+      "image_file": "assets/event_images/double_shot.png"
     },
     {
       "name": "truth_or_dare",
@@ -1312,7 +1312,7 @@
       "recovery_line": "Ooh, spicy! WAHOO! Now someone pick truth or dare!",
       "countdown": true,
       "music_file": "client/assets/event_music/truth_or_dare.mp3",
-      "image_file": "client/assets/event_images/truth_or_dare.png"
+      "image_file": "assets/event_images/truth_or_dare.png"
     },
     {
       "name": "spin_bottle",
@@ -1336,7 +1336,7 @@
       "recovery_line": "Where did it land? WAHOO! Drama! I love it!",
       "countdown": true,
       "music_file": "client/assets/event_music/spin_bottle.mp3",
-      "image_file": "client/assets/event_images/spin_bottle.png"
+      "image_file": "assets/event_images/spin_bottle.png"
     },
     {
       "name": "categories",
@@ -1360,7 +1360,7 @@
       "recovery_line": "Someone was stumped! WAHOO! Better luck next category!",
       "countdown": true,
       "music_file": "client/assets/event_music/categories.mp3",
-      "image_file": "client/assets/event_images/categories.png"
+      "image_file": "assets/event_images/categories.png"
     },
     {
       "name": "most_likely",
@@ -1384,7 +1384,7 @@
       "recovery_line": "The people have spoken! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/most_likely.mp3",
-      "image_file": "client/assets/event_images/most_likely.png"
+      "image_file": "assets/event_images/most_likely.png"
     },
     {
       "name": "last_man",
@@ -1408,7 +1408,7 @@
       "recovery_line": "Standing ovation for the survivors! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/last_man.mp3",
-      "image_file": "client/assets/event_images/last_man.png"
+      "image_file": "assets/event_images/last_man.png"
     },
     {
       "name": "sabrina_carpenter",
@@ -1447,7 +1447,7 @@
         "One!",
         "ESPRESSO SHOT!"
       ],
-      "image_file": "client/assets/event_images/sabrina_carpenter.png"
+      "image_file": "assets/event_images/sabrina_carpenter.png"
     },
     {
       "name": "kanye",
@@ -1473,7 +1473,7 @@
       "recovery_line": "No one man should have all that power! Especially after that shot! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/kanye.mp3",
-      "image_file": "client/assets/event_images/kanye.png"
+      "image_file": "assets/event_images/kanye.png"
     },
     {
       "name": "eminem",
@@ -1498,7 +1498,7 @@
       "recovery_line": "Mom's spaghetti! WAHOO! Now sit back down!",
       "countdown": true,
       "music_file": "client/assets/event_music/eminem.mp3",
-      "image_file": "client/assets/event_images/eminem.png"
+      "image_file": "assets/event_images/eminem.png"
     },
     {
       "name": "weeknd",
@@ -1548,7 +1548,7 @@
       "recovery_line": "That was LIT! WAHOO! Highest in the room!",
       "countdown": true,
       "music_file": "client/assets/event_music/travis_scott.mp3",
-      "image_file": "client/assets/event_images/travis_scott.png"
+      "image_file": "assets/event_images/travis_scott.png"
     },
     {
       "name": "doja_cat",
@@ -1572,7 +1572,7 @@
       "recovery_line": "That toast was bussin'! WAHOO! Meow!",
       "countdown": true,
       "music_file": "client/assets/event_music/doja_cat.mp3",
-      "image_file": "client/assets/event_images/doja_cat.png"
+      "image_file": "assets/event_images/doja_cat.png"
     },
     {
       "name": "bad_bunny",
@@ -1596,7 +1596,7 @@
       "recovery_line": "DALE! WAHOO! That toast was caliente!",
       "countdown": true,
       "music_file": "client/assets/event_music/bad_bunny.mp3",
-      "image_file": "client/assets/event_images/bad_bunny.png"
+      "image_file": "assets/event_images/bad_bunny.png"
     },
     {
       "name": "beyonce",
@@ -1620,7 +1620,7 @@
       "recovery_line": "Flawless! WAHOO! Now get in formation!",
       "countdown": true,
       "music_file": "client/assets/event_music/beyonce.mp3",
-      "image_file": "client/assets/event_images/beyonce.png"
+      "image_file": "assets/event_images/beyonce.png"
     },
     {
       "name": "kendrick",
@@ -1645,7 +1645,7 @@
       "recovery_line": "DNA says we keep partying! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/kendrick.mp3",
-      "image_file": "client/assets/event_images/kendrick.png"
+      "image_file": "assets/event_images/kendrick.png"
     },
     {
       "name": "bathroom_break",
@@ -1669,7 +1669,7 @@
       "recovery_line": "Now please, wash your hands! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/bathroom_break.mp3",
-      "image_file": "client/assets/event_images/bathroom_break.png"
+      "image_file": "assets/event_images/bathroom_break.png"
     },
     {
       "name": "pizza_time",
@@ -1693,7 +1693,7 @@
       "recovery_line": "That's-a spicy toast! WAHOO! Now who ordered the pineapple?",
       "countdown": true,
       "music_file": "client/assets/event_music/pizza_time.mp3",
-      "image_file": "client/assets/event_images/pizza_time.png"
+      "image_file": "assets/event_images/pizza_time.png"
     },
     {
       "name": "midnight",
@@ -1741,7 +1741,7 @@
       "recovery_line": "And so it begins! WAHOO! Many more to come!",
       "countdown": true,
       "music_file": "client/assets/event_music/first_shot.mp3",
-      "image_file": "client/assets/event_images/first_shot.png"
+      "image_file": "assets/event_images/first_shot.png"
     },
     {
       "name": "last_shot",
@@ -1766,7 +1766,7 @@
       "recovery_line": "WAHOO! What a night! I love you all! Sniff!",
       "countdown": true,
       "music_file": "client/assets/event_music/last_shot.mp3",
-      "image_file": "client/assets/event_images/last_shot.png"
+      "image_file": "assets/event_images/last_shot.png"
     },
     {
       "name": "birthday_wish",
@@ -1815,7 +1815,7 @@
       "recovery_line": "That one's going on the wall! WAHOO! Best photo ever!",
       "countdown": true,
       "music_file": "client/assets/event_music/group_photo.mp3",
-      "image_file": "client/assets/event_images/group_photo.png"
+      "image_file": "assets/event_images/group_photo.png"
     },
     {
       "name": "dance_battle",
@@ -1839,7 +1839,7 @@
       "recovery_line": "Those moves were fire! WAHOO! Or were they? The crowd decides!",
       "countdown": true,
       "music_file": "client/assets/event_music/dance_battle.mp3",
-      "image_file": "client/assets/event_images/dance_battle.png"
+      "image_file": "assets/event_images/dance_battle.png"
     },
     {
       "name": "karaoke",
@@ -1863,7 +1863,7 @@
       "recovery_line": "Beautiful! Or terrible! Either way, WAHOO! Encore!",
       "countdown": true,
       "music_file": "client/assets/event_music/karaoke.mp3",
-      "image_file": "client/assets/event_images/karaoke.png"
+      "image_file": "assets/event_images/karaoke.png"
     },
     {
       "name": "couples",
@@ -1887,7 +1887,7 @@
       "recovery_line": "Get a room! Just kidding! WAHOO! Love is beautiful!",
       "countdown": true,
       "music_file": "client/assets/event_music/couples.mp3",
-      "image_file": "client/assets/event_images/couples.png"
+      "image_file": "assets/event_images/couples.png"
     },
     {
       "name": "singles",
@@ -1961,7 +1961,7 @@
       "recovery_line": "That's beautiful! WAHOO! Now hug it out!",
       "countdown": true,
       "music_file": "client/assets/event_music/best_friend.mp3",
-      "image_file": "client/assets/event_images/best_friend.png"
+      "image_file": "assets/event_images/best_friend.png"
     },
     {
       "name": "throwback",
@@ -2011,7 +2011,7 @@
       "recovery_line": "All in good fun! WAHOO! Jacob's a good sport!",
       "countdown": true,
       "music_file": "client/assets/event_music/roast.mp3",
-      "image_file": "client/assets/event_images/roast.png"
+      "image_file": "assets/event_images/roast.png"
     },
     {
       "name": "touchdown",
@@ -2035,7 +2035,7 @@
       "recovery_line": "That's a first down for this party! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/touchdown.mp3",
-      "image_file": "client/assets/event_images/touchdown.png"
+      "image_file": "assets/event_images/touchdown.png"
     },
     {
       "name": "slam_dunk",
@@ -2084,7 +2084,7 @@
       "recovery_line": "WAHOO! That toast bent like Beckham!",
       "countdown": true,
       "music_file": "client/assets/event_music/goal.mp3",
-      "image_file": "client/assets/event_images/goal.png"
+      "image_file": "assets/event_images/goal.png"
     },
     {
       "name": "knockout",
@@ -2109,7 +2109,7 @@
       "recovery_line": "And the winner by TOAST is everyone! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/knockout.mp3",
-      "image_file": "client/assets/event_images/knockout.png"
+      "image_file": "assets/event_images/knockout.png"
     },
     {
       "name": "world_cup",
@@ -2132,7 +2132,7 @@
       "recovery_line": "We are the champions! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/world_cup.mp3",
-      "image_file": "client/assets/event_images/world_cup.png"
+      "image_file": "assets/event_images/world_cup.png"
     },
     {
       "name": "super_bowl",
@@ -2155,7 +2155,7 @@
       "recovery_line": "Back to the game! WAHOO! I mean back to the party!",
       "countdown": true,
       "music_file": "client/assets/event_music/super_bowl.mp3",
-      "image_file": "client/assets/event_images/super_bowl.png"
+      "image_file": "assets/event_images/super_bowl.png"
     },
     {
       "name": "home_run",
@@ -2179,7 +2179,7 @@
       "recovery_line": "That toast was a grand slam! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/home_run.mp3",
-      "image_file": "client/assets/event_images/home_run.png"
+      "image_file": "assets/event_images/home_run.png"
     },
     {
       "name": "hole_in_one",
@@ -2203,7 +2203,7 @@
       "recovery_line": "That toast was below par! In a good way! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/hole_in_one.mp3",
-      "image_file": "client/assets/event_images/hole_in_one.png"
+      "image_file": "assets/event_images/hole_in_one.png"
     },
     {
       "name": "checkmate",
@@ -2227,7 +2227,7 @@
       "recovery_line": "That was a 200 IQ toast! WAHOO!",
       "countdown": true,
       "music_file": "client/assets/event_music/checkmate.mp3",
-      "image_file": "client/assets/event_images/checkmate.png"
+      "image_file": "assets/event_images/checkmate.png"
     },
     {
       "name": "strike_bowling",
@@ -2251,7 +2251,7 @@
       "recovery_line": "That toast knocked them all down! WAHOO! Spare me the puns!",
       "countdown": true,
       "music_file": "client/assets/event_music/strike_bowling.mp3",
-      "image_file": "client/assets/event_images/strike_bowling.png"
+      "image_file": "assets/event_images/strike_bowling.png"
     },
     {
       "name": "new_years",
@@ -2275,7 +2275,7 @@
       "recovery_line": "WAHOO! New year, new party, new memories!",
       "countdown": true,
       "music_file": "client/assets/event_music/new_years.mp3",
-      "image_file": "client/assets/event_images/new_years.png"
+      "image_file": "assets/event_images/new_years.png"
     },
     {
       "name": "halloween",
@@ -2300,7 +2300,7 @@
       "recovery_line": "That was spooky good! WAHOO! No more jump scares, I promise!",
       "countdown": true,
       "music_file": "client/assets/event_music/halloween.mp3",
-      "image_file": "client/assets/event_images/halloween.png"
+      "image_file": "assets/event_images/halloween.png"
     },
     {
       "name": "christmas",
@@ -2325,7 +2325,7 @@
       "recovery_line": "HO HO WAHOO! That was a gift of a toast!",
       "countdown": true,
       "music_file": "client/assets/event_music/christmas.mp3",
-      "image_file": "client/assets/event_images/christmas.png"
+      "image_file": "assets/event_images/christmas.png"
     },
     {
       "name": "st_patricks",
@@ -2350,7 +2350,7 @@
       "recovery_line": "Kiss the Blarney Stone! WAHOO! Or just kiss the birthday boy!",
       "countdown": true,
       "music_file": "client/assets/event_music/st_patricks.mp3",
-      "image_file": "client/assets/event_images/st_patricks.png"
+      "image_file": "assets/event_images/st_patricks.png"
     },
     {
       "name": "valentines",
@@ -2374,7 +2374,7 @@
       "recovery_line": "Love is in the air! WAHOO! And possibly in your drink!",
       "countdown": true,
       "music_file": "client/assets/event_music/valentines.mp3",
-      "image_file": "client/assets/event_images/valentines.png"
+      "image_file": "assets/event_images/valentines.png"
     },
     {
       "name": "oktoberfest",
@@ -2398,7 +2398,7 @@
       "recovery_line": "Ein Prosit, ein Prosit! WAHOO! Now polka dance!",
       "countdown": true,
       "music_file": "client/assets/event_music/oktoberfest.mp3",
-      "image_file": "client/assets/event_images/oktoberfest.png"
+      "image_file": "assets/event_images/oktoberfest.png"
     },
     {
       "name": "graduation",
@@ -2422,7 +2422,7 @@
       "recovery_line": "Congratulations! WAHOO! Now pay your loans! Just kidding!",
       "countdown": true,
       "music_file": "client/assets/event_music/graduation.mp3",
-      "image_file": "client/assets/event_images/graduation.png"
+      "image_file": "assets/event_images/graduation.png"
     },
     {
       "name": "mystery_shot",
@@ -2447,7 +2447,7 @@
       "recovery_line": "What just happened? WAHOO! I have no idea but it was great!",
       "countdown": true,
       "music_file": "client/assets/event_music/mystery_shot.mp3",
-      "image_file": "client/assets/event_images/mystery_shot.png"
+      "image_file": "assets/event_images/mystery_shot.png"
     },
     {
       "name": "hot_take",
@@ -2471,7 +2471,7 @@
       "recovery_line": "SPICY! WAHOO! Fight about it in the comments!",
       "countdown": true,
       "music_file": "client/assets/event_music/hot_take.mp3",
-      "image_file": "client/assets/event_images/hot_take.png"
+      "image_file": "assets/event_images/hot_take.png"
     },
     {
       "name": "plot_twist",
@@ -2495,7 +2495,7 @@
       "recovery_line": "DIRECTED BY M. NIGHT SHYAMALAN! WAHOO! The party continues!",
       "countdown": true,
       "music_file": "client/assets/event_music/plot_twist.mp3",
-      "image_file": "client/assets/event_images/plot_twist.png"
+      "image_file": "assets/event_images/plot_twist.png"
     },
     {
       "name": "angel_shotgun",
@@ -2534,7 +2534,7 @@
         "One!",
         "ANGEL SHOT!"
       ],
-      "image_file": "client/assets/event_images/angel_shotgun.png"
+      "image_file": "assets/event_images/angel_shotgun.png"
     },
     {
       "name": "tokyo_ghoul",
@@ -2574,7 +2574,7 @@
         "One...",
         "...Unravel."
       ],
-      "image_file": "mario_3d_assets/ai_poses/special/tokyo_ghoul.png"
+      "image_file": "assets/event_images/tokyo_ghoul.png"
     }
   ]
 }
