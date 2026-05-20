@@ -653,6 +653,42 @@ class MarioDisplay:
         self._thinking = thinking
         self._thinking_dots = 0
 
+    def _draw_thinking_indicator(self):
+        """Draw bouncing dots indicator (like iMessage typing) while waiting for response."""
+        self._thinking_dots = (self._thinking_dots + 1) % 60
+
+        # Pill-shaped container positioned below the banner
+        pill_w, pill_h = 90, 36
+        pill_x = WINDOW_WIDTH // 2 - pill_w // 2
+        pill_y = getattr(self, '_banner_bottom', 48) + 14
+
+        # Drop shadow
+        shadow = pygame.Surface((pill_w + 4, pill_h + 4), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (0, 0, 0, 50),
+                         (0, 0, pill_w + 4, pill_h + 4), border_radius=pill_h // 2)
+        self._screen.blit(shadow, (pill_x + 2, pill_y + 2))
+
+        # Pill background (dark, glassy)
+        pygame.draw.rect(self._screen, (45, 45, 65),
+                         (pill_x, pill_y, pill_w, pill_h), border_radius=pill_h // 2)
+        # Inner highlight
+        highlight = pygame.Surface((pill_w - 8, 2), pygame.SRCALPHA)
+        highlight.fill((255, 255, 255, 40))
+        self._screen.blit(highlight, (pill_x + 4, pill_y + 3))
+        # Border
+        pygame.draw.rect(self._screen, (80, 80, 110),
+                         (pill_x, pill_y, pill_w, pill_h), 2, border_radius=pill_h // 2)
+
+        # Three bouncing dots with staggered timing
+        for i in range(3):
+            phase = (self._thinking_dots + i * 12) % 60
+            bounce = math.sin(phase * math.pi / 30) * 7 if phase < 30 else 0
+            dot_x = pill_x + 24 + i * 18
+            dot_y = pill_y + pill_h // 2 - int(bounce)
+            brightness = 160 + int(95 * max(0, bounce / 7))
+            color = (brightness, brightness, min(255, brightness + 30))
+            pygame.draw.circle(self._screen, color, (dot_x, dot_y), 5)
+
     def set_countdown(self, countdown_text: str):
         """Show countdown overlay with large centered text."""
         if not hasattr(self, '_countdown_text'):
@@ -1330,10 +1366,7 @@ class MarioDisplay:
             else:
                 self._draw_speech_bubble(self.current_text)
         elif self._thinking:
-            # Animated thinking dots
-            self._thinking_dots = (self._thinking_dots + 1) % 90
-            dots = "." * ((self._thinking_dots // 15) % 4)
-            self._draw_speech_bubble(f"Hmm{dots}")
+            self._draw_thinking_indicator()
 
         # Draw subtitle (auto-clear after 5 seconds / 300 frames)
         if self.subtitle_text:
