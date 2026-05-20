@@ -92,6 +92,9 @@
 - [x] Visual audit: all 102 event images verified correct (deltarune kept as user-preferred AI version)
 - [x] Clean up temp scripts and gallery files
 - [x] Commit fixed images (commit ef372b8)
+- [x] Fix deltarune event image to correct pixel sprites (commit e3bec8c)
+- [x] User gallery review complete — vibe_check keeping cosmic hand, all other images approved
+- [x] Clean up temp comparison/gallery HTML files
 
 ## v3.15 Guest Intelligence — RELEASED ✅ (48 tests, 8/8 tasks)
 - [x] Task 1: GuestProfile Data Model + Manager (23 tests passing)
@@ -497,3 +500,14 @@
 - [ ] Test new EMOTION_SPRITE_MAP list-based random selection in live display
 
 - [x] Build interactive pose comparison gallery (pose_gallery.html) with emotion mapping, selection/rejection, flagging, localStorage persistence, and export
+
+## Client UX Overhaul
+- [x] Fix fullscreen scaling bug (removed SCALED flag that conflicted with render buffer)
+- [x] Redesign speech bubbles (drop shadow, warm colors, inner highlights, better font)
+- [x] Add bouncing dots thinking indicator (replaces "Hmm..." speech bubble)
+- [x] Add floating emotion badge with pop animation (replaces tiny "Mood:" HUD text)
+- [x] Cover all 37 emotions with emoji + color badge mappings
+- [x] Clean up bottom status bar (removed debug [IDLE] labels, minimal design)
+- [x] Push all UX overhaul commits to remote
+- [ ] Persistent guest memory (remembers guests between sessions)
+- [ ] Improve Mario's personality/conversation quality
