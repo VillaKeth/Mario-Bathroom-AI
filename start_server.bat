@@ -57,7 +57,7 @@ echo.
 echo ===================================
 echo   Starting Mario AI Server
 echo   Listening on 0.0.0.0:8765
-echo   Browser chat: http://localhost:8765/chat
+echo   Health check: http://localhost:8765/health
 echo ===================================
 echo.
 cd /d "%~dp0server"

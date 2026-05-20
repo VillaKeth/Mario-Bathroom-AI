@@ -95,7 +95,7 @@ REM Step 8: Install client dependencies
 echo Installing client dependencies...
 pip install -r client\requirements.txt --quiet
 if !errorlevel! neq 0 (
-    echo [WARNING] Some client dependencies failed. This is OK if you use browser chat.
+    echo [WARNING] Some client dependencies failed. Mario display may not work.
 )
 echo [OK] Client dependencies installed
 
@@ -200,7 +200,7 @@ echo   Setup Complete!
 echo.
 echo   TO START MARIO:
 echo     1. Run: start_server.bat
-echo     2. Open: http://localhost:8765/chat
+echo     2. Run: start_client.bat (in a second terminal)
 echo.
 echo   That's it! No other setup needed.
 echo  ========================================

@@ -29,9 +29,11 @@ pip install -r "%~dp0client\requirements.txt" --quiet 2>nul
 
 echo.
 
-REM Get server IP
+REM Get server IP (default: localhost for same-machine setup)
 if "%1"=="" (
-    set /p SERVER_IP="Enter server IP address (or 'localhost' for testing): "
+    set SERVER_IP=localhost
+    echo Using localhost (same machine). Pass an IP to connect remotely:
+    echo   start_client.bat 192.168.1.100
 ) else (
     set SERVER_IP=%1
 )
