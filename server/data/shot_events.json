@@ -2435,6 +2435,45 @@
         "One!",
         "ANGEL SHOT!"
       ]
+    },
+    {
+      "name": "tokyo_ghoul",
+      "display_name": "Tokyo Ghoul - Unravel",
+      "tone": "solemn",
+      "trigger_type": "voice",
+      "voice_keywords": [
+        "tokyo ghoul shot",
+        "unravel shot",
+        "kaneki shot",
+        "tokyo ghoul toast",
+        "ken kaneki"
+      ],
+      "phases": [
+        "announcement",
+        "countdown",
+        "music",
+        "toast",
+        "recovery"
+      ],
+      "announcement_text": "Oshiete yo... oshiete yo... Mario can feel-a the pain of Ken Kaneki. The world is-a cruel, but we drink together. Everyone... grab-a your glasses...",
+      "silence_text": null,
+      "toast_text": "Tell me... tell me what is-a 1000 minus 7? It doesn't-a matter... what matters is we're all here together. To Kaneki. To Unravel. Drink.",
+      "recovery_line": "Mario is-a okay now... the pain passes... like-a Kaneki, we keep-a moving forward...",
+      "music_file": "client/assets/event_music/tokyo_ghoul.mp3",
+      "music_duration": 30,
+      "countdown_texts": [
+        "Ten...",
+        "Nine...",
+        "Eight...",
+        "Seven...",
+        "Six...",
+        "Five...",
+        "Four...",
+        "Three...",
+        "Two...",
+        "One...",
+        "...Unravel."
+      ]
     }
   ]
 }
