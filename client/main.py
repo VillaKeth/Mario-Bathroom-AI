@@ -576,6 +576,9 @@ class MarioClient:
             countdown_number = self._convert_countdown_word_to_number(text)
             if countdown_number:
                 self.display.set_countdown(countdown_number)
+        elif phase in ("music", "silence"):
+            # Clear countdown when music/silence phase starts
+            self.display.clear_countdown()
         elif phase == "toast":
             # Clear countdown number when transitioning to toast
             self.display.clear_countdown()
