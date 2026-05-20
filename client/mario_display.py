@@ -1405,25 +1405,30 @@ class MarioDisplay:
         if self.keyboard_mode:
             self._draw_keyboard_input()
 
-        # Draw state / mode indicators
-        conn_color = (50, 200, 50) if self.connected else (200, 50, 50)
-        conn_text = "● Connected" if self.connected else "● Disconnected"
-        indicators = [conn_text, f"[{self.state.upper()}]"]
-        if self.keyboard_mode:
-            indicators.append("[TAB: Keyboard Mode]")
-        if self.party_mode:
-            indicators.append("[F5: Party Mode]")
-        ind_text = " ".join(indicators)
-        ind_surf = self._font_small.render(ind_text, True, conn_color)
-        ind_bg = pygame.Surface((ind_surf.get_width() + 10, ind_surf.get_height() + 6), pygame.SRCALPHA)
-        ind_bg.fill((0, 0, 0, 140))
-        self._screen.blit(ind_bg, (5, WINDOW_HEIGHT - 33))
-        self._screen.blit(ind_surf, (10, WINDOW_HEIGHT - 30))
+        # Minimal bottom bar — connection dot + compact hints
+        bottom_bar = pygame.Surface((WINDOW_WIDTH, 22), pygame.SRCALPHA)
+        bottom_bar.fill((0, 0, 0, 100))
+        self._screen.blit(bottom_bar, (0, WINDOW_HEIGHT - 22))
 
-        # Hint for keyboard/party toggle
-        hint = "TAB:type | 1-8:games | F3:chat | F4:health | F5:party | F6:scores | F11:full"
-        hint_surf = self._font_small.render(hint, True, (100, 100, 120))
-        self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 10, WINDOW_HEIGHT - 20))
+        # Connection dot (left)
+        conn_color = (50, 200, 50) if self.connected else (200, 50, 50)
+        pygame.draw.circle(self._screen, conn_color, (10, WINDOW_HEIGHT - 11), 4)
+
+        # Active mode indicators (compact, left side)
+        mode_parts = []
+        if self.keyboard_mode:
+            mode_parts.append("⌨ Typing")
+        if self.party_mode:
+            mode_parts.append("🎉 Party")
+        if mode_parts:
+            mode_text = " | ".join(mode_parts)
+            mode_surf = self._font_small.render(mode_text, True, (180, 180, 200))
+            self._screen.blit(mode_surf, (22, WINDOW_HEIGHT - 18))
+
+        # Compact hint (right side, dimmed)
+        hint = "TAB:type | F5:party | F11:fullscreen"
+        hint_surf = self._font_small.render(hint, True, (70, 70, 90))
+        self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 8, WINDOW_HEIGHT - 18))
 
         # Volume overlay (fades out after ~2 seconds)
         self._draw_volume_overlay()
