@@ -228,6 +228,13 @@
 - [x] Truncate long text with "..." when exceeding max bubble height
 - [x] Add pygame clip rect as safety net for text rendering
 
+## Audio-Synced Typewriter (Done)
+- [x] Calculate typewriter speed from audio WAV duration
+- [x] Text finishes 0.3s before audio ends (natural feel)
+- [x] Fallback to adaptive speed for non-audio messages
+- [x] Handle streaming audio chunks (estimate total from first chunk)
+- [x] Min clamp 0.15, max 8 chars/frame (readable range)
+
 ## Event Image Audit Round 5 (Done)
 - [x] Audited all 100 event images
 - [x] Found 12 bad images: pokemon, among_us, ohio, ok_boomer, rick_roll, mystery_shot, waterfall, kings_cup, fast_furious, rocket_league, sabrina_carpenter, smash_bros
