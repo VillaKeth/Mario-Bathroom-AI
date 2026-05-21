@@ -285,6 +285,8 @@ class MarioClient:
         # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
+        # Sync typewriter speed to audio duration
+        self.display.sync_typewriter_to_audio(duration)
         # Start audio-wait thread that polls until playback actually finishes
         self._audio_wait_cancel.set()
         self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
@@ -295,8 +297,8 @@ class MarioClient:
         if not wav_bytes or len(wav_bytes) < 44:
             logger.warning("[DEBUG_CLIENT] Received empty audio chunk, skipping")
             return
-        chunk_idx = chunk_meta.get("chunk_index", "?")
-        total = chunk_meta.get("total_chunks", "?")
+        chunk_idx = chunk_meta.get("chunk_index", 0)
+        total = chunk_meta.get("total_chunks", 1)
         is_last = chunk_meta.get("is_last", False)
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Audio chunk {chunk_idx}/{total} ({len(wav_bytes)} bytes, is_last={is_last})")
@@ -305,6 +307,10 @@ class MarioClient:
         # Keep speaking state active; extend echo cancellation window
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
+        # On first chunk, estimate total duration and sync typewriter
+        if chunk_idx == 0 and isinstance(total, int) and total > 0:
+            estimated_total = duration * total
+            self.display.sync_typewriter_to_audio(estimated_total)
         # Only schedule speaking state clear on the last chunk
         if is_last:
             self._audio_wait_cancel.set()

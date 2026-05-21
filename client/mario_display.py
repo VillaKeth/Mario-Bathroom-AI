@@ -205,7 +205,8 @@ class MarioDisplay:
         # Typewriter effect
         self._typewriter_text = ""
         self._typewriter_pos = 0
-        self._typewriter_speed = 2  # chars per frame
+        self._typewriter_speed = 2  # chars per frame (default, overridden by audio sync)
+        self._typewriter_audio_synced = False  # True when speed is calculated from audio duration
 
         # Emotion system
         self._emotion = "happy"
@@ -611,12 +612,34 @@ class MarioDisplay:
             text = ""
         self._typewriter_text = text
         self._typewriter_pos = 0
+        self._typewriter_audio_synced = False
         self.current_text = ""
         self.state = STATE_TALKING
         self._text_display_time = self._frame
         self._talk_last_char_count = 0
         if text:
             self.add_chat_message("mario", text)
+
+    def sync_typewriter_to_audio(self, duration_seconds: float):
+        """Adjust typewriter speed so text finishes slightly before audio ends.
+        
+        Called when audio arrives (after text). Calculates the exact
+        chars-per-frame needed for text to complete in sync with audio.
+        """
+        if not self._typewriter_text:
+            return
+        remaining = len(self._typewriter_text) - self._typewriter_pos
+        if remaining <= 0:
+            return
+        # Text should finish 0.3s before audio ends (feels natural)
+        target_duration = max(0.5, duration_seconds - 0.3)
+        # Calculate frames remaining in audio (at 30 FPS)
+        frames_available = max(1, int(target_duration * 30))
+        # Speed = chars per frame to finish text when audio ends
+        speed = remaining / frames_available
+        # Clamp: min 0.15 (still visible), max 8 (still readable)
+        self._typewriter_speed = max(0.15, min(8.0, speed))
+        self._typewriter_audio_synced = True
 
     def add_chat_message(self, role, text):
         """Add a message to chat history. role is 'mario' or 'user'."""
@@ -765,21 +788,25 @@ class MarioDisplay:
         elif transition_type == "exit":
             self.state = STATE_EXITING
 
-    def _get_typewriter_speed(self, text_length: int) -> int:
-        """Adaptive speed: short text = slower (savor), long text = faster (don't bore)."""
+    def _get_typewriter_speed(self, text_length: int) -> float:
+        """Adaptive speed: short text = slower (savor), long text = faster (don't bore).
+        Used as fallback when audio sync is not available."""
         if text_length < 20:
-            return 1  # Slow for short punchy lines
+            return 1
         elif text_length < 60:
-            return 2  # Normal
+            return 2
         elif text_length < 120:
-            return 3  # Faster for medium text
+            return 3
         else:
-            return 4  # Quick for long responses
+            return 4
 
     def _update_typewriter(self):
         """Advance typewriter text effect."""
         if self._typewriter_text and self._typewriter_pos < len(self._typewriter_text):
-            speed = self._get_typewriter_speed(len(self._typewriter_text))
+            if self._typewriter_audio_synced:
+                speed = self._typewriter_speed
+            else:
+                speed = self._get_typewriter_speed(len(self._typewriter_text))
             self._typewriter_pos = min(
                 self._typewriter_pos + speed,
                 len(self._typewriter_text)
