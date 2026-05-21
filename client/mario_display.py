@@ -2051,28 +2051,22 @@ class MarioDisplay:
         if not layout_lines:
             return
 
-        # Enforce max lines — truncate with "..." if text is too long
+        # Max lines that fit in the bubble (no truncation — text scrolls instead)
         max_lines = max((max_bubble_height - PAD_Y * 2) // best_line_height, 2)
-        if len(layout_lines) > max_lines:
-            layout_lines = layout_lines[:max_lines]
-            last = layout_lines[-1]
-            while best_font.size(last + "...")[0] > max_text_width and len(last) > 1:
-                last = last[:-1]
-            layout_lines[-1] = last.rstrip() + "..."
 
-        # Bubble dimensions (stable — based on full text layout)
-        bubble_h = len(layout_lines) * best_line_height + PAD_Y * 2
+        # Bubble dimensions (stable — capped at max_lines height)
+        display_lines = min(len(layout_lines), max_lines)
+        bubble_h = display_lines * best_line_height + PAD_Y * 2
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = banner_bot + 6
 
         # Wrap the VISIBLE (typewriter) text with the same font/width
         visible_lines = self._wrap_text_for_bubble(text, best_font, max_text_width)
+
+        # Scrolling: if visible text exceeds bubble, show latest lines
         if len(visible_lines) > max_lines:
-            visible_lines = visible_lines[:max_lines]
-            last = visible_lines[-1]
-            while best_font.size(last + "...")[0] > max_text_width and len(last) > 1:
-                last = last[:-1]
-            visible_lines[-1] = last.rstrip() + "..."
+            scroll_offset = len(visible_lines) - max_lines
+            visible_lines = visible_lines[scroll_offset:]
 
         # Style-dependent colors (warm, polished palette)
         if style == BUBBLE_STYLE_SHOUT:
