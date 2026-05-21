@@ -1997,41 +1997,82 @@ class MarioDisplay:
         return lines
 
     def _draw_speech_bubble(self, text: str):
-        """Draw Mario's speech bubble with shadows, warm colors, and polished styling."""
+        """Draw Mario's speech bubble with shadows, warm colors, and polished styling.
+
+        Key design: bubble is sized for the FULL message (self._typewriter_text)
+        so it stays stable during the typewriter animation. Only the visible
+        portion of text is rendered, but the bubble never resizes mid-message.
+        Text is always truncated with '...' if it exceeds the bubble area.
+        """
         style = self._detect_bubble_style(self._typewriter_text)
-        max_width = 380
+
+        # Layout constants — shout style needs extra padding due to spiky shape
+        if style == BUBBLE_STYLE_SHOUT:
+            PAD_X = 35
+            PAD_Y = 20
+        else:
+            PAD_X = 20
+            PAD_Y = 15
+        max_text_width = 420 - PAD_X * 2  # text area = bubble_w minus both pads
+        bubble_w = 420
         banner_bot = getattr(self, '_banner_bottom', 48)
         available_h = int(WINDOW_HEIGHT * 0.38) - banner_bot
         max_bubble_height = max(available_h, 120)
         min_font_size = 14
         max_font_size = 28
-        
-        # Auto-shrink: find largest font that fits
+
+        # Use FULL text for layout so the bubble stays a stable size
+        layout_text = self._typewriter_text or text
+
+        # Auto-shrink: find largest font where full text fits
         best_font = None
-        best_lines = []
         best_size = min_font_size
+        best_line_height = 18
+        layout_lines = []
+
         for size in range(max_font_size, min_font_size - 1, -2):
             font = self._bubble_fonts[size]
-            lines = self._wrap_text_for_bubble(text, font, max_width)
-            total_height = len(lines) * (size + 4)
-            if total_height <= max_bubble_height:
+            line_h = font.get_linesize()
+            lines = self._wrap_text_for_bubble(layout_text, font, max_text_width)
+            total_h = len(lines) * line_h + PAD_Y * 2
+            if total_h <= max_bubble_height:
                 best_font = font
-                best_lines = lines
                 best_size = size
+                best_line_height = line_h
+                layout_lines = lines
                 break
-            best_lines = lines
-        
+            layout_lines = lines
+            best_line_height = line_h
+
         if best_font is None:
             best_font = self._bubble_fonts[min_font_size]
-        
-        if not best_lines:
+            best_line_height = best_font.get_linesize()
+
+        if not layout_lines:
             return
-        
-        line_height = best_size + 4
-        bubble_w = max_width + 40
-        bubble_h = len(best_lines) * line_height + 30
+
+        # Enforce max lines — truncate with "..." if text is too long
+        max_lines = max((max_bubble_height - PAD_Y * 2) // best_line_height, 2)
+        if len(layout_lines) > max_lines:
+            layout_lines = layout_lines[:max_lines]
+            last = layout_lines[-1]
+            while best_font.size(last + "...")[0] > max_text_width and len(last) > 1:
+                last = last[:-1]
+            layout_lines[-1] = last.rstrip() + "..."
+
+        # Bubble dimensions (stable — based on full text layout)
+        bubble_h = len(layout_lines) * best_line_height + PAD_Y * 2
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = banner_bot + 6
+
+        # Wrap the VISIBLE (typewriter) text with the same font/width
+        visible_lines = self._wrap_text_for_bubble(text, best_font, max_text_width)
+        if len(visible_lines) > max_lines:
+            visible_lines = visible_lines[:max_lines]
+            last = visible_lines[-1]
+            while best_font.size(last + "...")[0] > max_text_width and len(last) > 1:
+                last = last[:-1]
+            visible_lines[-1] = last.rstrip() + "..."
 
         # Style-dependent colors (warm, polished palette)
         if style == BUBBLE_STYLE_SHOUT:
@@ -2065,7 +2106,7 @@ class MarioDisplay:
                          (0, 0, bubble_w + 6, bubble_h + 6), border_radius=16)
         self._screen.blit(shadow_surf, (bubble_x + 2, bubble_y + 3))
 
-        # Spiky bubble for shouts
+        # Spiky bubble for shouts (inner dips flush with rect to avoid text overlap)
         if style == BUBBLE_STYLE_SHOUT:
             points = []
             cx_b = bubble_x + bubble_w // 2
@@ -2077,8 +2118,8 @@ class MarioDisplay:
                     rx = bubble_w // 2 + 15
                     ry = bubble_h // 2 + 15
                 else:
-                    rx = bubble_w // 2 - 5
-                    ry = bubble_h // 2 - 5
+                    rx = bubble_w // 2
+                    ry = bubble_h // 2
                 points.append((
                     int(cx_b + rx * math.cos(angle)),
                     int(cy_b + ry * math.sin(angle))
@@ -2124,24 +2165,34 @@ class MarioDisplay:
                 (pointer_x + 10, pointer_y),
             ], border_width)
 
-        # Typewriter cursor
+        # Typewriter cursor state
         showing_cursor = (self._typewriter_pos < len(self._typewriter_text)
                           and (self._frame // 8) % 2 == 0)
 
-        # Text rendering with slight padding
-        text_x = bubble_x + 20
-        text_y_start = bubble_y + 15
-        for i, line in enumerate(best_lines):
+        # Clip text rendering to bubble interior (safety net — nothing escapes)
+        text_area = pygame.Rect(
+            bubble_x + PAD_X, bubble_y + PAD_Y,
+            max_text_width, bubble_h - PAD_Y * 2
+        )
+        prev_clip = self._screen.get_clip()
+        self._screen.set_clip(text_area)
+
+        text_x = text_area.x
+        text_y_start = text_area.y
+        for i, line in enumerate(visible_lines):
             text_surf = best_font.render(line, True, text_color)
-            self._screen.blit(text_surf, (text_x, text_y_start + i * line_height))
+            self._screen.blit(text_surf, (text_x, text_y_start + i * best_line_height))
 
         # Blinking cursor at end of typewriter text
-        if showing_cursor and best_lines:
-            last_line = best_lines[-1]
+        if showing_cursor and visible_lines:
+            last_line = visible_lines[-1]
             cursor_x = text_x + best_font.size(last_line)[0] + 2
-            cursor_y = text_y_start + (len(best_lines) - 1) * line_height
+            cursor_y = text_y_start + (len(visible_lines) - 1) * best_line_height
             cursor_height = best_size - 6
             pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, cursor_height))
+
+        # Restore previous clip
+        self._screen.set_clip(prev_clip)
 
     def _draw_subtitle(self, text: str):
         """Draw subtitle text above the bottom bar (what the user said)."""
