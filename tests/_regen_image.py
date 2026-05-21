@@ -29,6 +29,18 @@ IMAGES = {
     "spin_bottle": "Spin the bottle party game, glass bottle spinning on floor in center of circle of people, classic party game, fun atmosphere",
     "vibe_check": "Vibe check meme, person making judging face while checking vibes, funny meme energy, neon vaporwave aesthetic, party mood assessment",
     "group_photo": "Group of friends taking a party selfie photo together, fun party atmosphere, colorful lights, everyone smiling and having fun, celebration",
+    "pokemon": "Pokemon battle scene with Pikachu using thunderbolt attack, Pokeball on ground, colorful anime style, tall grass battlefield, Nintendo Pokemon game art",
+    "among_us": "Among Us game characters in spaceship, red crewmate standing over dead body, emergency meeting scene, sus impostor, colorful astronaut beans",
+    "ohio": "Ohio meme, dramatic apocalyptic Ohio landscape with explosions and chaos, Only in Ohio meme energy, surreal funny meme art",
+    "ok_boomer": "OK Boomer meme, generational clash comic style, young person dismissing older person with OK Boomer text, funny internet meme art",
+    "rick_roll": "Rick Astley Never Gonna Give You Up music video scene, man dancing in trenchcoat, 80s retro music video aesthetic, rickroll meme",
+    "mystery_shot": "Mystery shot drinking game, colorful unknown mixed drink shots in row, question marks floating above glasses, suspenseful party game atmosphere",
+    "waterfall": "Waterfall drinking game, cascade of drinks being poured like a waterfall, group of friends drinking in sequence, party game chain reaction",
+    "kings_cup": "Kings Cup drinking game, playing cards spread in circle around large cup in center, classic party drinking game setup, cards and drinks",
+    "fast_furious": "Fast and Furious movie scene, muscle cars racing through city streets at night, nitrous boost flames, street racing action, Vin Diesel style",
+    "rocket_league": "Rocket League video game, rocket-powered car hitting giant soccer ball in futuristic arena, boost trails, car soccer game art, video game screenshot",
+    "sabrina_carpenter": "Sabrina Carpenter pop singer performing on stage, blonde young woman singing into microphone, sparkly concert outfit, pop music concert stage lights",
+    "smash_bros": "Super Smash Bros Ultimate fighting game, multiple Nintendo characters battling on floating platform, Mario vs Link vs Kirby, smash attack effects, game art",
 }
 
 name = sys.argv[1] if len(sys.argv) > 1 else "zelda"
