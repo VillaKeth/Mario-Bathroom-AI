@@ -467,6 +467,15 @@
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
 - [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
 
+## Event Image Audit — COMPLETE ✅
+- [x] Generated AI images for all 102 events via Pollinations.ai
+- [x] Replaced AI images with real images from Bing (93/102 events)
+- [x] Visual audit round 1: fixed star_wars, game_of_thrones, league, dark_souls
+- [x] Visual audit round 2: fixed checkmate (EXPLICIT CONTENT!), beer_pong, categories, chug
+- [x] Visual audit round 3: fixed 14 more bad images (couples, designated_driver, last_man, mario_kart, midnight, most_likely, new_years, oktoberfest, power_hour, shotgun, skibidi, spin_bottle, vibe_check, group_photo)
+- [x] ALL 102 event images verified correct and appropriate
+- [x] Cleaned up temp audit files (_regen_batch.py, _audit_gallery.html, _audit_script.py)
+
 ## Tests
 - [x] Add TestVIPBypassFix class to test_edge_cases.py (5 tests)
 - [x] Add TestStateAccessThreadSafety class to test_edge_cases.py (2 tests)
