@@ -219,6 +219,21 @@
 - [ ] Add tests for _preclean_tts_text()
 - [ ] Create release v3.12
 
+## Speech Bubble Fix (Done)
+- [x] Fix text overflowing speech bubbles — text was rendered outside spiky SHOUT bubble edges
+- [x] Size bubble for full text (not partial typewriter) to prevent mid-message resizing
+- [x] Use font.get_linesize() instead of magic number for proper line spacing
+- [x] Add extra padding for SHOUT style spiky bubbles (35px vs 20px)
+- [x] Make spike inner dips flush with rect boundary instead of 5px inside
+- [x] Truncate long text with "..." when exceeding max bubble height
+- [x] Add pygame clip rect as safety net for text rendering
+
+## Event Image Audit Round 5 (Done)
+- [x] Audited all 100 event images
+- [x] Found 12 bad images: pokemon, among_us, ohio, ok_boomer, rick_roll, mystery_shot, waterfall, kings_cup, fast_furious, rocket_league, sabrina_carpenter, smash_bros
+- [x] Regenerated all 12 via Pollinations.ai
+- [x] Verified all 12 regenerated images look correct
+
 ## v3.11 TTS Quality + Audio Normalization (Done — 636 tests)
 - [x] Audio normalization: peak normalize to -3dB for consistent volume
 - [x] New character pronunciations (Peach, Luigi, Yoshi, Daisy)
@@ -473,8 +488,9 @@
 - [x] Visual audit round 1: fixed star_wars, game_of_thrones, league, dark_souls
 - [x] Visual audit round 2: fixed checkmate (EXPLICIT CONTENT!), beer_pong, categories, chug
 - [x] Visual audit round 3: fixed 14 more bad images (couples, designated_driver, last_man, mario_kart, midnight, most_likely, new_years, oktoberfest, power_hour, shotgun, skibidi, spin_bottle, vibe_check, group_photo)
-- [x] ALL 102 event images verified correct and appropriate
-- [x] Cleaned up temp audit files (_regen_batch.py, _audit_gallery.html, _audit_script.py)
+- [x] Visual audit round 4: fixed 12 more bad images (pokemon, among_us, ohio, ok_boomer, rick_roll, mystery_shot, waterfall, kings_cup, fast_furious, rocket_league, sabrina_carpenter, smash_bros)
+- [x] ALL 104 event images verified correct and appropriate across 5 audit rounds
+- [x] Cleaned up temp audit files (_regen_batch.py, _audit_gallery.html, _audit_script.py, _screenshot.png)
 
 ## Tests
 - [x] Add TestVIPBypassFix class to test_edge_cases.py (5 tests)
