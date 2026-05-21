@@ -208,6 +208,13 @@ class MarioDisplay:
         self._typewriter_speed = 2  # chars per frame (default, overridden by audio sync)
         self._typewriter_audio_synced = False  # True when speed is calculated from audio duration
 
+        # Page-based text display (auto-advances with speech)
+        self._text_pages = []  # list of lists of lines per page
+        self._text_page_char_ranges = []  # (start_char, end_char) for each page
+        self._current_page = 0
+        self._page_transition_alpha = 255  # for fade transitions
+        self._page_transition_frame = 0
+
         # Emotion system
         self._emotion = "happy"
         self._particles = []
@@ -617,6 +624,12 @@ class MarioDisplay:
         self.state = STATE_TALKING
         self._text_display_time = self._frame
         self._talk_last_char_count = 0
+        # Reset page state (pages will be calculated on first draw)
+        self._text_pages = []
+        self._text_page_char_ranges = []
+        self._current_page = 0
+        self._page_transition_alpha = 255
+        self._page_transition_frame = 0
         if text:
             self.add_chat_message("mario", text)
 
@@ -2023,13 +2036,28 @@ class MarioDisplay:
             lines.append(current_line)
         return lines
 
-    def _draw_speech_bubble(self, text: str):
-        """Draw Mario's speech bubble with shadows, warm colors, and polished styling.
+    def _build_text_pages(self, all_lines: list[str], max_lines_per_page: int,
+                          full_text: str, font, max_width: int):
+        """Split wrapped lines into pages.
+        
+        Pages are simply chunks of max_lines_per_page from the full-text wrap.
+        The typewriter determines which page to show based on visible line count.
+        """
+        self._text_pages = []
+        self._text_page_char_ranges = []  # Not used — kept for compatibility
 
-        Key design: bubble is sized for the FULL message (self._typewriter_text)
-        so it stays stable during the typewriter animation. Only the visible
-        portion of text is rendered, but the bubble never resizes mid-message.
-        Text is always truncated with '...' if it exceeds the bubble area.
+        # Split lines into page-sized chunks
+        for i in range(0, len(all_lines), max_lines_per_page):
+            page_lines = all_lines[i:i + max_lines_per_page]
+            self._text_pages.append(page_lines)
+            self._text_page_char_ranges.append((i, i + len(page_lines)))  # line ranges, not char ranges
+
+    def _draw_speech_bubble(self, text: str):
+        """Draw Mario's speech bubble with page-based auto-advance.
+
+        Pages auto-advance in sync with Mario's speech — no manual scrolling.
+        Each page of text appears cleanly, typewriter reveals it, then when
+        the typewriter reaches the end of the page it transitions to the next.
         """
         style = self._detect_bubble_style(self._typewriter_text)
 
@@ -2040,7 +2068,7 @@ class MarioDisplay:
         else:
             PAD_X = 20
             PAD_Y = 15
-        max_text_width = 420 - PAD_X * 2  # text area = bubble_w minus both pads
+        max_text_width = 420 - PAD_X * 2
         bubble_w = 420
         banner_bot = getattr(self, '_banner_bottom', 48)
         available_h = int(WINDOW_HEIGHT * 0.38) - banner_bot
@@ -2048,10 +2076,9 @@ class MarioDisplay:
         min_font_size = 14
         max_font_size = 28
 
-        # Use FULL text for layout so the bubble stays a stable size
         layout_text = self._typewriter_text or text
 
-        # Auto-shrink: find largest font where full text fits
+        # Auto-shrink: find largest font where at least some text fits nicely
         best_font = None
         best_size = min_font_size
         best_line_height = 18
@@ -2063,37 +2090,63 @@ class MarioDisplay:
             lines = self._wrap_text_for_bubble(layout_text, font, max_text_width)
             total_h = len(lines) * line_h + PAD_Y * 2
             if total_h <= max_bubble_height:
+                # All text fits on one page — use this font
                 best_font = font
                 best_size = size
                 best_line_height = line_h
                 layout_lines = lines
                 break
+            # If text is too long, use smallest readable font but paginate
             layout_lines = lines
             best_line_height = line_h
 
         if best_font is None:
             best_font = self._bubble_fonts[min_font_size]
             best_line_height = best_font.get_linesize()
+            layout_lines = self._wrap_text_for_bubble(layout_text, best_font, max_text_width)
 
         if not layout_lines:
             return
 
-        # Max lines that fit in the bubble (no truncation — text scrolls instead)
+        # Calculate max lines per page
         max_lines = max((max_bubble_height - PAD_Y * 2) // best_line_height, 2)
 
-        # Bubble dimensions (stable — capped at max_lines height)
-        display_lines = min(len(layout_lines), max_lines)
+        # Build pages if not already built for this text
+        if not self._text_pages or self._text_pages[0] is None:
+            self._build_text_pages(layout_lines, max_lines, layout_text, best_font, max_text_width)
+
+        # Determine current page by wrapping the VISIBLE text and counting lines
+        # This ensures page transitions happen at natural word boundaries
+        visible_text_so_far = text  # text param = typewriter portion
+        visible_wrapped = self._wrap_text_for_bubble(visible_text_so_far, best_font, max_text_width)
+        num_visible_lines = len(visible_wrapped)
+        target_page = max(0, (num_visible_lines - 1) // max_lines) if num_visible_lines > 0 else 0
+
+        # Handle page transitions
+        if target_page != self._current_page:
+            self._current_page = target_page
+            self._page_transition_frame = self._frame
+            self._page_transition_alpha = 0  # fade in
+
+        # Fade-in effect for page transitions (10 frames = ~0.33s at 30fps)
+        frames_since_transition = self._frame - self._page_transition_frame
+        if frames_since_transition < 10:
+            self._page_transition_alpha = min(255, int(255 * frames_since_transition / 10))
+        else:
+            self._page_transition_alpha = 255
+
+        # Get current page lines from the visible wrapped text
+        page_idx = min(self._current_page, len(self._text_pages) - 1)
+        page_start_line = page_idx * max_lines
+        page_end_line = page_start_line + max_lines
+        # Show lines from the visible wrapped text that belong to current page
+        visible_lines = visible_wrapped[page_start_line:page_end_line]
+
+        # Bubble dimensions (stable — sized for max page content)
+        display_lines = min(max_lines, max(len(p) for p in self._text_pages) if self._text_pages else len(visible_lines))
         bubble_h = display_lines * best_line_height + PAD_Y * 2
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = banner_bot + 6
-
-        # Wrap the VISIBLE (typewriter) text with the same font/width
-        visible_lines = self._wrap_text_for_bubble(text, best_font, max_text_width)
-
-        # Scrolling: if visible text exceeds bubble, show latest lines
-        if len(visible_lines) > max_lines:
-            scroll_offset = len(visible_lines) - max_lines
-            visible_lines = visible_lines[scroll_offset:]
 
         # Style-dependent colors (warm, polished palette)
         if style == BUBBLE_STYLE_SHOUT:
@@ -2167,14 +2220,12 @@ class MarioDisplay:
                 pygame.draw.circle(self._screen, border_color,
                                    (pointer_x, pointer_y + 8 + i * 10), 4 - i)
         else:
-            # Shadow for pointer
             shadow_pts = [
                 (pointer_x - 8, pointer_y + 2),
                 (pointer_x + 12, pointer_y + 2),
                 (pointer_x + 2, pointer_y + 22),
             ]
             pygame.draw.polygon(self._screen, (0, 0, 0, 30) if hasattr(pygame, 'SRCALPHA') else (40, 40, 40), shadow_pts)
-            # Main pointer
             pygame.draw.polygon(self._screen, bg_color, [
                 (pointer_x - 10, pointer_y),
                 (pointer_x + 10, pointer_y),
@@ -2186,11 +2237,24 @@ class MarioDisplay:
                 (pointer_x + 10, pointer_y),
             ], border_width)
 
+        # Page indicator (small dots) — only show if multiple pages
+        if len(self._text_pages) > 1:
+            dot_y = bubble_y + bubble_h - 8
+            dot_start_x = bubble_x + bubble_w - 12 - (len(self._text_pages) * 8)
+            for i in range(len(self._text_pages)):
+                dot_color = border_color if i == page_idx else (*border_color[:3], 80) if len(border_color) == 3 else border_color
+                dot_x = dot_start_x + i * 8
+                if i == page_idx:
+                    pygame.draw.circle(self._screen, border_color, (dot_x, dot_y), 3)
+                else:
+                    pygame.draw.circle(self._screen, (*bg_color[:3],), (dot_x, dot_y), 3)
+                    pygame.draw.circle(self._screen, border_color, (dot_x, dot_y), 3, 1)
+
         # Typewriter cursor state
         showing_cursor = (self._typewriter_pos < len(self._typewriter_text)
                           and (self._frame // 8) % 2 == 0)
 
-        # Clip text rendering to bubble interior (safety net — nothing escapes)
+        # Clip text rendering to bubble interior
         text_area = pygame.Rect(
             bubble_x + PAD_X, bubble_y + PAD_Y,
             max_text_width, bubble_h - PAD_Y * 2
@@ -2198,10 +2262,15 @@ class MarioDisplay:
         prev_clip = self._screen.get_clip()
         self._screen.set_clip(text_area)
 
+        # Render text with page transition fade
         text_x = text_area.x
         text_y_start = text_area.y
         for i, line in enumerate(visible_lines):
+            if i >= max_lines:
+                break
             text_surf = best_font.render(line, True, text_color)
+            if self._page_transition_alpha < 255:
+                text_surf.set_alpha(self._page_transition_alpha)
             self._screen.blit(text_surf, (text_x, text_y_start + i * best_line_height))
 
         # Blinking cursor at end of typewriter text
