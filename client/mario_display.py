@@ -1164,22 +1164,30 @@ class MarioDisplay:
         try:
             self._fullscreen = not self._fullscreen
             if self._fullscreen:
-                info = pygame.display.Info()
+                # Get desktop resolution BEFORE switching to fullscreen
+                # pygame.display.get_desktop_sizes() returns [(w,h)] for each display
+                try:
+                    desktop_sizes = pygame.display.get_desktop_sizes()
+                    desk_w, desk_h = desktop_sizes[0]
+                except (AttributeError, IndexError):
+                    # Fallback for older pygame: use display.Info() before set_mode
+                    info = pygame.display.Info()
+                    desk_w, desk_h = info.current_w, info.current_h
                 # Ensure render buffer exists before switching
                 if not hasattr(self, '_render_buffer') or self._render_buffer is None:
                     self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
                 self._screen = pygame.display.set_mode(
-                    (info.current_w, info.current_h), pygame.FULLSCREEN
+                    (desk_w, desk_h), pygame.FULLSCREEN
                 )
-                scale = min(info.current_w / WINDOW_WIDTH, info.current_h / WINDOW_HEIGHT)
+                scale = min(desk_w / WINDOW_WIDTH, desk_h / WINDOW_HEIGHT)
                 self._render_w = int(WINDOW_WIDTH * scale)
                 self._render_h = int(WINDOW_HEIGHT * scale)
                 self._fs_scale = scale
                 self._display_scale = scale
-                self._native_width = info.current_w
-                self._native_height = info.current_h
+                self._native_width = desk_w
+                self._native_height = desk_h
                 if DEBUG_DISPLAY:
-                    logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {info.current_w}x{info.current_h}, scale={scale:.2f}")
+                    logger.info(f"[DEBUG_DISPLAY] Fullscreen ON: {desk_w}x{desk_h}, scale={scale:.2f}")
             else:
                 self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
                 self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
