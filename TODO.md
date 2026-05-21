@@ -225,7 +225,10 @@
 - [x] Use font.get_linesize() instead of magic number for proper line spacing
 - [x] Add extra padding for SHOUT style spiky bubbles (35px vs 20px)
 - [x] Make spike inner dips flush with rect boundary instead of 5px inside
-- [x] Truncate long text with "..." when exceeding max bubble height
+- [x] Page-based auto-advance: long text splits into pages that advance with typewriter
+- [x] Page indicator dots show current page position
+- [x] Smooth fade transitions between pages
+- [x] All text visible (no more "..." truncation)
 - [x] Add pygame clip rect as safety net for text rendering
 
 ## Audio-Synced Typewriter (Done)
@@ -240,6 +243,11 @@
 - [x] Found 12 bad images: pokemon, among_us, ohio, ok_boomer, rick_roll, mystery_shot, waterfall, kings_cup, fast_furious, rocket_league, sabrina_carpenter, smash_bros
 - [x] Regenerated all 12 via Pollinations.ai
 - [x] Verified all 12 regenerated images look correct
+
+## Fullscreen Fix (Done)
+- [x] Fix fullscreen scaling — pygame.display.Info() returned window size (800x600) not desktop resolution
+- [x] Use get_desktop_sizes() for correct monitor resolution (1280x720)
+- [x] Fullscreen now properly scales and centers content with letterboxing
 
 ## v3.11 TTS Quality + Audio Normalization (Done — 636 tests)
 - [x] Audio normalization: peak normalize to -3dB for consistent volume

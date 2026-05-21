@@ -262,6 +262,7 @@ class MarioDisplay:
 
         # Fullscreen toggle with proportional scaling
         self._fullscreen = False
+        self._windowed_scaled = False  # True when window is resized/maximized
         self._display_scale = 1.0  # scale factor for fullscreen proportional scaling
         self._native_width = WINDOW_WIDTH
         self._native_height = WINDOW_HEIGHT
@@ -587,6 +588,8 @@ class MarioDisplay:
                             self.set_subtitle(f"🎮 {prompt}")
                     elif self.keyboard_mode:
                         self._handle_keyboard_input(event)
+                if event.type == pygame.VIDEORESIZE and not self._fullscreen:
+                    self._handle_window_resize(event.w, event.h)
 
             self._frame += 1
             self._update_typewriter()
@@ -1197,6 +1200,7 @@ class MarioDisplay:
                 self._display_scale = 1.0
                 self._native_width = WINDOW_WIDTH
                 self._native_height = WINDOW_HEIGHT
+                self._windowed_scaled = False
                 if DEBUG_DISPLAY:
                     logger.info("[DEBUG_DISPLAY] Fullscreen OFF: windowed 800x600")
         except Exception as e:
@@ -1204,6 +1208,7 @@ class MarioDisplay:
             # Revert to safe windowed mode
             try:
                 self._fullscreen = False
+                self._windowed_scaled = False
                 self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
                 self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
                 self._render_w = WINDOW_WIDTH
@@ -1214,6 +1219,28 @@ class MarioDisplay:
                 pass
         # Invalidate cached background so it redraws at new size
         self._bg_surface = None
+
+    def _handle_window_resize(self, new_w: int, new_h: int):
+        """Handle window resize/maximize — scale render buffer to fit."""
+        try:
+            # Clamp minimum size
+            new_w = max(new_w, 400)
+            new_h = max(new_h, 300)
+            self._screen = pygame.display.set_mode((new_w, new_h), pygame.RESIZABLE)
+            if not hasattr(self, '_render_buffer') or self._render_buffer is None:
+                self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+            scale = min(new_w / WINDOW_WIDTH, new_h / WINDOW_HEIGHT)
+            self._render_w = int(WINDOW_WIDTH * scale)
+            self._render_h = int(WINDOW_HEIGHT * scale)
+            self._display_scale = scale
+            self._native_width = new_w
+            self._native_height = new_h
+            self._windowed_scaled = (new_w != WINDOW_WIDTH or new_h != WINDOW_HEIGHT)
+            self._bg_surface = None  # Invalidate background cache
+            if DEBUG_DISPLAY:
+                logger.info(f"[DEBUG_DISPLAY] Window resized: {new_w}x{new_h}, scale={scale:.2f}")
+        except Exception as e:
+            logger.error(f"[DEBUG_DISPLAY] Window resize failed: {e}")
 
     def _toggle_panic_mode(self):
         """Toggle panic mode — mute audio and show 'Technical Difficulties' screen."""
@@ -1413,16 +1440,17 @@ class MarioDisplay:
     # ==========================================
 
     def _draw(self):
-        """Draw the full frame. Uses render buffer for fullscreen scaling."""
+        """Draw the full frame. Uses render buffer for fullscreen/resized scaling."""
         # Panic mode: draw directly to real screen (full-res friendly text)
         if self._panic_mode:
             self._draw_panic_overlay()
             pygame.display.flip()
             return
 
-        # In fullscreen, redirect all drawing to the 800x600 render buffer
+        # When scaled (fullscreen or resized window), redirect drawing to 800x600 render buffer
+        needs_scaling = self._fullscreen or self._windowed_scaled
         real_screen = self._screen
-        if self._fullscreen:
+        if needs_scaling:
             self._screen = self._render_buffer
 
         # Background scene instead of flat fill
@@ -1550,8 +1578,8 @@ class MarioDisplay:
         if self.captions:
             self.captions.draw(self._screen)
 
-        # Fullscreen: scale render buffer to real screen, centered with aspect ratio
-        if self._fullscreen:
+        # Scale render buffer to real screen, centered with aspect ratio
+        if needs_scaling:
             self._screen = real_screen
             scaled = pygame.transform.smoothscale(self._render_buffer,
                                                   (self._render_w, self._render_h))
