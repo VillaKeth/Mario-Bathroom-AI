@@ -2293,7 +2293,8 @@ async def _idle_loop(ws: WebSocket):
                         _tts_executor, lambda: tts.synthesize(analyzed["tts_text"])
                     )
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                        pose_hint=analyzed["pose_hint"], emotion=_idle_emotion)
+                                        pose_hint=analyzed["pose_hint"], emotion=_idle_emotion,
+                                        is_idle=True)
                     _idle_recent_texts.append(action)
                     if len(_idle_recent_texts) > 10:
                         _idle_recent_texts.pop(0)
@@ -3377,6 +3378,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if new_facts and state_current.get("speaker_id"):
             ctx.append({"role": "system", "content": f"Learned: {new_facts[0]}"})
 
+        # ── System message trimming ──
+        # On low-tier hardware, trim excess system messages to keep context tight.
+        # Keep the main prompt (idx 0), early context (phase, birthday, guest), and trim late hints.
+        _sys_indices = [i for i, m in enumerate(ctx) if m.get("role") == "system" and i > 0]
+        _MAX_SYS_HINTS = 5  # Main prompt + 5 secondary system messages max
+        if len(_sys_indices) > _MAX_SYS_HINTS:
+            # Drop LATEST secondary system messages (reaction hints, gossip, chaos, etc.)
+            # Keep the EARLIEST ones (party phase, birthday, emotion, guest context)
+            _drop = _sys_indices[_MAX_SYS_HINTS:]
+            _dropped_content = [ctx[i].get("content", "")[:40] for i in _drop[:3]]
+            ctx = [m for i, m in enumerate(ctx) if i not in _drop]
+            logger.info(f"[CTX_TRIM] Dropped {len(_drop)} low-priority hints (kept first {_MAX_SYS_HINTS}), e.g. {_dropped_content}")
+
+        # Add quality reinforcement as final system message
+        if text:
+            ctx.append({"role": "system", "content": 
+                f"React to their SPECIFIC words. Be substantive. Answer questions directly."})
+
         # ── Token budget enforcement ──
         # Prevent context overflow by trimming oldest conversation messages
         # ~4 chars per token is a reasonable approximation for English
@@ -3402,6 +3421,20 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         _timing["context_ms"] = int((time.time() - _t_ctx) * 1000)
         _timing["context_messages"] = len(ctx)
         _timing["context_est_tokens"] = sum(len(m.get("content", "")) for m in ctx) // 4
+
+        # Debug: log full context breakdown
+        _sys_count = sum(1 for m in ctx if m.get("role") == "system")
+        _user_count = sum(1 for m in ctx if m.get("role") == "user")
+        _asst_count = sum(1 for m in ctx if m.get("role") == "assistant")
+        _sys_chars = sum(len(m.get("content", "")) for m in ctx if m.get("role") == "system")
+        logger.info(f"[CTX_DEBUG] msgs={len(ctx)} (sys={_sys_count} user={_user_count} asst={_asst_count}) "
+                     f"est_tokens={_timing['context_est_tokens']} sys_chars={_sys_chars} "
+                     f"budget={int(llm.LLM_NUM_CTX * 0.80)}")
+        if DEBUG_SERVER:
+            for i, m in enumerate(ctx):
+                role = m.get("role", "?")
+                content = m.get("content", "")[:80]
+                logger.debug(f"[CTX_MSG {i:02d}] {role:9s} | {content}")
 
         await send_thinking(ws, subtitle=text)
         # Play "thinking" audio AND run LLM concurrently
@@ -3459,8 +3492,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 logger.warning(f"Thinking audio failed (non-fatal): {e}")
 
         # Run thinking TTS + LLM concurrently (with timeout fallback)
-        _LLM_TIMEOUT = GAME_CONFIG.get("llm_timeout", 30)
-        _ROUTER_FALLBACK_TIMEOUT = 15  # Retry with fast model if quality takes >15s
+        _LLM_TIMEOUT = GAME_CONFIG.get("llm_timeout", 45)
+        _ROUTER_FALLBACK_TIMEOUT = 25  # Retry with fast model if quality takes >25s
         _t_llm = time.time()
 
         # Infer response type for router
@@ -4709,7 +4742,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         pose_hint: str = None, response_time: float = None,
                         particle_effect: str = None,
                         chunk_index: int = None, total_chunks: int = None,
-                        is_last: bool = None):
+                        is_last: bool = None, is_idle: bool = False):
     """Send Mario's response (text + audio + metadata) to the client."""
     # Trigger server-side sound effect (non-blocking, fire-and-forget)
     if sound:
@@ -4724,6 +4757,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         "animation": emotion_system.animation_state,
         "mood_score": emotion_system.get_mood_score(),
     }
+    if is_idle:
+        msg["is_idle"] = True
     if pose_hint:
         msg["pose_hint"] = pose_hint
     if response_time is not None:

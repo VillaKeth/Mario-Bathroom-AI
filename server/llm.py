@@ -149,7 +149,7 @@ LLM_FALLBACKS = [
 # Recent response ring buffer for repeat detection
 _recent_responses: list[str] = []
 _recent_responses_lock = threading.Lock()
-_RECENT_MAX = 20
+_RECENT_MAX = 10
 
 
 async def check_ollama():
@@ -216,13 +216,16 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
     Returns: {"text": str, "emotion": str, "energy": float}
     """
     use_model = model or MODEL_NAME
-    if DEBUG_LLM:
-        logger.info(f"[DEBUG_LLM] generate_response: START, transcript={transcript}, model={use_model}")
+    logger.info(f"[LLM] generate_response: START transcript='{(transcript or '')[:60]}' model={use_model} ctx_msgs={len(messages)}")
 
     start = time.time()
 
     if transcript:
         messages.append({"role": "user", "content": transcript})
+    
+    # Log full context for debugging
+    for i, m in enumerate(messages):
+        logger.info(f"[LLM_CTX {i:02d}] {m.get('role'):9s} | {m.get('content', '')[:80]}")
 
     # Dynamic temperature based on input content
     base_temp = 0.85
@@ -248,7 +251,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
             "top_p": 0.9,
             "num_predict": LLM_NUM_PREDICT,
             "num_ctx": LLM_NUM_CTX,
-            "repeat_penalty": 1.3,
+            "repeat_penalty": 1.15,
             "stop": ["\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "(OOC"],
         },
     }
@@ -277,15 +280,17 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                         continue
 
         response_text = "".join(chunks).strip()
-        if DEBUG_LLM:
-            logger.info(f"[DEBUG_LLM] RAW response ({len(response_text)} chars): {response_text[:500]}")
+        logger.info(f"[LLM] RAW response ({len(response_text)} chars): {response_text[:200]}")
         if not response_text or len(response_text) < 3:
             logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
             fallback_text = random.choice(LLM_FALLBACKS)
             return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
 
         # Import emotions module for sentiment extraction
-        from . import emotions
+        try:
+            from . import emotions
+        except ImportError:
+            import emotions
         
         # Extract emotion and energy from LLM response, get clean text
         sentiment_data = emotions.extract_emotion_tag(response_text)
@@ -304,13 +309,13 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                 if response_lower == r_lower:
                     is_repeat = True
                     break
-                # Fuzzy check: if responses share >70% of words, consider repeat
+                # Fuzzy check: if responses share >80% of words, consider repeat
                 if len(response_lower) > 20 and len(r_lower) > 20:
                     words_new = set(response_lower.split())
                     words_old = set(r_lower.split())
                     if words_new and words_old:
                         overlap = len(words_new & words_old) / max(len(words_new), len(words_old))
-                        if overlap > 0.70:
+                        if overlap > 0.80:
                             is_repeat = True
                             break
         if is_repeat:

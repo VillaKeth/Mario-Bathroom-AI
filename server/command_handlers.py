@@ -403,10 +403,13 @@ def handle_special_commands(
             # Fall through to process the new command normally
 
     # Easter eggs — hidden trigger phrases for extra fun
-    for trigger, response in EASTER_EGGS.items():
-        if trigger in lower:
-            emotion_system.current = Emotion.EXCITED
-            return response
+    # Only trigger for SHORT messages (≤5 words) so complex requests go to LLM
+    _word_count = len(lower.split())
+    if _word_count <= 5:
+        for trigger, response in EASTER_EGGS.items():
+            if trigger in lower:
+                emotion_system.current = Emotion.EXCITED
+                return response
 
     # Tell a joke
     if any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
@@ -414,17 +417,19 @@ def handle_special_commands(
         return idle_behavior.get_joke()
 
     # Tell me a secret
-    if any(w in lower for w in ["tell me a secret", "secret", "whisper"]):
+    if any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower):
         emotion_system.current = "mischievous"
         return random.choice(SECRETS)
 
     # Trivia
-    if any(w in lower for w in ["tell me a fact", "trivia", "fun fact", "did you know"]):
+    if any(w in lower for w in ["tell me a fact", "fun fact", "did you know"]) or re.search(r'\btrivia\b', lower):
         emotion_system.current = "excited"
         return idle_behavior.get_trivia()
 
-    # Sing
-    if any(w in lower for w in ["sing", "song", "music", "hum"]):
+    # Sing — use word boundaries to avoid matching "embarrassing", "processing", etc.
+    if any(w in lower for w in ["sing a song", "sing for me", "sing me"]) or \
+       re.search(r'\bsing\b', lower) or re.search(r'\bsong\b', lower) or \
+       re.search(r'\bmusic\b', lower) or re.search(r'\bhum\b', lower):
         emotion_system.current = "happy"
         return idle_behavior.get_song()
 

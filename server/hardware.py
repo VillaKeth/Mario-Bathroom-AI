@@ -148,7 +148,7 @@ _TIER_DEFAULTS = {
         "precache_pause_seconds": 2.0,
         "max_background_tasks": 10,
         "max_cache_memory": 100,
-        "llm_num_predict": 120,
+        "llm_num_predict": 150,
         "llm_num_ctx": 4096,
         "conversation_history_limit": 28,
         "llm_quality_model": "llama3",
