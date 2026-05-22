@@ -422,8 +422,8 @@ def handle_special_commands(
         emotion_system.current = "mischievous"
         return random.choice(SECRETS)
 
-    # Trivia
-    if any(w in lower for w in ["tell me a fact", "fun fact", "did you know"]) or re.search(r'\btrivia\b', lower):
+    # Trivia fun facts — only for explicit fact requests, NOT "trivia" which starts the game
+    if any(w in lower for w in ["tell me a fact", "fun fact", "did you know"]):
         emotion_system.current = "excited"
         return idle_behavior.get_trivia()
 
