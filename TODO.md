@@ -546,7 +546,11 @@
 - [x] Rate limiter bypass for urgent messages (always reset on new input)
 - [x] Post-response sleep reduced from 5s to 1s (non-blocking task architecture)
 - [x] Full 8/8 E2E test suite passing (vomit/voice/audio/interrupt)
-- [ ] Commit all session changes
+- [x] Emotion badge fix: LLM response emotion passed directly to client (was using decayed system state)
+- [x] Idle chatter emotion inference: badge matches idle text content (not stuck on neutral)
+- [x] Idle chatter variety fix: contextual idle throttled to 20%, main 663-item pool used 80% of the time
+- [x] Idle interval growth slowed (max 45s instead of 90s, +2s per action instead of +5s)
+- [x] Idle pool dedup uses named pools for better per-category rotation
 
 ## Idle Message Variety Fix
 - [x] Randomize idle category selection (random.randint instead of modulo rotation)

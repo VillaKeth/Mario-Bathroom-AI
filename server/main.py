@@ -1902,6 +1902,40 @@ async def _emotion_decay_loop():
                 logger.info(f"[EMOTION_DECAY] Emotion: {emotion_system.current}, intensity: {emotion_system.intensity:.2f}")
 
 
+def _infer_idle_emotion(text: str) -> str:
+    """Infer an appropriate emotion from idle chatter text content."""
+    lower = text.lower()
+    if any(w in lower for w in ["wahoo", "let's-a go", "yeah", "woohoo", "fantastic", "amazing", "incredible"]):
+        return Emotion.EXCITED
+    if any(w in lower for w in ["joke", "ha ha", "haha", "funny", "prank", "hee hee"]):
+        return Emotion.LAUGHING
+    if any(w in lower for w in ["love", "beautiful", "heart", "wonderful", "sweet", "adore"]):
+        return Emotion.LOVING
+    if any(w in lower for w in ["hmm", "wonder", "think", "curious", "what if", "interesting"]):
+        return Emotion.THINKING
+    if any(w in lower for w in ["idea", "eureka", "what if i", "i should", "i could"]):
+        return Emotion.IDEA
+    if any(w in lower for w in ["wow", "whoa", "no way", "really", "wait what", "seriously"]):
+        return Emotion.SURPRISED
+    if any(w in lower for w in ["scared", "spooky", "creepy", "dark", "ghost", "boo"]):
+        return Emotion.SCARED
+    if any(w in lower for w in ["proud", "hero", "saved", "champion", "victory", "best"]):
+        return Emotion.PROUD
+    if any(w in lower for w in ["bored", "nothing", "quiet", "anyone", "alone", "lonely"]):
+        return Emotion.BORED
+    if any(w in lower for w in ["sleepy", "yawn", "tired", "nap", "zzz", "drowsy"]):
+        return Emotion.SLEEPY
+    if any(w in lower for w in ["worried", "hope", "careful", "oh no", "uh oh"]):
+        return Emotion.WORRIED
+    if any(w in lower for w in ["mischiev", "sneak", "secret", "heh", "devious"]):
+        return Emotion.MISCHIEVOUS
+    if any(w in lower for w in ["confused", "huh", "what", "don't understand", "makes no sense"]):
+        return Emotion.CONFUSED
+    if "!" in text or any(w in lower for w in ["party", "fun", "great", "happy", "smile", "good"]):
+        return Emotion.HAPPY
+    return Emotion.HAPPY
+
+
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
     async with _state_lock:
@@ -2146,7 +2180,11 @@ async def _idle_loop(ws: WebSocket):
             except Exception:
                 _idle_phase = None
             contextual = idle_behavior.get_contextual_idle(state_current.get("conversation_history", []))
-            action = contextual or idle_behavior.get_idle_action(phase=_idle_phase)
+            # Only use contextual idle 20% of the time — otherwise the 663-item main pool never gets used
+            if contextual and random.random() < 0.20:
+                action = contextual
+            else:
+                action = idle_behavior.get_idle_action(phase=_idle_phase)
 
             # Gossip-based idle: occasionally reminisce about guests when alone (15% chance)
             if random.random() < 0.15:
@@ -2171,6 +2209,8 @@ async def _idle_loop(ws: WebSocket):
             if action in _idle_recent_texts:
                 continue
             emotion_system.update()
+            _idle_emotion = _infer_idle_emotion(action)
+            emotion_system.current = _idle_emotion
             analyzed = analyze_text(action)
             try:
                 # If it's purely an action (no spoken text after stripping), just send pose change
@@ -2180,7 +2220,7 @@ async def _idle_loop(ws: WebSocket):
                         _tts_executor, lambda: tts.synthesize(analyzed["tts_text"])
                     )
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                        pose_hint=analyzed["pose_hint"])
+                                        pose_hint=analyzed["pose_hint"], emotion=_idle_emotion)
                     _idle_recent_texts.append(action)
                     if len(_idle_recent_texts) > 10:
                         _idle_recent_texts.pop(0)
@@ -2193,7 +2233,7 @@ async def _idle_loop(ws: WebSocket):
                             "type": "mario_response",
                             "text": analyzed["display_text"],
                             "has_audio": False,
-                            "emotion": emotion_system.current,
+                            "emotion": _idle_emotion,
                             "is_idle": True,
                         }
                         if analyzed["pose_hint"]:
@@ -2341,6 +2381,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         start_time = time.time()
     loop = asyncio.get_event_loop()
     _timing = {"start": start_time}  # Response time breakdown
+    response_emotion = None
+    response_energy = None
 
     # Safety check
     _t0 = time.time()
@@ -3587,7 +3629,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 if first_audio and len(first_audio) > 44:
                     # Send full text + metadata with first audio chunk
                     await send_response(ws, analyzed["display_text"], first_audio,
-                        sound=game_sound, emotion=emotion_system.current,
+                        sound=game_sound, emotion=response_emotion or emotion_system.current,
                         pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
                         particle_effect=particle,
                         chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
@@ -3647,7 +3689,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     logger.error(f"TTS failed after retry: {e} — sending text only")
                     response_audio = None
         await send_response(ws, analyzed["display_text"], response_audio,
-            sound=game_sound, emotion=emotion_system.current,
+            sound=game_sound, emotion=response_emotion or emotion_system.current,
             pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
             particle_effect=particle)
 
@@ -4059,7 +4101,7 @@ async def _do_greeting(ws: WebSocket, event: dict):
     for _attempt in range(2):
         try:
             await send_response(ws, analyzed["display_text"], response_audio, sound="greeting",
-                                emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high",
+                                emotion=response_emotion or emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/wave_high",
                                 particle_effect="confetti")
             break
         except Exception as send_err:
@@ -4308,7 +4350,7 @@ async def handle_event(ws: WebSocket, event: dict):
             response_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(
                 analyzed["tts_text"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
             await send_response(ws, analyzed["display_text"], response_audio, sound="goodbye",
-                                emotion=emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
+                                emotion=response_emotion or emotion_system.current, pose_hint=analyzed["pose_hint"] or "greeting/farewell")
 
             # Send hand wash reminder as its OWN separate TTS chunk after a delay
             await asyncio.sleep(1.0)

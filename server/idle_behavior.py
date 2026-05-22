@@ -941,8 +941,8 @@ class IdleBehavior:
 
         self._last_idle_action = now
         self._action_count += 1
-        # Gradually slow down: 15s → 20s → 25s → ... → 90s max
-        self._idle_interval = min(90, 15 + self._action_count * 5)
+        # Gradually slow down: 15s → 17s → 19s → ... → 45s max (slower growth for more variety)
+        self._idle_interval = min(45, 15 + self._action_count * 2)
 
         hour = time.localtime().tm_hour
 
@@ -950,17 +950,14 @@ class IdleBehavior:
         phase_val = int(phase) if phase is not None else None
 
         # Rotate through categories for variety
-        category = random.randint(0, 4)
-        if category == 0:
-            options = list(IDLE_MUMBLES)
-        elif category == 1:
-            options = list(MARIO_SONGS)
-        elif category == 2:
-            options = list(MARIO_JOKES)
-        elif category == 3:
-            options = list(MARIO_TRIVIA + PLUMBING_FACTS)
-        else:
-            options = list(MARIO_CHALLENGES + MARIO_COMPLIMENTS)
+        _categories = [
+            ("mumbles", list(IDLE_MUMBLES)),
+            ("songs", list(MARIO_SONGS)),
+            ("jokes", list(MARIO_JOKES)),
+            ("trivia", list(MARIO_TRIVIA + PLUMBING_FACTS)),
+            ("social", list(MARIO_CHALLENGES + MARIO_COMPLIMENTS)),
+        ]
+        cat_name, options = random.choice(_categories)
 
         # Phase-driven tone adjustments
         if phase_val == 1:  # WARM_UP — heavier on compliments and friendly content
@@ -984,7 +981,7 @@ class IdleBehavior:
         elif 2 <= hour < 6:
             options.extend(TIME_COMMENTS["very_late"] * 2)
 
-        choice = self._pick_unique(options)
+        choice = self._pick_unique(options, pool_name=cat_name)
         if DEBUG_IDLE:
             logger.info(f"[DEBUG_IDLE] get_idle_action: phase={phase_val} '{choice[:50]}...'")
         return choice
