@@ -713,13 +713,23 @@ def _restart_sovits_subprocess():
         raise RuntimeError("Failed to restart GPT-SoVITS subprocess")
 
 
-def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
+class _UserTTSPreempt(RuntimeError):
+    """Raised when non-user TTS yields to a waiting user TTS request."""
+    pass
+
+
+def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) -> bytes:
     """Send text to GPT-SoVITS subprocess and get WAV bytes back.
     
     Auto-restarts subprocess on crash (up to _sovits_max_restarts times).
+    When _is_user=False, yields to pending user TTS requests to reduce latency.
     """
     import json as _json
     global _sovits_process, _sovits_available, _sovits_restart_count
+
+    # Non-user calls yield to pending user TTS (prevents idle/precache from blocking user)
+    if not _is_user and _user_tts_waiting.is_set():
+        raise _UserTTSPreempt("Yielding to user TTS request")
 
     # Check if subprocess is alive before trying
     if _sovits_process is not None and _sovits_process.poll() is not None:
@@ -739,6 +749,9 @@ def _sovits_synthesize(text: str, speed: float = 1.0) -> bytes:
             raise RuntimeError("GPT-SoVITS subprocess not available (max restarts exceeded)")
 
     with _sovits_lock:
+        # Inside lock: abort non-user calls if user TTS arrived while waiting for lock
+        if not _is_user and _user_tts_waiting.is_set():
+            raise _UserTTSPreempt("Yielding to user TTS request (acquired lock)")
         try:
             # Double-check process is still alive inside the lock
             if _sovits_process.poll() is not None:
@@ -1138,12 +1151,12 @@ def synthesize_user(text: str, rate: str = None, pitch: str = None, nocache: boo
     """User-priority TTS synthesis. Pauses precache while this runs."""
     _user_tts_waiting.set()
     try:
-        return synthesize(text, rate, pitch, nocache=nocache)
+        return synthesize(text, rate, pitch, nocache=nocache, _is_user=True)
     finally:
         _user_tts_waiting.clear()
 
 
-def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = False) -> bytes:
+def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = False, _is_user: bool = False) -> bytes:
     """Convert text to Mario-voiced speech audio.
 
     Pipeline: Cache check → Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
@@ -1190,7 +1203,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # GPT-SoVITS mode: direct synthesis, no RVC needed
     if TTS_MODE == "sovits" and _sovits_available:
         try:
-            result = _normalize_audio(_sovits_synthesize(text))
+            result = _normalize_audio(_sovits_synthesize(text, _is_user=_is_user))
             total = time.time() - start
             if DEBUG_TTS:
                 logger.info(f"[DEBUG_TTS] synthesize: END (GPT-SoVITS) total={total:.1f}s")

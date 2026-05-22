@@ -3,7 +3,7 @@
     "host": "0.0.0.0",
     "port": 8765,
     "stt_model_size": "auto",
-    "stt_device": "cpu",
+    "stt_device": "auto",
     "llm_model": "llama3",
     "tts_voice": "en-US-GuyNeural",
     "tts_rate": "+10%",

@@ -5,6 +5,7 @@ import os
 import logging
 import math
 import random
+import re
 import string
 import time
 import pygame
@@ -17,6 +18,26 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 BG_COLOR = (20, 20, 40)
 TEXT_COLOR = (255, 255, 255)
+
+# Regex to strip emoji/symbol characters that Pygame fonts can't render
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map
+    "\U0001F1E0-\U0001F1FF"  # flags
+    "\U00002702-\U000027B0"  # dingbats
+    "\U0001F900-\U0001F9FF"  # supplemental symbols
+    "\U0001FA00-\U0001FA6F"  # chess symbols
+    "\U0001FA70-\U0001FAFF"  # symbols extended-A
+    "\U00002600-\U000026FF"  # misc symbols
+    "\U0000FE00-\U0000FE0F"  # variation selectors
+    "\U0000200D"             # zero-width joiner
+    "\U00002B50"             # star
+    "\U0001F4A0-\U0001F4FF"  # misc symbols
+    "]+",
+    flags=re.UNICODE
+)
 
 # Mario states
 STATE_IDLE = "idle"
@@ -620,6 +641,8 @@ class MarioDisplay:
         """Set what Mario is saying (shown in speech bubble with typewriter effect)."""
         if text is None:
             text = ""
+        # Strip emojis that Pygame fonts can't render (appear as missing glyphs)
+        text = _EMOJI_RE.sub("", text).strip()
         self._typewriter_text = text
         self._typewriter_pos = 0
         self._typewriter_audio_synced = False
@@ -1586,7 +1609,12 @@ class MarioDisplay:
             x_off = (self._native_width - self._render_w) // 2
             y_off = (self._native_height - self._render_h) // 2
             if x_off > 0 or y_off > 0:
-                self._screen.fill((0, 0, 0))
+                self._screen.fill(BG_COLOR)
+                # Draw extended floor strip into letterbox bars so they blend
+                floor_h = int(self._render_h * 0.12)
+                floor_y = y_off + self._render_h - floor_h
+                pygame.draw.rect(self._screen, (60, 40, 25),
+                                 (0, floor_y, self._native_width, floor_h))
             self._screen.blit(scaled, (x_off, y_off))
 
         pygame.display.flip()
@@ -1968,7 +1996,7 @@ class MarioDisplay:
         self._screen.blit(right, (WINDOW_WIDTH - glow_w, 0))
 
     def _draw_emotion_badge(self):
-        """Draw a floating emotion badge near Mario showing current mood with pop animation."""
+        """Draw a floating emotion badge in the top-left corner showing current mood."""
         if not self._emotion:
             return
 
@@ -1977,9 +2005,10 @@ class MarioDisplay:
         color = EMOTION_BADGE_COLORS.get(self._emotion, (180, 180, 180))
         label_text = self._emotion.capitalize()
 
-        # Position: to the right of Mario sprite, floating
-        badge_x = WINDOW_WIDTH // 2 + 140
-        badge_y = WINDOW_HEIGHT // 2 - 50
+        # Position: top-left corner below the banner
+        banner_bot = getattr(self, '_banner_bottom', 48)
+        badge_x = 12
+        badge_y = banner_bot + 8
 
         # Gentle float animation
         float_offset = math.sin(now * 2.0) * 4
@@ -2104,8 +2133,8 @@ class MarioDisplay:
         else:
             PAD_X = 20
             PAD_Y = 15
-        max_text_width = 420 - PAD_X * 2
-        bubble_w = 420
+        max_text_width = 380  # consistent text width for all styles
+        bubble_w = max_text_width + PAD_X * 2  # shout gets wider to accommodate extra padding
         banner_bot = getattr(self, '_banner_bottom', 48)
         available_h = int(WINDOW_HEIGHT * 0.38) - banner_bot
         max_bubble_height = max(available_h, 120)
@@ -2180,7 +2209,7 @@ class MarioDisplay:
 
         # Bubble dimensions (stable — sized for max page content)
         display_lines = min(max_lines, max(len(p) for p in self._text_pages) if self._text_pages else len(visible_lines))
-        bubble_h = display_lines * best_line_height + PAD_Y * 2
+        bubble_h = display_lines * best_line_height + PAD_Y * 2 + 4  # +4 for descender buffer
         bubble_x = WINDOW_WIDTH // 2 - bubble_w // 2
         bubble_y = banner_bot + 6
 
@@ -2210,13 +2239,35 @@ class MarioDisplay:
             border_width = 2
             shadow_alpha = 60
 
-        # Drop shadow
-        shadow_surf = pygame.Surface((bubble_w + 6, bubble_h + 6), pygame.SRCALPHA)
-        pygame.draw.rect(shadow_surf, (0, 0, 0, shadow_alpha),
-                         (0, 0, bubble_w + 6, bubble_h + 6), border_radius=16)
-        self._screen.blit(shadow_surf, (bubble_x + 2, bubble_y + 3))
+        # Drop shadow (matches bubble shape)
+        if style == BUBBLE_STYLE_SHOUT:
+            # Spiky shadow matching the shout polygon
+            shadow_surf = pygame.Surface((bubble_w + 36, bubble_h + 36), pygame.SRCALPHA)
+            cx_s = (bubble_w + 36) // 2
+            cy_s = (bubble_h + 36) // 2
+            shadow_pts = []
+            num_spikes = 16
+            for i in range(num_spikes * 2):
+                angle = i * math.pi / num_spikes
+                if i % 2 == 0:
+                    rx = bubble_w // 2 + 15
+                    ry = bubble_h // 2 + 15
+                else:
+                    rx = bubble_w // 2 + 5
+                    ry = bubble_h // 2 + 5
+                shadow_pts.append((
+                    int(cx_s + rx * math.cos(angle)),
+                    int(cy_s + ry * math.sin(angle))
+                ))
+            pygame.draw.polygon(shadow_surf, (0, 0, 0, shadow_alpha), shadow_pts)
+            self._screen.blit(shadow_surf, (bubble_x - 15 + 3, bubble_y - 15 + 4))
+        else:
+            shadow_surf = pygame.Surface((bubble_w + 6, bubble_h + 6), pygame.SRCALPHA)
+            pygame.draw.rect(shadow_surf, (0, 0, 0, shadow_alpha),
+                             (0, 0, bubble_w + 6, bubble_h + 6), border_radius=16)
+            self._screen.blit(shadow_surf, (bubble_x + 2, bubble_y + 3))
 
-        # Spiky bubble for shouts (inner dips flush with rect to avoid text overlap)
+        # Spiky bubble for shouts (inner dips pushed outward to prevent text overlap)
         if style == BUBBLE_STYLE_SHOUT:
             points = []
             cx_b = bubble_x + bubble_w // 2
@@ -2228,8 +2279,9 @@ class MarioDisplay:
                     rx = bubble_w // 2 + 15
                     ry = bubble_h // 2 + 15
                 else:
-                    rx = bubble_w // 2
-                    ry = bubble_h // 2
+                    # Inner dips stay outside the text area (+5px margin)
+                    rx = bubble_w // 2 + 5
+                    ry = bubble_h // 2 + 5
                 points.append((
                     int(cx_b + rx * math.cos(angle)),
                     int(cy_b + ry * math.sin(angle))
@@ -2313,8 +2365,8 @@ class MarioDisplay:
         if showing_cursor and visible_lines:
             last_line = visible_lines[-1]
             cursor_x = text_x + best_font.size(last_line)[0] + 2
-            cursor_y = text_y_start + (len(visible_lines) - 1) * best_line_height
-            cursor_height = best_size - 6
+            cursor_height = best_line_height - 4
+            cursor_y = text_y_start + (len(visible_lines) - 1) * best_line_height + 2
             pygame.draw.rect(self._screen, text_color, (cursor_x, cursor_y, 2, cursor_height))
 
         # Restore previous clip
@@ -2423,7 +2475,10 @@ class MarioDisplay:
         # Blinking cursor
         self._keyboard_cursor_timer += 1
         if (self._keyboard_cursor_timer // 15) % 2 == 0:
-            cursor_x = min(input_x + 10 + text_surf.get_width(), input_x + input_w - 15)
+            if text_w > input_w - 20:
+                cursor_x = input_x + input_w - 10
+            else:
+                cursor_x = input_x + 10 + text_surf.get_width()
             pygame.draw.rect(self._screen, (100, 200, 255),
                              (cursor_x, input_y + 8, 2, input_h - 16))
 

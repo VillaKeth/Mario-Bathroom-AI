@@ -363,10 +363,10 @@ def handle_special_commands(
     lower = transcript.lower()
 
     # Command cooldown — prevent rapid-fire command spam (1s)
+    # Only checked here; timestamp is set by caller when a command actually matches
     now = time.time()
     if now - state["_last_command_time"] < game_config["command_cooldown"]:
         return None
-    state["_last_command_time"] = now
 
     # --- Active game mode handling (intercepts input when a game is running) ---
     if state["_active_game"]:
@@ -756,13 +756,6 @@ def handle_special_commands(
 
     # --- Interactive Game Modes ---
 
-    # "Play a game" — random game picker (Mario suggests one!)
-    if any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
-                                 "pick a game", "any game", "let's play", "wanna play"]):
-        if not state.get("_active_game"):
-            picked = game_handlers.pick_random_game(state)
-            return game_handlers.start_game(picked, state, game_config, emotion_system)
-
     # Simon Says
     if any(w in lower for w in ["simon says", "play simon", "let's play simon"]):
         return game_handlers.start_game("simon_says", state, game_config, emotion_system)
@@ -962,6 +955,13 @@ def handle_special_commands(
     # Story Builder (additional triggers beyond "tell me a story"/"story time" above)
     if any(w in lower for w in ["story builder", "build a story", "let's write a story"]):
         return game_handlers.start_game("story_builder", state, game_config, emotion_system)
+
+    # "Play a game" — random game picker (FALLBACK: must be AFTER all specific game triggers)
+    if any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
+                                 "pick a game", "any game", "let's play", "wanna play"]):
+        if not state.get("_active_game"):
+            picked = game_handlers.pick_random_game(state)
+            return game_handlers.start_game(picked, state, game_config, emotion_system)
 
     # Sound catalog
     if any(w in lower for w in ["sound catalog", "what sounds", "sound effects", "sound list"]):

@@ -61,6 +61,25 @@ class AudioPlayback:
             return
         self._play_queue.put(wav_bytes)
 
+    def clear(self):
+        """Interrupt current playback and drain the queue (for self-interruption).
+        
+        Unlike stop(), this keeps the worker thread alive for future playback.
+        """
+        if DEBUG_PLAYBACK:
+            logger.info("[DEBUG_PLAYBACK] clear: interrupting playback and draining queue")
+        # Drain queued audio
+        while not self._play_queue.empty():
+            try:
+                self._play_queue.get_nowait()
+            except queue.Empty:
+                break
+        # Stop currently playing audio
+        try:
+            sd.stop()
+        except Exception:
+            pass
+
     def set_volume(self, gain: float):
         """Set the volume/gain multiplier (clamped to 0.0-2.0)."""
         self._gain = max(0.0, min(2.0, gain))

@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
 
 print("Loading STT (Whisper)...")
 import stt
-stt.init_model(model_size="base", device="auto")
+stt.init_model(model_size="small", device="auto")
 
 print("Loading TTS...")
 import tts

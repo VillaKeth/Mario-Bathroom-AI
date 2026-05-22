@@ -71,6 +71,7 @@ class MarioClient:
         self.ws.on_state_update = self._on_state_update
         self.ws.on_leaderboard_update = self._on_leaderboard_update
         self.ws.on_memorial_event = self._on_memorial_event
+        self.ws.on_clear_audio = self._on_clear_audio
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -291,6 +292,15 @@ class MarioClient:
         self._audio_wait_cancel.set()
         self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
         self._audio_wait_thread.start()
+
+    def _on_clear_audio(self):
+        """Called when server requests immediate audio interruption (new user input)."""
+        if DEBUG_CLIENT:
+            logger.info("[DEBUG_CLIENT] clear_audio: stopping playback for new input")
+        self._audio_wait_cancel.set()
+        self.audio_playback.clear()
+        self._last_play_end_time = 0
+        self._clear_speaking_state()
 
     def _on_audio_chunk(self, wav_bytes: bytes, chunk_meta: dict):
         """Called when a streaming audio chunk arrives (sentence streaming)."""

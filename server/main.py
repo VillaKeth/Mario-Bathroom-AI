@@ -370,6 +370,9 @@ state_current = {
 # Active WebSocket reference for admin endpoints to broadcast to
 _active_ws: "WebSocket | None" = None
 
+# Track the current response generation task for cancellation on new input
+_current_response_task: "asyncio.Task | None" = None
+
 # Lock to prevent concurrent WebSocket sends from idle loop, user responses,
 # admin endpoints, and greeting flow interleaving.
 _ws_send_lock = asyncio.Lock()
@@ -608,7 +611,7 @@ async def lifespan(app: FastAPI):
     if _stt_model == "auto":
         # Auto-detect: use larger model on powerful hardware
         _tier = hardware.get_tier()
-        _stt_model = {"ultra": "large-v3", "high": "medium", "medium": "base", "low": "base"}.get(_tier, "base")
+        _stt_model = {"ultra": "large-v3", "high": "medium", "medium": "small", "low": "small"}.get(_tier, "base")
         logger.info(f"[HARDWARE] STT model auto-selected: {_stt_model} (tier={_tier})")
     stt.init_model(
         model_size=_stt_model,
@@ -1682,43 +1685,46 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["_user_request_active"] = False
     state_current["_greeting_in_progress"] = False
 
-    # Send initial greeting (with 30s timeout to prevent blocking)
-    loop = asyncio.get_event_loop()
-    try:
-        greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
-        _inject_birthday_always_on(greeting_ctx)
-        greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-        greeting_response = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
-        greeting_text = greeting_response["text"]
-        greeting_emotion = greeting_response["emotion"] 
-        greeting_energy = greeting_response["energy"]
-        
-        # Update emotion system with LLM sentiment
-        emotion_system.update_from_llm_sentiment(greeting_emotion, greeting_energy)
-        
-        greeting_text = filter_response(greeting_text)
-        analyzed = analyze_text(greeting_text)
-        greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-        await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
-                            pose_hint=analyzed["pose_hint"])
-    except asyncio.TimeoutError:
-        logger.error("Startup greeting timed out after 30s")
+    # Send initial greeting in background (don't block the receive loop)
+    async def _send_startup_greeting():
         try:
-            fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
-            await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
-                                pose_hint="positive/excited_jump")
-        except Exception:
-            await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
-                                pose_hint="positive/excited_jump")
-    except Exception as e:
-        logger.error(f"Startup greeting failed: {e}")
-        try:
-            fallback_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
-            await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
-                                pose_hint="positive/excited_jump")
-        except Exception:
-            await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
-                                pose_hint="positive/excited_jump")
+            greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
+            _inject_birthday_always_on(greeting_ctx)
+            greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+            greeting_response = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
+            greeting_text = greeting_response["text"]
+            greeting_emotion = greeting_response["emotion"] 
+            greeting_energy = greeting_response["energy"]
+            
+            # Update emotion system with LLM sentiment
+            emotion_system.update_from_llm_sentiment(greeting_emotion, greeting_energy)
+            
+            greeting_text = filter_response(greeting_text)
+            analyzed = analyze_text(greeting_text)
+            greeting_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+            await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
+                                pose_hint=analyzed["pose_hint"])
+        except asyncio.TimeoutError:
+            logger.error("Startup greeting timed out after 30s")
+            try:
+                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
+                await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
+                                    pose_hint="positive/excited_jump")
+            except Exception:
+                await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                                    pose_hint="positive/excited_jump")
+        except Exception as e:
+            logger.error(f"Startup greeting failed: {e}")
+            try:
+                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
+                await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
+                                    pose_hint="positive/excited_jump")
+            except Exception:
+                await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                                    pose_hint="positive/excited_jump")
+
+    _loop = asyncio.get_event_loop()
+    greeting_task = asyncio.create_task(_send_startup_greeting())
 
     # Start idle behavior loop
     idle_task = asyncio.create_task(_idle_loop(ws))
@@ -1913,6 +1919,7 @@ async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
     global _idle_error_count
     _idle_last_error_time = 0.0  # Track when errors started for auto-recovery
+    _idle_recent_texts = []  # Last 10 idle texts for dedup
     loop = asyncio.get_event_loop()
     while True:
         await asyncio.sleep(random.uniform(3, 8))
@@ -2160,6 +2167,9 @@ async def _idle_loop(ws: WebSocket):
         if time_comment and random.random() < 0.08:
             action = time_comment
         if action:
+            # Dedup: skip if this exact text was sent recently
+            if action in _idle_recent_texts:
+                continue
             emotion_system.update()
             analyzed = analyze_text(action)
             try:
@@ -2171,6 +2181,9 @@ async def _idle_loop(ws: WebSocket):
                     )
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"])
+                    _idle_recent_texts.append(action)
+                    if len(_idle_recent_texts) > 10:
+                        _idle_recent_texts.pop(0)
                 else:
                     # No TTS needed — just send text + pose change (still check memorial)
                     if state_current.get("memorial_active"):
@@ -2189,6 +2202,8 @@ async def _idle_loop(ws: WebSocket):
             except asyncio.CancelledError:
                 logger.info("Idle loop cancelled")
                 return
+            except tts._UserTTSPreempt:
+                logger.debug("[IDLE] TTS preempted by user request, skipping")
             except Exception as e:
                 _idle_error_count += 1
                 _idle_last_error_time = time.time()
@@ -2208,8 +2223,10 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
 
     # Lock only for buffer operations (short hold), not for audio processing
     async with _state_lock:
+        # Track when audio first started arriving (not updated on each chunk)
+        if not state_current["audio_buffer"]:
+            state_current["_last_buffer_time"] = time.time()
         state_current["audio_buffer"].extend(audio_bytes)
-        state_current["_last_buffer_time"] = time.time()
 
         CHUNK_SIZE = 96000
         MIN_PROCESS_SIZE = 16000  # Minimum buffer to process on timeout
@@ -2220,7 +2237,7 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
             state_current["audio_buffer"] = state_current["audio_buffer"][-CHUNK_SIZE:]
 
         buf_len = len(state_current["audio_buffer"])
-        buf_age = time.time() - state_current["_last_buffer_time"]
+        buf_age = time.time() - state_current.get("_last_buffer_time", time.time())
 
         # Process if we have a full chunk OR if buffer has been sitting for 5s with enough data
         if buf_len < CHUNK_SIZE:
@@ -2234,11 +2251,25 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
 
     async with _state_lock:
         state_current["_user_request_active"] = True
+
+    # Interrupt any in-progress text response (voice takes priority)
+    global _current_response_task
+    if _current_response_task and not _current_response_task.done():
+        logger.info("[INTERRUPT] Cancelling text response for incoming audio")
+        _current_response_task.cancel()
+        try:
+            await _current_response_task
+        except (asyncio.CancelledError, Exception):
+            pass
+        try:
+            await ws.send_json({"type": "clear_audio"})
+        except Exception:
+            pass
+
     try:
         await _process_audio(ws, audio_chunk)
     finally:
-        # Keep guard active for 3s after response to prevent idle TTS during audio playback
-        await asyncio.sleep(3.0)
+        await asyncio.sleep(1.5)
         async with _state_lock:
             state_current["_user_request_active"] = False
 
@@ -3761,6 +3792,10 @@ async def _handle_special_commands(transcript: str) -> str:
         idle_behavior, party_stats, memory
     )
     
+    # Only set command cooldown when a command actually matched
+    if response is not None:
+        state_current["_last_command_time"] = time.time()
+    
     # Check for shot event trigger response
     if response and response.startswith("__SHOT_EVENT_TRIGGER__:"):
         original_text = response.split(":", 1)[1]
@@ -4364,35 +4399,32 @@ async def handle_event(ws: WebSocket, event: dict):
         await ws.send_json({"type": "state", "listening": False})
 
     elif event_type == "text_input":
-        # Handle keyboard-typed text (same pipeline as audio, but skip STT)
+        # Handle keyboard-typed text — non-blocking so receive loop stays free for interrupts
+        global _current_response_task
         text = event.get("text", "").strip()
         if not text:
             return
 
+        # Cancel any in-progress response task (self-interruption)
+        interrupted = False
+        if _current_response_task and not _current_response_task.done():
+            logger.info(f"[INTERRUPT] Cancelling previous response for new input: '{text[:50]}'")
+            _current_response_task.cancel()
+            interrupted = True
+            # Tell client to stop playing current audio immediately
+            try:
+                await ws.send_json({"type": "clear_audio"})
+            except Exception:
+                pass
+
+        # Always reset rate limiter for new input — task cancellation handles rapid-fire
         async with _state_lock:
-            state_current["_user_request_active"] = True
-        try:
-            await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
-        except asyncio.TimeoutError:
-            logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
-            try:
-                await send_response(ws, "Mama mia, that took too long! Try again?", None,
-                                    sound="error", pose_hint="confused/sad")
-            except Exception:
-                pass
-        except Exception as e:
-            logger.error(f"[TEXT_INPUT] Pipeline failed: {e}", exc_info=True)
-            try:
-                await send_response(ws, "Oops! Something went wrong. Try again!", None,
-                                    sound="error", pose_hint="confused/sad")
-            except Exception:
-                pass
-        finally:
-            # Match audio handler: keep guard active briefly after response
-            # to prevent idle TTS from firing immediately after text response
-            await asyncio.sleep(2.0)
-            async with _state_lock:
-                state_current["_user_request_active"] = False
+            state_current["_last_text_input_time"] = 0.0
+
+        # Fire-and-forget: task manages its own _user_request_active lifecycle
+        _current_response_task = asyncio.create_task(
+            _text_input_task(ws, text)
+        )
 
     elif event_type == "person_detected":
         if not _face_memory:
@@ -4476,6 +4508,47 @@ async def handle_event(ws: WebSocket, event: dict):
             logger.debug(f"[WS] Health pong send failed: {e}")
 
 
+async def _text_input_task(ws: WebSocket, text: str):
+    """Autonomous task for text input — manages its own lifecycle and cancellation."""
+    async with _state_lock:
+        state_current["_user_request_active"] = True
+    try:
+        await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
+    except asyncio.CancelledError:
+        logger.info(f"[INTERRUPT] Response cancelled for: '{text[:50]}'")
+    except asyncio.TimeoutError:
+        logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
+        try:
+            await send_response(ws, "Mama mia, that took too long! Try again?", None,
+                                sound="error", pose_hint="confused/sad")
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error(f"[TEXT_INPUT] Pipeline failed: {e}", exc_info=True)
+        try:
+            await send_response(ws, "Oops! Something went wrong. Try again!", None,
+                                sound="error", pose_hint="confused/sad")
+        except Exception:
+            pass
+    finally:
+        await asyncio.sleep(1.0)
+        async with _state_lock:
+            state_current["_user_request_active"] = False
+
+
+async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
+    """Wrapper with timeout for text input handling (supports cancellation)."""
+    try:
+        await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
+    except asyncio.TimeoutError:
+        logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
+        try:
+            await send_response(ws, "Mama mia, that took too long! Try again?", None,
+                                sound="error", pose_hint="confused/sad")
+        except Exception:
+            pass
+
+
 async def _handle_text_input(ws: WebSocket, text: str):
     """Process text input — rate-limited, then delegates to shared pipeline."""
     now = time.time()
@@ -4502,11 +4575,6 @@ async def _handle_text_input(ws: WebSocket, text: str):
             await ws.send_json({"type": "mario_response", "text": f"Mama mia! Something went wrong: {e}", "emotion": "confused"})
         except Exception as e2:
             logger.debug(f"[WS] Error response send also failed: {e2}")
-    finally:
-        # Guard prevents idle TTS from interleaving during audio playback
-        await asyncio.sleep(3.0)
-        async with _state_lock:
-            state_current["_user_request_active"] = False
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):

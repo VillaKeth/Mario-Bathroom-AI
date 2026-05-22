@@ -111,7 +111,7 @@ _TIER_DEFAULTS = {
         "conversation_history_limit": 150,
         "llm_quality_model": "gemma3:27b",
         "llm_fast_model": "llama3.1:8b",
-        "stt_device": "cpu",
+        "stt_device": "auto",
     },
     "high": {
         "tts_workers": 4,
@@ -125,7 +125,7 @@ _TIER_DEFAULTS = {
         "conversation_history_limit": 60,
         "llm_quality_model": "llama3",
         "llm_fast_model": "llama3",
-        "stt_device": "cpu",
+        "stt_device": "auto",
     },
     "medium": {
         "tts_workers": 2,
@@ -139,10 +139,10 @@ _TIER_DEFAULTS = {
         "conversation_history_limit": 40,
         "llm_quality_model": "llama3",
         "llm_fast_model": "llama3",
-        "stt_device": "cpu",
+        "stt_device": "auto",
     },
     "low": {
-        "tts_workers": 1,
+        "tts_workers": 2,
         "tts_concurrency": 1,
         "gpu_idle_threshold": 3.0,
         "precache_pause_seconds": 2.0,
@@ -153,7 +153,7 @@ _TIER_DEFAULTS = {
         "conversation_history_limit": 28,
         "llm_quality_model": "llama3",
         "llm_fast_model": "llama3",
-        "stt_device": "cpu",
+        "stt_device": "auto",
     },
 }
 

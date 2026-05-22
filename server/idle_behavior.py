@@ -1173,7 +1173,7 @@ class IdleBehavior:
         """Generate an idle phrase that riffs on recent conversation topics.
         
         Returns a context-aware idle phrase, or None if no good context available.
-        This makes idle behavior feel connected to the conversation, like Neuro-sama.
+        Uses _global_recent dedup to avoid repeating messages.
         """
         if not conversation_history or len(conversation_history) < 2:
             return None
@@ -1188,64 +1188,80 @@ class IdleBehavior:
         
         last_msg = recent_user_msgs[-1].lower()
         
-        # Topic-specific idle reactions
+        # Collect all matching options, then pick one that hasn't been used recently
+        options = []
+        
         if any(w in last_msg for w in ["food", "eat", "hungry", "pizza", "pasta", "cook", "dinner", "lunch"]):
-            return random.choice([
+            options = [
                 "Thinking about that food talk is making me hungry... Mama mia, where's-a the snack table?",
                 "I can't stop thinking about pasta now! This is-a your fault!",
                 "My stomach is-a rumbling! That food conversation got to me!",
-            ])
-        
-        if any(w in last_msg for w in ["music", "song", "dance", "dj", "beat", "band"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["music", "song", "dance", "dj", "beat", "band"]):
+            options = [
                 "I can still hear the music from out there! Makes me want to dance-a!",
-                "♪ That song they mentioned... it's-a stuck in my head now! ♪",
+                "That song they mentioned... it's-a stuck in my head now!",
                 "We were just talking about music... this bathroom has-a great acoustics for singing!",
-            ])
-        
-        if any(w in last_msg for w in ["work", "job", "boss", "office", "meeting"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["work", "job", "boss", "office", "meeting"]):
+            options = [
                 "They mentioned work... ha! MY job is guarding this bathroom! Best gig ever!",
                 "Work talk at a party? Mama mia! This is-a party time, not meeting time!",
                 "At least MY boss is Princess Peach! She gives me cake!",
-            ])
-        
-        if any(w in last_msg for w in ["game", "play", "gaming", "video game", "nintendo"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["game", "play", "gaming", "video game", "nintendo"]):
+            options = [
                 "Gaming talk! That's-a my specialty! I've been in games for 40 years!",
                 "They mentioned games... I wonder if they've played MY games! Of course they have!",
                 "I should challenge the next person to a Mario trivia battle!",
-            ])
-        
-        if any(w in last_msg for w in ["dog", "cat", "pet", "animal"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["dog", "cat", "pet", "animal"]):
+            options = [
                 "Pets! You know, Yoshi is basically my pet dinosaur. Best boy!",
                 "Thinking about that pet talk... I miss-a Yoshi! He eats everything though!",
                 "I wonder if Chain Chomps count as-a pets? They're very... bitey!",
-            ])
-        
-        if any(w in last_msg for w in ["drink", "beer", "wine", "drunk", "shots"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["drink", "beer", "wine", "drunk", "shots"]):
+            options = [
                 "All this drink talk... Mario prefers-a mushroom tea! It makes you grow!",
                 "Someone was talking about drinks... the water in here is-a very refreshing too!",
                 "I hope everyone's staying hydrated! Water is-a the real power-up!",
-            ])
-        
-        if any(w in last_msg for w in ["love", "boyfriend", "girlfriend", "date", "crush", "relationship"]):
-            return random.choice([
+            ]
+        elif any(w in last_msg for w in ["love", "boyfriend", "girlfriend", "date", "crush", "relationship"]):
+            options = [
                 "Love talk at a party! How romantic! I've been saving Princess Peach for decades!",
-                "Romance... *sighs* Peach is-a always in another castle! Story of my life!",
+                "Romance... Peach is-a always in another castle! Story of my life!",
                 "They were talking about love... Mama mia, now I'm-a getting sentimental!",
-            ])
+            ]
+        
+        if options:
+            # Filter out recently used messages
+            fresh = [o for o in options if o not in self._global_recent]
+            if not fresh:
+                # All used recently — clear and allow any
+                fresh = options
+            choice = random.choice(fresh)
+            self._global_recent.append(choice)
+            if len(self._global_recent) > 50:
+                self._global_recent = self._global_recent[-50:]
+            return choice
         
         # Generic conversation callback (30% chance)
         if random.random() < 0.3:
-            return random.choice([
+            generic = [
                 "I'm still thinking about what that person said... interesting!",
                 "People at this party are-a so interesting! I love hearing everyone's stories!",
                 "The conversations in this bathroom are-a better than most TV shows!",
                 "I should remember to ask the next person about that too!",
-            ])
+            ]
+            fresh = [g for g in generic if g not in self._global_recent]
+            if not fresh:
+                fresh = generic
+            choice = random.choice(fresh)
+            self._global_recent.append(choice)
+            if len(self._global_recent) > 50:
+                self._global_recent = self._global_recent[-50:]
+            return choice
         
         return None
 

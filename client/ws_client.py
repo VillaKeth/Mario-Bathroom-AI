@@ -29,6 +29,7 @@ class MarioWSClient:
         self.on_state_update = None     # Called with (state: dict)
         self.on_leaderboard_update = None  # Called with (data: dict)
         self.on_memorial_event = None   # Called with (data: dict)
+        self.on_clear_audio = None      # Called when server requests audio interruption
         self.on_connected = None
         self.on_disconnected = None
 
@@ -147,6 +148,13 @@ class MarioWSClient:
                 elif msg_type == "state":
                     if self.on_state_update:
                         self.on_state_update(data)
+
+                elif msg_type == "clear_audio":
+                    # Server requests immediate audio interruption (new input arriving)
+                    if DEBUG_WS:
+                        logger.info("[DEBUG_WS] clear_audio: interrupting playback for new input")
+                    if self.on_clear_audio:
+                        self.on_clear_audio()
 
                 elif msg_type == "heartbeat":
                     # Server heartbeat — just acknowledge silently

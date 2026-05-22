@@ -521,6 +521,33 @@
 ## TTS Source String Cleanup
 - [x] Replace all hardcoded ellipsis (...) in TTS-spoken strings with commas/periods (15 edits across mario_prompt.py and llm.py)
 
+## Session Fixes (2026-05-22)
+- [x] MCP config migration (.vscode/mcp.json → .mcp.json)
+- [x] STT device fix (cpu → auto)
+- [x] STT model upgrade (base → small, 74% vs 48% recall)
+- [x] Audio buffer timeout bug fix (empty→non-empty transition only)
+- [x] Black bars fix when maximized (fill BG_COLOR, extend floor)
+- [x] Shout bubble text overflow fix (max_text_width=380, dynamic bubble width)
+- [x] Bubble height descender buffer (+4 pixels)
+- [x] Typewriter cursor alignment fix
+- [x] Keyboard input cursor alignment fix
+- [x] Command cooldown bug fix (only reset on match, not every call)
+- [x] Game routing order fix (specific games before generic "let's play")
+- [x] Startup greeting async (non-blocking receive loop)
+- [x] TTS workers increased to 2 for low tier
+- [x] TTS user priority preemption (idle/precache yields to user TTS via _UserTTSPreempt)
+- [x] Mood badge repositioned to top-left corner below banner
+- [x] Shout bubble shadow now matches spiky polygon shape (no rectangular shadow)
+- [x] Shout bubble inner dips pushed outward (+5px margin) to prevent text overlap
+- [x] Emoji stripping in speech bubble (Pygame fonts can't render emojis)
+- [x] Idle chatter deduplication (contextual idle uses _global_recent, main loop tracks last 10)
+- [x] Self-interruption system (server cancels previous task on new input, sends clear_audio to client)
+- [x] Client audio clear() method (drains queue + stops playback without killing worker thread)
+- [x] Rate limiter bypass for urgent messages (always reset on new input)
+- [x] Post-response sleep reduced from 5s to 1s (non-blocking task architecture)
+- [x] Full 8/8 E2E test suite passing (vomit/voice/audio/interrupt)
+- [ ] Commit all session changes
+
 ## Idle Message Variety Fix
 - [x] Randomize idle category selection (random.randint instead of modulo rotation)
 - [x] Increase global dedup window from 15 → 50 messages
@@ -551,3 +578,18 @@
 - [x] Push all UX overhaul commits to remote
 - [ ] Persistent guest memory (remembers guests between sessions)
 - [ ] Improve Mario's personality/conversation quality
+
+## MCP Migration
+- [x] Migrate .vscode/mcp.json to .mcp.json (servers -> mcpServers)
+- [x] Remove stale chat.mcp.serverSampling references from .vscode/settings.json
+- [x] Delete old .vscode/mcp.json file
+
+## STT Improvements
+- [x] Fix stt_device from 'cpu' to 'auto' in config.json (enables GPU when available)
+- [x] Create comprehensive STT intake test (tests/test_stt_intake.py)
+- [x] Upgraded STT model: base -> small (74% vs 48% recall, same speed)
+- [x] Live mic test created (fails on RDP, works locally)`n- [x] TTS-STT roundtrip verify improved from 40% to 60% with small model`n- [x] Fixed all hardware tiers to use stt_device=auto instead of cpu
+
+- [x] Fix audio buffer timeout bug (buf_age always ~0, short audio never processed)
+- [x] Live E2E test passing 3/3 — audio → STT → LLM → TTS pipeline fully verified
+- [x] Created live STT E2E test (tests/test_stt_live.py)
