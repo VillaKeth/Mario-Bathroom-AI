@@ -503,11 +503,11 @@ def handle_special_commands(
         return base_compliment
 
     # Challenge / trivia request → starts Mario Trivia game
-    if any(w in lower for w in ["challenge", "quiz me", "test me", "trivia"]):
+    if _word_count <= 4 and any(w in lower for w in ["challenge", "quiz me", "test me", "trivia"]):
         return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
     # Dare → starts Bathroom Dare game
-    if any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you"]):
+    if _word_count <= 5 and any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you"]):
         return game_handlers.start_game("bathroom_dare", state, game_config, emotion_system)
 
     # Hand wash reminder
@@ -926,20 +926,20 @@ def handle_special_commands(
             return f"It's {holiday} today! How exciting! Let's-a celebrate!"
         return "No special holiday today, but EVERY day is special when Mario is here! Wahoo!"
 
-    # Rapid-fire quiz game
-    if any(w in lower for w in ["rapid fire", "rapid quiz", "speed quiz", "quick quiz", "rapid round"]):
+    # Rapid-fire quiz game — only direct requests
+    if _word_count <= 4 and any(w in lower for w in ["rapid fire", "rapid quiz", "speed quiz", "quick quiz", "rapid round"]):
         return game_handlers.start_game("rapid_fire", state, game_config, emotion_system)
 
     # Rock Paper Scissors
-    if any(w in lower for w in ["rock paper scissors", "battle mode", "rps", "let's battle"]):
+    if _word_count <= 5 and any(w in lower for w in ["rock paper scissors", "battle mode", "rps", "let's battle"]):
         return game_handlers.start_game("rock_paper_scissors", state, game_config, emotion_system)
 
     # Hangman
     if any(w in lower for w in ["hangman", "play hangman", "guess the word"]):
         return game_handlers.start_game("hangman", state, game_config, emotion_system)
 
-    # Hot Takes
-    if any(w in lower for w in ["hot takes", "hot take", "unpopular opinion", "spicy take"]):
+    # Hot Takes — only start game for direct requests, not "what is your hot take on X"
+    if _word_count <= 4 and any(w in lower for w in ["hot takes", "hot take", "unpopular opinion", "spicy take"]):
         return game_handlers.start_game("hot_takes", state, game_config, emotion_system)
 
     # Never Have I Ever
@@ -951,7 +951,7 @@ def handle_special_commands(
         return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
     # Name That Character (Speed Round)
-    if any(w in lower for w in ["name that character", "guess the character", "who am i describing", "character quiz", "speed round"]):
+    if _word_count <= 5 and any(w in lower for w in ["name that character", "guess the character", "who am i describing", "character quiz", "speed round"]):
         return game_handlers.start_game("name_that_character", state, game_config, emotion_system)
 
     # Bathroom Dare (additional triggers beyond "dare me" above)
@@ -963,7 +963,7 @@ def handle_special_commands(
         return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
     # "Play a game" — random game picker (FALLBACK: must be AFTER all specific game triggers)
-    if any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
+    if _word_count <= 5 and any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
                                  "pick a game", "any game", "let's play", "wanna play"]):
         if not state.get("_active_game"):
             picked = game_handlers.pick_random_game(state)
