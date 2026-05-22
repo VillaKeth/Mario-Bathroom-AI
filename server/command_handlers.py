@@ -448,7 +448,7 @@ def handle_special_commands(
     # Name learning — register voice when user says their name
     # Allow re-parsing if current name was set from presence event (not from prior parsing)
     name_was_parsed = state.get("_name_from_parsing", False)
-    if not name_was_parsed and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
+    if not name_was_parsed and _word_count <= 8 and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
         match = re.search(
             r"(?:my name is|i'm called|call me|i am|i'm|it'?s|it is)\s+([A-Za-z]+)",
             lower,
@@ -684,7 +684,7 @@ def handle_special_commands(
         return MOOD_RESPONSES.get(current_mood, "I'm-a doing great! It's always a good day to be Mario!")
 
     # Would You Rather game (Mario Edition)
-    if any(w in lower for w in ["would you rather", "rather game", "choice game", "this or that"]):
+    if _word_count <= 5 and any(w in lower for w in ["would you rather", "rather game", "choice game", "this or that"]):
         return game_handlers.start_game("wyr_mario", state, game_config, emotion_system)
 
     # Tongue twister
@@ -693,7 +693,7 @@ def handle_special_commands(
         return random.choice(TWISTERS)
 
     # Tell me a story / story time → starts Story Builder game
-    if any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
+    if _word_count <= 5 and any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
         return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
     # Pickup line
@@ -763,15 +763,15 @@ def handle_special_commands(
     # --- Interactive Game Modes ---
 
     # Simon Says
-    if any(w in lower for w in ["simon says", "play simon", "let's play simon"]):
+    if _word_count <= 4 and any(w in lower for w in ["simon says", "play simon", "let's play simon"]):
         return game_handlers.start_game("simon_says", state, game_config, emotion_system)
 
     # 20 Questions
-    if any(w in lower for w in ["20 questions", "twenty questions", "play 20", "play twenty"]):
+    if _word_count <= 4 and any(w in lower for w in ["20 questions", "twenty questions", "play 20", "play twenty"]):
         return game_handlers.start_game("twenty_questions", state, game_config, emotion_system)
 
     # Truth or Dare
-    if any(w in lower for w in ["truth or dare", "play truth", "let's play truth"]):
+    if _word_count <= 5 and any(w in lower for w in ["truth or dare", "play truth", "let's play truth"]):
         return game_handlers.start_game("truth_or_dare", state, game_config, emotion_system)
 
     # Stop any active game
@@ -785,15 +785,15 @@ def handle_special_commands(
         return None
 
     # Riddle game
-    if any(w in lower for w in ["riddle", "play riddle", "riddle me", "tell me a riddle"]):
+    if _word_count <= 4 and any(w in lower for w in ["riddle", "play riddle", "riddle me", "tell me a riddle"]):
         return game_handlers.start_game("riddles", state, game_config, emotion_system)
 
     # Word Chain game
-    if any(w in lower for w in ["word chain", "play word chain", "word game", "last letter"]):
+    if _word_count <= 5 and any(w in lower for w in ["word chain", "play word chain", "word game", "last letter"]):
         return game_handlers.start_game("word_chain", state, game_config, emotion_system)
 
     # Karaoke mode
-    if any(w in lower for w in ["karaoke", "sing along", "sing with me", "let's sing"]):
+    if _word_count <= 4 and any(w in lower for w in ["karaoke", "sing along", "sing with me", "let's sing"]):
         return game_handlers.start_game("karaoke", state, game_config, emotion_system)
 
     # Achievements
@@ -935,7 +935,7 @@ def handle_special_commands(
         return game_handlers.start_game("rock_paper_scissors", state, game_config, emotion_system)
 
     # Hangman
-    if any(w in lower for w in ["hangman", "play hangman", "guess the word"]):
+    if _word_count <= 3 and any(w in lower for w in ["hangman", "play hangman", "guess the word"]):
         return game_handlers.start_game("hangman", state, game_config, emotion_system)
 
     # Hot Takes — only start game for direct requests, not "what is your hot take on X"
