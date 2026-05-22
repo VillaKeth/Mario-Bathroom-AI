@@ -1,33 +1,35 @@
 # Mario AI Party Bot - TODO
 
-## LLM Idle Chatter — DONE ✅
-- [x] Add `_generate_llm_idle()` function with dedicated system prompt
-- [x] Wire into idle loop with 25% chance + 60s cooldown
-- [x] Configurable via `llm_idle_enabled` and `llm_idle_chance` in config.json
-- [x] Uses LLM router for model selection
-- [x] LLM emotion passed directly (skips `_infer_idle_emotion`)
-- [x] Fallback to canned pool on timeout/failure
-- [x] Tested: 5 unique messages in 150s
+## Critical LLM Fixes — DONE ✅
+- [x] Fix ImportError in llm.py that silently discarded ALL LLM responses
+- [x] Fix Easter egg interception: only trigger on short messages (≤5 words)
+- [x] Fix substring matching: "embarrassing" no longer matches "sing" command
+- [x] Slim system prompt from ~2700 to ~960 chars (save 435 tokens)
+- [x] Add system message trimming (keep first 5 secondary hints)
+- [x] Increase LLM timeout 30s→45s, router fallback 15s→25s
+- [x] Relax repeat detection 70%→80%, reduce buffer 20→10
+- [x] Add always-on LLM context logging
 
-## Sentiment Mood Meter — DONE ✅
-- [x] Add `EMOTION_VALENCE` map (26 emotions → -1.0 to +1.0 sentiment scores)
-- [x] Add `record_sentiment()` and `get_mood_score()` to EmotionSystem
-- [x] Rolling weighted average with 120s half-life decay
-- [x] Server sends `mood_score` in every `mario_response` message
-- [x] Client renders horizontal mood bar below emotion badge
-- [x] Color gradient: red (negative) → yellow (neutral) → green (positive)
-- [x] Smooth animation (0.08 ease factor)
-- [x] Labels: "Vibing!", "Happy", "Neutral", "Meh", "Grumpy"
-- [x] Tested: mood shifts with conversation sentiment
+## LLM Response Quality Fixes — IN PROGRESS
+- [x] Fix plumber-specific humor intercepting "Tell me a joke about plumbing" (word count guard)
+- [x] Add `was_fallback` flag to LLM return to prevent canned responses polluting history
+- [x] Fix conversation history: don't store non-LLM interactions (canned/special commands)
+- [x] Remove orphaned user messages from history when response was non-LLM
+- [x] Add random seed to Ollama API for response diversity
+- [x] Embed user question into CTX 00 (main system prompt) for maximum attention weight
+- [x] Add randomized approach hints for diverse response styles
+- [x] Reduce _MAX_SYS_HINTS from 5→3 to reduce competing instructions
+- [x] Reduce RECENT_RAW_MESSAGES from 8→4 to prevent pattern-copying
+- [ ] Improve on-topic rate from 4/5 to 5/5 consistently
+- [ ] Fix greeting collision: first prompt after connect sometimes gets greeting response
+- [ ] Test all response quality with 10+ diverse prompts
 
-## LLM Prompt Improvements — DONE ✅
-- [x] Added CALLBACK KING and IMPROVISER personality traits
-- [x] Added RESPONSE VARIETY section (8 approaches to cycle through)
-- [x] Added "No emoji" TTS rule (Pygame can't render them)
-- [x] Added "Never be generic" to NEVER rules
-
-## Upcoming Features
-- [ ] Comprehensive testing of idle variety and emotion badge
+## Current Focus
+- [ ] Test ALL games (trivia, RPS, truth or dare, Simon says, 20 questions, riddles, word chain, rapid fire)
+- [ ] Run 200+ Ralph loop iterations across all features and games
+- [ ] Improve LLM response diversity (model sometimes repeats same response)
+- [ ] Test sentiment mood meter with varied conversation
+- [ ] Verify idle chatter variety with LLM enabled
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)

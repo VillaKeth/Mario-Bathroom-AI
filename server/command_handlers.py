@@ -411,13 +411,14 @@ def handle_special_commands(
                 emotion_system.current = Emotion.EXCITED
                 return response
 
-    # Tell a joke
-    if any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
+    # Tell a joke — only intercept generic requests, let specific ones go to LLM
+    # "tell me a joke" → canned, "tell me a joke about plumbing" → LLM
+    if _word_count <= 5 and any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
         emotion_system.current = "mischievous"
         return idle_behavior.get_joke()
 
-    # Tell me a secret
-    if any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower):
+    # Tell me a secret — only generic requests
+    if _word_count <= 5 and (any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower)):
         emotion_system.current = "mischievous"
         return random.choice(SECRETS)
 
@@ -1025,9 +1026,9 @@ def handle_special_commands(
             "Mama mia! Even my fire flowers can't handle this! Try the air freshener if there is one!",
         ])
 
-    # Plumber-specific humor
+    # Plumber-specific humor — only short/direct mentions, let complex requests go to LLM
     plumber_triggers = ["plumber", "plumbing", "pipes", "fix the toilet", "clogged"]
-    if any(t in lower for t in plumber_triggers):
+    if _word_count <= 5 and any(t in lower for t in plumber_triggers):
         return random.choice([
             "As a licensed plumber, I can confirm: this pipe network is amateur hour compared to the Mushroom Kingdom!",
             "Plumbing? That's-a my specialty! Did you know I've traveled through more pipes than any plumber in history?",

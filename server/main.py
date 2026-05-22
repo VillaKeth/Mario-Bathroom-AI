@@ -383,7 +383,7 @@ _tts_executor = ThreadPoolExecutor(max_workers=_PERF["tts_workers"], thread_name
 # ── Conversation summarization ──
 # Keeps last RECENT_RAW_MESSAGES verbatim and compresses older ones
 # into a rolling summary. Zero latency (no LLM call).
-RECENT_RAW_MESSAGES = 8  # Last 4 exchanges kept verbatim
+RECENT_RAW_MESSAGES = 4  # Last 2 exchanges kept verbatim (less history = less pattern-copying)
 
 _SUMMARY_SKIP_WORDS = frozenset({
     "mario", "hey", "wahoo", "let", "the", "but", "and", "yes", "no",
@@ -2458,6 +2458,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     _timing = {"start": start_time}  # Response time breakdown
     response_emotion = None
     response_energy = None
+    _was_llm_response = False  # Track if response came from LLM vs canned fallback
 
     # Safety check
     _t0 = time.time()
@@ -3382,7 +3383,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # On low-tier hardware, trim excess system messages to keep context tight.
         # Keep the main prompt (idx 0), early context (phase, birthday, guest), and trim late hints.
         _sys_indices = [i for i, m in enumerate(ctx) if m.get("role") == "system" and i > 0]
-        _MAX_SYS_HINTS = 5  # Main prompt + 5 secondary system messages max
+        _MAX_SYS_HINTS = 3  # Main prompt + 3 secondary system messages max (was 5)
         if len(_sys_indices) > _MAX_SYS_HINTS:
             # Drop LATEST secondary system messages (reaction hints, gossip, chaos, etc.)
             # Keep the EARLIEST ones (party phase, birthday, emotion, guest context)
@@ -3391,10 +3392,25 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ctx = [m for i, m in enumerate(ctx) if i not in _drop]
             logger.info(f"[CTX_TRIM] Dropped {len(_drop)} low-priority hints (kept first {_MAX_SYS_HINTS}), e.g. {_dropped_content}")
 
-        # Add quality reinforcement as final system message
-        if text:
-            ctx.append({"role": "system", "content": 
-                f"React to their SPECIFIC words. Be substantive. Answer questions directly."})
+        # Embed the user question directly into CTX 00 (main system prompt).
+        # The 8B model ignores late-context instructions, so we must put the
+        # question at the VERY START where it has maximum attention weight.
+        if text and ctx and ctx[0].get("role") == "system":
+            _approach_hints = [
+                "Tell a short story or memory related to this.",
+                "Share a funny opinion about this.",
+                "Reference a Mario game moment that connects to this.",
+                "Give a genuine, heartfelt answer.",
+                "Be dramatic and theatrical in your response.",
+                "Use an analogy or comparison in your answer.",
+                "Share a behind-the-scenes secret about this topic.",
+            ]
+            _hint = random.choice(_approach_hints)
+            ctx[0]["content"] = (
+                f"SOMEONE ASKED YOU: \"{text[:80]}\"\n"
+                f"You MUST answer THIS question. {_hint}\n\n"
+                + ctx[0]["content"]
+            )
 
         # ── Token budget enforcement ──
         # Prevent context overflow by trimming oldest conversation messages
@@ -3515,6 +3531,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
             response_energy = llm_response["energy"]
+            _was_llm_response = not llm_response.get("was_fallback", False)
             
             # Update emotion system with LLM sentiment
             emotion_system.update_from_llm_sentiment(response_emotion, response_energy)
@@ -3653,7 +3670,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         state_current["conversation_summary"] = _compress_old_history(_to_drop, _existing)
         state_current["conversation_history"] = _hist[-(_hist_limit - 2):]
     state_current["conversation_history"].append({"role": "user", "content": text})
-    state_current["conversation_history"].append({"role": "assistant", "content": response_text})
+    # Only store genuine LLM responses in history. Non-LLM responses (canned jokes,
+    # Easter eggs, repeat-detection fallbacks) are standalone interactions that
+    # confuse the model if included — it copies them verbatim for future questions.
+    if _was_llm_response:
+        state_current["conversation_history"].append({"role": "assistant", "content": response_text})
+    else:
+        # Pop the user message too — don't leave orphaned user messages in history
+        # as the model tries to answer them instead of the current question
+        state_current["conversation_history"].pop()
 
     # Save to memory (conversations sync, facts/topics in background)
     if state_current["speaker_id"]:

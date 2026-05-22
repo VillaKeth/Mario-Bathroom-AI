@@ -252,6 +252,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
             "num_predict": LLM_NUM_PREDICT,
             "num_ctx": LLM_NUM_CTX,
             "repeat_penalty": 1.15,
+            "seed": random.randint(1, 2**31),
             "stop": ["\nUser:", "\nHuman:", "\nAssistant:", "\nMario:", "(OOC"],
         },
     }
@@ -284,7 +285,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         if not response_text or len(response_text) < 3:
             logger.warning(f"[DEBUG_LLM] generate_response: empty/short response ({len(response_text)} chars), using fallback")
             fallback_text = random.choice(LLM_FALLBACKS)
-            return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
+            return {"text": fallback_text, "emotion": "neutral", "energy": 0.5, "was_fallback": True}
 
         # Import emotions module for sentiment extraction
         try:
@@ -321,7 +322,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         if is_repeat:
             logger.info(f"[DEBUG_LLM] generate_response: repeat/similar detected, using fallback")
             response_text = random.choice(LLM_FALLBACKS)
-            return {"text": response_text, "emotion": "neutral", "energy": 0.5}
+            return {"text": response_text, "emotion": "neutral", "energy": 0.5, "was_fallback": True}
         
         # Track recent responses
         with _recent_responses_lock:
@@ -339,11 +340,11 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         elapsed = time.time() - start
         logger.warning(f"[DEBUG_LLM] generate_response: timeout after {elapsed:.1f}s, using fallback")
         fallback_text = random.choice(LLM_FALLBACKS)
-        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
+        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5, "was_fallback": True}
     except Exception as e:
         logger.error(f"[DEBUG_LLM] generate_response: error: {e}")
         fallback_text = random.choice(LLM_FALLBACKS)
-        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5}
+        return {"text": fallback_text, "emotion": "neutral", "energy": 0.5, "was_fallback": True}
 
 
 def _clean_response(text: str) -> str:
