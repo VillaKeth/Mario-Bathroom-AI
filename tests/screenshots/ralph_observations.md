@@ -27,12 +27,29 @@
 - **Variety**: Compliments, facts, songs, questions, self-reflection — great range
 - **Quality**: "I wonder if anyone even noticed I'm in the bathroom" — self-aware humor ✅
 
-### Feature Status
-- [x] Emotion badge — working, changes with each response
-- [x] Mood bar — renders below badge, smooth animation, color gradient working
-- [x] Idle variety — 100% unique messages across all tests
-- [x] LLM idle — seamlessly integrated with canned pool
-- [x] Prompt improvements — responses show variety (hot takes, reactions, humor)
-- [x] TTS — audio playing on all messages
-- [x] Emoji stripping — working correctly on client side
-- [x] No bugs detected across 3 iterations
+### Iteration 4 — Extended (5 min, idle only)
+- **Messages**: 7 total, 7 unique (100% ✅)
+- **Emotions**: happy (4), neutral (3) — idle tends happy/neutral
+- **Mood**: 0.32-0.47, avg 0.38 — healthy positive idle range
+- **No errors** ✅
+
+### Iteration 5 — Interactive Conversation (7 prompts)
+- **Emotions**: sleepy, confused, neutral, excited, happy (5 types ✅)
+- **Quality**: Mixed — some generic ("Okay okay...") but great creative ones (Peach reveal, singing)
+- **Mood tracking**: Drops to 0.00 with negative emotions, recovers with positive
+- **Screenshot**: ralph_iter5.png — mood bar at "Neutral", badge neutral, clean rendering
+
+### Iteration 6 — LLM Idle Deep Test (4 min)
+- **Messages**: 10 total, 10 unique (100% ✅✅✅)
+- **Mood trend**: +0.09 → +0.42 (steady climb from happy idle)
+- **Content quality**: Riddles, self-reference, air freshener jokes, singing, trivia, pipe philosophy
+- **Highlight**: "♪ In the arms of an angel... ♪ No wait, I'm being dramatic. I'm FINE." 
+- **No errors** ✅
+
+### Overall Assessment (6 iterations)
+- **Uniqueness**: 100% across ALL iterations (36/36 messages unique)
+- **Emotion variety**: 8+ distinct emotions observed
+- **Mood bar**: Working correctly — rises with positive sentiment, drops with negative, decays toward neutral
+- **LLM idle**: Seamlessly integrated, high quality content
+- **Visual rendering**: Clean, no glitches, mood bar + emotion badge + speech bubble all render correctly
+- **Zero bugs detected across 6 iterations** ✅
