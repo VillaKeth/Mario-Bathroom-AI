@@ -403,9 +403,9 @@ def handle_special_commands(
             # Fall through to process the new command normally
 
     # Easter eggs — hidden trigger phrases for extra fun
-    # Only trigger for SHORT messages (≤5 words) so complex requests go to LLM
+    # Only trigger for VERY SHORT messages (≤3 words) so complex requests go to LLM
     _word_count = len(lower.split())
-    if _word_count <= 5:
+    if _word_count <= 3:
         for trigger, response in EASTER_EGGS.items():
             if trigger in lower:
                 emotion_system.current = Emotion.EXCITED
@@ -678,8 +678,8 @@ def handle_special_commands(
         emotion_system.current = "mischievous"
         return random.choice(FORTUNES)
 
-    # How are you feeling / mood
-    if any(w in lower for w in ["how are you feeling", "what's your mood", "how are you doing", "you okay", "how do you feel", "are you happy"]):
+    # How are you feeling / mood — only direct mood questions, not complex "how do you feel about X"
+    if _word_count <= 6 and any(w in lower for w in ["how are you feeling", "what's your mood", "how are you doing", "you okay", "how do you feel", "are you happy"]):
         current_mood = emotion_system.current
         return MOOD_RESPONSES.get(current_mood, "I'm-a doing great! It's always a good day to be Mario!")
 
