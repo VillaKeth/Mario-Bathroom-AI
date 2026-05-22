@@ -240,6 +240,10 @@ class MarioClient:
             if emotion:
                 self.display.set_emotion(emotion)
 
+            mood_score = metadata.get("mood_score")
+            if mood_score is not None:
+                self.display.set_mood_score(mood_score)
+
             # Use pose hint from server for intelligent sprite selection
             pose_hint = metadata.get("pose_hint")
             if pose_hint:

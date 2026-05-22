@@ -1936,6 +1936,62 @@ def _infer_idle_emotion(text: str) -> str:
     return Emotion.HAPPY
 
 
+# LLM idle chatter configuration
+_LLM_IDLE_ENABLED = GAME_CONFIG.get("llm_idle_enabled", True)
+_LLM_IDLE_CHANCE = GAME_CONFIG.get("llm_idle_chance", 0.25)  # 25% of idle messages use LLM
+_LLM_IDLE_TIMEOUT = 15  # seconds
+_last_llm_idle_time = 0.0  # Cooldown to avoid spamming LLM
+
+_LLM_IDLE_SYSTEM_PROMPT = """You are Mario, the famous plumber, currently guarding a bathroom at a party. You're alone right now and talking to yourself.
+
+Generate a SHORT (1 sentence, max 15 words) random thought, observation, or mumble. Be in character:
+- Use "Wahoo!", "Mama mia!", add "-a" to words sometimes
+- Be chaotic, funny, unexpected, dramatic
+- You can: sing snippets, tell yourself jokes, wonder about things, comment on the bathroom, think about party guests, reminisce about adventures, have random existential thoughts
+- NEVER break character. NEVER be boring or generic.
+
+End with: {"emotion": "<emotion>", "energy": <0.0-1.0>}"""
+
+
+async def _generate_llm_idle() -> dict | None:
+    """Generate an LLM-powered idle thought. Returns {"text": str, "emotion": str} or None."""
+    global _last_llm_idle_time
+    now = time.time()
+    if now - _last_llm_idle_time < 60:  # Min 60s between LLM idle calls
+        return None
+
+    try:
+        ctx = [
+            {"role": "system", "content": _LLM_IDLE_SYSTEM_PROMPT},
+        ]
+        # Add a hint about recent conversation for context
+        history = state_current.get("conversation_history", [])
+        if history:
+            recent = [m["content"] for m in history[-4:] if m.get("role") == "user"]
+            if recent:
+                ctx.append({"role": "system", "content": f"Recent guest topics: {', '.join(r[:40] for r in recent)}"})
+
+        # Add time/phase context
+        hour = time.localtime().tm_hour
+        ctx.append({"role": "user", "content": f"It's {hour}:00. Say something random as Mario."})
+
+        llm_response = await asyncio.wait_for(
+            llm.generate_response(ctx, model=llm_router.get_model(llm_router.classify("idle", response_type="casual"))),
+            timeout=_LLM_IDLE_TIMEOUT,
+        )
+        _last_llm_idle_time = now
+        text = llm_response.get("text", "").strip()
+        emotion = llm_response.get("emotion", "happy")
+        if text and len(text) > 5:
+            logger.info(f"[LLM_IDLE] Generated: '{text[:60]}' emotion={emotion}")
+            return {"text": text, "emotion": emotion}
+    except asyncio.TimeoutError:
+        logger.debug("[LLM_IDLE] Timed out")
+    except Exception as e:
+        logger.debug(f"[LLM_IDLE] Failed: {e}")
+    return None
+
+
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
     async with _state_lock:
@@ -2196,21 +2252,38 @@ async def _idle_loop(ws: WebSocket):
                     if gossip_msg:
                         action = gossip_msg
 
+        # LLM idle chatter: 25% chance to generate original Mario thoughts
+        _llm_idle_result = None
+        if _LLM_IDLE_ENABLED and random.random() < _LLM_IDLE_CHANCE:
+            try:
+                _llm_idle_result = await _generate_llm_idle()
+            except Exception as e:
+                logger.debug(f"[LLM_IDLE] Exception: {e}")
+
         # Track last idle action for greeting acknowledgment
-        if action:
+        if _llm_idle_result:
+            action = _llm_idle_result["text"]
+            _idle_emotion = _llm_idle_result["emotion"]
+        elif action:
+            _idle_emotion = None  # Will be inferred below
             async with _state_lock:
                 state_current["_last_idle_action"] = action
+        else:
+            _idle_emotion = None
         # Occasionally inject time-aware comments
         time_comment = idle_behavior.get_time_comment()
         if time_comment and random.random() < 0.08:
             action = time_comment
+            _idle_emotion = None  # Re-infer for time comments
         if action:
             # Dedup: skip if this exact text was sent recently
             if action in _idle_recent_texts:
                 continue
             emotion_system.update()
-            _idle_emotion = _infer_idle_emotion(action)
+            if _idle_emotion is None:
+                _idle_emotion = _infer_idle_emotion(action)
             emotion_system.current = _idle_emotion
+            emotion_system.record_sentiment(_idle_emotion)
             analyzed = analyze_text(action)
             try:
                 # If it's purely an action (no spoken text after stripping), just send pose change
@@ -2235,6 +2308,7 @@ async def _idle_loop(ws: WebSocket):
                             "has_audio": False,
                             "emotion": _idle_emotion,
                             "is_idle": True,
+                            "mood_score": emotion_system.get_mood_score(),
                         }
                         if analyzed["pose_hint"]:
                             msg["pose_hint"] = analyzed["pose_hint"]
@@ -4648,6 +4722,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         "emotion": emotion or emotion_system.current,
         "energy": energy if energy is not None else emotion_system.get_energy_running_average(),
         "animation": emotion_system.animation_state,
+        "mood_score": emotion_system.get_mood_score(),
     }
     if pose_hint:
         msg["pose_hint"] = pose_hint

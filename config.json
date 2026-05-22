@@ -41,6 +41,8 @@
     "ollama_url": "http://localhost:11434",
     "llm_quality_model": "auto",
     "llm_fast_model": "auto",
+    "llm_idle_enabled": true,
+    "llm_idle_chance": 0.25,
     "party_start_time": null,
     "birthday_person_name": "Jacob",
     "birthday_person_facts": [

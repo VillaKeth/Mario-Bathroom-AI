@@ -41,6 +41,20 @@ class Emotion:
     IDEA = "idea"
 
 
+# Sentiment valence: emotion → score (-1.0 to +1.0) for mood tracking
+EMOTION_VALENCE = {
+    Emotion.HAPPY: 0.7, Emotion.EXCITED: 0.9, Emotion.LAUGHING: 0.8,
+    Emotion.LOVING: 0.9, Emotion.LOVE: 0.9, Emotion.PROUD: 0.7,
+    Emotion.MISCHIEVOUS: 0.5, Emotion.IDEA: 0.6, Emotion.CURIOUS: 0.4,
+    Emotion.SURPRISED: 0.3, Emotion.DETERMINED: 0.5, Emotion.THINKING: 0.1,
+    Emotion.NEUTRAL: 0.0, Emotion.CONFUSED: -0.1, Emotion.BORED: -0.3,
+    Emotion.SLEEPY: -0.2, Emotion.EMBARRASSED: -0.3, Emotion.NERVOUS: -0.3,
+    Emotion.WORRIED: -0.4, Emotion.ANNOYED: -0.5, Emotion.FRUSTRATED: -0.6,
+    Emotion.SAD: -0.7, Emotion.SCARED: -0.5, Emotion.ANGRY: -0.8,
+    Emotion.DISGUSTED: -0.7, Emotion.SHOCKED: -0.2,
+}
+
+
 # How emotions affect TTS voice parameters — more dramatic range for Neuro-sama energy
 EMOTION_VOICE_MAP = {
     Emotion.HAPPY:      {"rate": "+15%", "pitch": "+3Hz"},
@@ -586,9 +600,55 @@ class EmotionSystem:
             
             # Update intensity based on energy level
             self.intensity = max(0.3, min(1.0, energy * 0.8 + 0.2))
+
+            # Record sentiment for mood tracking
+            self._record_sentiment(emotion)
             
             if DEBUG_EMOTION:
-                logger.info(f"[DEBUG_EMOTION] updated to {self.current}, conversation_energy={self._conversation_energy:.2f}")
+                logger.info(f"[DEBUG_EMOTION] updated to {self.current}, conversation_energy={self._conversation_energy:.2f}, mood={self.get_mood_score():.2f}")
+
+    def _record_sentiment(self, emotion: str):
+        """Record a sentiment data point from an emotion (internal, must hold lock)."""
+        valence = EMOTION_VALENCE.get(emotion, 0.0)
+        now = time.time()
+        self._sentiment_history.append((now, valence))
+        # Keep only last 20 entries
+        if len(self._sentiment_history) > 20:
+            self._sentiment_history = self._sentiment_history[-20:]
+
+    def record_sentiment(self, emotion: str):
+        """Record a sentiment data point from an emotion (thread-safe)."""
+        with self._lock:
+            self._record_sentiment(emotion)
+
+    def get_mood_score(self) -> float:
+        """Get rolling mood score from -1.0 (very negative) to +1.0 (very positive).
+        
+        Uses time-weighted average: recent emotions count more than old ones.
+        Decays toward 0.0 (neutral) when no recent interactions.
+        """
+        with self._lock:
+            if not self._sentiment_history:
+                return 0.0
+            now = time.time()
+            total_weight = 0.0
+            weighted_sum = 0.0
+            for ts, score in self._sentiment_history:
+                age = now - ts
+                # Exponential decay: half-life of 120 seconds
+                weight = 2.0 ** (-age / 120.0)
+                weighted_sum += score * weight
+                total_weight += weight
+            if total_weight < 0.01:
+                return 0.0
+            raw = weighted_sum / total_weight
+            # Decay toward neutral based on time since last entry
+            last_ts = self._sentiment_history[-1][0]
+            idle_secs = now - last_ts
+            if idle_secs > 60:
+                decay = max(0.0, 1.0 - (idle_secs - 60) / 300.0)
+                raw *= decay
+            return max(-1.0, min(1.0, raw))
 
     def get_energy_running_average(self) -> float:
         """Get the running average energy level (0.0-1.0)."""

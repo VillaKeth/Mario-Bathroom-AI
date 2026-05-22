@@ -1,5 +1,34 @@
 # Mario AI Party Bot - TODO
 
+## LLM Idle Chatter — DONE ✅
+- [x] Add `_generate_llm_idle()` function with dedicated system prompt
+- [x] Wire into idle loop with 25% chance + 60s cooldown
+- [x] Configurable via `llm_idle_enabled` and `llm_idle_chance` in config.json
+- [x] Uses LLM router for model selection
+- [x] LLM emotion passed directly (skips `_infer_idle_emotion`)
+- [x] Fallback to canned pool on timeout/failure
+- [x] Tested: 5 unique messages in 150s
+
+## Sentiment Mood Meter — DONE ✅
+- [x] Add `EMOTION_VALENCE` map (26 emotions → -1.0 to +1.0 sentiment scores)
+- [x] Add `record_sentiment()` and `get_mood_score()` to EmotionSystem
+- [x] Rolling weighted average with 120s half-life decay
+- [x] Server sends `mood_score` in every `mario_response` message
+- [x] Client renders horizontal mood bar below emotion badge
+- [x] Color gradient: red (negative) → yellow (neutral) → green (positive)
+- [x] Smooth animation (0.08 ease factor)
+- [x] Labels: "Vibing!", "Happy", "Neutral", "Meh", "Grumpy"
+- [x] Tested: mood shifts with conversation sentiment
+
+## LLM Prompt Improvements — DONE ✅
+- [x] Added CALLBACK KING and IMPROVISER personality traits
+- [x] Added RESPONSE VARIETY section (8 approaches to cycle through)
+- [x] Added "No emoji" TTS rule (Pygame can't render them)
+- [x] Added "Never be generic" to NEVER rules
+
+## Upcoming Features
+- [ ] Comprehensive testing of idle variety and emotion badge
+
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)
 - [x] Make face_recognition and ultralytics optional in client/requirements.txt

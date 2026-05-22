@@ -281,6 +281,11 @@ class MarioDisplay:
         self._emotion_badge_scale = 1.0
         self._emotion_badge_pop_time = 0.0
 
+        # Mood meter (rolling sentiment bar)
+        self._mood_score = 0.0  # -1.0 to +1.0
+        self._mood_display = 0.0  # Smoothly animated toward _mood_score
+        self._mood_label = ""  # e.g. "Vibing", "Neutral", "Grumpy"
+
         # Fullscreen toggle with proportional scaling
         self._fullscreen = False
         self._windowed_scaled = False  # True when window is resized/maximized
@@ -1493,6 +1498,7 @@ class MarioDisplay:
 
         # Floating emotion badge near Mario
         self._draw_emotion_badge()
+        self._draw_mood_bar()
 
         # Draw particles on top of Mario
         self._draw_particles()
@@ -2071,6 +2077,75 @@ class MarioDisplay:
         cy_lbl = badge_y + (badge_h - label_surf.get_height()) // 2
         self._screen.blit(sym_surf, (cx, cy_sym))
         self._screen.blit(label_surf, (cx + sym_surf.get_width(), cy_lbl))
+
+    def set_mood_score(self, score: float):
+        """Set the rolling mood score (-1.0 to +1.0)."""
+        self._mood_score = max(-1.0, min(1.0, score))
+
+    def _draw_mood_bar(self):
+        """Draw a horizontal mood meter below the emotion badge."""
+        # Smoothly animate toward target
+        diff = self._mood_score - self._mood_display
+        self._mood_display += diff * 0.08  # Ease toward target
+
+        banner_bot = getattr(self, '_banner_bottom', 48)
+        bar_x = 12
+        bar_y = banner_bot + 44  # Below emotion badge
+        bar_w = 110
+        bar_h = 10
+
+        # Determine mood label
+        val = self._mood_display
+        if val > 0.5:
+            label = "Vibing!"
+        elif val > 0.2:
+            label = "Happy"
+        elif val > -0.2:
+            label = "Neutral"
+        elif val > -0.5:
+            label = "Meh"
+        else:
+            label = "Grumpy"
+
+        # Shadow
+        shadow = pygame.Surface((bar_w + 4, bar_h + 4), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (0, 0, 0, 40),
+                         (0, 0, bar_w + 4, bar_h + 4), border_radius=bar_h // 2)
+        self._screen.blit(shadow, (bar_x + 1, bar_y + 1))
+
+        # Background (dark pill)
+        pygame.draw.rect(self._screen, (40, 40, 55),
+                         (bar_x, bar_y, bar_w, bar_h), border_radius=bar_h // 2)
+
+        # Fill: map -1..+1 to 0..bar_w, color from red→yellow→green
+        fill_frac = (self._mood_display + 1.0) / 2.0  # 0.0 to 1.0
+        fill_w = max(4, int(bar_w * fill_frac))
+
+        # Color gradient: red(0) → yellow(0.5) → green(1.0)
+        if fill_frac < 0.5:
+            t = fill_frac * 2.0
+            r = int(220 * (1 - t) + 240 * t)
+            g = int(60 * (1 - t) + 200 * t)
+            b = int(60 * (1 - t) + 50 * t)
+        else:
+            t = (fill_frac - 0.5) * 2.0
+            r = int(240 * (1 - t) + 80 * t)
+            g = int(200 * (1 - t) + 220 * t)
+            b = int(50 * (1 - t) + 80 * t)
+
+        # Draw fill with clipping to rounded rect
+        fill_surf = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
+        pygame.draw.rect(fill_surf, (r, g, b), (0, 0, fill_w, bar_h), border_radius=bar_h // 2)
+        self._screen.blit(fill_surf, (bar_x, bar_y))
+
+        # Border
+        pygame.draw.rect(self._screen, (80, 80, 100),
+                         (bar_x, bar_y, bar_w, bar_h), 1, border_radius=bar_h // 2)
+
+        # Label to the right of bar
+        font = self._bubble_fonts.get(12, self._font_small)
+        lbl_surf = font.render(label, True, (200, 200, 220))
+        self._screen.blit(lbl_surf, (bar_x + bar_w + 6, bar_y - 1))
 
     def _wrap_text_for_bubble(self, text: str, font, max_width: int) -> list[str]:
         """Wrap text to fit within max_width using given font."""
