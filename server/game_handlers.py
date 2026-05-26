@@ -498,6 +498,15 @@ NAME_THAT_CHARACTER = [
     {"desc": "A turtle with a red or green shell — kick the shell and it goes FLYING!", "a": ["koopa troopa"], "accept": ["koopa", "koopa troopa", "koopa trooper"]},
     {"desc": "This big ape throws barrels and loves bananas more than ANYTHING!", "a": ["donkey kong"], "accept": ["donkey kong", "dk"]},
     {"desc": "She's got an orange dress, is from Sarasaland, and says 'Hi I'm Daisy!' ALL the time!", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
+    {"desc": "A tiny mushroom person with a mining hat, always screaming and running around!", "a": ["toad"], "accept": ["toad", "captain toad"]},
+    {"desc": "A blue hedgehog who goes REALLY fast and collects golden rings!", "a": ["sonic"], "accept": ["sonic", "sonic the hedgehog"]},
+    {"desc": "Bowser's son with a magic paintbrush! Tried to frame me by painting graffiti everywhere!", "a": ["bowser jr"], "accept": ["bowser jr", "bowser junior", "junior"]},
+    {"desc": "A little cloud puff baby that lives in space and loves their mama Rosalina!", "a": ["luma"], "accept": ["luma"]},
+    {"desc": "My hat friend from Odyssey! He lets me capture and possess other creatures!", "a": ["cappy"], "accept": ["cappy"]},
+    {"desc": "A hammer-throwing turtle bro in a helmet! These guys are TOUGH to dodge!", "a": ["hammer bro"], "accept": ["hammer bro", "hammer brother", "hammer bros"]},
+    {"desc": "A chain ball monster that barks and lunges at you! Tied to a stake but WANTS to be free!", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
+    {"desc": "She's the mayor of New Donk City and she can SING! Jump Up, Super Star!", "a": ["pauline"], "accept": ["pauline"]},
+    {"desc": "A little star that pops out of blocks and makes you INVINCIBLE for a few seconds!", "a": ["super star"], "accept": ["star", "super star", "starman", "invincibility star"]},
 ]
 
 BATHROOM_DARES = [
@@ -567,6 +576,15 @@ WYR_EXTENDED = [
     {"a": "Have Toad narrate your entire life", "b": "Have Lakitu film your entire life"},
     {"a": "Play Mario Party for 100 turns", "b": "Play a single Mario Kart race on Rainbow Road that never ends"},
     {"a": "Have unlimited coins but can't spend them", "b": "Have only 1 coin but it buys anything"},
+    {"a": "Be stuck on a forever-looping escalator", "b": "Be stuck on a forever-spinning merry-go-round"},
+    {"a": "Have Bowser text you 'good morning' every day", "b": "Have Waluigi show up at every party you go to"},
+    {"a": "Swap bodies with Luigi for a week", "b": "Swap bodies with Yoshi for a day"},
+    {"a": "Only eat food that's been stomped on", "b": "Only drink from fountains in video game levels"},
+    {"a": "Have your life narrated by Mario's voice", "b": "Have every door you open make the Mario pipe sound"},
+    {"a": "Get a star power-up but it plays the music at full volume in public", "b": "Get a mushroom power-up but you literally double in size"},
+    {"a": "Have a Boo follow you around that only YOU can see", "b": "Have a Goomba that trips you once a day at random"},
+    {"a": "Be famous in the Mushroom Kingdom but unknown on Earth", "b": "Be famous on Earth but wanted in the Mushroom Kingdom"},
+    {"a": "Speak fluent Pianta for life", "b": "Understand what Bob-ombs say before they explode"},
 ]
 
 NHIE_PROMPTS = [

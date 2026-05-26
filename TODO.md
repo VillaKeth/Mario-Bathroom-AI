@@ -70,6 +70,13 @@
 - [x] Extend laugh handler with regex for extended patterns (hahahaha, looool, emoji)
 - [x] Add personality Q&A handlers: age, marriage/girlfriend, height, favorites (food/color/game/song/movie)
 - [x] Fix TTS voice fallback: load RVC on CPU even in sovits mode so Edge TTS fallback still sounds like Mario
+- [x] Add drunk/tipsy handler with hydration reminders
+- [x] Add bored handler with activity suggestions
+- [x] Add shock/surprise handler for first-time reactions (wtf, oh my god, no way)
+- [x] Add 13 pop culture easter eggs (fortnite, minecraft, zelda, sonic, pokemon, among us, etc.)
+- [x] Expand name parser stop words (wasted, hammered, tipsy, faded, high, etc.)
+- [x] Add GET /admin/party_summary endpoint (comprehensive party state overview)
+- [x] Verified 30/30 comprehensive handler routing test
 - [ ] Add party soundtrack/ambient noise integration
 - [ ] Add voice command for volume control
 - [ ] Implement guest rotation tracking (who hasn't spoken recently)
