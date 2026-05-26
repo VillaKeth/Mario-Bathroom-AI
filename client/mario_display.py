@@ -271,6 +271,8 @@ class MarioDisplay:
         # Thinking animation (shown while waiting for LLM response)
         self._thinking = False
         self._thinking_dots = 0
+        self._thinking_start = 0
+        self._THINKING_TIMEOUT = 60.0  # auto-cancel after 60s
 
         # Response timing display
         self._last_response_time = 0
@@ -305,6 +307,9 @@ class MarioDisplay:
         self._panic_mode = False
         self._panic_sequence_buffer = []  # last arrow key presses
         self._PANIC_SEQUENCE = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
+
+        # Help overlay
+        self._show_help = False
 
         # Connection status overlay for error recovery
         self._connection_status = None
@@ -577,6 +582,8 @@ class MarioDisplay:
                     elif event.key == pygame.K_TAB:
                         self.keyboard_mode = not self.keyboard_mode
                         self._keyboard_text = ""
+                    elif event.key == pygame.K_F1:
+                        self._show_help = not self._show_help
                     elif event.key == pygame.K_F3:
                         self._show_chat_history = not self._show_chat_history
                     elif event.key == pygame.K_F4:
@@ -640,6 +647,12 @@ class MarioDisplay:
                     self._handle_window_resize(event.w, event.h)
 
             self._frame += 1
+            # Auto-cancel thinking state after timeout (prevents stuck indicator)
+            if self._thinking and self._thinking_start > 0:
+                if time.time() - self._thinking_start > self._THINKING_TIMEOUT:
+                    logger.warning("[DISPLAY] Thinking timeout — auto-cancelling after 60s")
+                    self._thinking = False
+                    self._thinking_start = 0
             self._update_typewriter()
             self._update_transition()
             self._draw()
@@ -806,6 +819,10 @@ class MarioDisplay:
         """Show/hide thinking animation (while waiting for server response)."""
         self._thinking = thinking
         self._thinking_dots = 0
+        if thinking:
+            self._thinking_start = time.time()
+        else:
+            self._thinking_start = 0
 
     def _draw_thinking_indicator(self):
         """Draw bouncing dots indicator (like iMessage typing) while waiting for response."""
@@ -1318,6 +1335,68 @@ class MarioDisplay:
         except Exception as e:
             logger.error(f"[DEBUG_DISPLAY] Window resize failed: {e}")
 
+    def _draw_help_overlay(self):
+        """Draw keyboard shortcuts help overlay (F1 toggle)."""
+        w = self._screen.get_width()
+        h = self._screen.get_height()
+
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 200))
+        self._screen.blit(overlay, (0, 0))
+
+        shortcuts = [
+            ("TAB", "Toggle keyboard input mode"),
+            ("1-0", "Quick-trigger game phrases"),
+            ("F1", "Toggle this help overlay"),
+            ("F3", "Toggle chat history sidebar"),
+            ("F4", "Toggle server health panel"),
+            ("F5", "Toggle party mode effects"),
+            ("F6", "Toggle leaderboard"),
+            ("F11", "Toggle fullscreen"),
+            ("F12", "Toggle panic mode"),
+            ("ESC", "Exit keyboard / close window"),
+            ("Ctrl+V", "Paste from clipboard"),
+            ("Ctrl+Backspace", "Delete last word"),
+            ("Ctrl+U", "Clear input line"),
+            ("Ctrl+Shift+L", "Skip memorial event"),
+        ]
+
+        title_font = pygame.font.Font(None, 48)
+        key_font = pygame.font.Font(None, 28)
+        desc_font = pygame.font.Font(None, 26)
+
+        title = title_font.render("Keyboard Shortcuts", True, (255, 215, 0))
+        self._screen.blit(title, (w // 2 - title.get_width() // 2, 60))
+
+        start_y = 120
+        col_w = 380
+        mid_x = w // 2
+
+        for i, (key, desc) in enumerate(shortcuts):
+            col = i // 8
+            row = i % 8
+            x_base = mid_x - col_w + col * col_w
+            y = start_y + row * 36
+
+            key_surf = key_font.render(key, True, (100, 255, 100))
+            desc_surf = desc_font.render(desc, True, (200, 200, 220))
+
+            # Key badge
+            badge_w = key_surf.get_width() + 16
+            badge_h = 28
+            badge_x = x_base
+            badge_y = y
+            pygame.draw.rect(self._screen, (40, 40, 60),
+                             (badge_x, badge_y, badge_w, badge_h), border_radius=6)
+            pygame.draw.rect(self._screen, (80, 80, 100),
+                             (badge_x, badge_y, badge_w, badge_h), 1, border_radius=6)
+            self._screen.blit(key_surf, (badge_x + 8, badge_y + 4))
+            self._screen.blit(desc_surf, (badge_x + badge_w + 10, badge_y + 4))
+
+        hint_font = pygame.font.Font(None, 22)
+        hint = hint_font.render("Press F1 to close", True, (120, 120, 150))
+        self._screen.blit(hint, (w // 2 - hint.get_width() // 2, h - 40))
+
     def _toggle_panic_mode(self):
         """Toggle panic mode — mute audio and show 'Technical Difficulties' screen."""
         self._panic_mode = not self._panic_mode
@@ -1595,7 +1674,7 @@ class MarioDisplay:
             self._screen.blit(mode_surf, (22, WINDOW_HEIGHT - 18))
 
         # Compact hint (right side, dimmed)
-        hint = "TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full | F12:panic"
+        hint = "F1:help | TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full | F12:panic"
         hint_surf = self._font_small.render(hint, True, (70, 70, 90))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 8, WINDOW_HEIGHT - 18))
 
@@ -1654,6 +1733,10 @@ class MarioDisplay:
         # Closed captions (drawn last, on top of everything except fullscreen scaling)
         if self.captions:
             self.captions.draw(self._screen)
+
+        # Help overlay (F1 toggle — on top of everything)
+        if self._show_help:
+            self._draw_help_overlay()
 
         # Scale render buffer to real screen, centered with aspect ratio
         if needs_scaling:
@@ -3002,6 +3085,7 @@ class MarioDisplay:
             f"MEMORY: {d.get('memory_mb', '?')}MB",
             f"IDLE ERR: {d.get('idle_errors', '?')}",
             f"GAMES: {d.get('active_games', '?')}",
+            f"RESP: {self._last_response_time:.1f}s" if self._last_response_time > 0 else "RESP: --",
         ]
         panel_w, line_h = 260, 22
         panel_h = len(lines) * line_h + 20
