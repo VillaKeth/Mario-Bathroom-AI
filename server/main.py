@@ -4594,6 +4594,7 @@ async def handle_event(ws: WebSocket, event: dict):
         # Always reset rate limiter for new input — task cancellation handles rapid-fire
         async with _state_lock:
             state_current["_last_text_input_time"] = 0.0
+            state_current["_user_request_active"] = True  # Set IMMEDIATELY to suppress idle before task starts
 
         # Fire-and-forget: task manages its own _user_request_active lifecycle
         _current_response_task = asyncio.create_task(

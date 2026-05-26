@@ -27,10 +27,15 @@
 - [x] Fix trivia routing: remove \btrivia\b from fun fact handler
 - [x] Test all response quality with 20-prompt stress test: PERFECT 20/20
 - [x] Test all 13 games: PERFECT 13/13 start correctly
+- [x] Fix name detection false positive: "it is pasta" no longer triggers name learning (≤8 word guard)
+- [x] Fix hangman trigger: "Tell me about hangman" now goes to LLM (≤3 word guard)
+- [x] Add word count guards to ALL remaining game triggers (simon≤4, 20Q≤4, riddle≤4, etc.)
 - [ ] Fix greeting collision: first prompt after connect sometimes gets greeting response
+- [ ] Fix idle message race: idle messages can leak through during LLM processing
 
 ## Current Focus
 - [ ] Run extended stress tests (50+ prompts) for edge cases
+- [ ] Fix idle message timing race with _user_request_active flag
 - [ ] Test sentiment mood meter with varied conversation
 - [ ] Verify idle chatter variety with LLM enabled
 - [ ] Test full game playthroughs (not just start/quit)
