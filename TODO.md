@@ -49,6 +49,9 @@
 - [x] Verified idle messages fire during silence (~30s intervals)
 - [x] Verified 19+ emotion transitions in Pygame client on Desktop 2
 - [x] Verified zero idle leaks during rapid conversation (8 messages, 0 leaks)
+- [x] Added thank you, yes/no, goodbye, stop game response handlers
+- [x] Expanded greeting set (sup dude, hey bro, hi there, etc.)
+- [x] Dare handler catches "can I get a dare" (word count ≤7)
 - [ ] Run extended stress tests (50+ prompts) for edge cases
 - [ ] Test multi-sentence and very long user messages
 - [ ] Improve LLM empathetic response quality (sad messages get greeting responses)

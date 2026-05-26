@@ -555,6 +555,25 @@ def handle_special_commands(
                 "Fair enough! What would you like instead?",
                 "Alright alright! No pressure from-a Mario!",
             ])
+    # Positive feedback handlers (≤5 words)
+    if _word_count <= 5 and any(w in lower for w in ["that was fun", "that was awesome", "that was great",
+                                                       "that was hilarious", "that was amazing", "so funny",
+                                                       "you're funny", "you're hilarious", "you're awesome",
+                                                       "you're the best", "i love you mario", "you're cool"]):
+        emotion_system.current = "proud"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"WAHOO! {name}, you just made Mario's whole day! You're-a the real star here!",
+            f"Aww shucks, {name}! You're making Mario blush under his mustache!",
+            f"Ha! Mario knows he's amazing — but hearing it from YOU makes it even better, {name}!",
+            f"You think so?! WAHOO! That means a lot to Mario! You're pretty awesome yourself, {name}!",
+        ])
+
+    # "What's your name" — Mario identity handler
+    if _word_count <= 5 and any(w in lower for w in ["what's your name", "whats your name", "who is this",
+                                                       "what should i call you"]):
+        emotion_system.current = "excited"
+        return "It's-a me, MARIO! The one and only bathroom guardian extraordinaire! I'm here to make sure everyone has a SUPER time! WAHOO!"
 
 
     if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
