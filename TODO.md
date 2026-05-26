@@ -34,13 +34,20 @@
 - [x] Add keyword-based emotion inference fallback for 8B model (no more all-neutral)
 - [x] Test full game playthroughs: trivia, RPS, riddle, hangman, word chain, simon says all complete
 - [x] Test sentiment mood meter: emotions now vary (curious, loving, confused, etc.)
-- [ ] Fix greeting collision: first prompt after connect sometimes gets greeting response
-- [ ] Fix remaining idle message leakage (websocket buffer timing)
+- [x] Fix greeting collision: first prompt after connect sometimes gets greeting response
+- [x] Fix remaining idle message leakage (3-layer cooldown system: post-response 8s, post-input 5s, conversation-aware spacing 15-25s)
+- [x] Add POST /admin/simulate_text endpoint for testing through Pygame client
+- [x] Add [EMOTION_CHANGE] debug logging in mario_display.py
+- [x] Fix name parser false positive: "I'm feeling" no longer triggers name="Feeling" (expanded stop words)
+- [x] Verify emotion transitions in Pygame client: 6+ transitions across 5 emotions confirmed
+- [x] Verify zero idle leaks during active conversation (was 2-4 per 20 prompts)
 
 ## Current Focus
 - [ ] Run extended stress tests (50+ prompts) for edge cases
 - [ ] Verify idle chatter variety with LLM enabled
 - [ ] Test multi-sentence and very long user messages
+- [ ] Improve LLM empathetic response quality (sad messages get greeting responses)
+- [ ] Add more conversational command handlers for common party phrases
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)

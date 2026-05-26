@@ -717,8 +717,13 @@ def handle_special_commands(
         return random.choice(RAPS)
 
     # Motivate me / encouragement
-    if any(w in lower for w in ["motivate me", "motivation", "inspire me", "i need encouragement", "cheer me up", "i'm sad", "feeling down"]):
-        emotion_system.current = "proud"
+    _sad_triggers = ["motivate me", "motivation", "inspire me", "i need encouragement", "cheer me up",
+                     "i'm sad", "feeling down", "i'm down", "feeling terrible", "everything is terrible",
+                     "having a bad day", "i'm depressed", "so sad", "really sad", "really down",
+                     "i feel bad", "i feel awful", "life sucks", "i'm upset"]
+    _sad_regex = re.search(r"(?:feeling|i'?m)\s+(?:\w+\s+)?(?:down|sad|terrible|awful|bad|upset|depressed|low|miserable)", lower)
+    if any(w in lower for w in _sad_triggers) or _sad_regex:
+        emotion_system.current = "loving"
         return random.choice(MOTIVATIONS)
 
     # Confession mode

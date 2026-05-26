@@ -1449,6 +1449,7 @@ async def admin_simulate_text(request_body: dict = {}):
     async with _state_lock:
         state_current["_last_text_input_time"] = 0.0
         state_current["_user_request_active"] = True
+        state_current["_last_user_msg_time"] = time.time()
     global _current_response_task
     _current_response_task = asyncio.create_task(_text_input_task(_active_ws, text))
     return {"status": "ok", "message": f"Simulated: {text[:50]}"}
@@ -1714,12 +1715,23 @@ async def websocket_endpoint(ws: WebSocket):
             greeting_emotion = greeting_response["emotion"] 
             greeting_energy = greeting_response["energy"]
             
+            # Cancel greeting if user already started talking
+            if state_current.get("_last_user_msg_time", 0.0) > 0:
+                logger.info("[GREETING] Suppressed — user already sent a message")
+                return
+            
             # Update emotion system with LLM sentiment
             emotion_system.update_from_llm_sentiment(greeting_emotion, greeting_energy)
             
             greeting_text = filter_response(greeting_text)
             analyzed = analyze_text(greeting_text)
             greeting_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
+            
+            # Final check before sending (user may have typed during TTS)
+            if state_current.get("_last_user_msg_time", 0.0) > 0:
+                logger.info("[GREETING] Suppressed after TTS — user sent a message during synthesis")
+                return
+            
             await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
                                 pose_hint=analyzed["pose_hint"])
         except asyncio.TimeoutError:
@@ -2022,10 +2034,10 @@ async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kw
         # Final safety: suppress if user responded/typed recently
         _resp_t = state_current.get("_response_completed_time", 0.0)
         _msg_t = state_current.get("_last_user_msg_time", 0.0)
-        if _resp_t and time.time() - _resp_t < 5.0:
+        if _resp_t and time.time() - _resp_t < 10.0:
             logger.debug("[IDLE] Suppressed idle send — post-response cooldown")
             return False
-        if _msg_t and time.time() - _msg_t < 3.0:
+        if _msg_t and time.time() - _msg_t < 5.0:
             logger.debug("[IDLE] Suppressed idle send — post-input cooldown")
             return False
     await send_response(ws, text, audio, **kwargs)
@@ -2087,13 +2099,13 @@ async def _idle_loop(ws: WebSocket):
             _last_msg_time = state_current.get("_last_user_msg_time", 0.0)
         if user_active:
             continue
-        # Post-response cooldown: suppress idle for 8s after user gets a response
+        # Post-response cooldown: suppress idle for 15s after user gets a response
         _since_response = time.time() - _resp_done_time if _resp_done_time else 999
-        if _since_response < 8.0:
+        if _since_response < 15.0:
             continue
-        # Post-input cooldown: suppress idle for 5s after user sends any message
+        # Post-input cooldown: suppress idle for 8s after user sends any message
         _since_input = time.time() - _last_msg_time if _last_msg_time else 999
-        if _since_input < 5.0:
+        if _since_input < 8.0:
             continue
         # Suppress ALL idle behavior during memorial — don't queue behind it
         if memorial_running:
