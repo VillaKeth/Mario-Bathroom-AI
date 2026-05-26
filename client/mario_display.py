@@ -589,6 +589,8 @@ class MarioDisplay:
                             self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F11:
                         self._toggle_fullscreen()
+                    elif event.key == pygame.K_F12:
+                        self._toggle_panic_mode()
                     elif event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT):
                         # Konami-like sequence to toggle panic mode
                         self._panic_sequence_buffer.append(event.key)
@@ -1409,7 +1411,7 @@ class MarioDisplay:
             # Try to get Impact font, fallback to default
             try:
                 countdown_font = pygame.font.SysFont("Impact", 180)
-            except:
+            except Exception:
                 countdown_font = pygame.font.Font(None, 180)
                 
             # Render the text with black outline
@@ -1593,7 +1595,7 @@ class MarioDisplay:
             self._screen.blit(mode_surf, (22, WINDOW_HEIGHT - 18))
 
         # Compact hint (right side, dimmed)
-        hint = "TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full"
+        hint = "TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full | F12:panic"
         hint_surf = self._font_small.render(hint, True, (70, 70, 90))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 8, WINDOW_HEIGHT - 18))
 
@@ -1765,6 +1767,18 @@ class MarioDisplay:
                     if rx - count_surf.get_width() > left_max + 20:
                         rx -= count_surf.get_width()
                         surface.blit(count_surf, (rx, text_y))
+
+            # Game indicator (show when active game is running)
+            if self._health_data and self._health_data.get("active_games", 0) > 0:
+                rx -= 6
+                surface.blit(sep_surf, (rx - sep_surf.get_width(), text_y))
+                rx -= sep_surf.get_width() + 6
+                pulse = abs(math.sin(self._frame * 0.1))
+                game_color = (int(255 * (0.6 + 0.4 * pulse)), 255, 100)
+                game_surf = font.render("GAME", True, game_color)
+                if rx - game_surf.get_width() > left_max + 20:
+                    rx -= game_surf.get_width()
+                    surface.blit(game_surf, (rx, text_y))
 
             # Speaking indicator (only if room)
             if self._speaking and rx > left_max + 80:

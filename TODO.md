@@ -503,7 +503,7 @@
 - [ ] Run --hours 1 quick endurance test to validate
 - [ ] Run --ralph overnight for continuous improvement
 - [ ] Continue ralph loop iterations (R299+) for regression monitoring
-- [ ] Smoke test: run client headless to verify no import/init crashes
+- [x] Smoke test: run client headless to verify no import/init crashes (all 4 core modules OK)
 - [ ] End-to-end party rehearsal test
 - [ ] Final cache quality audit (listen to all 51 phrases)
 - [ ] Overnight ralph loop endurance test

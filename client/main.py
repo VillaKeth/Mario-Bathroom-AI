@@ -401,18 +401,22 @@ class MarioClient:
 
     def _health_ping_loop(self):
         """Send periodic health pings and update display health data."""
+        consecutive_failures = 0
         while self._running:
             time.sleep(30)
             if self.ws.connected:
                 self.ws.send_health_ping()
                 try:
                     import urllib.request
-                    health_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "/api/health")
+                    health_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "/health")
                     req = urllib.request.urlopen(health_url, timeout=5)
                     data = json.loads(req.read())
                     self.display.update_health(data)
-                except Exception:
-                    pass
+                    consecutive_failures = 0
+                except Exception as e:
+                    consecutive_failures += 1
+                    if consecutive_failures <= 3 or consecutive_failures % 10 == 0:
+                        logger.warning(f"[HEALTH] Ping failed ({consecutive_failures}x): {e}")
 
     def _on_keyboard_submit(self, text: str):
         """Called when user submits text via keyboard input."""
