@@ -2049,6 +2049,8 @@ async def _idle_loop(ws: WebSocket):
     global _idle_error_count
     _idle_last_error_time = 0.0  # Track when errors started for auto-recovery
     _idle_recent_texts = []  # Last 10 idle texts for dedup
+    _last_idle_sent_time = 0.0  # Minimum interval between idle messages
+    _IDLE_MIN_INTERVAL = 25.0  # Never send idle messages faster than this (seconds)
     loop = asyncio.get_event_loop()
     while True:
         # Conversation-aware spacing: longer delays during active conversation
@@ -2059,7 +2061,13 @@ async def _idle_loop(ws: WebSocket):
             # Active conversation — slow down idle to 15-25s
             await asyncio.sleep(random.uniform(15, 25))
         else:
-            await asyncio.sleep(random.uniform(3, 8))
+            # Alone mode — but still pace messages reasonably
+            await asyncio.sleep(random.uniform(8, 15))
+
+        # Enforce minimum interval between idle messages (prevents rapid-fire)
+        _since_last_idle = time.time() - _last_idle_sent_time
+        if _last_idle_sent_time > 0 and _since_last_idle < _IDLE_MIN_INTERVAL:
+            continue
 
         # Auto-recover from error spiral: reset after 5 minutes of silence
         if _idle_error_count > 0 and (time.time() - _idle_last_error_time) > 300:
@@ -2124,9 +2132,9 @@ async def _idle_loop(ws: WebSocket):
                                     sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
             except Exception as e:
                 logger.error(f"Announcement failed: {e}")
+            else:
+                _last_idle_sent_time = time.time()
             continue
-
-        # Check scheduled time-based events
         scheduled_msg = check_scheduled_events()
         if scheduled_msg:
             try:
@@ -2136,9 +2144,9 @@ async def _idle_loop(ws: WebSocket):
                                     sound="coin", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
             except Exception as e:
                 logger.error(f"Scheduled event failed: {e}")
+            else:
+                _last_idle_sent_time = time.time()
             continue
-
-        # Memorial event: moment of silence + shot for Lisa Webb (fires once per party)
         memorial_result = idle_behavior.check_memorial_event(
             current_speaker_name=state_current.get("speaker_name"))
         if memorial_result:
@@ -2384,9 +2392,10 @@ async def _idle_loop(ws: WebSocket):
                 logger.error(f"Idle loop error (#{_idle_error_count}): {e}, backing off {backoff}s")
                 await asyncio.sleep(backoff)
             else:
-                # Success — reset error count
+                # Success — reset error count and update idle send timestamp
                 if _idle_error_count > 0:
                     _idle_error_count = 0
+                _last_idle_sent_time = time.time()
 
 
 async def handle_audio(ws: WebSocket, audio_bytes: bytes):

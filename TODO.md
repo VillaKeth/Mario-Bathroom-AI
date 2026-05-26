@@ -52,10 +52,16 @@
 - [x] Added thank you, yes/no, goodbye, stop game response handlers
 - [x] Expanded greeting set (sup dude, hey bro, hi there, etc.)
 - [x] Dare handler catches "can I get a dare" (word count ≤7)
+- [x] Fix idle rapid-fire leak: 3-8s alone sleep → 8-15s, added 25s min interval between idle msgs
+- [x] Verified idle intervals: 20s, 58s, 29s gaps (was 4-6s before fix)
+- [x] Confirmed TTS uses RVC on ALL paths (Edge TTS fallback still gets voice conversion)
+- [x] Confirmed 33 Edge TTS fallbacks were all during precache startup (not user-facing)
 - [ ] Run extended stress tests (50+ prompts) for edge cases
 - [ ] Test multi-sentence and very long user messages
 - [ ] Improve LLM empathetic response quality (sad messages get greeting responses)
 - [ ] Add more conversational command handlers for common party phrases
+- [ ] Test idle suppression during memorial events
+- [ ] Verify idle messages don't get cut off mid-sentence
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)
