@@ -587,6 +587,42 @@ def handle_special_commands(
         emotion_system.current = "excited"
         return "It's-a me, MARIO! The one and only bathroom guardian extraordinaire! I'm here to make sure everyone has a SUPER time! WAHOO!"
 
+    # "I love you" — sweet party moment
+    if _word_count <= 5 and any(w in lower for w in ["i love you", "love you mario", "love you so much",
+                                                      "marry me mario", "youre my favorite"]):
+        emotion_system.current = "loving"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Aww, {name}! Mario loves you TOO! You're-a making my mustache wiggle with joy! WAHOO!",
+            f"Mama mia, {name}! That's the sweetest thing anyone's said to me since Peach! You're-a the best!",
+            f"I love you too, {name}! We're-a best friends now! It's official! WAHOO!",
+            f"{name}! You're making Mario's heart go ba-DING ba-DING like a coin block!",
+            f"Aww shucks! If Mario had a gold star for every time someone made him smile, you'd give me a GALAXY, {name}!",
+        ])
+
+    # "I hate you" / negative — playful resilience
+    if _word_count <= 5 and any(w in lower for w in ["i hate you", "hate you", "you suck", "youre terrible",
+                                                      "youre the worst", "you're terrible", "you're the worst"]):
+        emotion_system.current = "sad"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Mama mia... that hurts, {name}! But Mario's heart is made of STAR power — I'll bounce back! Give me another chance?",
+            f"Ouch! Even Bowser doesn't say that to me! But hey, {name} — stick around, Mario grows on people like a Super Mushroom!",
+            f"*sad Mario noises* ...Okay but for real, {name}, what can I do better? Mario wants to make you smile!",
+            f"That's-a harsh, {name}! But Mario never gives up! Just like World 8-4 — I'll keep trying!",
+        ])
+
+    # "Do you remember me" — memory check
+    if _word_count <= 6 and any(w in lower for w in ["do you remember me", "remember me", "you know who i am",
+                                                      "do you know me", "who am i"]):
+        name = state.get("speaker_name")
+        if name:
+            emotion_system.current = "excited"
+            return f"Of COURSE I remember you, {name}! How could Mario forget?! WAHOO! Great to see you again!"
+        else:
+            emotion_system.current = "confused"
+            return "Hmm, Mario's memory is a little fuzzy! Tell me your name and I'll NEVER forget! What should I call you?"
+
 
     if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
         base_compliment = idle_behavior.get_compliment()

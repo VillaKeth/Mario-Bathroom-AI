@@ -286,7 +286,11 @@
 - [ ] Test gemma3:27b quality on Threadripper before party
 - [ ] Run canary smoke test on Threadripper
 - [ ] Configure Tailscale for remote client access
-- [ ] Fix 5 game handler IndexError crash bugs (would_you_rather, wyr_mario, name_that_character, mario_trivia, rapid_fire)
+- [x] Fix 5 game handler IndexError crash bugs (would_you_rather, wyr_mario, name_that_character, mario_trivia, rapid_fire)
+- [x] Add shut-up/be-quiet, bathroom-location, drink-request instant handlers
+- [x] Fix 'what time is it' handler to set happy emotion
+- [x] Add face recognition admin API (register_face, lookup_face, list faces)
+- [x] All 10/10 games tested and starting correctly
 - [ ] Fix 13 client UI bugs from prior audit
 - [ ] Add tests for _preclean_tts_text()
 - [ ] Create release v3.12
