@@ -400,6 +400,15 @@ def handle_special_commands(
             state["_game_state"] = {}
             state["_game_last_input_time"] = 0.0
             print(f"[GAME_SWITCH] Cleared '{old_game}' — user requested: {lower[:50]}")
+            # If it's a stop/quit request, return a canned response instead of falling through to LLM
+            if any(kw in lower for kw in ["stop game", "quit game", "end game", "stop playing", "quit playing"]):
+                emotion_system.current = "happy"
+                return random.choice([
+                    f"Game over! That was fun! What else would you like to do?",
+                    f"Okay, game stopped! Mario's ready for whatever's next!",
+                    f"Alrighty, we're done! Want to play something else or just chat?",
+                    f"WAHOO! Good game! What should we do now?",
+                ])
             # Fall through to process the new command normally
 
     # Easter eggs — hidden trigger phrases for extra fun
@@ -491,7 +500,10 @@ def handle_special_commands(
     if _word_count <= 2 and lower.strip() in {"hi", "hey", "yo", "sup", "hello", "hola", "hiya",
                                                 "howdy", "greetings", "heya", "ayo", "wassup",
                                                 "what's up", "whats up", "hey mario", "hi mario",
-                                                "hello mario", "yo mario", "sup mario"}:
+                                                "hello mario", "yo mario", "sup mario",
+                                                "sup dude", "hey man", "yo bro", "hey bro",
+                                                "hey dude", "sup bro", "hi there", "hey there",
+                                                "yo dude", "hey fam", "sup fam", "hi friend"}:
         emotion_system.current = "excited"
         name = state.get("speaker_name") or "friend"
         return random.choice([
@@ -512,6 +524,37 @@ def handle_special_commands(
             "Ha! You think THAT'S funny? Wait till you hear my plumbing jokes!",
             "Now THAT'S what I like to hear! Keep laughing, friend!",
         ])
+
+    # Quick thank you handler (≤4 words)
+    if _word_count <= 4 and any(w in lower for w in ["thanks", "thank you", "thx", "ty", "appreciate it"]):
+        emotion_system.current = "happy"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Aww, you're welcome, {name}! That's-a what Mario is here for!",
+            f"No problem! It's-a my pleasure, {name}! WAHOO!",
+            f"Hey, {name} — YOU'RE the one who made Mario's day! Thank YOU!",
+            f"Anytime, {name}! Mario's always here if you need me!",
+            f"You're-a too kind, {name}! Now let's-a keep this party going!",
+        ])
+    # Quick yes/no/ok acknowledgments (≤2 words, exact match)
+    if _word_count <= 2:
+        _stripped = lower.strip()
+        if _stripped in {"yes", "yeah", "yep", "yup", "yea", "ya", "sure", "ok", "okay", "alright", "bet", "cool", "nice", "word"}:
+            emotion_system.current = "happy"
+            return random.choice([
+                "WAHOO! That's the spirit!",
+                "Okie dokie! What's next?",
+                "Let's-a GO! What else you got?",
+                "Alrighty then! Mario's ready for more!",
+            ])
+        if _stripped in {"no", "nah", "nope", "naw", "no way"}:
+            emotion_system.current = "mischievous"
+            return random.choice([
+                "Okie dokie! Maybe next time!",
+                "No? That's-a okay! Mario respects your choices!",
+                "Fair enough! What would you like instead?",
+                "Alright alright! No pressure from-a Mario!",
+            ])
 
 
     if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
@@ -538,7 +581,7 @@ def handle_special_commands(
         return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
     # Dare → starts Bathroom Dare game
-    if _word_count <= 5 and any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you"]):
+    if _word_count <= 7 and any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you", "can i get a dare", "gimme a dare"]):
         return game_handlers.start_game("bathroom_dare", state, game_config, emotion_system)
 
     # Hand wash reminder
@@ -677,12 +720,17 @@ def handle_special_commands(
         ])
 
     # Goodbye/goodnight
-    if any(w in lower for w in ["goodbye", "goodnight", "see ya", "gotta go", "leaving", "bye bye"]):
+    if _word_count <= 5 and any(w in lower for w in ["goodbye", "goodnight", "see ya", "gotta go", "leaving", "bye bye",
+                                                       "bye", "later", "peace out", "i'm out", "im out", "catch you later",
+                                                       "see you later", "gtg", "good night"]):
         emotion_system.current = "happy"
+        name = state.get("speaker_name") or "friend"
         return random.choice([
-            "See ya later, alligator! Don't forget to wash-a your hands!",
-            "Bye bye! Come back-a soon! The bathroom misses you already!",
-            "Arrivederci! Until next time, friend! Wahoo!",
+            f"See ya later, alligator! Don't forget to wash-a your hands!",
+            f"Bye bye! Come back-a soon! The bathroom misses you already!",
+            f"Arrivederci! Until next time, {name}! Wahoo!",
+            f"Later, {name}! Remember — you're-a number one in Mario's book!",
+            f"Peace out, {name}! May the stars guide your way! WAHOO!",
         ])
 
     # Give me a nickname
