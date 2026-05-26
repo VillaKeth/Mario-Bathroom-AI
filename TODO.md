@@ -301,7 +301,7 @@
 - [x] Add face recognition admin API (register_face, lookup_face, list faces)
 - [x] All 10/10 games tested and starting correctly
 - [ ] Fix 13 client UI bugs from prior audit
-- [ ] Add tests for _preclean_tts_text()
+- [x] Add tests for _preclean_tts_text() (22 tests: ellipsis, quotes, dashes, asterisks, artifacts, edge cases)
 - [ ] Create release v3.12
 
 ## Speech Bubble Fix (Done)

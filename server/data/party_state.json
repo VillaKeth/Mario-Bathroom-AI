@@ -1,6 +1,6 @@
 {
-  "saved_at": 1779832115.9563608,
-  "saved_at_iso": "2026-05-26T17:48:35.956360",
+  "saved_at": 1779832415.970965,
+  "saved_at_iso": "2026-05-26T17:53:35.970965",
   "party_stats": {
     "total_visits": 2150,
     "unique_visitors": 152,
@@ -10,15 +10,15 @@
     "most_frequent_name": "MilestoneGuest_0",
     "most_frequent_count": 77,
     "last_visitor_name": "TestBot",
-    "party_duration": "127h 53m",
-    "current_hour": "05:48 PM"
+    "party_duration": "127h 58m",
+    "current_hour": "05:53 PM"
   },
-  "emotion": "confused",
+  "emotion": "surprised",
   "emotion_intensity": 0.6,
   "total_responses": 50,
-  "avg_response_time": 2.5344084978103636,
+  "avg_response_time": 2.050314817428589,
   "gossip_count": 0,
-  "tts_cache_entries": 1774,
-  "tts_cache_mb": 499.8,
+  "tts_cache_entries": 1793,
+  "tts_cache_mb": 500.0,
   "error_count": 0
 }
