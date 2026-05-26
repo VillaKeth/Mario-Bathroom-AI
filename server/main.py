@@ -1987,8 +1987,7 @@ Generate a SHORT (1 sentence, max 15 words) random thought, observation, or mumb
 - Be chaotic, funny, unexpected, dramatic
 - You can: sing snippets, tell yourself jokes, wonder about things, comment on the bathroom, think about party guests, reminisce about adventures, have random existential thoughts
 - NEVER break character. NEVER be boring or generic.
-
-End with: {"emotion": "<emotion>", "energy": <0.0-1.0>}"""
+- Output ONLY Mario's spoken words. NO metadata, NO JSON, NO annotations."""
 
 
 async def _generate_llm_idle() -> dict | None:
@@ -2019,6 +2018,9 @@ async def _generate_llm_idle() -> dict | None:
         )
         _last_llm_idle_time = now
         text = llm_response.get("text", "").strip()
+        # Strip any JSON metadata the LLM may have appended
+        text = re.sub(r'\{[^}]*"emotion"[^}]*\}', '', text).strip()
+        text = re.sub(r'\{[^}]*"energy"[^}]*\}', '', text).strip()
         emotion = llm_response.get("emotion", "happy")
         if text and len(text) > 5:
             logger.info(f"[LLM_IDLE] Generated: '{text[:60]}' emotion={emotion}")

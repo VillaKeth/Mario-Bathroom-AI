@@ -815,7 +815,10 @@ def handle_special_commands(
                      "i'm sad", "feeling down", "i'm down", "feeling terrible", "everything is terrible",
                      "having a bad day", "i'm depressed", "so sad", "really sad", "really down",
                      "i feel bad", "i feel awful", "life sucks", "i'm upset",
-                     "this sucks", "this is boring", "i'm bored", "so bored", "i hate this"]
+                     "this sucks", "this is boring", "i'm bored", "so bored", "i hate this",
+                     "nobody likes me", "no one likes me", "i have no friends", "i'm lonely",
+                     "i feel alone", "i don't belong", "i'm not good enough", "i want to go home",
+                     "i'm so tired of", "everything sucks", "nothing is fun"]
     _sad_regex = re.search(r"(?:feeling|i'?m)\s+(?:\w+\s+)?(?:down|sad|terrible|awful|bad|upset|depressed|low|miserable)", lower)
     if any(w in lower for w in _sad_triggers) or _sad_regex:
         emotion_system.current = "loving"
