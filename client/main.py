@@ -470,7 +470,7 @@ class MarioClient:
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
         elif cmd == "/help":
-            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /games, /help"
+            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /summary, /games, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
@@ -479,6 +479,8 @@ class MarioClient:
             self._fetch_and_display_leaderboard()
         elif cmd == "/stats":
             self._fetch_and_display_stats()
+        elif cmd == "/summary":
+            self._fetch_and_display_summary()
         elif cmd == "/games":
             games = "1:Trivia 2:RPS 3:Truth/Dare 4:Simon 5:20Q 6:Joke 7:Karaoke 8:Dance 9:WYR 0:Fortune | Also: riddles, hangman, hot takes, never have I ever, word chain, story builder, bathroom dare, name that character"
             self.display.set_mario_text(games)
@@ -577,6 +579,31 @@ class MarioClient:
             self.display.set_subtitle("📊 Party stats")
         except Exception as e:
             self.display.set_subtitle(f"❌ Stats fetch failed: {e}")
+
+    def _fetch_and_display_summary(self):
+        """Fetch comprehensive party summary from /admin/party_summary."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            req = urllib.request.urlopen(base_url + "/admin/party_summary", timeout=5)
+            data = json.loads(req.read())
+            if data.get("status") == "ok":
+                summary_text = (
+                    f"Party: {data.get('uptime_hours', 0)}h | "
+                    f"Guests: {data.get('unique_guests', 0)} | "
+                    f"Visits: {data.get('total_visits', 0)} | "
+                    f"Messages: {data.get('total_messages', 0)} | "
+                    f"Games: {data.get('total_games_played', 0)} | "
+                    f"Events: {data.get('events_fired', 0)}/{data.get('events_total', 0)} | "
+                    f"Mood: {data.get('current_emotion', '?')} | "
+                    f"Cache: {data.get('tts_cache_size', 0)}"
+                )
+                self.display.set_mario_text(summary_text)
+                self.display.set_subtitle("Party summary")
+            else:
+                self.display.set_subtitle("Summary not available (server restart needed)")
+        except Exception as e:
+            self.display.set_subtitle("Summary not available (needs server restart)")
 
     def _on_volume_change(self, delta: float):
         """Called when user adjusts volume with +/- keys."""
