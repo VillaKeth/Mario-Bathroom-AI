@@ -150,6 +150,49 @@ class SoundEffects:
             (440, 0.15),
         ], volume=0.1)
 
+        # Correct answer — bright ascending ding
+        self._sounds["correct"] = self._make_multi_tone([
+            (523, 0.08), (659, 0.08), (784, 0.15),
+        ], volume=0.25)
+
+        # Wrong answer — descending buzzer
+        self._sounds["wrong"] = self._make_multi_tone([
+            (330, 0.12), (220, 0.2),
+        ], volume=0.2)
+
+        # Error — flat low tone
+        self._sounds["error"] = self._make_multi_tone([
+            (200, 0.15), (150, 0.25),
+        ], volume=0.2)
+
+        # Level up — ascending fanfare with flourish
+        self._sounds["level_up"] = self._make_multi_tone([
+            (392, 0.06), (494, 0.06), (587, 0.06), (659, 0.06),
+            (784, 0.06), (880, 0.06), (988, 0.06), (1047, 0.2),
+        ], volume=0.25)
+
+        # Challenge — dramatic two-note reveal
+        self._sounds["challenge"] = self._make_multi_tone([
+            (330, 0.15), (440, 0.25),
+        ], volume=0.2)
+
+        # Milestone — celebratory ascending chord
+        self._sounds["milestone"] = self._make_multi_tone([
+            (523, 0.08), (587, 0.08), (659, 0.08), (784, 0.08),
+            (880, 0.08), (1047, 0.25),
+        ], volume=0.25)
+
+        # Gossip — sneaky low notes
+        self._sounds["gossip"] = self._make_multi_tone([
+            (262, 0.1), (294, 0.1), (262, 0.08), (247, 0.15),
+        ], volume=0.15)
+
+        # Birthday — party fanfare
+        self._sounds["birthday"] = self._make_multi_tone([
+            (523, 0.08), (523, 0.08), (587, 0.15), (523, 0.15),
+            (698, 0.15), (659, 0.3),
+        ], volume=0.25)
+
     def play(self, sound_name: str):
         """Play a sound effect by name."""
         if not self._initialized:
