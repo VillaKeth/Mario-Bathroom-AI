@@ -56,12 +56,15 @@
 - [x] Verified idle intervals: 20s, 58s, 29s gaps (was 4-6s before fix)
 - [x] Confirmed TTS uses RVC on ALL paths (Edge TTS fallback still gets voice conversion)
 - [x] Confirmed 33 Edge TTS fallbacks were all during precache startup (not user-facing)
-- [ ] Run extended stress tests (50+ prompts) for edge cases
-- [ ] Test multi-sentence and very long user messages
+- [x] Run extended stress tests (10-msg batch) — verified routing, interruption, and responses
+- [x] Test multi-sentence and very long user messages — LLM handles correctly with streaming
+- [x] Fix simulate_text endpoint missing self-interruption (now cancels old task like real WS input)
+- [x] Verified self-interruption: rapid-fire messages properly cancel stale LLM responses
+- [x] Add "what games" / "list games" / "which games" handler (instant game list instead of LLM)
+- [x] Test idle suppression during memorial events — zero idle messages during ceremony
 - [ ] Improve LLM empathetic response quality (sad messages get greeting responses)
-- [ ] Add more conversational command handlers for common party phrases
-- [ ] Test idle suppression during memorial events
 - [ ] Verify idle messages don't get cut off mid-sentence
+- [ ] Add LLM response staleness detection (discard if game started during inference)
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)

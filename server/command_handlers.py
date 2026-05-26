@@ -1067,6 +1067,14 @@ def handle_special_commands(
     if any(w in lower for w in ["story builder", "build a story", "let's write a story"]):
         return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
+    # "What games" — list available games
+    if _word_count <= 7 and any(w in lower for w in ["what games", "list games", "which games", "games can we play",
+                                 "what can we play", "what can i play", "available games"]):
+        return ("Wahoo! Mario's got a BUNCH of games! 🎮 "
+                "Trivia, Rock Paper Scissors, Truth or Dare, Simon Says, 20 Questions, "
+                "Riddles, Hangman, Word Chain, Hot Takes, Story Builder, Name That Character, "
+                "and Bathroom Dares! Just say the name to start! Or say 'play a game' and I'll pick one!")
+
     # "Play a game" — random game picker (FALLBACK: must be AFTER all specific game triggers)
     if _word_count <= 5 and any(w in lower for w in ["play a game", "play game", "surprise game", "random game",
                                  "pick a game", "any game", "let's play", "wanna play"]):

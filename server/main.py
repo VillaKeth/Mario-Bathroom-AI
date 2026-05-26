@@ -1446,11 +1446,19 @@ async def admin_simulate_text(request_body: dict = {}):
     if not _active_ws:
         return {"status": "error", "message": "No active WebSocket connection"}
     # Dispatch through the same handler as real text_input
+    global _current_response_task
+    # Cancel any in-progress response task (same as real text_input)
+    if _current_response_task and not _current_response_task.done():
+        logger.info(f"[INTERRUPT] Cancelling previous response for simulated input: '{text[:50]}'")
+        _current_response_task.cancel()
+        try:
+            await _active_ws.send_json({"type": "clear_audio"})
+        except Exception:
+            pass
     async with _state_lock:
         state_current["_last_text_input_time"] = 0.0
         state_current["_user_request_active"] = True
         state_current["_last_user_msg_time"] = time.time()
-    global _current_response_task
     _current_response_task = asyncio.create_task(_text_input_task(_active_ws, text))
     return {"status": "ok", "message": f"Simulated: {text[:50]}"}
 
