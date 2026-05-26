@@ -663,7 +663,26 @@ class MarioDisplay:
                 self.subtitle_text = self._keyboard_text.strip()
                 self._keyboard_text = ""
         elif event.key == pygame.K_BACKSPACE:
-            self._keyboard_text = self._keyboard_text[:-1]
+            if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                # Ctrl+Backspace: delete last word
+                stripped = self._keyboard_text.rstrip()
+                last_space = stripped.rfind(" ")
+                self._keyboard_text = stripped[:last_space + 1] if last_space >= 0 else ""
+            else:
+                self._keyboard_text = self._keyboard_text[:-1]
+        elif event.key == pygame.K_a and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+            pass  # Ctrl+A select all — no-op in single-line input
+        elif event.key == pygame.K_v and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+            try:
+                import subprocess
+                clip = subprocess.run(["powershell", "-c", "Get-Clipboard"], capture_output=True, text=True, timeout=2)
+                if clip.returncode == 0 and clip.stdout.strip():
+                    paste = clip.stdout.strip()[:200 - len(self._keyboard_text)]
+                    self._keyboard_text += paste
+            except Exception:
+                pass
+        elif event.key == pygame.K_u and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+            self._keyboard_text = ""  # Ctrl+U: clear line
         else:
             if event.unicode and len(self._keyboard_text) < 200:
                 self._keyboard_text += event.unicode
