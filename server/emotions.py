@@ -118,6 +118,55 @@ EMOTION_DESCRIPTIONS = {
 }
 
 
+def _infer_emotion_from_text(text: str) -> tuple[str, float]:
+    """Keyword-based emotion inference when LLM doesn't include JSON tags.
+    Returns (emotion, energy) tuple."""
+    lower = text.lower()
+    
+    # High-energy positive
+    if any(w in lower for w in ["wahoo", "woohoo", "yahoo", "yippee", "magnifico", "bellissimo"]):
+        return Emotion.EXCITED, 0.9
+    if any(w in lower for w in ["love", "grazie", "thank", "amore", "bellissim"]):
+        return Emotion.LOVING, 0.8
+    if any(w in lower for w in ["ha ha", "haha", "ahaha", "hilarious", "funny", "lmao"]):
+        return Emotion.LAUGHING, 0.85
+    if any(w in lower for w in ["proud", "champion", "hero", "amazing", "incredible"]):
+        return Emotion.PROUD, 0.8
+    
+    # Negative emotions
+    if any(w in lower for w in ["nooo", "oh no", "catastrophe", "terrible", "horrible"]):
+        return Emotion.SAD, 0.7
+    if any(w in lower for w in ["angry", "furious", "mad", "rage"]):
+        return Emotion.ANGRY, 0.8
+    if any(w in lower for w in ["scared", "terrified", "scary", "frightened"]):
+        return Emotion.SCARED, 0.7
+    if any(w in lower for w in ["nervous", "anxious", "worry", "worried"]):
+        return Emotion.NERVOUS, 0.6
+    if any(w in lower for w in ["confused", "what", "huh", "bewildered"]):
+        return Emotion.CONFUSED, 0.5
+    if any(w in lower for w in ["annoyed", "irritated", "ugh", "bothered"]):
+        return Emotion.ANNOYED, 0.6
+    if any(w in lower for w in ["embarrass", "blush", "awkward"]):
+        return Emotion.EMBARRASSED, 0.6
+    
+    # Moderate positive
+    if any(w in lower for w in ["mama mia", "mamma mia", "wow", "whoa", "incredible"]):
+        return Emotion.SURPRISED, 0.7
+    if any(w in lower for w in ["hmm", "wonder", "think", "curious", "interesting"]):
+        return Emotion.CURIOUS, 0.5
+    if any(w in lower for w in ["let's-a go", "let's go", "ready", "bring it"]):
+        return Emotion.DETERMINED, 0.8
+    
+    # Count exclamation marks for energy estimation
+    excl_count = text.count("!")
+    if excl_count >= 3:
+        return Emotion.EXCITED, 0.8
+    if excl_count >= 1:
+        return Emotion.HAPPY, 0.7
+    
+    return Emotion.NEUTRAL, 0.5
+
+
 def extract_emotion_tag(response: str) -> dict:
     """Extract emotion and energy from LLM response JSON, return clean text.
     
@@ -237,6 +286,15 @@ def extract_emotion_tag(response: str) -> dict:
     except (json.JSONDecodeError, AttributeError) as e:
         if DEBUG_EMOTION:
             logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: parse error {e}, using defaults")
+    
+    # Fallback: if still neutral (no JSON found), use keyword-based inference
+    if result["emotion"] == "neutral" and result["energy"] == 0.5:
+        inferred_emotion, inferred_energy = _infer_emotion_from_text(clean_text)
+        if inferred_emotion != Emotion.NEUTRAL:
+            result["emotion"] = inferred_emotion
+            result["energy"] = inferred_energy
+            if DEBUG_EMOTION:
+                logger.info(f"[DEBUG_EMOTION] extract_emotion_tag: keyword inferred emotion='{inferred_emotion}', energy={inferred_energy}")
     
     return result
 
