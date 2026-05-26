@@ -873,6 +873,31 @@ def handle_special_commands(
             f"Peace out, {name}! May the stars guide your way! WAHOO!",
         ])
 
+    # Drunk / tipsy / wasted — fun but caring
+    if any(w in lower for w in ["im drunk", "i'm drunk", "so drunk", "wasted", "hammered",
+                                 "i'm tipsy", "im tipsy", "too many drinks", "i'm faded",
+                                 "im faded", "im wasted", "i'm wasted"]):
+        emotion_system.current = "mischievous"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Ha ha! {name} found the power-up drinks! Mario says drink some water too! Hydration is-a the real power-up!",
+            f"Wahoo! {name} is in Star Mode! But remember, even invincible Mario needs water between stars!",
+            f"You're not drunk, {name}, you're just... under the effects of a crazy mushroom! Drink water!",
+            f"Mama mia, {name}! You're wobbling more than Luigi in a ghost house! Water is your friend!",
+            f"{name}, you're partying like it's World 8! Have some water, champion. The bathroom sink is right there!",
+        ])
+
+    # Bored — suggest activities
+    if _word_count <= 5 and any(w in lower for w in ["im bored", "i'm bored", "this is boring",
+                                                       "so bored", "nothing to do", "entertain me"]):
+        emotion_system.current = "excited"
+        return random.choice([
+            "BORED?! In MY bathroom?! Impossible! Let's play a game! Say 'trivia' or 'rock paper scissors' or 'would you rather'!",
+            "Bored? BORED?! Mario will NOT allow boredom! Ask me for a joke, a dare, a roast, or let's play a game! WAHOO!",
+            "Nobody leaves Mario's bathroom bored! Want a joke? A song? A fortune? A game? Pick your power-up!",
+            "Bored is just 'board' with an E, and boards are for surfing! Let's play something! Trivia? Truth or dare? Riddles?",
+        ])
+
     # Shut up / be quiet — playful response instead of slow LLM
     if _word_count <= 4 and any(w in lower for w in ["shut up", "be quiet", "shush", "shh", "zip it", "silence",
                                                       "stop talking", "quiet down", "hush"]):

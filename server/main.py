@@ -1702,6 +1702,43 @@ async def admin_list_faces():
         return {"status": "error", "message": str(e)}
 
 
+@app.get("/admin/party_summary")
+async def admin_party_summary():
+    """Comprehensive party summary for the host."""
+    stats = party_stats.get_stats()
+    _uptime = time.time() - _start_time
+    try:
+        active = guest_profiles.get_active_guests()
+    except Exception:
+        active = []
+    
+    _events_fired = 0
+    _events_total = 0
+    try:
+        if shot_event_manager:
+            for ev in shot_event_manager.get_all_events():
+                _events_total += 1
+                if ev.get("fired"):
+                    _events_fired += 1
+    except Exception:
+        pass
+
+    return {
+        "status": "ok",
+        "uptime_hours": round(_uptime / 3600, 1),
+        "total_visits": stats.get("total_visits", 0),
+        "unique_guests": stats.get("unique_names", 0),
+        "active_guests": active,
+        "total_messages": stats.get("total_messages", 0),
+        "total_games_played": stats.get("total_games", 0),
+        "events_fired": _events_fired,
+        "events_total": _events_total,
+        "current_emotion": emotion_system.current,
+        "tts_cache_size": tts.get_cache_stats().get("count", 0) if hasattr(tts, "get_cache_stats") else 0,
+        "idle_errors": stats.get("idle_errors", 0),
+    }
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")
