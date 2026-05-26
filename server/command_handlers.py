@@ -565,7 +565,11 @@ def handle_special_commands(
     if _word_count <= 5 and any(w in lower for w in ["that was fun", "that was awesome", "that was great",
                                                        "that was hilarious", "that was amazing", "so funny",
                                                        "you're funny", "you're hilarious", "you're awesome",
-                                                       "you're the best", "i love you mario", "you're cool"]):
+                                                       "you're the best", "i love you mario", "you're cool",
+                                                       "this is fun", "this is awesome", "this is great",
+                                                       "best party ever", "i love this", "so cool",
+                                                       "this is amazing", "youre the best", "youre funny",
+                                                       "youre awesome", "youre cool"]):
         emotion_system.current = "proud"
         name = state.get("speaker_name") or "friend"
         return random.choice([
@@ -573,6 +577,7 @@ def handle_special_commands(
             f"Aww shucks, {name}! You're making Mario blush under his mustache!",
             f"Ha! Mario knows he's amazing — but hearing it from YOU makes it even better, {name}!",
             f"You think so?! WAHOO! That means a lot to Mario! You're pretty awesome yourself, {name}!",
+            f"NOW we're talking! {name} gets it! THIS is what a party is all about! WAHOO!",
         ])
 
     # "What's your name" — Mario identity handler
@@ -693,10 +698,28 @@ def handle_special_commands(
             "I'm a plumber, a hero, and tonight I'm-a the DJ of this bathroom! Wahoo!"
         )
 
+    # Meta questions — "are you real", "are you AI", "are you a robot"
+    if _word_count <= 6 and any(w in lower for w in ["are you real", "are you ai", "are you a robot",
+                                                      "are you a bot", "are you human", "are you alive",
+                                                      "are you a computer", "you're not real",
+                                                      "you're a robot", "you're ai"]):
+        emotion_system.current = "mischievous"
+        return random.choice([
+            "Real?! I'm-a MORE than real! I'm SUPER real! I've been saving princesses since 1985!",
+            "AI?! I'm Mario! I've got a mustache, overalls, and a passion for plumbing! Does THAT sound like a robot to you?!",
+            "Robot?! Robots don't-a have this magnificent mustache! I'm 100% Italian plumber, baby! WAHOO!",
+            "I'm as real as a Super Star, friend! Now are WE gonna have fun or are you gonna keep questioning my existence?!",
+            "Listen, I jumped out of an arcade machine in 1981 and I've been real ever since! Now let's-a PARTY!",
+            "Me? A bot? Ha! Can a bot do THIS?! *does a Mario jump* WAHOO! See?! Totally real!",
+        ])
+
     # Someone is throwing up / feeling sick — be genuinely caring but still Mario
     _sick_triggers = ["throwing up", "throw up", "threw up", "vomit", "puke", "puking",
                       "nauseous", "nausea", "gonna be sick", "feeling sick", "about to puke",
-                      "barfing", "barf", "hurling", "queasy"]
+                      "barfing", "barf", "hurling", "queasy", "dont feel so good",
+                      "don't feel so good", "dont feel good", "don't feel good",
+                      "feel like throwing up", "stomach hurts", "gonna throw up",
+                      "about to throw up", "feel like puking"]
     # Friend reported sick ("my friend is throwing up", "my girlfriend is puking", etc.)
     _friend_sick_patterns = ["friend is", "buddy is", "girlfriend is", "boyfriend is",
                              "friend's", "buddy's", "homie is", "girl is", "guy is",
