@@ -75,6 +75,20 @@ EASTER_EGGS = {
     "princess daisy": "DAISY! Luigi's special someone! She's-a tough and loud! HI I'M DAISY! Ha ha!",
     "bob-omb": "BOB-OMB! My explosive little friend! Three seconds and BOOM! Best alarm clock ever!",
     "chain chomp": "CHAIN CHOMP! That angry ball on a chain! It tried to eat me SO many times! Bark bark bark!",
+    # Pop culture crossovers — party favorites
+    "fortnite": "FORTNITE?! I'd be the BEST Battle Royale player! I already know how to jump! And I've got my own dance moves! WAHOO!",
+    "minecraft": "MINECRAFT! Block world! I LOVE blocks! Question mark blocks, brick blocks... Minecraft Steve and I would be best friends!",
+    "zelda": "ZELDA! My Nintendo buddy Link! We don't talk much but we nod at each other at company picnics! Great guy!",
+    "sonic": "SONIC?! That speedy hedgehog! We raced at the Olympics and let me tell you... it was CLOSE! Don't ask who won!",
+    "pokemon": "POKEMON! Gotta catch em all! I tried to catch a Goomba once with a Poke Ball but it just got angry!",
+    "among us": "AMONG US?! Red is NOT sus! I'm-a always red and I'm NEVER the imposter! Well... almost never!",
+    "rick roll": "Never gonna give you up! Never gonna let you down! WAHOO! You just got Mario-Rolled!",
+    "deez nuts": "DEEZ NUTS?! Ha! Got me! But you know what's BETTER than deez nuts? DEEZ COINS! Cha-ching!",
+    "rizz": "RIZZ?! Mario has MAXIMUM rizz! The mustache alone is a ten out of ten! Princess Peach agrees!",
+    "skibidi": "Skibidi toilet?! In MY bathroom?! This is a PREMIUM bathroom experience, not some meme zone! ...Okay it's a little funny!",
+    "ohio": "ONLY IN OHIO! But this bathroom? This is PEAK Florida behavior! And I LOVE it!",
+    "sus": "SUS?! I'm not sus! I was in the pipes doing plumber tasks! I have VISUAL confirmation! Vote someone else!",
+    "sigma": "SIGMA?! Mario is the ULTIMATE sigma! I saved the princess, didn't ask for anything, and went right back to plumbing! That's SIGMA!",
 }
 
 SECRETS = [
@@ -474,7 +488,9 @@ def handle_special_commands(
                           "coming", "leaving", "back", "sorry", "sure", "happy", "sad",
                           "tired", "hungry", "drunk", "bored", "sick", "nervous",
                           "excited", "scared", "confused", "ready", "late", "lost",
-                          "new", "old", "from", "still", "already", "pretty", "super"}
+                          "new", "old", "from", "still", "already", "pretty", "super",
+                          "wasted", "hammered", "tipsy", "faded", "high", "stoned",
+                          "dying", "dead", "alive", "home", "out", "up", "down"}
             if raw_name.lower() not in stop_words:
                 name = raw_name[:50].capitalize()
                 # Register this voice with the name
@@ -1009,6 +1025,20 @@ def handle_special_commands(
     if any(w in lower for w in ["i have a confession", "confess", "i need to tell you something", "can i tell you a secret"]):
         emotion_system.current = "surprised"
         return random.choice(CONFESSIONS)
+
+    # Shock/surprise reaction — common when guests first see Mario
+    if _word_count <= 5 and any(w in lower for w in ["what the fuck", "what the hell", "wtf", "holy shit",
+                                                       "oh my god", "holy crap", "no way", "no fucking way",
+                                                       "are you serious", "what is this", "what the heck",
+                                                       "what is happening", "am i dreaming"]):
+        emotion_system.current = "excited"
+        return random.choice([
+            "WAHOO! That's the reaction I LOVE! Yes, it's-a me, MARIO! In a BATHROOM! At a PARTY! Life is beautiful!",
+            "Ha ha ha! Your FACE right now! Yes, I'm real! Well, real enough! Welcome to the best bathroom in the world!",
+            "That's what EVERYONE says! Then they stay for twenty minutes talking to me! You're gonna love it here!",
+            "Mama mia, your reaction is-a priceless! I should charge admission! Welcome, welcome! WAHOO!",
+            "Yes this is happening! Mario is in the bathroom and he's FABULOUS! Any questions? I've got answers AND games!",
+        ])
 
     # Memory quiz
     if any(w in lower for w in ["quiz me", "test me", "memory quiz", "what did i tell you"]):
