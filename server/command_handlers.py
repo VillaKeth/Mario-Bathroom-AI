@@ -460,7 +460,12 @@ def handle_special_commands(
                           "also", "here", "there", "like", "kinda", "my", "your",
                           "me", "that", "this", "what", "been", "about", "gonna",
                           "great", "fine", "good", "bad", "nice", "cool", "true",
-                          "okay", "time", "all", "over", "done", "going", "getting"}
+                          "okay", "time", "all", "over", "done", "going", "getting",
+                          "feeling", "doing", "trying", "looking", "thinking", "having",
+                          "coming", "leaving", "back", "sorry", "sure", "happy", "sad",
+                          "tired", "hungry", "drunk", "bored", "sick", "nervous",
+                          "excited", "scared", "confused", "ready", "late", "lost",
+                          "new", "old", "from", "still", "already", "pretty", "super"}
             if raw_name.lower() not in stop_words:
                 name = raw_name[:50].capitalize()
                 # Register this voice with the name

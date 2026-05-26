@@ -30,15 +30,16 @@
 - [x] Fix name detection false positive: "it is pasta" no longer triggers name learning (≤8 word guard)
 - [x] Fix hangman trigger: "Tell me about hangman" now goes to LLM (≤3 word guard)
 - [x] Add word count guards to ALL remaining game triggers (simon≤4, 20Q≤4, riddle≤4, etc.)
+- [x] Fix idle message race: set _user_request_active immediately in text_input handler
+- [x] Add keyword-based emotion inference fallback for 8B model (no more all-neutral)
+- [x] Test full game playthroughs: trivia, RPS, riddle, hangman, word chain, simon says all complete
+- [x] Test sentiment mood meter: emotions now vary (curious, loving, confused, etc.)
 - [ ] Fix greeting collision: first prompt after connect sometimes gets greeting response
-- [ ] Fix idle message race: idle messages can leak through during LLM processing
+- [ ] Fix remaining idle message leakage (websocket buffer timing)
 
 ## Current Focus
 - [ ] Run extended stress tests (50+ prompts) for edge cases
-- [ ] Fix idle message timing race with _user_request_active flag
-- [ ] Test sentiment mood meter with varied conversation
 - [ ] Verify idle chatter variety with LLM enabled
-- [ ] Test full game playthroughs (not just start/quit)
 - [ ] Test multi-sentence and very long user messages
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅

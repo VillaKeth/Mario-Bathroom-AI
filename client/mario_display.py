@@ -738,6 +738,7 @@ class MarioDisplay:
         self._emotion = emotion
         self._emotion_timer = 0
         if emotion != prev:
+            logger.info(f"[EMOTION_CHANGE] {prev} → {emotion}")
             self._particles = []  # Clear old particles on emotion change
             self._spawn_emotion_particles(emotion)
             self._trigger_emotion_flash(emotion)

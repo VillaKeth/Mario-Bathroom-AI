@@ -1437,6 +1437,23 @@ async def admin_announce(request_body: dict = {}):
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
+@app.post("/admin/simulate_text")
+async def admin_simulate_text(request_body: dict = {}):
+    """Admin: Simulate text input as if a user typed it (uses active WS connection)."""
+    text = request_body.get("text", "")
+    if not text:
+        return {"status": "error", "message": "Text required"}
+    if not _active_ws:
+        return {"status": "error", "message": "No active WebSocket connection"}
+    # Dispatch through the same handler as real text_input
+    async with _state_lock:
+        state_current["_last_text_input_time"] = 0.0
+        state_current["_user_request_active"] = True
+    global _current_response_task
+    _current_response_task = asyncio.create_task(_text_input_task(_active_ws, text))
+    return {"status": "ok", "message": f"Simulated: {text[:50]}"}
+
+
 @app.post("/admin/force_stop_game")
 async def force_stop_game(request_body: dict = {}):
     """Force-stop any active game (emergency recovery for stuck games)."""
@@ -1684,6 +1701,7 @@ async def websocket_endpoint(ws: WebSocket):
     state_current["current_visit_id"] = None
     state_current["_user_request_active"] = False
     state_current["_greeting_in_progress"] = False
+    state_current["_response_completed_time"] = 0.0  # Post-response cooldown for idle suppression
 
     # Send initial greeting in background (don't block the receive loop)
     async def _send_startup_greeting():
@@ -2001,6 +2019,15 @@ async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kw
         if state_current.get("memorial_active"):
             logger.debug("[IDLE] Suppressed idle send — memorial active")
             return False
+        # Final safety: suppress if user responded/typed recently
+        _resp_t = state_current.get("_response_completed_time", 0.0)
+        _msg_t = state_current.get("_last_user_msg_time", 0.0)
+        if _resp_t and time.time() - _resp_t < 5.0:
+            logger.debug("[IDLE] Suppressed idle send — post-response cooldown")
+            return False
+        if _msg_t and time.time() - _msg_t < 3.0:
+            logger.debug("[IDLE] Suppressed idle send — post-input cooldown")
+            return False
     await send_response(ws, text, audio, **kwargs)
     return True
 
@@ -2012,7 +2039,15 @@ async def _idle_loop(ws: WebSocket):
     _idle_recent_texts = []  # Last 10 idle texts for dedup
     loop = asyncio.get_event_loop()
     while True:
-        await asyncio.sleep(random.uniform(3, 8))
+        # Conversation-aware spacing: longer delays during active conversation
+        async with _state_lock:
+            _last_msg = state_current.get("_last_user_msg_time", 0.0)
+        _since_last_msg = time.time() - _last_msg if _last_msg else 999
+        if _since_last_msg < 60:
+            # Active conversation — slow down idle to 15-25s
+            await asyncio.sleep(random.uniform(15, 25))
+        else:
+            await asyncio.sleep(random.uniform(3, 8))
 
         # Auto-recover from error spiral: reset after 5 minutes of silence
         if _idle_error_count > 0 and (time.time() - _idle_last_error_time) > 300:
@@ -2048,7 +2083,17 @@ async def _idle_loop(ws: WebSocket):
         async with _state_lock:
             user_active = state_current.get("_user_request_active")
             memorial_running = state_current.get("memorial_active")
+            _resp_done_time = state_current.get("_response_completed_time", 0.0)
+            _last_msg_time = state_current.get("_last_user_msg_time", 0.0)
         if user_active:
+            continue
+        # Post-response cooldown: suppress idle for 8s after user gets a response
+        _since_response = time.time() - _resp_done_time if _resp_done_time else 999
+        if _since_response < 8.0:
+            continue
+        # Post-input cooldown: suppress idle for 5s after user sends any message
+        _since_input = time.time() - _last_msg_time if _last_msg_time else 999
+        if _since_input < 5.0:
             continue
         # Suppress ALL idle behavior during memorial — don't queue behind it
         if memorial_running:
@@ -4709,6 +4754,7 @@ async def _text_input_task(ws: WebSocket, text: str):
         await asyncio.sleep(1.0)
         async with _state_lock:
             state_current["_user_request_active"] = False
+            state_current["_response_completed_time"] = time.time()  # Cooldown start
 
 
 async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
