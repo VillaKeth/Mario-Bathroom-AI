@@ -614,7 +614,7 @@ class MarioDisplay:
                     elif not self.keyboard_mode and event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
                         if self.on_volume_change:
                             self.on_volume_change(-0.1)
-                    elif not self.keyboard_mode and event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8):
+                    elif not self.keyboard_mode and event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_0):
                         game_prompts = {
                             pygame.K_1: "Let's play Trivia!",
                             pygame.K_2: "Let's play Rock Paper Scissors!",
@@ -624,6 +624,8 @@ class MarioDisplay:
                             pygame.K_6: "Tell me a joke!",
                             pygame.K_7: "Sing me a song!",
                             pygame.K_8: "Let's dance!",
+                            pygame.K_9: "Would you rather!",
+                            pygame.K_0: "Give me a fortune!",
                         }
                         prompt = game_prompts[event.key]
                         if self.on_keyboard_submit:
@@ -1572,7 +1574,7 @@ class MarioDisplay:
             self._screen.blit(mode_surf, (22, WINDOW_HEIGHT - 18))
 
         # Compact hint (right side, dimmed)
-        hint = "TAB:type | F5:party | F11:fullscreen"
+        hint = "TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full"
         hint_surf = self._font_small.render(hint, True, (70, 70, 90))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 8, WINDOW_HEIGHT - 18))
 

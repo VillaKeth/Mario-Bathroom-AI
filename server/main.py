@@ -373,6 +373,36 @@ _active_ws: "WebSocket | None" = None
 # Track the current response generation task for cancellation on new input
 _current_response_task: "asyncio.Task | None" = None
 
+# ── Guest rotation tracker ──
+# Tracks last interaction time per guest for rotation-aware prompting.
+# Key: guest_name (str), Value: timestamp (float)
+_guest_last_spoke: dict[str, float] = {}
+_guest_exchange_counts: dict[str, int] = {}
+
+def _record_guest_interaction(name: str):
+    """Record that a guest just spoke (for rotation tracking)."""
+    if name and name != "Unknown visitor":
+        _guest_last_spoke[name] = time.time()
+        _guest_exchange_counts[name] = _guest_exchange_counts.get(name, 0) + 1
+
+def get_quiet_guests(threshold_seconds: float = 300.0) -> list[str]:
+    """Return guests who haven't spoken in threshold_seconds, sorted oldest first."""
+    now = time.time()
+    quiet = []
+    for name, last_time in _guest_last_spoke.items():
+        if now - last_time > threshold_seconds:
+            quiet.append((name, now - last_time))
+    quiet.sort(key=lambda x: x[1], reverse=True)
+    return [name for name, _ in quiet]
+
+def get_guest_rotation_context() -> str:
+    """Build a rotation context string for LLM prompting."""
+    quiet = get_quiet_guests(300.0)
+    if not quiet:
+        return ""
+    names = ", ".join(quiet[:3])
+    return f"[ROTATION NOTE: {names} haven't chatted in a while — maybe mention them if natural!]"
+
 # Lock to prevent concurrent WebSocket sends from idle loop, user responses,
 # admin endpoints, and greeting flow interleaving.
 _ws_send_lock = asyncio.Lock()
@@ -1395,6 +1425,8 @@ async def leaderboard_endpoint():
         "ticker_stats": ticker_stats,
         "current_emotion": emotion_system.current,
         "current_time": datetime.now().strftime("%I:%M %p"),
+        "quiet_guests": get_quiet_guests(300.0),
+        "guest_interactions": {name: count for name, count in _guest_exchange_counts.items()},
     }
 
 
@@ -2774,6 +2806,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if personality_mod:
             ctx.append({"role": "system", "content": personality_mod})
         ctx.append({"role": "system", "content": party_stats.get_stats_for_prompt()})
+
+        # Guest rotation context — mention guests who haven't spoken recently
+        _rotation_ctx = get_guest_rotation_context()
+        if _rotation_ctx:
+            ctx.append({"role": "system", "content": _rotation_ctx})
 
         # Birthday VIP — inject special context when the birthday person speaks
         if birthday_vip.is_configured() and birthday_vip.is_birthday_person(
@@ -4925,6 +4962,11 @@ async def _handle_text_input(ws: WebSocket, text: str):
         state_current["_user_request_active"] = True
 
     logger.info(f"Text input: '{text}'")
+
+    # Track guest rotation
+    guest_name = state_current.get("speaker_name") or state_current.get("detected_guest")
+    if guest_name:
+        _record_guest_interaction(guest_name)
 
     try:
         await ws.send_json({"type": "state", "thinking": True, "subtitle": text})

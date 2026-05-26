@@ -79,7 +79,7 @@
 - [x] Verified 30/30 comprehensive handler routing test
 - [ ] Add party soundtrack/ambient noise integration
 - [ ] Add voice command for volume control
-- [ ] Implement guest rotation tracking (who hasn't spoken recently)
+- [x] Implement guest rotation tracking (who hasn't spoken recently)
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)
@@ -276,7 +276,7 @@
 - [x] F11 fullscreen fix (SCALED + RESIZABLE + error handling)
 - [x] Jacob VIP context injection into LLM prompts
 - [ ] Integration test: trigger full memorial flow end-to-end
-- [] Add pygame quick-trigger key coverage
+- [x] Add pygame quick-trigger key coverage (keys 1-8 original + 9=WYR, 0=fortune)
 - [x] Verify admin slash command routing in client (added /leaderboard command)
 - [x] Check F4 health overlay rendering in pygame client (verified working)
 - [ ] Create release v3.13
