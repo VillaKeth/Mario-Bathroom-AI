@@ -140,6 +140,15 @@ TWENTY_Q_THINGS = [
     {"answer": "toad", "category": "character", "hints": ["Has a red and white spotted cap", "Says 'It's-a me!' in a high voice", "Often a helper character"]},
     {"answer": "warp zone", "category": "place", "hints": ["Lets you skip levels", "Hidden in certain spots", "Saves you time"]},
     {"answer": "super mario", "category": "character", "hints": ["The hero of the story", "Wears red", "Says 'Wahoo!' a lot"]},
+    {"answer": "banana peel", "category": "object", "hints": ["Classic comedy prop", "You slip on this", "Comes off a yellow fruit"]},
+    {"answer": "red shell", "category": "object", "hints": ["It chases its target", "You throw it in racing", "Koopas wear these"]},
+    {"answer": "rainbow road", "category": "place", "hints": ["No guardrails here", "It's colorful and in space", "The hardest racing track"]},
+    {"answer": "thwomp", "category": "character", "hints": ["It's big and heavy", "Falls down to crush you", "Has an angry stone face"]},
+    {"answer": "piranha plant", "category": "character", "hints": ["Lives inside pipes", "Has sharp teeth", "It's a dangerous flower"]},
+    {"answer": "plunger", "category": "object", "hints": ["A plumber uses this", "It creates suction", "You use it in the bathroom"]},
+    {"answer": "bob-omb", "category": "character", "hints": ["Has a fuse on top", "Goes BOOM", "Walks around before exploding"]},
+    {"answer": "castle", "category": "place", "hints": ["A princess lives here", "It has towers and walls", "The end of every world"]},
+    {"answer": "kart", "category": "object", "hints": ["You race in this", "It goes vroom vroom", "Mario drives one"]},
 ]
 
 RIDDLES = [
@@ -163,13 +172,13 @@ RIDDLES = [
     {"q": "What has a spine but no bones?", "a": "book", "hints": ["I have pages", "You read me", "I can teach you things"]},
     {"q": "I am always hungry, the more you feed me the bigger I grow, the more you starve me the smaller I become. What am I?", "a": "fire", "hints": ["I give warmth", "I consume fuel", "I produce light"]},
     {"q": "What invention allows you to look right through walls?", "a": "window", "hints": ["I'm made of glass", "You can open me", "I let in light"]},
-    {"q": "I have cities but no houses, forests but no trees, and water but no fish. What am I?", "a": "map", "hints": ["You can fold me up", "I help you find your way", "I show the whole world"]},
-    {"q": "I speak without a mouth and hear without ears. I have no body, but I come alive with the wind. What am I?", "a": "echo", "hints": ["You hear me in canyons", "I repeat what you say", "I'm just a sound"]},
-    {"q": "The more you take, the more you leave behind. What am I?", "a": "footsteps", "hints": ["You make me when you walk", "I can be found in sand", "I show where you've been"]},
+    {"q": "What has ears but cannot hear?", "a": "corn", "hints": ["It grows in fields", "You eat it on the cob", "It's yellow and buttery"]},
+    {"q": "I have hands but cannot clap. What am I?", "a": "clock", "hints": ["I show you the time", "I tick and tock", "I hang on the wall"]},
+    {"q": "What begins with T, ends with T, and has T in it?", "a": "teapot", "hints": ["You brew something in me", "I have a spout and handle", "I whistle when I'm ready"]},
     {"q": "I can be cracked, I can be made, I can be told, I can be played. What am I?", "a": "joke", "hints": ["I make people laugh", "Comedians tell me", "I have a punchline"]},
     {"q": "What has a ring but no finger?", "a": "telephone", "hints": ["You answer me", "I help you talk to people", "I make a ringing sound"]},
     {"q": "I go all around the world but never leave the corner. What am I?", "a": "stamp", "hints": ["I'm small and sticky", "I go on envelopes", "You buy me at a post office"]},
-    {"q": "What gets wetter the more it dries?", "a": "towel", "hints": ["You use me after a shower", "I hang in the bathroom", "I absorb water"]},
+    {"q": "What has a thumb and four fingers but is not alive?", "a": "glove", "hints": ["You wear me", "I keep your hands warm", "I come in pairs"]},
     {"q": "What can you hold in your right hand but never in your left?", "a": "left hand", "hints": ["Everyone has one", "It's attached to you", "Think about your own body"]},
     {"q": "I have legs but never walk. What am I?", "a": "table", "hints": ["You eat on me", "I'm a piece of furniture", "I usually have four of them"]},
     {"q": "What building has the most stories?", "a": "library", "hints": ["It's full of books", "You can borrow from here", "Knowledge lives here"]},
@@ -202,6 +211,11 @@ KARAOKE_SONGS = [
     {"title": "Underwater Theme Remix", "lyrics": "Blooper swimming left, Cheep Cheep swimming right! Deep beneath the ocean, everything's delight! Bubbles floating upward, coins are everywhere!"},
     {"title": "Bowser's Castle Metal", "lyrics": "FIRE and LAVA, bridges falling down! I'm the KING of Koopas, wearing the crown! Mario thinks he's tough? HA! I'll show him who's the boss!"},
     {"title": "Party All Night Long", "lyrics": "Ten turns, twenty turns, we're still going strong! Rolling dice and stealing stars, nothing can go wrong! Wait, who stole MY star?! This friendship might not last!"},
+    {"title": "Wario's Gold Rush", "lyrics": "Gold coins, gold rings, give me ALL the gold! I'm Wario number one, the greatest ever told! Garlic breath and purple pants, I'm the REAL superstar!"},
+    {"title": "Shy Guy's Secret", "lyrics": "Behind this mask is a mystery you'll never see! Who am I really? That's between my mask and me! Dancing in the shadows, grooving to the beat!"},
+    {"title": "Pipe Dream Lullaby", "lyrics": "Warp pipe take me home, to a world I call my own! Green and gleaming, always streaming, never quite alone! Down the pipe I drift and dream tonight!"},
+    {"title": "DK Rap Remix", "lyrics": "He's the leader of the bunch! You know him well! He's finally back — to kick some tail! HUH! DK! Donkey Kong!"},
+    {"title": "Rosalina's Observatory", "lyrics": "Among the stars I watch and wait, guiding Lumas to their fate! The cosmos spin, the galaxies glow, there's so much the universe wants to show!"},
 ]
 
 RAPID_FIRE_QUESTIONS = [
@@ -286,6 +300,12 @@ DARES = [
     "Sing Happy Birthday but in Mario's voice! It's-a birthday time!",
     "Walk out of this bathroom doing the Mario jump — fist in the air!",
     "Tell someone at the party your name is Luigi and you're lost!",
+    "Do a dramatic slow-motion walk out of the bathroom like an action hero!",
+    "Tell the next person you see that you just defeated Bowser and you need a hug!",
+    "Pretend you're answering an important phone call from Princess Peach!",
+    "Hold an imaginary mushroom above your head and yell 'POWER UP!'",
+    "Do your best Yoshi tongue sound effect — MLEM MLEM!",
+    "Challenge the next person you see to a thumb war — for the Mushroom Kingdom!",
 ]
 
 WOULD_YOU_RATHER = [
@@ -309,6 +329,12 @@ WOULD_YOU_RATHER = [
     {"a": "Have Lakitu follow you with a camera", "b": "Have a Boo follow you invisibly"},
     {"a": "Live in World 1-1 forever", "b": "Explore a new world every day"},
     {"a": "Be the best at Mario Kart", "b": "Be the best at Super Smash Bros"},
+    {"a": "Have a pet Goomba", "b": "Have a pet Cheep Cheep"},
+    {"a": "Only travel by warp pipe", "b": "Only travel by cannon launch"},
+    {"a": "Have Bowser's fire breath", "b": "Have Yoshi's flutter jump"},
+    {"a": "Be stuck in an ice level forever", "b": "Be stuck in a desert level forever"},
+    {"a": "Have a 1-UP mushroom but taste terrible", "b": "Have a poison mushroom but taste amazing"},
+    {"a": "Be the referee in Mario Party", "b": "Be the announcer in Mario Kart"},
 ]
 
 RPS_WIN_REACTIONS = [
@@ -507,6 +533,7 @@ NAME_THAT_CHARACTER = [
     {"desc": "A chain ball monster that barks and lunges at you! Tied to a stake but WANTS to be free!", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
     {"desc": "She's the mayor of New Donk City and she can SING! Jump Up, Super Star!", "a": ["pauline"], "accept": ["pauline"]},
     {"desc": "A little star that pops out of blocks and makes you INVINCIBLE for a few seconds!", "a": ["super star"], "accept": ["star", "super star", "starman", "invincibility star"]},
+    {"desc": "A blue shell that flies to first place and EXPLODES! The most hated item in racing!", "a": ["blue shell"], "accept": ["blue shell", "spiny shell"]},
 ]
 
 BATHROOM_DARES = [
@@ -530,6 +557,11 @@ BATHROOM_DARES = [
     "I DARE you to pretend you just won a race and do a victory celebration!",
     "I DARE you to try touching your nose with your tongue! Can you do it?!",
     "I DARE you to tell the mirror a joke! Make YOURSELF laugh!",
+    "I DARE you to hold an invisible trophy above your head and thank the Mushroom Kingdom Academy!",
+    "I DARE you to do the wave — by yourself! Both arms, full commitment!",
+    "I DARE you to whisper 'wahoo' five times getting louder each time until you're YELLING!",
+    "I DARE you to moonwalk for three steps! Smooth like a Boo in reverse!",
+    "I DARE you to give yourself finger guns in the mirror and say 'Mama mia, looking good!'",
 ]
 
 STORY_STARTERS = [
@@ -585,6 +617,7 @@ WYR_EXTENDED = [
     {"a": "Have a Boo follow you around that only YOU can see", "b": "Have a Goomba that trips you once a day at random"},
     {"a": "Be famous in the Mushroom Kingdom but unknown on Earth", "b": "Be famous on Earth but wanted in the Mushroom Kingdom"},
     {"a": "Speak fluent Pianta for life", "b": "Understand what Bob-ombs say before they explode"},
+    {"a": "Always have the blue shell targeting you", "b": "Always start every race in last place"},
 ]
 
 NHIE_PROMPTS = [
