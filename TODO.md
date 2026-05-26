@@ -416,7 +416,7 @@
 - [ ] Manual test: verify Ollama health tracking logs after 3 failed pings
 - [ ] Manual test: verify emergency silence WAV plays when all TTS engines fail
 - [ ] Manual test: F11 fullscreen toggle on 4K display
-- [ ] Manual test: F3 chat history sidebar with long conversations
+- [x] Manual test: F3 chat history sidebar with long conversations (verified with timestamps)
 - [ ] Manual test: F12 panic mode kills all audio
 - [x] Manual test: Lisa Webb memorial triggers at 45 minutes
 - [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
@@ -459,7 +459,7 @@
 - [x] Expanded SFX map — 7 new events (correct, wrong, level_up, victory, challenge, milestone, gossip)
 - [x] Exit quick feedback — 25% chance Mario asks for bathroom rating in farewell
 - [ ] Manual test: verify game suggestions trigger after 3+ exchanges with different moods
-- [ ] Manual test: verify new SFX events fire correctly (correct, wrong, level_up, victory, challenge, milestone, gossip)
+- [x] Manual test: verify new SFX events fire correctly (correct, wrong, level_up, victory, challenge, milestone, gossip) — all 20 sounds generated
 - [ ] Manual test: verify exit rating prompt appears ~25% of the time for 3+ exchange visits
 
 ## Tests
