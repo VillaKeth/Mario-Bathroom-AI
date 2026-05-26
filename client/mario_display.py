@@ -2963,16 +2963,25 @@ class MarioDisplay:
             f"TTS: {d.get('tts_engine', '?')}",
             f"CACHE: {d.get('tts_cache_size', '?')}",
             f"TIER: {d.get('performance_tier', '?')}",
+            f"MEMORY: {d.get('memory_mb', '?')}MB",
+            f"IDLE ERR: {d.get('idle_errors', '?')}",
+            f"GAMES: {d.get('active_games', '?')}",
         ]
-        panel_w, line_h = 240, 22
+        panel_w, line_h = 260, 22
         panel_h = len(lines) * line_h + 20
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((0, 0, 0, 180))
         title_font = self._font_small or pygame.font.SysFont("arial", 14)
-        title_surf = title_font.render("SERVER HEALTH [F4]", True, (100, 200, 100))
+        status_color = (100, 200, 100) if d.get('status') == 'ok' else (255, 100, 100)
+        title_surf = title_font.render("SERVER HEALTH [F4]", True, status_color)
         panel.blit(title_surf, (10, 5))
         for i, line in enumerate(lines):
-            surf = title_font.render(line, True, (200, 200, 200))
+            color = (200, 200, 200)
+            if line.startswith("IDLE ERR:") and d.get('idle_errors', 0) > 0:
+                color = (255, 180, 80)
+            elif line.startswith("STATUS:") and d.get('status') != 'ok':
+                color = (255, 100, 100)
+            surf = title_font.render(line, True, color)
             panel.blit(surf, (10, 25 + i * line_h))
         x = WINDOW_WIDTH - panel_w - 10
         y = getattr(self, '_banner_bottom', 48) + 10

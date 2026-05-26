@@ -468,7 +468,7 @@
 ## Critical / Major
 - [ ] CRITICAL: Resolve VRAM budget — 70B-Q5_K_M (22GB) + RVC + Whisper + Fish Speech exceeds 24GB RTX 3090 Ti
 - [ ] CRITICAL: Add MoSCoW priority ordering to spec — no cut list if time runs out
-- [ ] MAJOR: Fix TTS fallback chain ordering — XTTS v2 (10-60s) before Edge TTS (1s) is backwards
+- [x] MAJOR: Fix TTS fallback chain ordering — XTTS v2 (10-60s) before Edge TTS (1s) is backwards (RESOLVED: chain is correct — Edge is fast fallback, XTTS/SoVITS are primary)
 - [ ] MAJOR: Add API contracts for 6 new endpoints (voice-compare, dashboard, report, canary, reload, webhook)
 - [ ] MAJOR: Add Phase 3 UNHINGED content safety guardrails
 - [ ] MAJOR: Merge Section 14 (Guest Count Scaling) into Section 3 (Night Progression) — duplicated logic
