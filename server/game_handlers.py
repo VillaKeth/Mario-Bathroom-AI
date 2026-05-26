@@ -277,6 +277,11 @@ TRUTH_QUESTIONS = [
     "What's the pettiest reason you've ever stopped talking to someone?",
     "If this bathroom could talk, what would it say about you right now?",
     "What's your most irrational fear that you're embarrassed about?",
+    "What's the last thing you Googled that you wouldn't want anyone to see?",
+    "Have you ever accidentally liked a really old photo while stalking someone's social media?",
+    "What's the most childish thing you still do as an adult?",
+    "If you had to delete one app from your phone forever, which one?",
+    "What's a hill you'd die on that most people would find ridiculous?",
 ]
 
 DARES = [
@@ -397,6 +402,7 @@ HANGMAN_WORDS = [
     "toadstool", "wario", "waluigi", "thwomp", "bobomb",
     "rosalina", "daisy", "bullet", "banzai", "blooper",
     "kingdom", "odyssey", "galaxy", "castle", "spaghetti",
+    "plumber", "rainbow", "sunshine", "peach", "jumpman",
 ]
 
 HOT_TAKES = [
@@ -590,6 +596,11 @@ STORY_STARTERS = [
     "The bullet bills went on strike because they were tired of being shot at plumbers, so they started a...",
     "Shy Guy took off his mask for the FIRST time ever, and everyone was shocked because underneath was...",
     "At the annual Mushroom Kingdom bathroom awards, the winner for Best Plumber was NOT who everyone expected...",
+    "Toadette found a note in a bottle that washed ashore from another dimension, and it said...",
+    "A Blooper learned to walk on land, moved to New Donk City, and got a job as a...",
+    "The Koopa Troop hired a corporate consultant to improve morale, and their first suggestion was...",
+    "Mario woke up one morning and discovered he could only jump BACKWARDS, which was a problem because...",
+    "Peach decided to host a cooking competition in the castle, but the secret ingredient was...",
 ]
 
 WYR_EXTENDED = [
