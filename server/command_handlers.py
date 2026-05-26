@@ -516,7 +516,12 @@ def handle_special_commands(
         ])
 
     # Quick affirmations (≤2 words — "lol", "haha", "ok", "yes", "no")
-    if _word_count <= 2 and lower.strip() in {"lol", "lmao", "haha", "ha", "hahaha", "rofl"}:
+    _laugh_match = _word_count <= 2 and (
+        lower.strip() in {"lol", "lmao", "haha", "ha", "hahaha", "rofl", "😂", "🤣"}
+        or re.fullmatch(r"(ha){2,}", lower.strip())  # hahahaha...
+        or re.fullmatch(r"l+o+l+", lower.strip())  # looool, lolll
+    )
+    if _laugh_match:
         emotion_system.current = "laughing"
         return random.choice([
             "Ha ha ha! That's the spirit! Laughter is the best power-up!",
@@ -601,7 +606,7 @@ def handle_special_commands(
         return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
     # Dare → starts Bathroom Dare game
-    if _word_count <= 7 and any(w in lower for w in ["dare me", "truth or dare", "give me a dare", "i dare you", "can i get a dare", "gimme a dare"]):
+    if _word_count <= 7 and any(w in lower for w in ["dare me", "give me a dare", "i dare you", "can i get a dare", "gimme a dare"]):
         return game_handlers.start_game("bathroom_dare", state, game_config, emotion_system)
 
     # Hand wash reminder
