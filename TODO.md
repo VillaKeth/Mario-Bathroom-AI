@@ -43,8 +43,13 @@
 - [x] Verify zero idle leaks during active conversation (was 2-4 per 20 prompts)
 
 ## Current Focus
+- [x] Quick greeting handlers for "hi", "hey", "yo" etc. (instant response, no LLM wait)
+- [x] Quick laugh handlers for "lol", "haha" etc.
+- [x] Relaxed word count guards: joke/secret/story handlers now ≤7 words (was ≤5)
+- [x] Verified idle messages fire during silence (~30s intervals)
+- [x] Verified 19+ emotion transitions in Pygame client on Desktop 2
+- [x] Verified zero idle leaks during rapid conversation (8 messages, 0 leaks)
 - [ ] Run extended stress tests (50+ prompts) for edge cases
-- [ ] Verify idle chatter variety with LLM enabled
 - [ ] Test multi-sentence and very long user messages
 - [ ] Improve LLM empathetic response quality (sad messages get greeting responses)
 - [ ] Add more conversational command handlers for common party phrases

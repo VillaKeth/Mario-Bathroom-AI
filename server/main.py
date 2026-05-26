@@ -2107,6 +2107,7 @@ async def _idle_loop(ws: WebSocket):
         _since_input = time.time() - _last_msg_time if _last_msg_time else 999
         if _since_input < 8.0:
             continue
+        logger.debug(f"[IDLE_TICK] passed cooldowns (resp={_since_response:.0f}s, input={_since_input:.0f}s, presence={state_current.get('presence')})")
         # Suppress ALL idle behavior during memorial — don't queue behind it
         if memorial_running:
             logger.debug("[IDLE] Skipping idle loop — memorial active")

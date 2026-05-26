@@ -413,12 +413,12 @@ def handle_special_commands(
 
     # Tell a joke — only intercept generic requests, let specific ones go to LLM
     # "tell me a joke" → canned, "tell me a joke about plumbing" → LLM
-    if _word_count <= 5 and any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
+    if _word_count <= 7 and any(w in lower for w in ["tell me a joke", "know any jokes", "make me laugh", "say something funny"]):
         emotion_system.current = "mischievous"
         return idle_behavior.get_joke()
 
     # Tell me a secret — only generic requests
-    if _word_count <= 5 and (any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower)):
+    if _word_count <= 7 and (any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower)):
         emotion_system.current = "mischievous"
         return random.choice(SECRETS)
 
@@ -487,7 +487,33 @@ def handle_special_commands(
         stats = party_stats.get_stats()
         return f"It's-a {stats['current_hour']}! Time flies when you're having fun in the bathroom!"
 
-    # Compliment request
+    # Quick greetings (≤2 words only — longer messages go to LLM)
+    if _word_count <= 2 and lower.strip() in {"hi", "hey", "yo", "sup", "hello", "hola", "hiya",
+                                                "howdy", "greetings", "heya", "ayo", "wassup",
+                                                "what's up", "whats up", "hey mario", "hi mario",
+                                                "hello mario", "yo mario", "sup mario"}:
+        emotion_system.current = "excited"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Wahoo! Hey there, {name}! Welcome to the bathroom! What can Mario do for you?",
+            f"It's-a me, Mario! Hey {name}! Ready to have some fun?",
+            f"WAHOO! {name}! Great to see you! The party is-a THIS way! Well... we're already here!",
+            f"Hey hey hey! {name}! Welcome! You picked the best room in the house!",
+            f"Yo yo yo! {name}! What's-a going on? Tell Mario everything!",
+            f"Mama mia, {name}! Hello! You're looking like a million coins today!",
+        ])
+
+    # Quick affirmations (≤2 words — "lol", "haha", "ok", "yes", "no")
+    if _word_count <= 2 and lower.strip() in {"lol", "lmao", "haha", "ha", "hahaha", "rofl"}:
+        emotion_system.current = "laughing"
+        return random.choice([
+            "Ha ha ha! That's the spirit! Laughter is the best power-up!",
+            "You're laughing? Mario loves it! WAHOO!",
+            "Ha! You think THAT'S funny? Wait till you hear my plumbing jokes!",
+            "Now THAT'S what I like to hear! Keep laughing, friend!",
+        ])
+
+
     if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
         base_compliment = idle_behavior.get_compliment()
         # Personalize if we know the person
@@ -698,7 +724,7 @@ def handle_special_commands(
         return random.choice(TWISTERS)
 
     # Tell me a story / story time → starts Story Builder game
-    if _word_count <= 5 and any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
+    if _word_count <= 7 and any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
         return game_handlers.start_game("story_builder", state, game_config, emotion_system)
 
     # Pickup line
