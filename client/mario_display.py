@@ -640,11 +640,17 @@ class MarioDisplay:
             self._update_transition()
             self._draw()
             self._clock.tick(30)
+            self._consecutive_errors = 0  # Reset error counter on success
             return True
         except pygame.error as e:
             logger.error(f"[DEBUG_DISPLAY] Pygame error in update(): {e}")
-            self._running = False
-            return False
+            # Try to recover instead of immediately dying
+            self._consecutive_errors = getattr(self, '_consecutive_errors', 0) + 1
+            if self._consecutive_errors > 10:
+                logger.error("[DEBUG_DISPLAY] Too many consecutive errors, shutting down")
+                self._running = False
+                return False
+            return True  # Try to continue
 
     def _handle_keyboard_input(self, event):
         """Handle keyboard input when in keyboard mode."""
