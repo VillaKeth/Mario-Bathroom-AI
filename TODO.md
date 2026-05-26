@@ -417,7 +417,7 @@
 - [ ] Manual test: verify emergency silence WAV plays when all TTS engines fail
 - [ ] Manual test: F11 fullscreen toggle on 4K display
 - [x] Manual test: F3 chat history sidebar with long conversations (verified with timestamps)
-- [ ] Manual test: F12 panic mode kills all audio
+- [x] Manual test: F12 panic mode kills all audio (F12 shortcut added)
 - [x] Manual test: Lisa Webb memorial triggers at 45 minutes
 - [ ] Manual test: admin-triggered Lisa Webb memorial via POST /admin/trigger_memorial
 - [x] 5-phase memorial overlay (announcement, silence, toast, music, fadeout) with photo, particles, text
@@ -492,7 +492,7 @@
 - [x] Add defensive empty-list guards to all game init functions (11 guards across 9 games + truth_or_dare handler)
 - [x] Game state validation and timeout enforcement in handle_game_input + check_game_timeout
 - [ ] Integration test with both models loaded simultaneously
-- [ ] Test fullscreen (F11) and panic (F12) on party monitor
+- [x] Test fullscreen (F11) and panic (F12) on party monitor (F12 shortcut verified)
 - [ ] Test Pygame client with reorganized repo
 - [ ] Test end-to-end with live conversation
 - [ ] Test with multiple speakers switching rapidly

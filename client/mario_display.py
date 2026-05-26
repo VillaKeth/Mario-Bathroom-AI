@@ -528,6 +528,8 @@ class MarioDisplay:
         self._backgrounds = []  # loaded background images
         self._current_bg_index = -1  # -1 = use drawn background, 0+ = use image
         self._load_backgrounds()
+        self._bg_auto_cycle = False
+        self._bg_last_cycle_time = time.time()
         
         # Initialize closed captions
         self.captions = ClosedCaptions(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -594,6 +596,11 @@ class MarioDisplay:
                         self._leaderboard_visible = not self._leaderboard_visible
                         if self._leaderboard_visible:
                             self._leaderboard_show_frame = self._frame
+                    elif event.key == pygame.K_F7:
+                        self.next_background()
+                    elif event.key == pygame.K_F8:
+                        self._bg_auto_cycle = not self._bg_auto_cycle
+                        logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
                     elif event.key == pygame.K_F11:
                         self._toggle_fullscreen()
                     elif event.key == pygame.K_F12:
@@ -653,6 +660,10 @@ class MarioDisplay:
                     logger.warning("[DISPLAY] Thinking timeout — auto-cancelling after 60s")
                     self._thinking = False
                     self._thinking_start = 0
+            # Auto-cycle backgrounds every 5 minutes
+            if self._bg_auto_cycle and self._backgrounds and time.time() - self._bg_last_cycle_time > 300:
+                self.next_background()
+                self._bg_last_cycle_time = time.time()
             self._update_typewriter()
             self._update_transition()
             self._draw()
@@ -1352,11 +1363,13 @@ class MarioDisplay:
             ("F4", "Toggle server health panel"),
             ("F5", "Toggle party mode effects"),
             ("F6", "Toggle leaderboard"),
+            ("F7", "Cycle background image"),
+            ("F8", "Toggle background auto-cycle"),
             ("F11", "Toggle fullscreen"),
             ("F12", "Toggle panic mode"),
             ("ESC", "Exit keyboard / close window"),
             ("Ctrl+V", "Paste from clipboard"),
-            ("Ctrl+Backspace", "Delete last word"),
+            ("Ctrl+Bksp", "Delete last word"),
             ("Ctrl+U", "Clear input line"),
             ("Ctrl+Shift+L", "Skip memorial event"),
         ]

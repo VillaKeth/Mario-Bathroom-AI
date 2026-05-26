@@ -77,7 +77,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | File | Role |
 |------|------|
 | `client/main.py` | Pygame client entry point, keyboard/admin command routing, health polling |
-| `client/mario_display.py` | Display renderer (4K, 1-0 game triggers, F3 chat history, F4 health overlay, F5 party mode, F6 leaderboard, F11 fullscreen, adaptive typewriter, Ctrl+V paste) |
+| `client/mario_display.py` | Display renderer (4K, 1-0 game triggers, F1 help, F3 chat history, F4 health overlay, F5 party mode, F6 leaderboard, F7 bg cycle, F8 bg auto-cycle, F11 fullscreen, F12 panic, adaptive typewriter, Ctrl+V paste) |
 | `client/ws_client.py` | WebSocket client connection handler |
 | `client/person_detector.py` | YOLO v8n person detection + face_recognition encoding |
 | `client/presence.py` | Webcam presence detection (exclusive cv2.VideoCapture) |
