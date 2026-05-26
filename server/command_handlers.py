@@ -918,7 +918,22 @@ def handle_special_commands(
             state["_game_state"] = {}
             emotion_system.current = Emotion.HAPPY
             return f"Game over! Thanks for playing {game.replace('_', ' ')}! That was fun! Wahoo!"
-        return None
+        return "No game is running right now! Want to start one? Just say 'play a game' or name a specific game!"
+
+    # Bare "stop" / "quit" with no game active — quick response instead of LLM
+    if _word_count == 1 and lower.strip() in {"stop", "quit", "exit", "cancel"}:
+        if state["_active_game"]:
+            game = state["_active_game"]
+            state["_active_game"] = None
+            state["_game_state"] = {}
+            emotion_system.current = Emotion.HAPPY
+            return f"Game over! Final score: {state.get('_game_state', {}).get('score', 0)}! Thanks for playing {game.replace('_', ' ')}! Wahoo!"
+        emotion_system.current = "confused"
+        return random.choice([
+            "Stop what? There's no game running! Want to play something? Just ask!",
+            "Hmm, nothing to stop! How about we START something instead? Say 'play a game'!",
+            "Stop?! But we haven't even started! Want to play trivia, RPS, or something else?",
+        ])
 
     # Riddle game
     if _word_count <= 4 and any(w in lower for w in ["riddle", "play riddle", "riddle me", "tell me a riddle"]):
