@@ -463,6 +463,24 @@ class MarioDisplay:
         self._initialized = True
         pygame.display.set_caption("Mario AI \U0001f344")
         self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+
+        # Auto-move window to Desktop 2 if available (keeps Desktop 1 clear for user)
+        try:
+            import pyvda
+            desktops = pyvda.get_virtual_desktops()
+            if len(desktops) >= 2:
+                import ctypes, ctypes.wintypes
+                # Find our window by title
+                hwnd = ctypes.windll.user32.FindWindowW(None, "Mario AI \U0001f344")
+                if not hwnd:
+                    # Fallback: use pygame's wm_info
+                    hwnd = pygame.display.get_wm_info().get("window", 0)
+                if hwnd:
+                    app_view = pyvda.AppView(hwnd=hwnd)
+                    app_view.move(desktops[1])  # Desktop 2 (0-indexed)
+                    logger.info("[DEBUG_DISPLAY] Moved window to Desktop 2")
+        except Exception as e:
+            logger.debug(f"[DEBUG_DISPLAY] Could not move to Desktop 2: {e}")
         # Render buffer: all drawing happens at 800x600, then scaled to screen
         self._render_buffer = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
         self._clock = pygame.time.Clock()

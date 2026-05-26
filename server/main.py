@@ -1628,6 +1628,80 @@ async def reset_shot_event(event_name: str, request_body: dict = {}):
     return {"status": "ok", "message": f"Event '{event_name}' reset"}
 
 
+@app.post("/admin/register_face")
+async def admin_register_face(body: dict):
+    """Register a face encoding for testing (no camera needed).
+    
+    Body: {"name": "Alice", "encoding": [0.1, 0.2, ...]} (128-dim list)
+    Or: {"name": "Alice", "seed": 42} to generate a deterministic test encoding
+    """
+    name = body.get("name")
+    if not name:
+        return {"status": "error", "message": "name required"}
+    
+    if "encoding" in body:
+        encoding = np.array(body["encoding"], dtype=np.float64)
+        if encoding.shape != (128,):
+            return {"status": "error", "message": f"encoding must be 128-dim, got {encoding.shape}"}
+    elif "seed" in body:
+        rng = np.random.RandomState(body["seed"])
+        encoding = rng.randn(128).astype(np.float64)
+        encoding = encoding / np.linalg.norm(encoding)
+    else:
+        return {"status": "error", "message": "encoding (128-dim list) or seed (int) required"}
+    
+    try:
+        _face_memory.learn_guest(name, encoding)
+        return {"status": "ok", "message": f"Face registered for {name}", "encoding_norm": float(np.linalg.norm(encoding))}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/admin/lookup_face")
+async def admin_lookup_face(body: dict):
+    """Look up a face encoding to test recognition.
+    
+    Body: {"encoding": [0.1, 0.2, ...]} (128-dim list)
+    Or: {"seed": 42, "noise": 0.05} to generate and optionally add noise
+    """
+    if "encoding" in body:
+        encoding = np.array(body["encoding"], dtype=np.float64)
+    elif "seed" in body:
+        rng = np.random.RandomState(body["seed"])
+        encoding = rng.randn(128).astype(np.float64)
+        encoding = encoding / np.linalg.norm(encoding)
+        noise_level = body.get("noise", 0.0)
+        if noise_level > 0:
+            encoding = encoding + np.random.randn(128) * noise_level
+            encoding = encoding / np.linalg.norm(encoding)
+    else:
+        return {"status": "error", "message": "encoding or seed required"}
+    
+    if encoding.shape != (128,):
+        return {"status": "error", "message": f"encoding must be 128-dim, got {encoding.shape}"}
+    
+    try:
+        match = _face_memory.find_match(encoding)
+        if match:
+            return {"status": "ok", "matched": True, "name": match["name"], 
+                    "confidence": match["confidence"], "person_id": match.get("person_id")}
+        return {"status": "ok", "matched": False}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/admin/faces")
+async def admin_list_faces():
+    """List all stored face entries."""
+    try:
+        faces = _face_memory.get_all_faces()
+        return {"status": "ok", "count": len(faces), 
+                "faces": [{"name": f["name"], "person_id": f.get("person_id"), 
+                          "visit_count": f.get("visit_count", 0)} for f in faces]}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")
