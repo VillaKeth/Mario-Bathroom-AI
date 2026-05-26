@@ -669,3 +669,15 @@
 - [x] Fix audio buffer timeout bug (buf_age always ~0, short audio never processed)
 - [x] Live E2E test passing 3/3 — audio → STT → LLM → TTS pipeline fully verified
 - [x] Created live STT E2E test (tests/test_stt_live.py)
+
+## Face & Voice Recognition Testing
+- [x] Create comprehensive recognition E2E test suite (tests/test_recognition_e2e.py)
+- [x] Face memory: 8/8 tests — store, match, noise tolerance, unknown rejection, cross-person discrimination
+- [x] Speaker ID: 5/5 tests — resemblyzer check, cosine math, cross-speaker discrimination, shape validation
+- [x] Memory integration: 4/4 tests — register person, conversations, facts, game results
+- [x] Full guest flow: 5/5 tests — new arrival, introduce, different person, return visit, 10-guest party (100% accuracy)
+- [x] All 22/22 recognition tests passing
+- [x] Verified 9/9 routing tests with emotion transitions on Pygame Desktop 2
+- [ ] Test face recognition with real camera feed
+- [ ] Test speaker ID with real microphone audio
+- [ ] Tune speaker ID threshold for party noise levels
