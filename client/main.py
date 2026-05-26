@@ -466,13 +466,15 @@ class MarioClient:
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
         elif cmd == "/help":
-            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /help"
+            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
             self._fetch_and_display_health()
         elif cmd == "/leaderboard":
             self._fetch_and_display_leaderboard()
+        elif cmd == "/stats":
+            self._fetch_and_display_stats()
         else:
             self.display.set_subtitle(f"❌ Unknown command: {cmd}")
 
@@ -546,6 +548,27 @@ class MarioClient:
             self.display.set_subtitle("🏆 Leaderboard shown")
         except Exception as e:
             self.display.set_subtitle(f"❌ Leaderboard fetch failed: {e}")
+
+    def _fetch_and_display_stats(self):
+        """Fetch health + leaderboard and display compact stats summary."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            health = json.loads(urllib.request.urlopen(base_url + "/health", timeout=5).read())
+            lb = json.loads(urllib.request.urlopen(base_url + "/leaderboard", timeout=5).read())
+            dur = lb.get("party_duration", {})
+            stats_text = (
+                f"Party: {dur.get('hours', 0)}h {dur.get('minutes', 0)}m | "
+                f"Guests: {lb.get('unique_visitors', 0)} | "
+                f"Visits: {lb.get('total_visits', 0)} | "
+                f"Cache: {health.get('tts_cache_size', '?')} | "
+                f"Emotion: {health.get('emotion', '?')} | "
+                f"Avg: {health.get('avg_response_time', '?')}"
+            )
+            self.display.set_mario_text(stats_text)
+            self.display.set_subtitle("📊 Party stats")
+        except Exception as e:
+            self.display.set_subtitle(f"❌ Stats fetch failed: {e}")
 
     def _on_volume_change(self, delta: float):
         """Called when user adjusts volume with +/- keys."""
