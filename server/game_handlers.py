@@ -187,7 +187,8 @@ RIDDLES = [
 STARTER_WORDS = [
     "mario", "party", "castle", "mushroom", "adventure", "bathroom", "princess", "galaxy",
     "fireball", "plumber", "spaghetti", "koopa", "rainbow", "bowser", "wahoo", "goomba",
-    "toilet", "champion",
+    "toilet", "champion", "dragon", "treasure", "volcano", "pirate", "rocket", "crystal",
+    "carnival", "monster", "jungle", "wizard", "potion", "island",
 ]
 
 KARAOKE_SONGS = [
@@ -358,6 +359,11 @@ RPS_WIN_REACTIONS = [
     "It's like I had a Star Power-up for my BRAIN! Another WIN for Mario!",
     "Did you see THAT?! Even Toad is cheering for me! WAHOO!",
     "That's THREE stars for Mario! I'm-a on a ROLL tonight! Hee hee!",
+    "BOOM! Just like a Fire Flower, I'm-a UNSTOPPABLE! Mama mia!",
+    "You zigged when you shoulda zagged! Mario WINS! Let's-a GO!",
+    "That's plumber PRECISION right there! Nobody beats these hands!",
+    "I've been training with Toad for this EXACT moment! VICTORY!",
+    "Another trophy for the mantle! Mario is-a the GOAT of RPS! Wahoo!",
 ]
 
 RPS_LOSE_REACTIONS = [
@@ -376,6 +382,11 @@ RPS_LOSE_REACTIONS = [
     "Okay, I admit it — that was GOOD! But don't let it go to your head!",
     "Bowser would be LAUGHING at me right now! Quick, let's go again!",
     "My fingers are-a cold from all this bathroom air! That's my excuse! Rematch!",
+    "I blinked! That's-a the ONLY reason you won! Quick, again!",
+    "You must be some kind of Rock Paper Scissors WIZARD! Mama mia!",
+    "The pipes must be leaking because my GAME is slipping! Rematch!",
+    "Okay that was impressive! But even Luigi beats me sometimes! REMATCH!",
+    "I was distracted by a Goomba! That definitely doesn't count! Again!",
 ]
 
 RPS_TIE_REACTIONS = [
@@ -394,6 +405,11 @@ RPS_TIE_REACTIONS = [
     "Same thing! This is-a more dramatic than a Mario Party final turn!",
     "A DRAW! We're-a perfectly matched! This calls for a TIEBREAKER!",
     "Identical! We must be connected by a warp pipe or something! Ha ha!",
+    "AGAIN with the tie?! We're-a stuck in a time loop! Mama mia!",
+    "Same same SAME! It's like we're TWINS! This is getting ridiculous!",
+    "Another draw! At this rate we'll be here ALL NIGHT! Let's break it!",
+    "TWO great minds, ONE choice! The universe is testing us! Again!",
+    "We keep matching! Maybe WE should team up instead of fighting! Ha ha!",
 ]
 
 HANGMAN_WORDS = [
