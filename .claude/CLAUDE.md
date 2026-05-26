@@ -29,8 +29,8 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | `server/main.py` | Central server: WebSocket event routing, LLM pipeline, greeting/exit flows, idle loop, TTS synthesis |
 | `server/llm_router.py` | Dual-model LLM routing (creative + fast models via Ollama) |
 | `server/mario_prompt.py` | Mario personality: context building, discovery hints, engagement scoring, guest typing |
-| `server/command_handlers.py` | Command routing (games, compliments, motivation, name parsing), keyword triggers with word count guards |
-| `server/game_handlers.py` | 10+ party games (trivia, karaoke, RPS, truth_or_dare, riddles, word_chain, hangman, hot_takes, would_you_rather, never_have_i_ever, simon_says, 20_questions) |
+| `server/command_handlers.py` | Command routing (games, compliments, motivation, name parsing), keyword triggers with word count guards, 30+ handler categories, 13 pop culture easter eggs |
+| `server/game_handlers.py` | 16 party games with 492+ question/prompt items (trivia, karaoke, RPS, truth_or_dare, riddles, word_chain, hangman, hot_takes, would_you_rather, never_have_i_ever, simon_says, 20_questions, name_that_character, story_builder, rapid_fire, bathroom_dares) |
 
 ### Memory & Knowledge
 | File | Role |
@@ -77,7 +77,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | File | Role |
 |------|------|
 | `client/main.py` | Pygame client entry point, keyboard/admin command routing, health polling |
-| `client/mario_display.py` | Display renderer (4K, 1-8 game triggers, F3 chat history, F4 health overlay, F11 fullscreen, adaptive typewriter) |
+| `client/mario_display.py` | Display renderer (4K, 1-8 game triggers, F3 chat history, F4 health overlay, F5 party mode, F6 leaderboard, F11 fullscreen, adaptive typewriter) |
 | `client/ws_client.py` | WebSocket client connection handler |
 | `client/person_detector.py` | YOLO v8n person detection + face_recognition encoding |
 | `client/presence.py` | Webcam presence detection (exclusive cv2.VideoCapture) |
@@ -146,6 +146,10 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - `POST /admin/simulate_text` — send text through active WS connection (testing)
 - `POST /admin/force_stop_game` — emergency game cancellation
 - `GET /api/health` — server health, emotion, cache stats, timing
+- `GET /leaderboard` — party leaderboard with categories and fun stats
+- `GET /admin/party_summary` — comprehensive party state snapshot (requires restart to activate)
+- `POST /admin/set_emotion` — force emotion change
+- `POST /admin/announce` — broadcast announcement to client
 
 ---
 
@@ -189,8 +193,9 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - **Two-strip header layout**: Zone 1 (Y=0-28) = title bar, Zone 2 (Y=28-50) = info strip
 - **Speech bubble** starts at Y=58, stays visible while `_speaking` is True (timer only starts after audio ends)
 - **Quick triggers**: Number keys 1-8 launch canned game/joke/song/dance prompts when not in keyboard mode
-- **Admin controls**: Keyboard mode accepts slash commands like `/announce`, `/emotion`, `/memorial`, `/health`
+- **Admin controls**: Keyboard mode accepts slash commands like `/announce`, `/emotion`, `/memorial`, `/health`, `/leaderboard`, `/stopgame`, `/reload`, `/reset`, `/pause`, `/sovits`
 - **Health overlay**: F4 toggles cached `/api/health` details below the banner
+- **Leaderboard overlay**: F6 toggles party leaderboard (auto-hides after 15s)
 - **Panic button**: Secret triple-tap F12 within 2 seconds (hidden from hint bar — only owner knows)
 - All header elements consolidated in `_draw_party_banner()` — no individual element drawing in `_draw()`
 
