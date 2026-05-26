@@ -62,9 +62,15 @@
 - [x] Verified self-interruption: rapid-fire messages properly cancel stale LLM responses
 - [x] Add "what games" / "list games" / "which games" handler (instant game list instead of LLM)
 - [x] Test idle suppression during memorial events — zero idle messages during ceremony
-- [ ] Improve LLM empathetic response quality (sad messages get greeting responses)
-- [ ] Verify idle messages don't get cut off mid-sentence
-- [ ] Add LLM response staleness detection (discard if game started during inference)
+- [x] Improve LLM empathetic response quality (sad messages get greeting responses)
+- [x] Verify idle messages don't get cut off mid-sentence
+- [x] Add LLM response staleness detection (discard if game started during inference)
+- [x] Fix name parsing for "im" without apostrophe (e.g., "hey im jake" now learns name)
+- [x] Fix truth-or-dare routing to correct game (was starting bathroom_dare)
+- [x] Extend laugh handler with regex for extended patterns (hahahaha, looool, emoji)
+- [ ] Add party soundtrack/ambient noise integration
+- [ ] Add voice command for volume control
+- [ ] Implement guest rotation tracking (who hasn't spoken recently)
 
 ## Installation Overhaul (Post-Party Fix) — VERIFIED ✅
 - [x] Add torchaudio to server/requirements.txt (was missing, caused server crash)

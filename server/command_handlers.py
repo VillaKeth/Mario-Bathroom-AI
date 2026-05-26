@@ -457,9 +457,9 @@ def handle_special_commands(
     # Name learning — register voice when user says their name
     # Allow re-parsing if current name was set from presence event (not from prior parsing)
     name_was_parsed = state.get("_name_from_parsing", False)
-    if not name_was_parsed and _word_count <= 8 and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "it's ", "it is "]):
+    if not name_was_parsed and _word_count <= 8 and any(w in lower for w in ["my name is", "i'm called", "call me", "i am ", "i'm ", "im ", "it's ", "it is "]):
         match = re.search(
-            r"(?:my name is|i'm called|call me|i am|i'm|it'?s|it is)\s+([A-Za-z]+)",
+            r"(?:my name is|i'm called|call me|i am|i'm|\bim\b|it'?s|it is)\s+([A-Za-z]+)",
             lower,
         )
         if match:
