@@ -466,11 +466,13 @@ class MarioClient:
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
         elif cmd == "/help":
-            help_text = "Commands: /announce <text>, /emotion <name>, /event <name>, /events, /memorial [name], /stopgame, /reload, /reset, /pause, /sovits, /health, /help"
+            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
             self._fetch_and_display_health()
+        elif cmd == "/leaderboard":
+            self._fetch_and_display_leaderboard()
         else:
             self.display.set_subtitle(f"❌ Unknown command: {cmd}")
 
@@ -531,6 +533,19 @@ class MarioClient:
             self.display.set_subtitle(f"🎉 {len(events)} events loaded")
         except Exception as e:
             self.display.set_subtitle(f"❌ Events fetch failed: {e}")
+
+    def _fetch_and_display_leaderboard(self):
+        """Fetch leaderboard and toggle the overlay."""
+        import urllib.request
+        try:
+            base_url = self.ws.server_url.replace("ws://", "http://").replace("/ws", "")
+            req = urllib.request.urlopen(base_url + "/leaderboard", timeout=5)
+            data = json.loads(req.read())
+            self.display.update_leaderboard(data)
+            self.display.toggle_leaderboard()
+            self.display.set_subtitle("🏆 Leaderboard shown")
+        except Exception as e:
+            self.display.set_subtitle(f"❌ Leaderboard fetch failed: {e}")
 
     def _on_volume_change(self, delta: float):
         """Called when user adjusts volume with +/- keys."""

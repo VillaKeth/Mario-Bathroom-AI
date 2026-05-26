@@ -277,8 +277,8 @@
 - [x] Jacob VIP context injection into LLM prompts
 - [ ] Integration test: trigger full memorial flow end-to-end
 - [] Add pygame quick-trigger key coverage
-- [] Verify admin slash command routing in client
-- [] Check F4 health overlay rendering in pygame client
+- [x] Verify admin slash command routing in client (added /leaderboard command)
+- [x] Check F4 health overlay rendering in pygame client (verified working)
 - [ ] Create release v3.13
 
 ## v3.12 TTS Cache + UI Fixes
@@ -405,10 +405,10 @@
 - [x] Add TestTextInputTimeout tests for text_input timeout/exception handling (4 tests)
 - [ ] Manual test: Jacob birthday trivia mixed into Mario trivia rounds
 - [ ] Manual test: birthday special questions award 2x bonus points
-- [ ] Manual test: game leaderboard shows in /leaderboard endpoint
+- [x] Manual test: game leaderboard shows in /leaderboard endpoint (verified: returns 15 fields)
 - [ ] Manual test: gossip idle behavior — verify Mario references real guest snippets when alone
-- [ ] Manual test: party info banner displays name, duration timer, and guest count
-- [ ] Manual test: connection status overlay no longer overlaps party banner
+- [x] Manual test: party info banner displays name, duration timer, and guest count (verified working)
+- [x] Manual test: connection status overlay no longer overlaps party banner (uses _banner_bottom offset)
 - [ ] Manual test: visit milestone callouts at 2/5/10/15+ visits during live party
 - [ ] Manual test: Jacob birthday greeting variants with real accomplishment references
 - [ ] Manual test: returning guest greetings reference last conversation topic

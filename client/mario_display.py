@@ -2586,6 +2586,12 @@ class MarioDisplay:
         if DEBUG_DISPLAY:
             logger.info(f"[DEBUG_DISPLAY] Leaderboard data updated")
 
+    def toggle_leaderboard(self):
+        """Toggle the leaderboard overlay visibility."""
+        self._leaderboard_visible = not self._leaderboard_visible
+        if self._leaderboard_visible:
+            self._leaderboard_show_frame = self._frame
+
     def _init_memorial_particles(self):
         """Initialize floating memorial particles (golden light dots)."""
         self._memorial_particles = []
