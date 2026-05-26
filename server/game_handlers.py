@@ -801,6 +801,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         random.shuffle(questions)
         max_r = get_adaptive_rounds("rapid_fire", config["rapid_fire_max_rounds"], state)
         max_r = min(max_r, len(questions))
+        if max_r == 0:
+            return "Mama mia! I ran out of questions for Rapid Fire! Let's-a play something else!"
         state["_active_game"] = "rapid_fire"
         state["_game_state"] = {
             "questions": questions[:max_r],
@@ -818,6 +820,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
             return "Mama mia! I ran out of Would You Rather questions! Let's-a play something else!"
         random.shuffle(WOULD_YOU_RATHER)
         max_rounds = min(config.get("truth_dare_max_rounds", 5), len(WOULD_YOU_RATHER))
+        if max_rounds == 0:
+            return "Mama mia! I ran out of Would You Rather questions! Let's-a play something else!"
         state["_active_game"] = "would_you_rather"
         state["_game_state"] = {
             "questions": WOULD_YOU_RATHER[:max_rounds],
@@ -894,6 +898,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         if not questions:
             return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
         max_r = min(max_r, len(questions))
+        if max_r == 0:
+            return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
             "questions": questions[:max_r],
