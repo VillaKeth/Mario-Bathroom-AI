@@ -601,6 +601,12 @@ class MarioDisplay:
                     elif event.key == pygame.K_F8:
                         self._bg_auto_cycle = not self._bg_auto_cycle
                         logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
+                    elif event.key == pygame.K_F9:
+                        if self.on_volume_change:
+                            self.on_volume_change(-0.1)
+                    elif event.key == pygame.K_F10:
+                        if self.on_volume_change:
+                            self.on_volume_change(0.1)
                     elif event.key == pygame.K_F11:
                         self._toggle_fullscreen()
                     elif event.key == pygame.K_F12:
@@ -1365,13 +1371,15 @@ class MarioDisplay:
             ("F6", "Toggle leaderboard"),
             ("F7", "Cycle background image"),
             ("F8", "Toggle background auto-cycle"),
+            ("F9", "Volume down"),
+            ("F10", "Volume up"),
             ("F11", "Toggle fullscreen"),
             ("F12", "Toggle panic mode"),
             ("ESC", "Exit keyboard / close window"),
             ("Ctrl+V", "Paste from clipboard"),
             ("Ctrl+Bksp", "Delete last word"),
             ("Ctrl+U", "Clear input line"),
-            ("Ctrl+Shift+L", "Skip memorial event"),
+            ("+/-", "Volume up/down (alt keys)"),
         ]
 
         title_font = pygame.font.Font(None, 48)
@@ -1687,7 +1695,7 @@ class MarioDisplay:
             self._screen.blit(mode_surf, (22, WINDOW_HEIGHT - 18))
 
         # Compact hint (right side, dimmed)
-        hint = "F1:help | TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F11:full | F12:panic"
+        hint = "F1:help | TAB:type | 1-0:games | F3:chat | F4:health | F6:board | F9/10:vol | F11:full | F12:panic"
         hint_surf = self._font_small.render(hint, True, (70, 70, 90))
         self._screen.blit(hint_surf, (WINDOW_WIDTH - hint_surf.get_width() - 8, WINDOW_HEIGHT - 18))
 
