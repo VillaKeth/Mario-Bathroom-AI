@@ -717,7 +717,7 @@ class MarioDisplay:
             text = str(text) if text is not None else ""
         if not isinstance(role, str):
             role = str(role) if role is not None else "unknown"
-        self._chat_history.append({"role": role, "text": text})
+        self._chat_history.append({"role": role, "text": text, "time": time.time()})
         if len(self._chat_history) > self._MAX_CHAT_HISTORY:
             self._chat_history.pop(0)
 
@@ -1781,10 +1781,13 @@ class MarioDisplay:
         # Messages (newest at bottom)
         msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 13)
         y_offset = panel_y + 30
+        from datetime import datetime as _dt
         for msg in self._chat_history[-12:]:  # Show last 12
             color = (144, 238, 144) if msg["role"] == "mario" else (173, 216, 230)
             prefix = "M:" if msg["role"] == "mario" else "U:"
-            text = f"{prefix} {msg['text'][:45]}{'...' if len(msg['text']) > 45 else ''}"
+            ts = msg.get("time")
+            ts_str = _dt.fromtimestamp(ts).strftime("%H:%M") if ts else ""
+            text = f"{ts_str} {prefix} {msg['text'][:40]}{'...' if len(msg['text']) > 40 else ''}"
             rendered = msg_font.render(text, True, color)
             surface.blit(rendered, (panel_x + 10, y_offset))
             y_offset += 22

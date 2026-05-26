@@ -577,7 +577,7 @@
 - [ ] MINOR: Define Phase 3 obsession lock mechanics (topic selection, duration, reset)
 - [ ] MINOR: Document config_live.json schema and relationship to config.json
 - [ ] MINOR: Clarify pre-recorded catchphrase audio sourcing (copyright concerns)
-- [ ] MINOR: Verify pygame mixer channel allocation supports separate SFX channel
+- [x] MINOR: Verify pygame mixer channel allocation supports separate SFX channel (SFX uses Sound.play(), memorial uses mixer.music — separate streams)
 - [ ] MINOR: Expand canary smoke tests to cover new features
 - [ ] Remove "Wahoo!", "Boom!" etc. from CACHED_PHRASES (they're now empty after cleaning)
 - [ ] Clean up idle_behavior.py source phrases (remove sfx/filler at source level)
