@@ -29,7 +29,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | `server/main.py` | Central server: WebSocket event routing, LLM pipeline, greeting/exit flows, idle loop, TTS synthesis |
 | `server/llm_router.py` | Dual-model LLM routing (creative + fast models via Ollama) |
 | `server/mario_prompt.py` | Mario personality: context building, discovery hints, engagement scoring, guest typing |
-| `server/command_handlers.py` | Slash commands (`/games`, `/leaderboard`, `/report`, etc.) + sick detection |
+| `server/command_handlers.py` | Command routing (games, compliments, motivation, name parsing), keyword triggers with word count guards |
 | `server/game_handlers.py` | 10+ party games (trivia, karaoke, RPS, truth_or_dare, riddles, word_chain, hangman, hot_takes, would_you_rather, never_have_i_ever, simon_says, 20_questions) |
 
 ### Memory & Knowledge
@@ -49,7 +49,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | `server/idle_behavior.py` | Idle behaviors: mumbles, songs, jokes, loneliness arc (3 tiers), gossip recap, memorial events |
 | `server/birthday_vip.py` | Birthday person detection + enhanced interactions |
 | `server/catchphrase_mirror.py` | Detects and mirrors guest catchphrases via repetition analysis |
-| `server/emotions.py` | Emotion detection and tracking |
+| `server/emotions.py` | Emotion detection, keyword-based inference fallback (26 emotions), mood tracking |
 | `server/safety_filter.py` | Character-break safety filter — prevents Mario from breaking character |
 
 ### TTS / Voice
@@ -135,6 +135,17 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 2. If no command match → LLM generates response with VIP fact injection + gossip context
 3. Response → TTS (fallback chain) → audio sent back via WebSocket
 4. Thinking filler ("Let me think!") sent while LLM generates (`is_thinking_filler` flag)
+
+### Idle Message System (3-Layer Anti-Leak)
+- **Post-response cooldown**: 15s after response, 10s safety net in `_idle_send_if_safe()`
+- **Post-input cooldown**: 8s after user message, 5s safety net
+- **Conversation-aware spacing**: 15-25s during active chat, 3-8s during silence
+- Startup greeting is suppressed if user sends a message before TTS finishes
+
+### Admin Endpoints
+- `POST /admin/simulate_text` — send text through active WS connection (testing)
+- `POST /admin/force_stop_game` — emergency game cancellation
+- `GET /api/health` — server health, emotion, cache stats, timing
 
 ---
 

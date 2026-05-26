@@ -717,7 +717,7 @@ def handle_special_commands(
         return random.choice(RAPS)
 
     # Motivate me / encouragement
-    _sad_triggers = ["motivate me", "motivation", "inspire me", "i need encouragement", "cheer me up",
+    _sad_triggers = ["motivate me", "motivation", "inspire me", "i need encouragement",
                      "i'm sad", "feeling down", "i'm down", "feeling terrible", "everything is terrible",
                      "having a bad day", "i'm depressed", "so sad", "really sad", "really down",
                      "i feel bad", "i feel awful", "life sucks", "i'm upset"]
