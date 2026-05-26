@@ -493,6 +493,7 @@ def handle_special_commands(
 
     # What time is it
     if any(w in lower for w in ["what time", "how late"]):
+        emotion_system.current = "happy"
         stats = party_stats.get_stats()
         return f"It's-a {stats['current_hour']}! Time flies when you're having fun in the bathroom!"
 
@@ -779,6 +780,42 @@ def handle_special_commands(
             f"Arrivederci! Until next time, {name}! Wahoo!",
             f"Later, {name}! Remember — you're-a number one in Mario's book!",
             f"Peace out, {name}! May the stars guide your way! WAHOO!",
+        ])
+
+    # Shut up / be quiet — playful response instead of slow LLM
+    if _word_count <= 4 and any(w in lower for w in ["shut up", "be quiet", "shush", "shh", "zip it", "silence",
+                                                      "stop talking", "quiet down", "hush"]):
+        emotion_system.current = "sad"
+        name = state.get("speaker_name") or "friend"
+        return random.choice([
+            f"Mama mia! Okay okay, Mario will be quiet... for about five seconds. That's my record!",
+            f"*whispers* Is this quiet enough? ...WAHOO! Sorry, couldn't help it!",
+            f"You want me to be quiet?! But silence is-a my worst enemy! Okay fine, {name}...",
+            f"Shh mode: ACTIVATED. ... ... ... Okay I can't do it. What's up, {name}?",
+            f"Quiet?! Mario?! That's like asking a Goomba to fly! But I'll try... for you.",
+        ])
+
+    # Where is the bathroom — Mario IS in the bathroom, so this is funny
+    if _word_count <= 6 and any(w in lower for w in ["where is the bathroom", "wheres the bathroom", "where's the bathroom",
+                                                      "need the bathroom", "bathroom where", "find the bathroom"]):
+        emotion_system.current = "mischievous"
+        return random.choice([
+            "You're IN it! You found it! WAHOO! Achievement unlocked: Bathroom Located!",
+            "Mama mia, you're already HERE! This IS the bathroom! Mario is-a your proof!",
+            "Look around! Tiles? Check! Toilet? Check! Italian plumber? DOUBLE CHECK! You made it!",
+            "The bathroom? You're standing in it! It's like asking 'Where's Mario?' when I'm right here! WAHOO!",
+        ])
+
+    # Drink / food requests — party direction
+    if _word_count <= 6 and any(w in lower for w in ["get a drink", "where are the drinks", "need a drink",
+                                                      "where's the bar", "wheres the bar", "need water",
+                                                      "get some water", "thirsty"]):
+        emotion_system.current = "happy"
+        return random.choice([
+            "Drinks are out there at the party! Mario can't serve drinks but I CAN serve up some fun! WAHOO!",
+            "The bar's outside! But hey, the bathroom sink has unlimited water! Five stars!",
+            "Thirsty? There's drinks at the party! But if you want bathroom water, Mario won't judge!",
+            "Mama mia, the refreshments are out by the party! But stay and chat a bit first!",
         ])
 
     # Give me a nickname
