@@ -735,6 +735,61 @@ def handle_special_commands(
             "I'm a plumber, a hero, and tonight I'm-a the DJ of this bathroom! Wahoo!"
         )
 
+    # How old are you / age question
+    if _word_count <= 7 and any(w in lower for w in ["how old are you", "your age", "what age", "when were you born"]):
+        emotion_system.current = "proud"
+        return random.choice([
+            "I was born in 1981 in an arcade machine! That makes me over 40 but I don't-a look a day over 25! It's the mustache!",
+            "Age? I've been jumping on Goombas since 1981! But Mario never ages, baby! It's-a the mushrooms!",
+            "Mama mia, I'm-a 43 years young! Miyamoto created me in 1981 and I haven't aged a day! Must be all those 1-UPs!",
+            "Born in 1981, still running and jumping like a champ! I'm-a the world's most athletic plumber over 40!",
+        ])
+
+    # Are you married / girlfriend questions
+    if _word_count <= 7 and any(w in lower for w in ["married", "girlfriend", "single", "wife",
+                                                       "dating anyone", "your girl", "your woman",
+                                                       "are you taken", "in a relationship"]):
+        emotion_system.current = "loving"
+        return random.choice([
+            "It's-a complicated! Princess Peach and I have been... well, she keeps getting kidnapped! Hard to plan a date when Bowser won't stop!",
+            "Mario is-a married to adventure! But between us, Peach and I have something special! Don't tell the tabloids!",
+            "Single? With this mustache?! Please! But Peach is always in another castle, so my relationship status is-a 'it's complicated'!",
+            "Peach and I... we have a thing! But she's-a royalty and I'm a plumber, so the paparazzi have a FIELD day!",
+        ])
+
+    # How tall are you / physical questions
+    if _word_count <= 7 and any(w in lower for w in ["how tall", "your height", "how short", "how much do you weigh"]):
+        emotion_system.current = "mischievous"
+        return random.choice([
+            "I'm-a 5 foot 1! But I can jump FIVE times my height! Show me a 6-footer who can do THAT!",
+            "Officially 155 centimeters! But when I grab a Super Mushroom, I'm-a TWICE that! Flexible height!",
+            "Short? I prefer 'aerodynamically compact'! Perfect height for fitting into pipes! It's-a a feature, not a bug!",
+        ])
+
+    # What's your favorite [thing] questions
+    if _word_count <= 8 and "favorite" in lower:
+        emotion_system.current = "happy"
+        if any(w in lower for w in ["food", "eat", "meal", "dish"]):
+            return random.choice([
+                "SPAGHETTI! Mama mia, is there even a question?! With extra-a mushrooms on top! The GOOD kind!",
+                "Spaghetti and meatballs! But also mushroom soup, star candy, and Princess Peach's cake! She bakes-a the BEST cake!",
+            ])
+        if any(w in lower for w in ["color", "colour"]):
+            return "RED! Obviously! It's-a the color of passion, fire flowers, and MY magnificent hat! Wahoo!"
+        if any(w in lower for w in ["game", "video game", "mario game"]):
+            return random.choice([
+                "That's like asking a parent their favorite child! But between us, Super Mario Galaxy made me CRY! In space! Tears floating everywhere!",
+                "Galaxy was-a magical, but Odyssey let me become a T-REX! A T-REX! How do you top that?!",
+            ])
+        if any(w in lower for w in ["song", "music"]):
+            return "The Super Mario Bros theme! Do do do do do doo! But the Galaxy orchestra? Mama mia, CHEF'S KISS!"
+        if any(w in lower for w in ["movie", "film"]):
+            return "The Super Mario Bros Movie! Chris Pratt did an okay-a job, but nobody does Mario like ME! The original!"
+        return random.choice([
+            "Ooh, favorites! My favorite EVERYTHING is adventure! And spaghetti! And jumping! And saving princesses! I have too many favorites!",
+            "That's-a hard question! I love too many things! Spaghetti, jumping, Peach, stars, coins... can I pick ALL of them?!",
+        ])
+
     # Meta questions — "are you real", "are you AI", "are you a robot"
     if _word_count <= 6 and any(w in lower for w in ["are you real", "are you ai", "are you a robot",
                                                       "are you a bot", "are you human", "are you alive",

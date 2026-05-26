@@ -68,6 +68,8 @@
 - [x] Fix name parsing for "im" without apostrophe (e.g., "hey im jake" now learns name)
 - [x] Fix truth-or-dare routing to correct game (was starting bathroom_dare)
 - [x] Extend laugh handler with regex for extended patterns (hahahaha, looool, emoji)
+- [x] Add personality Q&A handlers: age, marriage/girlfriend, height, favorites (food/color/game/song/movie)
+- [x] Fix TTS voice fallback: load RVC on CPU even in sovits mode so Edge TTS fallback still sounds like Mario
 - [ ] Add party soundtrack/ambient noise integration
 - [ ] Add voice command for volume control
 - [ ] Implement guest rotation tracking (who hasn't spoken recently)

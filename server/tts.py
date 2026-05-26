@@ -548,15 +548,22 @@ def init_tts():
             logger.warning(f"[DEBUG_TTS] init_tts: XTTS v2 failed: {e}")
             _xtts_available = False
 
-    # --- Load RVC Mario voice conversion model (if enabled and not sovits-only mode) ---
-    # In sovits mode, GPT-SoVITS already produces Mario's voice — skip RVC to save VRAM
-    if USE_RVC and os.path.exists(RVC_MODEL_PATH) and TTS_MODE != "sovits" and _TORCH_AVAILABLE:
+    # --- Load RVC Mario voice conversion model (if enabled) ---
+    # RVC is needed as fallback even in sovits mode — when SoVITS fails,
+    # Edge TTS + RVC still produces Mario's voice instead of generic voice
+    if USE_RVC and os.path.exists(RVC_MODEL_PATH) and _TORCH_AVAILABLE:
         try:
             logger.info("[DEBUG_TTS] init_tts: loading RVC Mario model (Switch Era, Charles Martinet)...")
             rvc_start = time.time()
             from rvc_python.infer import RVCInference
+            # In sovits mode, SoVITS owns the GPU — use CPU for RVC fallback
+            # On small GPUs (≤4GB), CPU RVC avoids OOM and still converts voice
+            if TTS_MODE == "sovits":
+                _rvc_device = "cpu"
+            else:
+                _rvc_device = "cuda:0" if (_TORCH_AVAILABLE and torch.cuda.is_available()) else "cpu"
             _rvc_model = RVCInference(
-                device="cuda:0" if (_TORCH_AVAILABLE and torch.cuda.is_available()) else "cpu",
+                device=_rvc_device,
                 index_path=RVC_INDEX_PATH if os.path.exists(RVC_INDEX_PATH) else "",
             )
             _rvc_model.load_model(RVC_MODEL_PATH)
