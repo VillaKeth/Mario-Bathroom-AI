@@ -77,7 +77,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 | File | Role |
 |------|------|
 | `client/main.py` | Pygame client entry point, keyboard/admin command routing, health polling |
-| `client/mario_display.py` | Display renderer (4K, 1-8 game triggers, F3 chat history, F4 health overlay, F5 party mode, F6 leaderboard, F11 fullscreen, adaptive typewriter) |
+| `client/mario_display.py` | Display renderer (4K, 1-0 game triggers, F3 chat history, F4 health overlay, F5 party mode, F6 leaderboard, F11 fullscreen, adaptive typewriter, Ctrl+V paste) |
 | `client/ws_client.py` | WebSocket client connection handler |
 | `client/person_detector.py` | YOLO v8n person detection + face_recognition encoding |
 | `client/presence.py` | Webcam presence detection (exclusive cv2.VideoCapture) |
@@ -145,6 +145,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 ### Admin Endpoints
 - `POST /admin/simulate_text` — send text through active WS connection (testing)
 - `POST /admin/force_stop_game` — emergency game cancellation
+- `GET /admin/game_stats` — game pool sizes, recent games, active game
 - `GET /api/health` — server health, emotion, cache stats, timing
 - `GET /leaderboard` — party leaderboard with categories and fun stats
 - `GET /admin/party_summary` — comprehensive party state snapshot (requires restart to activate)
@@ -193,7 +194,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - **Two-strip header layout**: Zone 1 (Y=0-28) = title bar, Zone 2 (Y=28-50) = info strip
 - **Speech bubble** starts at Y=58, stays visible while `_speaking` is True (timer only starts after audio ends)
 - **Quick triggers**: Number keys 1-8 launch canned game/joke/song/dance prompts when not in keyboard mode
-- **Admin controls**: Keyboard mode accepts slash commands like `/announce`, `/emotion`, `/memorial`, `/health`, `/leaderboard`, `/stopgame`, `/reload`, `/reset`, `/pause`, `/sovits`
+- **Admin controls**: Keyboard mode accepts slash commands like `/announce`, `/emotion`, `/memorial`, `/health`, `/leaderboard`, `/stats`, `/games`, `/stopgame`, `/reload`, `/reset`, `/pause`, `/sovits`
 - **Health overlay**: F4 toggles cached `/api/health` details below the banner
 - **Leaderboard overlay**: F6 toggles party leaderboard (auto-hides after 15s)
 - **Panic button**: Secret triple-tap F12 within 2 seconds (hidden from hint bar — only owner knows)

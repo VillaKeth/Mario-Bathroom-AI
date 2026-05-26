@@ -1511,6 +1511,46 @@ async def force_stop_game(request_body: dict = {}):
     return {"status": "ok", "message": f"Force-stopped game: {game}"}
 
 
+@app.get("/admin/game_stats")
+async def game_stats():
+    """Return game pool sizes and recent game history."""
+    from server.game_handlers import (
+        VALID_GAMES, get_recent_games,
+        MARIO_TRIVIA_QUESTIONS, SIMON_ACTIONS, TWENTY_Q_THINGS,
+        TRUTH_QUESTIONS, DARES, RIDDLES, HANGMAN_WORDS, KARAOKE_SONGS,
+        RAPID_FIRE_QUESTIONS, WOULD_YOU_RATHER, HOT_TAKES, NHIE_PROMPTS,
+        NAME_THAT_CHARACTER, BATHROOM_DARES, STORY_STARTERS, WYR_EXTENDED,
+        STARTER_WORDS,
+    )
+    pools = {
+        "mario_trivia": len(MARIO_TRIVIA_QUESTIONS),
+        "simon_says": len(SIMON_ACTIONS),
+        "twenty_questions": len(TWENTY_Q_THINGS),
+        "truth_questions": len(TRUTH_QUESTIONS),
+        "dares": len(DARES),
+        "riddles": len(RIDDLES),
+        "hangman": len(HANGMAN_WORDS),
+        "karaoke": len(KARAOKE_SONGS),
+        "rapid_fire": len(RAPID_FIRE_QUESTIONS),
+        "would_you_rather": len(WOULD_YOU_RATHER),
+        "hot_takes": len(HOT_TAKES),
+        "nhie": len(NHIE_PROMPTS),
+        "name_that_character": len(NAME_THAT_CHARACTER),
+        "bathroom_dares": len(BATHROOM_DARES),
+        "story_starters": len(STORY_STARTERS),
+        "wyr_extended": len(WYR_EXTENDED),
+        "word_chain_starters": len(STARTER_WORDS),
+    }
+    return {
+        "valid_games": list(VALID_GAMES),
+        "total_games": len(VALID_GAMES),
+        "pool_sizes": pools,
+        "total_pool_items": sum(pools.values()),
+        "recent_games": get_recent_games(),
+        "active_game": state_current.get("_active_game"),
+    }
+
+
 @app.post("/admin/trigger_memorial")
 async def trigger_memorial(request_body: dict = {}):
     """Trigger 5-phase Lisa Webb memorial ceremony."""

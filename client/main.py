@@ -466,7 +466,7 @@ class MarioClient:
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
         elif cmd == "/help":
-            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /help"
+            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /games, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
@@ -475,6 +475,10 @@ class MarioClient:
             self._fetch_and_display_leaderboard()
         elif cmd == "/stats":
             self._fetch_and_display_stats()
+        elif cmd == "/games":
+            games = "1:Trivia 2:RPS 3:Truth/Dare 4:Simon 5:20Q 6:Joke 7:Karaoke 8:Dance 9:WYR 0:Fortune | Also: riddles, hangman, hot takes, never have I ever, word chain, story builder, bathroom dare, name that character"
+            self.display.set_mario_text(games)
+            self.display.set_subtitle("🎮 Available games")
         else:
             self.display.set_subtitle(f"❌ Unknown command: {cmd}")
 
