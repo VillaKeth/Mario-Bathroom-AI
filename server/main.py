@@ -2245,19 +2245,21 @@ def _infer_idle_emotion(text: str) -> str:
     lower = text.lower()
     if any(w in lower for w in ["wahoo", "let's-a go", "yeah", "woohoo", "fantastic", "amazing", "incredible"]):
         return Emotion.EXCITED
-    if any(w in lower for w in ["joke", "ha ha", "haha", "funny", "prank", "hee hee"]):
+    if any(w in lower for w in ["joke", "ha ha", "haha", "funny", "prank", "hee hee", "get it"]):
         return Emotion.LAUGHING
-    if any(w in lower for w in ["love", "beautiful", "heart", "wonderful", "sweet", "adore"]):
+    if any(w in lower for w in ["love", "beautiful", "heart", "wonderful", "sweet", "adore", "bellissimo"]):
         return Emotion.LOVING
+    if "♪" in text or any(w in lower for w in ["singing", "humming", "da da da", "do do do", "ba ba"]):
+        return Emotion.HAPPY
     if any(w in lower for w in ["hmm", "wonder", "think", "curious", "what if", "interesting"]):
         return Emotion.THINKING
     if any(w in lower for w in ["idea", "eureka", "what if i", "i should", "i could"]):
         return Emotion.IDEA
-    if any(w in lower for w in ["wow", "whoa", "no way", "really", "wait what", "seriously"]):
+    if any(w in lower for w in ["wow", "whoa", "no way", "really", "wait what", "seriously", "did you know"]):
         return Emotion.SURPRISED
     if any(w in lower for w in ["scared", "spooky", "creepy", "dark", "ghost", "boo"]):
         return Emotion.SCARED
-    if any(w in lower for w in ["proud", "hero", "saved", "champion", "victory", "best"]):
+    if any(w in lower for w in ["proud", "hero", "saved", "champion", "victory", "best", "magnificent"]):
         return Emotion.PROUD
     if any(w in lower for w in ["bored", "nothing", "quiet", "anyone", "alone", "lonely"]):
         return Emotion.BORED
@@ -2269,6 +2271,10 @@ def _infer_idle_emotion(text: str) -> str:
         return Emotion.MISCHIEVOUS
     if any(w in lower for w in ["confused", "huh", "what", "don't understand", "makes no sense"]):
         return Emotion.CONFUSED
+    if any(w in lower for w in ["challenge", "dare", "bet", "compete", "bring it"]):
+        return Emotion.DETERMINED
+    if any(w in lower for w in ["inspect", "check", "look", "examine", "notice"]):
+        return Emotion.CURIOUS
     if "!" in text or any(w in lower for w in ["party", "fun", "great", "happy", "smile", "good"]):
         return Emotion.HAPPY
     return Emotion.HAPPY

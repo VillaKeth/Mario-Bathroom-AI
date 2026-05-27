@@ -3,7 +3,9 @@ import asyncio
 import websockets
 import json
 import time
+import pytest
 
+@pytest.mark.asyncio
 async def test_games():
     uri = "ws://localhost:8765/ws"
     async with websockets.connect(uri) as ws:
