@@ -683,6 +683,14 @@
 - [x] Lower pool reset threshold from 90% → 60% for earlier item re-entry
 - [x] De-hardcode birthday person name from PHASE_PROMPTS in mario_prompt.py
 
+## UI/UX Polish — IN PROGRESS
+- [x] Party name now configurable from config.json (was hardcoded "Jacob's Birthday Party")
+- [x] Enhanced thinking indicator: "Thinking..." text after 1s, "Generating... (Xs)" after 8s
+- [x] Config changed to hybrid TTS mode (Edge+RVC instant, SoVITS background upgrade)
+- [ ] Fish Speech wrapper needs rewrite for v0.1.0 API (fish_speech.inference_engine)
+- [ ] Speech bubble overflow edge cases (word-wrap + pagination exists, needs testing)
+- [ ] Sprite quality improvements (missing hands in AI poses)
+
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
 - [ ] Run generate_expanded_poses.py --category memorial (5 memorial poses)

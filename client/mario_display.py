@@ -318,7 +318,7 @@ class MarioDisplay:
 
         # Party info banner
         self._party_start_time = time.time()
-        self._party_name = "Jacob's Birthday Party"
+        self._party_name = ""  # Set via set_party_name() from config
         self._guest_count = 0
         self._banner_bottom = 48  # updated by _draw_party_banner each frame
 
@@ -798,6 +798,10 @@ class MarioDisplay:
         """Update the party guest count shown in the banner."""
         self._guest_count = count
 
+    def set_party_name(self, name: str):
+        """Set the party/event name shown in the banner."""
+        self._party_name = name
+
     def set_camera_status(self, status: str):
         """Update camera status: connected, reconnecting, disconnected, or None."""
         self._camera_status = status
@@ -843,13 +847,26 @@ class MarioDisplay:
             self._thinking_start = 0
 
     def _draw_thinking_indicator(self):
-        """Draw bouncing dots indicator (like iMessage typing) while waiting for response."""
+        """Draw bouncing dots indicator with 'Thinking...' label while waiting for response."""
         self._thinking_dots = (self._thinking_dots + 1) % 60
+
+        elapsed = time.time() - self._thinking_start if self._thinking_start > 0 else 0
 
         # Pill-shaped container positioned below the banner
         pill_w, pill_h = 90, 36
         pill_x = WINDOW_WIDTH // 2 - pill_w // 2
         pill_y = getattr(self, '_banner_bottom', 48) + 14
+
+        # Show "Thinking..." label above the dots
+        if elapsed > 1.0:
+            label_font = self._font_small or pygame.font.SysFont("segoeui", 14)
+            if elapsed > 8.0:
+                label_text = f"Generating... ({int(elapsed)}s)"
+            else:
+                label_text = "Thinking..."
+            label_surf = label_font.render(label_text, True, (200, 200, 220))
+            label_x = WINDOW_WIDTH // 2 - label_surf.get_width() // 2
+            self._screen.blit(label_surf, (label_x, pill_y - 18))
 
         # Drop shadow
         shadow = pygame.Surface((pill_w + 4, pill_h + 4), pygame.SRCALPHA)

@@ -92,6 +92,12 @@ class MarioClient:
         if DEBUG_AUDIO:
             logger.info(f"[DEBUG_AUDIO] Initial audio gain from config: {audio_gain}")
 
+        # Set party name from config (server section has event details)
+        server_config = _full_config.get("server", {})
+        party_theme = server_config.get("party_theme", "")
+        if party_theme:
+            self.display.set_party_name(party_theme)
+
         self._running = False
         self._audio_thread = None
         self._health_thread = None
