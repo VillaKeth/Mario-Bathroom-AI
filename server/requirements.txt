@@ -36,3 +36,6 @@ mutagen>=1.47.0
 colorama>=0.4.6
 
 # fish-speech>=2.2.0  # DEFERRED: Needs ~3GB VRAM; optional premium TTS
+
+# === Configuration ===
+PyYAML>=6.0

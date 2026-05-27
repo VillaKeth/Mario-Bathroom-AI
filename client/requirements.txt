@@ -19,3 +19,6 @@ Pillow==10.4.0
 #   2. Install cmake: pip install cmake
 #   3. Install dlib: pip install dlib
 #   4. Install face_recognition: pip install face_recognition
+
+# === Configuration ===
+PyYAML>=6.0
