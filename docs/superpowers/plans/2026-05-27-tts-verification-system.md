@@ -240,6 +240,20 @@ from unittest.mock import patch, MagicMock
 from tts_auditor import suggest_fix, TTSAuditor
 
 
+def _create_test_wav(duration_s: float = 1.0, sample_rate: int = 16000) -> bytes:
+    """Helper: build a valid WAV file with silence for testing."""
+    import struct
+    samples = [0] * int(sample_rate * duration_s)
+    pcm_data = struct.pack(f"<{len(samples)}h", *samples)
+    wav_buf = io.BytesIO()
+    with wave.open(wav_buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm_data)
+    return wav_buf.getvalue()
+
+
 class TestSuggestFix:
     def test_single_word_replacement(self):
         result = suggest_fix("wahoo lets go", "wah hoo lets go")
@@ -260,18 +274,7 @@ class TestTTSAuditor:
     @patch("tts_auditor.tts")
     def test_audit_phrase_pass(self, mock_tts, mock_stt):
         """Perfect transcription → PASS."""
-        # Build a valid WAV file
-        import struct
-        sample_rate = 16000
-        samples = [0] * sample_rate  # 1 second of silence
-        pcm_data = struct.pack(f"<{len(samples)}h", *samples)
-        wav_buf = io.BytesIO()
-        with wave.open(wav_buf, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(pcm_data)
-        mock_tts.synthesize.return_value = wav_buf.getvalue()
+        mock_tts.synthesize.return_value = _create_test_wav()
         mock_stt._HAS_WHISPER = True
         mock_stt._model = MagicMock()
         mock_stt.transcribe.return_value = "hello world"
@@ -285,17 +288,7 @@ class TestTTSAuditor:
     @patch("tts_auditor.tts")
     def test_audit_phrase_mispronounced(self, mock_tts, mock_stt):
         """Wrong word → MISPRONOUNCED."""
-        import struct
-        sample_rate = 16000
-        samples = [0] * sample_rate
-        pcm_data = struct.pack(f"<{len(samples)}h", *samples)
-        wav_buf = io.BytesIO()
-        with wave.open(wav_buf, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(pcm_data)
-        mock_tts.synthesize.return_value = wav_buf.getvalue()
+        mock_tts.synthesize.return_value = _create_test_wav()
         mock_stt._HAS_WHISPER = True
         mock_stt._model = MagicMock()
         mock_stt.transcribe.return_value = "mama maya that's amazing"
@@ -349,7 +342,9 @@ class TTSAuditor:
         import stt
 
         # Ensure STT is ready
-        if stt._HAS_WHISPER and stt._model is None:
+        if not stt._HAS_WHISPER:
+            raise RuntimeError("STT (faster-whisper) not available — install faster-whisper to use auditor")
+        if stt._model is None:
             stt.init_model(model_size="base", device="auto")
 
         # 1. Synthesize
@@ -523,13 +518,13 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ### Task 4: Add TTS Post-Synthesis Callback Hook
 
 **Files:**
-- Modify: `server/tts.py` — lines near 1316 (after `return result`)
+- Modify: `server/tts.py` — callback registry near line 1135, hook at line 1316
 
 Add callback registry to `tts.py` so the debug monitor can hook into synthesis without tight coupling.
 
 - [ ] **Step 1: Add callback registry to tts.py**
 
-Near the top of `tts.py` (after the existing module-level variables, around the `_character_pronunciation` area near line 1128), add:
+Near the top of `tts.py` (after `set_pronunciation()`, around line 1135), add:
 
 ```python
 # Post-synthesis callback registry (for debug monitor)
@@ -548,7 +543,7 @@ def clear_post_synthesis_callbacks():
     _post_synthesis_callbacks.clear()
 ```
 
-Then in the `synthesize()` function, just before `return result` on line 1316, add:
+Then in the `synthesize()` function, just before the final `return result` on line 1316 (NOT the early return at line 1249 inside the try block), add:
 
 ```python
     # Fire post-synthesis callbacks (debug monitor hook)
@@ -560,6 +555,8 @@ Then in the `synthesize()` function, just before `return result` on line 1316, a
 
     return result
 ```
+
+**IMPORTANT:** There are TWO `return result` in synthesize(). Line 1249 is an early return inside a `try` block for cached GPT-SoVITS — do NOT add callbacks there. Line 1316 is the final return at function end — add callbacks BEFORE this one only.
 
 - [ ] **Step 2: Run existing tests to verify no regression**
 
@@ -581,13 +578,14 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ### Task 5: Add Batch Audit Endpoint and Debug Monitor Toggle
 
 **Files:**
-- Modify: `server/main.py` — add endpoint near other admin endpoints (~line 1520)
+- Modify: `server/main.py` — add endpoint after `/admin/party_summary` (~line 1845)
 
 - [ ] **Step 1: Add the batch audit endpoint and debug monitor wiring**
 
-In `server/main.py`, add import at the top (near other imports around line 56):
+In `server/main.py`, add imports at the top (near other imports around line 56):
 
 ```python
+import yaml
 from tts_auditor import TTSAuditor
 ```
 
@@ -597,13 +595,12 @@ Add module-level auditor instance (near `_character = None`, around line 115):
 _tts_auditor = TTSAuditor()
 ```
 
-Add the endpoint after the existing admin endpoints (after `admin_simulate_text`, around line 1520):
+Add the endpoint after `/admin/party_summary` (after line ~1845, at the end of the admin endpoints block):
 
 ```python
 @app.post("/admin/tts_audit")
 async def admin_tts_audit(request_body: dict = {}):
     """Run batch TTS audit — synthesize phrases, transcribe, compare."""
-    import yaml
     phrases = list(request_body.get("phrases", []))
     use_builtin = request_body.get("use_builtin", not phrases)
     
@@ -632,35 +629,46 @@ async def get_tts_audit_results(limit: int = 50):
     return _tts_auditor.get_results(limit)
 ```
 
-Add debug monitor toggle in the startup section (in the `@app.on_event("startup")` or wherever `live_config` is checked, after the character loading section):
+Add debug monitor toggle after the character loading section. Note: `live_config` is already initialized at line 111 of main.py via `LiveConfig(LIVE_CONFIG_PATH)`, so it's available everywhere:
 
 ```python
 # Wire TTS debug monitor if enabled
 if live_config.get("tts_debug_transcribe", False):
+    import asyncio as _asyncio
     import tts as tts_module
+    
     def _debug_monitor_callback(text: str, wav_bytes: bytes):
-        """Background audit callback for debug monitoring."""
+        """Non-blocking audit callback — fires STT in background thread."""
+        def _do_audit():
+            try:
+                import io as _io, wave as _wave
+                with _io.BytesIO(wav_bytes) as buf:
+                    with _wave.open(buf, "rb") as wf:
+                        pcm_data = wf.readframes(wf.getnframes())
+                        sample_rate = wf.getframerate()
+                        duration = wf.getnframes() / float(wf.getframerate())
+                actual = stt.transcribe(pcm_data, sample_rate)
+                from tts_auditor import calculate_wer, is_truncated, AuditResult
+                wer, missing, wrong = calculate_wer(text, actual)
+                if wer > 0.1 or is_truncated(text, actual, duration):
+                    result = AuditResult(
+                        intended=text, actual=actual, word_error_rate=round(wer, 3),
+                        truncated=is_truncated(text, actual, duration),
+                        missing_words=missing, wrong_words=wrong,
+                        audio_duration_s=round(duration, 2),
+                    )
+                    _tts_auditor._log_mismatch(result)
+                    logger.warning(f"[TTS_AUDIT] Mismatch: '{text[:40]}' → '{actual[:40]}' (WER={wer:.2f})")
+            except Exception as e:
+                logger.warning(f"[TTS_AUDIT] Debug monitor error: {e}")
+        
+        # Run in thread pool to avoid blocking TTS synthesis
         try:
-            import io as _io, wave as _wave
-            with _io.BytesIO(wav_bytes) as buf:
-                with _wave.open(buf, "rb") as wf:
-                    pcm_data = wf.readframes(wf.getnframes())
-                    sample_rate = wf.getframerate()
-                    duration = wf.getnframes() / float(wf.getframerate())
-            actual = stt.transcribe(pcm_data, sample_rate)
-            from tts_auditor import calculate_wer, is_truncated, AuditResult
-            wer, missing, wrong = calculate_wer(text, actual)
-            if wer > 0.1 or is_truncated(text, actual, duration):
-                result = AuditResult(
-                    intended=text, actual=actual, word_error_rate=round(wer, 3),
-                    truncated=is_truncated(text, actual, duration),
-                    missing_words=missing, wrong_words=wrong,
-                    audio_duration_s=round(duration, 2),
-                )
-                _tts_auditor._log_mismatch(result)
-                logger.warning(f"[TTS_AUDIT] Mismatch: '{text[:40]}' → '{actual[:40]}' (WER={wer:.2f})")
-        except Exception as e:
-            logger.warning(f"[TTS_AUDIT] Debug monitor error: {e}")
+            loop = _asyncio.get_running_loop()
+            loop.run_in_executor(None, _do_audit)
+        except RuntimeError:
+            import threading
+            threading.Thread(target=_do_audit, daemon=True).start()
     
     tts_module.register_post_synthesis_callback(_debug_monitor_callback)
     logger.info("[TTS_AUDIT] Debug monitor enabled — transcribing all TTS output")
