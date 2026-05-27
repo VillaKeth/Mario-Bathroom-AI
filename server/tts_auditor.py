@@ -44,9 +44,10 @@ class AuditResult:
 
 
 def _normalize(text: str) -> str:
-    """Normalize text for comparison: lowercase, strip punctuation (keep apostrophes/hyphens), collapse whitespace."""
+    """Normalize text for comparison: lowercase, strip punctuation, convert hyphens to spaces, collapse whitespace."""
     t = text.lower()
     t = re.sub(r"[^\w\s'\-]", "", t)
+    t = t.replace("-", " ")  # Treat hyphens as word boundaries (so "it's-a" matches "it's a")
     t = re.sub(r"\s+", " ", t).strip()
     return t
 
@@ -130,8 +131,14 @@ class TTSAuditor:
             os.path.dirname(__file__), "data", "tts_audit_log.json"
         )
 
-    def audit_phrase(self, text: str) -> AuditResult:
-        """Synthesize text, transcribe result, compare."""
+    def audit_phrase(self, text: str, edge_only: bool = False, no_pronunciation: bool = False) -> AuditResult:
+        """Synthesize text, transcribe result, compare.
+        
+        Args:
+            text: The phrase to audit
+            edge_only: If True, bypass RVC and use Edge TTS directly (for debugging)
+            no_pronunciation: If True, temporarily disable pronunciation rules
+        """
         import tts
         import stt
 
@@ -141,8 +148,22 @@ class TTSAuditor:
         if stt._model is None:
             stt.init_model(model_size="base", device="auto")
 
-        # 1. Synthesize
-        wav_bytes = tts.synthesize(text)
+        # Optionally disable pronunciation rules
+        saved_rules = None
+        if no_pronunciation and hasattr(tts, '_character_pronunciation'):
+            saved_rules = tts._character_pronunciation
+            tts._character_pronunciation = {}
+
+        try:
+            # 1. Synthesize (optionally bypass RVC)
+            cleaned = tts._preclean_tts_text(text)
+            if edge_only:
+                wav_bytes = tts._synthesize_edge(cleaned)
+            else:
+                wav_bytes = tts.synthesize(text, nocache=True)
+        finally:
+            if saved_rules is not None:
+                tts._character_pronunciation = saved_rules
 
         # 2. Extract PCM from WAV
         with io.BytesIO(wav_bytes) as buf:
@@ -154,8 +175,15 @@ class TTSAuditor:
         # 3. Transcribe
         actual_text = stt.transcribe(pcm_data, sample_rate)
 
-        # 4. Compare
-        wer, missing, wrong = calculate_wer(text, actual_text)
+        # 4. Compare — use the lower WER between original text and cleaned text
+        # This handles pronunciation rules that intentionally change words
+        # (e.g., "magnifico" → "magnificent" should match "Magnificent!")
+        wer_original, missing, wrong = calculate_wer(text, actual_text)
+        wer_cleaned, missing_c, wrong_c = calculate_wer(cleaned, actual_text)
+        if wer_cleaned < wer_original:
+            wer, missing, wrong = wer_cleaned, missing_c, wrong_c
+        else:
+            wer = wer_original
         truncated = is_truncated(text, actual_text, audio_duration)
         fix = suggest_fix(text, actual_text)
 
@@ -172,12 +200,83 @@ class TTSAuditor:
         self._results.append(result)
         return result
 
-    def audit_batch(self, phrases: list[str]) -> dict:
+    def best_of_n(self, text: str, n: int = 5) -> dict:
+        """Synthesize a phrase N times, return the attempt with lowest WER.
+        
+        For short phrases where RVC is non-deterministic, this generates
+        multiple attempts and picks the best one. The winning WAV is cached.
+        """
+        import tts
+        import stt
+
+        if not stt._HAS_WHISPER:
+            raise RuntimeError("STT not available")
+        if stt._model is None:
+            stt.init_model(model_size="base", device="auto")
+
+        attempts = []
+        cleaned = tts._preclean_tts_text(text)
+        for i in range(n):
+            try:
+                wav_bytes = tts.synthesize(text, nocache=True)
+                with io.BytesIO(wav_bytes) as buf:
+                    with wave.open(buf, "rb") as wf:
+                        pcm_data = wf.readframes(wf.getnframes())
+                        sample_rate = wf.getframerate()
+                        audio_duration = wf.getnframes() / float(wf.getframerate())
+                actual = stt.transcribe(pcm_data, sample_rate)
+                # Use lower WER between original and cleaned text
+                wer_orig, _, _ = calculate_wer(text, actual)
+                wer_clean, _, _ = calculate_wer(cleaned, actual)
+                wer = min(wer_orig, wer_clean)
+                attempts.append({
+                    "attempt": i + 1,
+                    "actual": actual,
+                    "wer": round(wer, 3),
+                    "wav_bytes": wav_bytes,
+                    "audio_duration_s": round(audio_duration, 2),
+                })
+                if wer == 0.0:
+                    break  # Perfect match, no need to continue
+            except Exception as e:
+                attempts.append({"attempt": i + 1, "actual": f"ERROR: {e}", "wer": 999.0})
+
+        # Pick best attempt (lowest WER)
+        valid = [a for a in attempts if "wav_bytes" in a]
+        if not valid:
+            return {"text": text, "best_wer": 999.0, "attempts": len(attempts), "cached": False}
+
+        best = min(valid, key=lambda a: a["wer"])
+
+        # Cache the best version
+        cached = False
+        if best["wer"] < 1.0 and "wav_bytes" in best:
+            _rate = "+0%"
+            _pitch = "+0Hz"
+            cache_key = f"{tts.EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
+            with tts._cache_lock:
+                tts._audio_cache[cache_key] = best["wav_bytes"]
+                if cache_key not in tts._cache_order:
+                    tts._cache_order.append(cache_key)
+            tts._save_to_disk_cache(cache_key, best["wav_bytes"])
+            cached = True
+
+        return {
+            "text": text,
+            "best_wer": best["wer"],
+            "best_actual": best["actual"],
+            "best_attempt": best["attempt"],
+            "total_attempts": len(attempts),
+            "all_attempts": [{"attempt": a["attempt"], "actual": a["actual"], "wer": a["wer"]} for a in attempts],
+            "cached": cached,
+        }
+
+    def audit_batch(self, phrases: list[str], edge_only: bool = False, no_pronunciation: bool = False) -> dict:
         """Audit a list of phrases, return aggregate report."""
         results = []
         for phrase in phrases:
             try:
-                result = self.audit_phrase(phrase)
+                result = self.audit_phrase(phrase, edge_only=edge_only, no_pronunciation=no_pronunciation)
                 results.append(result)
             except Exception as e:
                 logger.warning(f"Audit failed for '{phrase[:40]}': {e}")

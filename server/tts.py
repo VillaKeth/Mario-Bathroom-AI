@@ -1174,20 +1174,9 @@ def _preclean_tts_text(text: str) -> str:
     t = _re_tts.sub(r'([.!?])\s*,', r'\1', t)     # Comma after sentence-end punctuation
     t = _re_tts.sub(r',\s*([!?])', r'\1', t)       # Comma before ! or ? (from "...!")
     t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
-    # Pronunciation improvements for TTS engines
-    # These words are commonly mispronounced by Edge TTS / XTTS
-    # NOTE: Keep rules minimal — RVC voice conversion garbles phonetic substitutions.
-    # Only add rules proven to improve output quality through TTS audit testing.
-    t = _re_tts.sub(r'\bwahoo\b', 'wah hoo', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\byahoo\b', 'yah hoo', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bwhoa\b', 'woah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\byippee\b', 'yip pee', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bmamma mia\b', 'mama mee ah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bmama mia\b', 'mama mee ah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bokie dokie\b', 'okee dokee', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'(?<!\w)ha ha ha(?!\w)', 'hah hah hah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'(?<!\w)ha ha(?!\w)', 'hah hah', t, flags=_re_tts.IGNORECASE)
-    # Character-loaded pronunciation (from character.yaml)
+    # Pronunciation rules — loaded from character YAML only (single source of truth)
+    # Hardcoded rules were removed because they conflict with character-specific rules
+    # and prevent the YAML rules from being effective.
     for word, phonetic in _character_pronunciation.items():
         t = _re_tts.sub(r'(?<!\w)' + _re_tts.escape(word) + r'(?!\w)', phonetic, t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'\s+', ' ', t).strip()        # Collapse whitespace
@@ -1290,14 +1279,15 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # Step 2: Convert voice to Mario via RVC (if enabled)
     # Signal GPU busy to pause background GPT-SoVITS worker
     _gpu_busy.clear()
+    word_count = len(text.split())
     try:
         if USE_RVC:
             try:
-                result = _apply_rvc(base_wav)
+                result = _apply_rvc(base_wav, word_count=word_count)
             except Exception as rvc_err:
                 logger.warning(f"RVC voice conversion failed ({rvc_err}), retrying once...")
                 try:
-                    result = _apply_rvc(base_wav)
+                    result = _apply_rvc(base_wav, word_count=word_count)
                 except Exception:
                     logger.error("RVC retry also failed — using base audio (will sound wrong)")
                     result = base_wav
@@ -1465,15 +1455,33 @@ def _normalize_audio(wav_bytes: bytes, target_db: float = -3.0) -> bytes:
         return wav_bytes
 
 
-def _apply_rvc(wav_bytes: bytes) -> bytes:
+RVC_SHORT_PHRASE_F0_UP_KEY = 6   # Gentler pitch for short phrases (half octave vs full)
+RVC_SHORT_PHRASE_INDEX_RATE = 0.6  # Less aggressive voice matching for short phrases
+RVC_SHORT_PHRASE_PROTECT = 0.4   # More protection for short phrases (preserve consonants)
+RVC_SHORT_PHRASE_WORD_THRESHOLD = 4  # Phrases with fewer words get gentle treatment
+
+def _get_word_count_from_wav(wav_bytes: bytes) -> float:
+    """Estimate audio duration from WAV to detect short phrases."""
+    try:
+        with io.BytesIO(wav_bytes) as buf:
+            with wave.open(buf, "rb") as wf:
+                return wf.getnframes() / float(wf.getframerate())
+    except Exception:
+        return 999.0  # Assume long if we can't read
+
+def _apply_rvc(wav_bytes: bytes, word_count: int = 999) -> bytes:
     """Convert voice to Mario using RVC model. Returns WAV bytes.
     
     Uses a threading lock to serialize GPU calls — prevents contention
     that would cause 1s calls to balloon to 30s+.
+    
+    For short phrases (< RVC_SHORT_PHRASE_WORD_THRESHOLD words), uses gentler
+    RVC settings to avoid garbling short utterances.
     """
     if not _rvc_available or _rvc_model is None:
         return wav_bytes
 
+    is_short = word_count < RVC_SHORT_PHRASE_WORD_THRESHOLD
     tmp_in = None
     tmp_out = None
     try:
@@ -1491,8 +1499,24 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
             logger.warning("[DEBUG_TTS] _apply_rvc: lock timeout — GPU busy, returning original")
             return wav_bytes
         try:
+            if is_short:
+                _rvc_model.set_params(
+                    f0method=RVC_F0_METHOD,
+                    f0up_key=RVC_SHORT_PHRASE_F0_UP_KEY,
+                    index_rate=RVC_SHORT_PHRASE_INDEX_RATE,
+                    protect=RVC_SHORT_PHRASE_PROTECT,
+                )
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] _apply_rvc: using GENTLE params for short phrase ({word_count} words)")
             _rvc_model.infer_file(tmp_in, tmp_out)
         finally:
+            if is_short:
+                _rvc_model.set_params(
+                    f0method=RVC_F0_METHOD,
+                    f0up_key=RVC_F0_UP_KEY,
+                    index_rate=RVC_INDEX_RATE,
+                    protect=RVC_PROTECT,
+                )
             _rvc_lock.release()
 
         # Read output back
@@ -1501,7 +1525,7 @@ def _apply_rvc(wav_bytes: bytes) -> bytes:
 
         rvc_time = time.time() - rvc_start
         if DEBUG_TTS:
-            logger.info(f"[DEBUG_TTS] _apply_rvc: converted in {rvc_time:.1f}s")
+            logger.info(f"[DEBUG_TTS] _apply_rvc: converted in {rvc_time:.1f}s (short={is_short})")
 
         return _normalize_audio(result)
 

@@ -1903,7 +1903,9 @@ async def admin_tts_audit(request_body: dict = {}):
     
     # Run audit in thread pool to avoid blocking event loop
     import asyncio
-    report = await asyncio.to_thread(_tts_auditor.audit_batch, phrases)
+    edge_only = request_body.get("edge_only", False)
+    no_pronunciation = request_body.get("no_pronunciation", False)
+    report = await asyncio.to_thread(_tts_auditor.audit_batch, phrases, edge_only=edge_only, no_pronunciation=no_pronunciation)
     return report
 
 
@@ -1911,6 +1913,19 @@ async def admin_tts_audit(request_body: dict = {}):
 async def get_tts_audit_results(limit: int = 50):
     """Get recent audit results."""
     return _tts_auditor.get_results(limit)
+
+
+@app.post("/admin/tts_audit/best_of_n")
+async def admin_tts_best_of_n(request_body: dict = {}):
+    """Generate a phrase N times and cache the best version."""
+    import asyncio
+    phrases = request_body.get("phrases", [])
+    n = request_body.get("n", 5)
+    results = []
+    for phrase in phrases:
+        result = await asyncio.to_thread(_tts_auditor.best_of_n, phrase, n)
+        results.append(result)
+    return {"results": results}
 
 
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])

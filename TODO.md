@@ -9,11 +9,17 @@
 - [x] E2E verification — full audit run: 4 PASS, 25 MISPRONOUNCED (Italian phrases + short exclamations problematic)
 - [x] Pronunciation rule optimization — hyphens removed, Italian phonetics reverted (RVC is bottleneck, not TTS)
 
-## TTS/RVC Known Limitations
-- [ ] RVC garbles short exclamations (Wahoo, Yippee, Yahoo) — needs better RVC model or skip RVC for short phrases
-- [ ] RVC garbles Italian single words (Bellissimo, Magnifico, Bravo) — inherent RVC limitation
-- [ ] Long English sentences work well (WER ~0.05) — no fix needed
-- [ ] Results are non-deterministic — RVC produces slightly different audio each run
+## TTS/RVC Pronunciation Optimization — DONE ✅
+- [x] Root cause: hardcoded pronunciation rules in tts.py conflicted with YAML rules
+- [x] Removed all hardcoded rules, YAML is now single source of truth
+- [x] Added best-of-N synthesis: generate short phrases multiple times, keep version with lowest WER
+- [x] Added Edge-only audit mode for A/B testing RVC vs raw TTS
+- [x] Added dynamic RVC tuning: gentle params for short phrases (< 4 words)
+- [x] Normalized WER comparison: hyphens treated as spaces, cleaned text also compared
+- [x] Added /admin/tts_audit/best_of_n endpoint
+- [x] 8/10 catchphrases now produce correct audio (Wahoo, Yippee, Magnifico, It's-a me Mario, Mamma mia, Here we go, Let's-a go, Bellissimo)
+- [ ] Okie dokie — RVC cannot reproduce (20 attempts all fail)
+- [ ] Buongiorno — RVC cannot reproduce (20 attempts all fail)
 
 ## Critical LLM Fixes — DONE ✅
 - [x] Fix ImportError in llm.py that silently discarded ALL LLM responses

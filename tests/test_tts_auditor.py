@@ -23,7 +23,7 @@ class TestNormalize:
         assert _normalize("Hello   World") == "hello world"
     
     def test_apostrophes_preserved(self):
-        assert _normalize("it's-a me") == "it's-a me"
+        assert _normalize("it's-a me") == "it's a me"
 
 
 class TestCalculateWER:
@@ -109,8 +109,12 @@ class TestSuggestFix:
 class TestTTSAuditor:
     def test_audit_phrase_pass(self):
         """Perfect transcription → PASS."""
+        mock_tts = MagicMock(
+            synthesize=MagicMock(return_value=_create_test_wav()),
+            _preclean_tts_text=MagicMock(return_value="hello world"),
+        )
         with patch.dict('sys.modules', {
-            'tts': MagicMock(synthesize=MagicMock(return_value=_create_test_wav())),
+            'tts': mock_tts,
             'stt': MagicMock(
                 _HAS_WHISPER=True,
                 _model=MagicMock(),
@@ -124,8 +128,12 @@ class TestTTSAuditor:
 
     def test_audit_phrase_mispronounced(self):
         """Wrong word → MISPRONOUNCED."""
+        mock_tts = MagicMock(
+            synthesize=MagicMock(return_value=_create_test_wav()),
+            _preclean_tts_text=MagicMock(return_value="mamma mia that's amazing"),
+        )
         with patch.dict('sys.modules', {
-            'tts': MagicMock(synthesize=MagicMock(return_value=_create_test_wav())),
+            'tts': mock_tts,
             'stt': MagicMock(
                 _HAS_WHISPER=True,
                 _model=MagicMock(),
