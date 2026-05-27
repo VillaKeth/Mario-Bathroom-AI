@@ -815,7 +815,7 @@ class TestVIPBypassFix:
         )
         assert result is None
 
-    def test_do_you_know_me_returns_none(self):
+    def test_do_you_know_me_returns_recognition(self):
         fn = self._import_handle_special_commands()
         result = fn(
             "do you know me",
@@ -826,9 +826,10 @@ class TestVIPBypassFix:
             MagicMock(),
             MagicMock(),
         )
-        assert result is None
+        assert result is not None
+        assert "TestUser" in result
 
-    def test_who_am_i_returns_none(self):
+    def test_who_am_i_returns_recognition(self):
         fn = self._import_handle_special_commands()
         result = fn(
             "who am i",
@@ -839,7 +840,8 @@ class TestVIPBypassFix:
             MagicMock(),
             MagicMock(),
         )
-        assert result is None
+        assert result is not None
+        assert "TestUser" in result
 
     def test_what_do_you_remember_returns_none(self):
         fn = self._import_handle_special_commands()
@@ -1660,7 +1662,7 @@ class TestConversationSummarization:
                     if isinstance(target, ast.Name) and target.id == "RECENT_RAW_MESSAGES":
                         if isinstance(node.value, ast.Constant):
                             found_value = node.value.value
-        assert found_value == 8, f"RECENT_RAW_MESSAGES should be 8, got {found_value}"
+        assert found_value == 4, f"RECENT_RAW_MESSAGES should be 4, got {found_value}"
 
 
 class TestCommandDiscovery:

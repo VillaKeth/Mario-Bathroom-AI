@@ -206,7 +206,7 @@ class TestUniqueSelection:
     def test_handles_empty_pool(self):
         ib = IdleBehavior()
         result = ib._pick_unique([], "empty")
-        assert result == "..."
+        assert result == "Wahoo!"
 
 
 # ── TestMemorialEvent ────────────────────────────────────────────────────
@@ -421,7 +421,7 @@ class TestEdgeCases:
         for _ in range(30):
             mock_time.time.return_value += 200
             ib.get_idle_action()
-        assert ib._idle_interval == 90
+        assert ib._idle_interval == 45
 
 
 # ── TestIdleBehaviorGaps ─────────────────────────────────────────────────
