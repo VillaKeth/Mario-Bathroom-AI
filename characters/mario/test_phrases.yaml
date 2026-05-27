@@ -1,0 +1,42 @@
+# characters/mario/test_phrases.yaml
+# Curated phrases for TTS verification auditing.
+# Each category tests different pronunciation/truncation scenarios.
+
+catchphrases:
+  - "It's-a me, Mario!"
+  - "Wahoo!"
+  - "Mamma mia!"
+  - "Let's-a go!"
+  - "Yippee!"
+  - "Here we go!"
+  - "Oh yeah!"
+  - "Okie dokie!"
+  - "Ha ha ha!"
+  - "Yahoo!"
+
+italian_phrases:
+  - "Buongiorno, amico!"
+  - "Grazie mille!"
+  - "Bellissimo!"
+  - "Magnifico!"
+  - "Bravo!"
+
+game_text:
+  - "Welcome to Mario's Trivia Challenge!"
+  - "That's correct! You're doing great!"
+  - "Time for a game! Who wants to play?"
+  - "Let me think of a good riddle for you."
+  - "Rock, paper, scissors, shoot!"
+
+long_sentences:
+  - "Did you know that the first Mario game was released in 1985, and it completely revolutionized the gaming industry?"
+  - "Welcome to the party, everyone! I hope you're all ready for some fun, games, and maybe even a few surprises along the way!"
+  - "That reminds me of the time I rescued Princess Peach from Bowser's castle. It was quite the adventure, let me tell you!"
+
+existing_pronunciation_rules:
+  - "Okie dokie, let's start the game!"
+  - "Ha ha ha, that's really funny!"
+  - "Whoa, that's incredible!"
+  - "Wahoo! We did it!"
+  - "Yippee! That's the right answer!"
+  - "Mamma mia, what a great party!"
