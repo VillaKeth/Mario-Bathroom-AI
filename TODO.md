@@ -687,9 +687,13 @@
 - [x] Party name now configurable from config.json (was hardcoded "Jacob's Birthday Party")
 - [x] Enhanced thinking indicator: "Thinking..." text after 1s, "Generating... (Xs)" after 8s
 - [x] Config changed to hybrid TTS mode (Edge+RVC instant, SoVITS background upgrade)
+- [x] Fixed 9 stale test assertions (idle cap, VIP recognition, preclean, RECENT_RAW_MESSAGES)
+- [x] Improved idle emotion inference (singing, challenge, inspect, trivia keywords)
+- [x] Fixed async test marker for test_game_routing.py
+- [x] Cleaned up server/_check_engines.py temp file
 - [ ] Fish Speech wrapper needs rewrite for v0.1.0 API (fish_speech.inference_engine)
 - [ ] Speech bubble overflow edge cases (word-wrap + pagination exists, needs testing)
-- [ ] Sprite quality improvements (missing hands in AI poses)
+- [ ] Sprite quality improvements (some AI poses have blurry/missing hands — needs regeneration)
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
