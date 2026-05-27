@@ -25,6 +25,12 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 VECTOR_SIZE = 384
 
 
+def set_collection_name(name: str):
+    """Override the Qdrant collection name (from character config)."""
+    global COLLECTION_NAME
+    COLLECTION_NAME = name
+
+
 def init_semantic_memory(path: str | None = None):
     """Initialize Qdrant with local file storage (or in-memory for tests).
 

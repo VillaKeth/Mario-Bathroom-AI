@@ -494,23 +494,6 @@ _distress_tracker: "audio_distress.DistressTracker | None" = None
 
 # Face memory for webcam guest identification
 _face_memory = None
-try:
-    from face_memory import FaceMemory
-    _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
-    _face_memory = FaceMemory(_face_db_path)
-    
-    # Jacob VIP pre-registration - metadata only, face should be registered from real photo
-    if hasattr(_face_memory, 'store_face_qdrant') and _face_memory._qdrant_client:
-        try:
-            # Jacob's face should be registered from a real photo or during first identification
-            # at the party. We skip the face vector but keep VIP name registration if needed.
-            logger.info("[INIT] Jacob VIP metadata ready - face should be registered from real photo")
-        except Exception as e:
-            logger.warning(f"[INIT] Jacob VIP setup error: {e}")
-    
-    logger.info("[INIT] Face memory initialized")
-except Exception as e:
-    logger.warning(f"[INIT] Face memory unavailable: {e}")
 
 # Initialize guest profile manager (in-memory, clears on restart)
 from guest_profiles import GuestProfileManager
@@ -665,6 +648,26 @@ async def lifespan(app: FastAPI):
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
 
+    # Initialize face memory with character-specific collection
+    logger.info("Loading face memory...")
+    try:
+        from face_memory import FaceMemory
+        _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
+        _face_memory = FaceMemory(_face_db_path, collection_name=_character.collections["faces"])
+        
+        # Jacob VIP pre-registration - metadata only, face should be registered from real photo
+        if hasattr(_face_memory, 'store_face_qdrant') and _face_memory._qdrant_client:
+            try:
+                # Jacob's face should be registered from a real photo or during first identification
+                # at the party. We skip the face vector but keep VIP name registration if needed.
+                logger.info("[INIT] Jacob VIP metadata ready - face should be registered from real photo")
+            except Exception as e:
+                logger.warning(f"[INIT] Jacob VIP setup error: {e}")
+        
+        logger.info("[INIT] Face memory initialized")
+    except Exception as e:
+        logger.warning(f"[INIT] Face memory unavailable: {e}")
+
     logger.info("Loading TTS engine...")
     # Wire character voice settings (character config takes precedence over config.json)
     tts.EDGE_VOICE = _character.voice_config["edge_voice"]
@@ -773,7 +776,7 @@ async def lifespan(app: FastAPI):
     ))
 
     logger.info("Loading speaker identification...")
-    speaker_id.init_speaker_id()
+    speaker_id.init_speaker_id(collection_name=_character.collections["voices"])
 
     logger.info("Loading audio distress detector...")
     try:
@@ -793,6 +796,7 @@ async def lifespan(app: FastAPI):
     # Initialize semantic memory (Qdrant) and VIP knowledge
     if _HAS_SEMANTIC:
         try:
+            memory_semantic.set_collection_name(_character.collections["memories"])
             memory_semantic.init_semantic_memory()
             logger.info("Semantic memory (Qdrant) initialized")
             vip_knowledge.load_all_vip_profiles()

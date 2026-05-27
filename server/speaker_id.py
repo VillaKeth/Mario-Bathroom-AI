@@ -55,11 +55,13 @@ if os.path.exists(_spk_config_path):
 
 _encoder = None
 _qdrant_client: QdrantClient = None if _HAS_QDRANT else None
+_collection_name = "mario_voices"
 
 
-def init_speaker_id():
+def init_speaker_id(collection_name: str = "mario_voices"):
     """Initialize the voice encoder, database, and Qdrant collection."""
-    global _encoder, _qdrant_client
+    global _encoder, _qdrant_client, _collection_name
+    _collection_name = collection_name
     if not _HAS_RESEMBLYZER:
         logger.warning("[speaker_id] Skipping init — resemblyzer not installed")
         return
@@ -91,19 +93,19 @@ def init_speaker_id():
             
             # Check if collection exists
             collections = [c.name for c in _qdrant_client.get_collections().collections]
-            if "mario_voices" not in collections:
+            if _collection_name not in collections:
                 _qdrant_client.create_collection(
-                    collection_name="mario_voices",
+                    collection_name=_collection_name,
                     vectors_config=models.VectorParams(
                         size=256,  # Resemblyzer embedding dimension
                         distance=models.Distance.COSINE,
                     ),
                 )
                 if DEBUG_SPEAKER:
-                    logger.info("[DEBUG_SPEAKER] Created mario_voices Qdrant collection")
+                    logger.info(f"[DEBUG_SPEAKER] Created {_collection_name} Qdrant collection")
             else:
                 if DEBUG_SPEAKER:
-                    logger.info("[DEBUG_SPEAKER] mario_voices Qdrant collection already exists")
+                    logger.info(f"[DEBUG_SPEAKER] {_collection_name} Qdrant collection already exists")
         except Exception as e:
             logger.warning(f"[DEBUG_SPEAKER] Failed to initialize Qdrant: {e}")
             _qdrant_client = None
@@ -174,7 +176,7 @@ def store_voice_qdrant(name: str, embedding: np.ndarray) -> bool:
         
         # Store voice embedding in Qdrant
         _qdrant_client.upsert(
-            collection_name="mario_voices",
+            collection_name=_collection_name,
             points=[models.PointStruct(
                 id=point_id,
                 vector=embedding.tolist(),
@@ -213,7 +215,7 @@ def lookup_voice_qdrant(embedding: np.ndarray,
     
     try:
         results = _qdrant_client.query_points(
-            collection_name="mario_voices",
+            collection_name=_collection_name,
             query=embedding.tolist(),
             limit=1,
             score_threshold=threshold,

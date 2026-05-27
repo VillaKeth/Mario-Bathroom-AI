@@ -30,9 +30,10 @@ DEBUG_FACE = os.environ.get("DEBUG_FACE", "").lower() in ("1", "true", "yes")
 class FaceMemory:
     """Persistent face encoding storage with matching via Qdrant + SQLite fallback."""
 
-    def __init__(self, db_path: str, match_tolerance: float = 0.6):
+    def __init__(self, db_path: str, match_tolerance: float = 0.6, collection_name: str = "mario_faces"):
         self._db_path = db_path
         self._tolerance = match_tolerance
+        self._collection_name = collection_name
         self._lock = threading.RLock()
         self._init_db()
         
@@ -42,7 +43,7 @@ class FaceMemory:
             self._init_qdrant()
 
     def _init_qdrant(self):
-        """Initialize Qdrant client and mario_faces collection."""
+        """Initialize Qdrant client and face collection."""
         try:
             # Use local file-based storage for Qdrant
             qdrant_path = os.path.join(os.path.dirname(self._db_path), "qdrant_faces")
@@ -51,19 +52,19 @@ class FaceMemory:
             
             # Check if collection exists
             collections = [c.name for c in self._qdrant_client.get_collections().collections]
-            if "mario_faces" not in collections:
+            if self._collection_name not in collections:
                 self._qdrant_client.create_collection(
-                    collection_name="mario_faces",
+                    collection_name=self._collection_name,
                     vectors_config=models.VectorParams(
                         size=128,  # face_recognition encoding dimension
                         distance=models.Distance.COSINE,
                     ),
                 )
                 if DEBUG_FACE:
-                    logger.info("[face_memory] Created mario_faces Qdrant collection")
+                    logger.info(f"[face_memory] Created {self._collection_name} Qdrant collection")
             else:
                 if DEBUG_FACE:
-                    logger.info("[face_memory] mario_faces Qdrant collection already exists")
+                    logger.info(f"[face_memory] {self._collection_name} Qdrant collection already exists")
         except Exception as e:
             logger.warning(f"[face_memory] Failed to initialize Qdrant: {e}")
             self._qdrant_client = None
@@ -192,7 +193,7 @@ class FaceMemory:
             visits = 1
             try:
                 existing = self._qdrant_client.retrieve(
-                    collection_name="mario_faces",
+                    collection_name=self._collection_name,
                     ids=[point_id],
                 )
                 if existing:
@@ -202,7 +203,7 @@ class FaceMemory:
             
             # Store face encoding
             self._qdrant_client.upsert(
-                collection_name="mario_faces",
+                collection_name=self._collection_name,
                 points=[models.PointStruct(
                     id=point_id,
                     vector=encoding.tolist(),
@@ -240,7 +241,7 @@ class FaceMemory:
         
         try:
             results = self._qdrant_client.query_points(
-                collection_name="mario_faces",
+                collection_name=self._collection_name,
                 query=encoding.tolist(),
                 limit=1,
                 score_threshold=similarity_threshold,
