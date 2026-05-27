@@ -653,6 +653,24 @@ async def lifespan(app: FastAPI):
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
 
+    # Wire character prompts into mario_prompt module (used by build_context)
+    _char_sys_prompt = _character.get_system_prompt()
+    if _char_sys_prompt:
+        mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
+        logger.info(f"[CHARACTER] System prompt loaded ({len(_char_sys_prompt)} chars)")
+    _char_phases = _character.get_phase_prompts()
+    if _char_phases:
+        mario_prompt.PHASE_PROMPTS = _char_phases
+        logger.info(f"[CHARACTER] Phase prompts loaded ({len(_char_phases)} phases)")
+    _char_greetings = _character.get_greeting_prompts()
+    if _char_greetings:
+        mario_prompt.GREETING_PROMPTS = _char_greetings
+        logger.info(f"[CHARACTER] Greeting prompts loaded ({len(_char_greetings)} events)")
+    _char_guest_hints = _character.get_guest_type_hints()
+    if _char_guest_hints:
+        mario_prompt.GUEST_TYPE_HINTS = _char_guest_hints
+        logger.info(f"[CHARACTER] Guest type hints loaded ({len(_char_guest_hints)} types)")
+
     # Reinitialize idle behavior with character-specific pools
     global idle_behavior
     idle_behavior = IdleBehavior(character_loader=_character)
@@ -681,11 +699,13 @@ async def lifespan(app: FastAPI):
     # Wire character voice settings (character config takes precedence over config.json)
     tts.EDGE_VOICE = _character.voice_config["edge_voice"]
     tts.RATE = _character.voice_config["rate"]
-    # Keep existing config.json overrides as fallback
-    if server_config.get("tts_voice"):
-        tts.EDGE_VOICE = server_config["tts_voice"]
-    if server_config.get("tts_rate"):
-        tts.RATE = server_config["tts_rate"]
+    # Only use config.json overrides for the default "mario" character
+    if _character_name == "mario":
+        if server_config.get("tts_voice"):
+            tts.EDGE_VOICE = server_config["tts_voice"]
+        if server_config.get("tts_rate"):
+            tts.RATE = server_config["tts_rate"]
+    logger.info(f"[TTS] Voice: {tts.EDGE_VOICE}, Rate: {tts.RATE}")
     tts.init_tts()
 
     # Initialize TTS Router with fallback chain
@@ -876,8 +896,13 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠ Ollama model '{llm.MODEL_NAME}' not found! Run: ollama pull {llm.MODEL_NAME}")
 
     # Pre-cache common phrases in background (truly non-blocking)
-    threading.Thread(target=tts.precache_phrases, daemon=True).start()
-    logger.info("Pre-caching common Mario phrases in background...")
+    # Only pre-cache if running as Mario (phrases are Mario-specific)
+    if _character_name == "mario":
+        threading.Thread(target=tts.precache_phrases, daemon=True).start()
+        logger.info("Pre-caching common Mario phrases in background...")
+    else:
+        logger.info(f"[TTS] Skipping Mario phrase pre-cache (character={_character_name})")
+        tts._precache_done.set()
 
     # Pre-cache countdown audio for shot events
     async def _precache_countdown():
@@ -3794,11 +3819,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             _approach_hints = [
                 "Tell a short story or memory related to this.",
                 "Share a funny opinion about this.",
-                "Reference a Mario game moment that connects to this.",
                 "Give a genuine, heartfelt answer.",
                 "Be dramatic and theatrical in your response.",
                 "Use an analogy or comparison in your answer.",
-                "Share a behind-the-scenes secret about this topic.",
+                "Share something surprising or edgy about this topic.",
+                "Give your honest, unfiltered take on this.",
             ]
             _hint = random.choice(_approach_hints)
             ctx[0]["content"] = (
