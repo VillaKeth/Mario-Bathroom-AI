@@ -204,3 +204,42 @@ def test_get_game_pools_empty(tmp_chars):
     loader = CharacterLoader(str(tmp_chars), "test_char")
     pools = loader.get_game_pools(str(tmp_chars / "_shared"))
     assert pools == {}
+
+def test_speech_config(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["speech"] = {
+        "accent_markers": ["Italian accent", "Adds -a to words"],
+        "catchphrase_dir": "catchphrases/",
+    }
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert len(loader.accent_markers) == 2
+    assert "Italian" in loader.accent_markers[0]
+
+def test_speech_defaults(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.accent_markers == []
+
+def test_memory_config(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["memory"] = {
+        "collections": {
+            "faces": "test_faces",
+            "voices": "test_voices",
+            "memories": "test_memories",
+        },
+        "vip_profiles_dir": "memories/vip/",
+        "lore_file": "memories/lore.yaml",
+    }
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.collections["faces"] == "test_faces"
+    assert loader.collections["voices"] == "test_voices"
+
+def test_memory_defaults(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.collections["faces"] == "testbot_faces"
+    assert loader.collections["voices"] == "testbot_voices"
+    assert loader.collections["memories"] == "testbot_memories"

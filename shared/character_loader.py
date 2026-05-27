@@ -87,6 +87,29 @@ class CharacterLoader:
         })
         self.particle_colors: list = visuals.get("particle_colors", [])
 
+        # Parse speech
+        speech = self._config.get("speech", {})
+        self.accent_markers: list = speech.get("accent_markers", [])
+        self.catchphrase_dir: str = str(self._resolve_path(speech.get("catchphrase_dir", "catchphrases/")))
+
+        # Parse memory
+        memory = self._config.get("memory", {})
+        self.collections: dict = memory.get("collections", {
+            "faces": f"{self.name.lower()}_faces",
+            "voices": f"{self.name.lower()}_voices",
+            "memories": f"{self.name.lower()}_memories",
+        })
+        self.vip_profiles_dir: str = str(self._resolve_path(memory.get("vip_profiles_dir", "memories/vip_profiles/")))
+        self.lore_file: str = str(self._resolve_path(memory.get("lore_file", "memories/lore.yaml")))
+
+        # Log load summary
+        logger.info(
+            f"Loaded character '{self.name}': "
+            f"{len(self.emotion_sprite_map)} emotions, "
+            f"{len(self.pronunciation)} pronunciation rules, "
+            f"engine={self.voice_config['preferred_engine']}"
+        )
+
     def _validate_required(self):
         """Check that required fields exist in the config."""
         missing = []

@@ -87,3 +87,22 @@ visuals:
   fallback_sprites:
     emotion: "neutral/idle"
     state: "neutral/idle"
+
+speech:
+  accent_markers:
+   - "Uses Italian-accented English"
+   - "Adds '-a' to words: 'it's-a me', 'let's-a go'"
+   - "Catchphrases: Wahoo!, Mama mia!, Okie dokie!"
+  catchphrase_dir: "catchphrases/"
+
+games:
+  pools_dir: "games/"
+  include_shared: true
+
+memory:
+  collections:
+   faces: "mario_faces"
+   voices: "mario_voices"
+   memories: "mario_memories"
+  vip_profiles_dir: "memories/vip_profiles/"
+  lore_file: "memories/lore.yaml"
