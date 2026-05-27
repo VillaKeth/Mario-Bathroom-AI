@@ -36,3 +36,13 @@ def test_mario_guest_type_hints():
     hints = loader.get_guest_type_hints()
     assert "shy" in hints
     assert "curious" in hints
+
+def test_mario_game_pools_load():
+    chars_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "characters")
+    shared_dir = os.path.join(chars_dir, "_shared")
+    loader = CharacterLoader(chars_dir, "mario")
+    pools = loader.get_game_pools(shared_dir)
+    assert "trivia" in pools
+    assert len(pools["trivia"]) >= 50
+    assert "reactions" in pools
+    assert "rps_win" in pools["reactions"]

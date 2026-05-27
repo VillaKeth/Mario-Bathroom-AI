@@ -1,0 +1,144 @@
+- desc: "This-a guy is green, taller than me, and afraid of ghosts!"
+  a:
+    - "luigi"
+  accept:
+    - "luigi"
+- desc: "She's-a got a pink dress, blonde hair, and keeps getting kidnapped by Bowser!"
+  a:
+    - "peach"
+  accept:
+    - "peach"
+    - "princess peach"
+    - "toadstool"
+- desc: "This little mushroom head always says 'Thank you Mario!' but the princess is NEVER there!"
+  a:
+    - "toad"
+  accept:
+    - "toad"
+- desc: "Big spiky turtle, breathes fire, has a SERIOUS princess obsession!"
+  a:
+    - "bowser"
+  accept:
+    - "bowser"
+    - "king koopa"
+- desc: "Green dinosaur, long tongue, eats EVERYTHING, and I may have... dropped him into pits!"
+  a:
+    - "yoshi"
+  accept:
+    - "yoshi"
+- desc: "This guy looks like me but EVIL, wears yellow and purple, and loves garlic!"
+  a:
+    - "wario"
+  accept:
+    - "wario"
+- desc: "Tall, skinny, purple hat, goes 'WAH!' a LOT, and never gets invited to Smash Bros!"
+  a:
+    - "waluigi"
+  accept:
+    - "waluigi"
+- desc: "Floats in a cloud, wears goggles, throws spiny eggs at you from above!"
+  a:
+    - "lakitu"
+  accept:
+    - "lakitu"
+- desc: "Round, brown, angry face, just walks in one direction, gets stomped by EVERYONE!"
+  a:
+    - "goomba"
+  accept:
+    - "goomba"
+- desc: "A ghost that covers its face when you look at it, but chases you when you turn around!"
+  a:
+    - "boo"
+  accept:
+    - "boo"
+    - "king boo"
+- desc: "She lives in space, watches over the Lumas, and has a mysterious backstory!"
+  a:
+    - "rosalina"
+  accept:
+    - "rosalina"
+- desc: "He's a star-shaped warrior from the legends, made of wood, shoots laser beams!"
+  a:
+    - "geno"
+  accept:
+    - "geno"
+- desc: "A turtle with a red or green shell — kick the shell and it goes FLYING!"
+  a:
+    - "koopa troopa"
+  accept:
+    - "koopa"
+    - "koopa troopa"
+    - "koopa trooper"
+- desc: "This big ape throws barrels and loves bananas more than ANYTHING!"
+  a:
+    - "donkey kong"
+  accept:
+    - "donkey kong"
+    - "dk"
+- desc: "She's got an orange dress, is from Sarasaland, and says 'Hi I'm Daisy!' ALL the time!"
+  a:
+    - "daisy"
+  accept:
+    - "daisy"
+    - "princess daisy"
+- desc: "A tiny mushroom person with a mining hat, always screaming and running around!"
+  a:
+    - "toad"
+  accept:
+    - "toad"
+    - "captain toad"
+- desc: "A blue hedgehog who goes REALLY fast and collects golden rings!"
+  a:
+    - "sonic"
+  accept:
+    - "sonic"
+    - "sonic the hedgehog"
+- desc: "Bowser's son with a magic paintbrush! Tried to frame me by painting graffiti everywhere!"
+  a:
+    - "bowser jr"
+  accept:
+    - "bowser jr"
+    - "bowser junior"
+    - "junior"
+- desc: "A little cloud puff baby that lives in space and loves their mama Rosalina!"
+  a:
+    - "luma"
+  accept:
+    - "luma"
+- desc: "My hat friend from Odyssey! He lets me capture and possess other creatures!"
+  a:
+    - "cappy"
+  accept:
+    - "cappy"
+- desc: "A hammer-throwing turtle bro in a helmet! These guys are TOUGH to dodge!"
+  a:
+    - "hammer bro"
+  accept:
+    - "hammer bro"
+    - "hammer brother"
+    - "hammer bros"
+- desc: "A chain ball monster that barks and lunges at you! Tied to a stake but WANTS to be free!"
+  a:
+    - "chain chomp"
+  accept:
+    - "chain chomp"
+    - "chomp"
+- desc: "She's the mayor of New Donk City and she can SING! Jump Up, Super Star!"
+  a:
+    - "pauline"
+  accept:
+    - "pauline"
+- desc: "A little star that pops out of blocks and makes you INVINCIBLE for a few seconds!"
+  a:
+    - "super star"
+  accept:
+    - "star"
+    - "super star"
+    - "starman"
+    - "invincibility star"
+- desc: "A blue shell that flies to first place and EXPLODES! The most hated item in racing!"
+  a:
+    - "blue shell"
+  accept:
+    - "blue shell"
+    - "spiny shell"
