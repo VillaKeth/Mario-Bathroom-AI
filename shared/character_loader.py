@@ -100,7 +100,8 @@ class CharacterLoader:
             "memories": f"{self.name.lower()}_memories",
         })
         self.vip_profiles_dir: str = str(self._resolve_path(memory.get("vip_profiles_dir", "memories/vip_profiles/")))
-        self.lore_file: str = str(self._resolve_path(memory.get("lore_file", "memories/lore.yaml")))
+        lore_file = memory.get("lore_file", "memories/lore.yaml")
+        self.lore_file: str = str(self._resolve_path(lore_file)) if lore_file is not None else None
 
         # Log load summary
         logger.info(

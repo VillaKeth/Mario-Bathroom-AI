@@ -1,0 +1,53 @@
+identity:
+  name: "TestBot"
+  display_name: "Test Bot 🤖"
+  tagline: "I'm a test bot for validating the modular character system"
+  description: "A minimal test character to verify CharacterLoader works with non-Mario characters"
+
+voice:
+  preferred_engine: "edge"
+  edge_voice: "en-US-GuyNeural"
+  rate: "+0%"
+  pitch: "+0Hz"
+  pronunciation:
+    TestBot: "test bot"
+
+visuals:
+  sprite_dir: "sprites/"
+  ai_poses_dir: "sprites/ai_poses/"
+  ai_pose_size: [200, 200]
+  theme_colors:
+    primary: [0, 150, 255]
+    secondary: [50, 50, 50]
+    accent: [255, 200, 0]
+    text: "#FFFFFF"
+  particle_colors:
+    - "#0096FF"
+    - "#323232"
+    - "#FFC800"
+  emotion_sprite_map:
+    happy: "positive/happy"
+    sad: "negative/sad"
+    neutral: "neutral/idle"
+  state_sprite_map:
+    idle: "neutral/idle"
+    talking: "speech/talking"
+    listening: "speech/listening"
+  fallback_sprites:
+    emotion: "neutral/idle"
+    state: "neutral/idle"
+
+speech:
+  accent_markers: []
+  catchphrase_dir: "catchphrases/"
+
+games:
+  include_shared: true
+
+memory:
+  collections:
+    faces: "testbot_faces"
+    voices: "testbot_voices"
+    memories: "testbot_memories"
+  vip_profiles_dir: "memories/vip_profiles/"
+  lore_file: null
