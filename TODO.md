@@ -695,6 +695,24 @@
 - [ ] Speech bubble overflow edge cases (word-wrap + pagination exists, needs testing)
 - [ ] Sprite quality improvements (some AI poses have blurry/missing hands — needs regeneration)
 
+## Character System E2E Verification — DONE ✅
+- [x] Wire character system prompt into mario_prompt.MARIO_SYSTEM_PROMPT
+- [x] Wire phase prompts, greeting prompts, guest type hints from character config
+- [x] Fix TTS voice override: config.json only overrides for Mario, not other characters
+- [x] Skip Mario-specific TTS pre-cache for non-Mario characters
+- [x] Make approach hints character-generic (remove Mario game references)
+- [x] Fix idle LLM prompt "Say something as Mario" to use character name
+- [x] Fix memory save_conversation to use character name
+- [x] Make game_handlers character-aware (set_character, dynamic trivia intro)
+- [x] Add missing sprite aliases for Rudi (7 sprites) and Sonic (2 sprites)
+- [x] Fix stale test assertions (truth_or_dare, who am i, stop game, konami code)
+- [x] Rudi E2E verified: system prompt, voice (DavisNeural +15%), idle messages, emotions, Pygame on Desktop 2
+- [x] Sonic E2E verified: system prompt, voice (ChristopherNeural +25%), idle messages, emotions, Pygame on Desktop 2
+- [x] Mario regression verified: system prompt, voice (GuyNeural +10%), pre-cache, jokes, food handler
+- [x] 443/443 tests passing
+- [ ] Game content still Mario-themed for all characters (trivia questions, dares, RPS reactions)
+- [ ] Phase/greeting prompt key mismatch (WARM_UP vs warming_up, startup vs first_time)
+
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
 - [ ] Run generate_expanded_poses.py --category memorial (5 memorial poses)
