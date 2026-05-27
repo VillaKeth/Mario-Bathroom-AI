@@ -55,6 +55,8 @@ from idle_behavior import IdleBehavior, MEMORIAL_ANNOUNCEMENT, MEMORIAL_SILENCE,
 from pose_analyzer import analyze_text
 import command_handlers
 from game_handlers import check_game_timeout
+import yaml
+from tts_auditor import TTSAuditor
 
 # Semantic memory & VIP knowledge (optional — graceful fallback)
 try:
@@ -113,6 +115,9 @@ logger.info(f"Live config initialized at {LIVE_CONFIG_PATH}")
 
 # Character configuration (loaded during startup)
 _character = None
+
+# TTS Auditor for batch verification
+_tts_auditor = TTSAuditor()
 
 # Hardware auto-detection for performance tuning
 hw_info = hardware.get_hardware()
@@ -774,6 +779,47 @@ async def lifespan(app: FastAPI):
     logger.info("TTS Router active — fallback chain: " + " → ".join(
         e.name for e in _tts_router.get_fallback_chain()
     ))
+
+    # Wire TTS debug monitor if enabled
+    if live_config.get("tts_debug_transcribe", False):
+        import asyncio as _asyncio
+        import tts as tts_module
+        
+        def _debug_monitor_callback(text: str, wav_bytes: bytes):
+            """Non-blocking audit callback — fires STT in background thread."""
+            def _do_audit():
+                try:
+                    import io as _io, wave as _wave
+                    with _io.BytesIO(wav_bytes) as buf:
+                        with _wave.open(buf, "rb") as wf:
+                            pcm_data = wf.readframes(wf.getnframes())
+                            sample_rate = wf.getframerate()
+                            duration = wf.getnframes() / float(wf.getframerate())
+                    actual = stt.transcribe(pcm_data, sample_rate)
+                    from tts_auditor import calculate_wer, is_truncated, AuditResult
+                    wer, missing, wrong = calculate_wer(text, actual)
+                    if wer > 0.1 or is_truncated(text, actual, duration):
+                        result = AuditResult(
+                            intended=text, actual=actual, word_error_rate=round(wer, 3),
+                            truncated=is_truncated(text, actual, duration),
+                            missing_words=missing, wrong_words=wrong,
+                            audio_duration_s=round(duration, 2),
+                        )
+                        _tts_auditor._log_mismatch(result)
+                        logger.warning(f"[TTS_AUDIT] Mismatch: '{text[:40]}' → '{actual[:40]}' (WER={wer:.2f})")
+                except Exception as e:
+                    logger.warning(f"[TTS_AUDIT] Debug monitor error: {e}")
+            
+            # Run in thread pool to avoid blocking TTS synthesis
+            try:
+                loop = _asyncio.get_running_loop()
+                loop.run_in_executor(None, _do_audit)
+            except RuntimeError:
+                import threading
+                threading.Thread(target=_do_audit, daemon=True).start()
+        
+        tts_module.register_post_synthesis_callback(_debug_monitor_callback)
+        logger.info("[TTS_AUDIT] Debug monitor enabled — transcribing all TTS output")
 
     logger.info("Loading speaker identification...")
     speaker_id.init_speaker_id(collection_name=_character.collections["voices"])
@@ -1834,6 +1880,37 @@ async def admin_party_summary():
         "tts_cache_size": tts.get_cache_stats().get("count", 0) if hasattr(tts, "get_cache_stats") else 0,
         "idle_errors": stats.get("idle_errors", 0),
     }
+
+
+@app.post("/admin/tts_audit")
+async def admin_tts_audit(request_body: dict = {}):
+    """Run batch TTS audit — synthesize phrases, transcribe, compare."""
+    phrases = list(request_body.get("phrases", []))
+    use_builtin = request_body.get("use_builtin", not phrases)
+    
+    if use_builtin and _character:
+        # Load test phrases from character directory
+        test_phrases_path = os.path.join(_character.character_dir, "test_phrases.yaml")
+        if os.path.exists(test_phrases_path):
+            with open(test_phrases_path, "r", encoding="utf-8") as f:
+                categories = yaml.safe_load(f) or {}
+            for category_phrases in categories.values():
+                if isinstance(category_phrases, list):
+                    phrases.extend(category_phrases)
+    
+    if not phrases:
+        return {"status": "error", "message": "No phrases to audit. Provide phrases or create test_phrases.yaml"}
+    
+    # Run audit in thread pool to avoid blocking event loop
+    import asyncio
+    report = await asyncio.to_thread(_tts_auditor.audit_batch, phrases)
+    return report
+
+
+@app.get("/admin/tts_audit/results")
+async def get_tts_audit_results(limit: int = 50):
+    """Get recent audit results."""
+    return _tts_auditor.get_results(limit)
 
 
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
