@@ -1,0 +1,17 @@
+{
+    "name": "Party Guest Template",
+    "aliases": [],
+    "bio": {
+        "birthday": null,
+        "hometown": null,
+        "education": null
+    },
+    "personality_notes": [
+        "Fill in personality traits as you learn them during the party"
+    ],
+    "conversation_hooks": [
+        "Ask what brings them to the party",
+        "Find out how they know the birthday boy"
+    ],
+    "_instructions": "Copy this file, rename to guest_name.json, fill in details. Mario will auto-load it."
+}
