@@ -7,6 +7,13 @@
 - [x] TTS post-synthesis callback hook
 - [x] /admin/tts_audit endpoint and debug monitor toggle
 - [x] E2E verification — full audit run: 4 PASS, 25 MISPRONOUNCED (Italian phrases + short exclamations problematic)
+- [x] Pronunciation rule optimization — hyphens removed, Italian phonetics reverted (RVC is bottleneck, not TTS)
+
+## TTS/RVC Known Limitations
+- [ ] RVC garbles short exclamations (Wahoo, Yippee, Yahoo) — needs better RVC model or skip RVC for short phrases
+- [ ] RVC garbles Italian single words (Bellissimo, Magnifico, Bravo) — inherent RVC limitation
+- [ ] Long English sentences work well (WER ~0.05) — no fix needed
+- [ ] Results are non-deterministic — RVC produces slightly different audio each run
 
 ## Critical LLM Fixes — DONE ✅
 - [x] Fix ImportError in llm.py that silently discarded ALL LLM responses
