@@ -14,26 +14,63 @@ import time
 import threading
 import sys
 
-from audio_capture import AudioCapture
-from audio_playback import AudioPlayback
-from presence import PresenceDetector
-from mario_display import (MarioDisplay, STATE_IDLE, STATE_TALKING, STATE_LISTENING,
-                           STATE_THINKING, STATE_GREETING, STATE_ENTERING, STATE_EXITING)
-from ws_client import MarioWSClient
-from sound_effects import SoundEffects
+# Add project root to path for shared module
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CLIENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+if CLIENT_DIR not in sys.path:
+    sys.path.insert(0, CLIENT_DIR)
 
+# Load config
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+_full_config = {}
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH) as f:
+        _full_config = json.load(f)
+    client_config = _full_config.get("client", {})
+else:
+    client_config = {}
+
+# Set up logging
 DEBUG_CLIENT = True
 DEBUG_AUDIO = True
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-client")
 
-# Load config
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
-client_config = {}
-if os.path.exists(CONFIG_PATH):
-    with open(CONFIG_PATH) as f:
-        client_config = json.load(f).get("client", {})
+if _full_config:
     logger.info(f"Loaded config from {CONFIG_PATH}")
+
+# Load character
+from shared.character_loader import CharacterLoader
+_characters_dir = os.path.join(PROJECT_ROOT, "characters")
+_character_name = _full_config.get("character", "mario")
+_character = CharacterLoader(_characters_dir, _character_name)
+logger.info(f"Loaded character: {_character.display_name}")
+
+# Override mario_display module-level constants BEFORE importing MarioDisplay
+import mario_display as mario_display_module
+
+if _character.sprite_dir:
+    mario_display_module.SPRITE_DIR = _character.sprite_dir
+if _character.ai_poses_dir:
+    mario_display_module.AI_POSES_DIR = _character.ai_poses_dir
+if _character.emotion_sprite_map:
+    mario_display_module.EMOTION_SPRITE_MAP = _character.emotion_sprite_map
+if _character.state_sprite_map:
+    mario_display_module.STATE_SPRITE_MAP = _character.state_sprite_map
+if _character.ai_pose_size:
+    mario_display_module.AI_POSE_DISPLAY_SIZE = _character.ai_pose_size
+mario_display_module.WINDOW_TITLE = _character.display_name
+
+# Now import from mario_display
+from mario_display import (MarioDisplay, STATE_IDLE, STATE_TALKING, STATE_LISTENING,
+                           STATE_THINKING, STATE_GREETING, STATE_ENTERING, STATE_EXITING)
+from audio_capture import AudioCapture
+from audio_playback import AudioPlayback
+from presence import PresenceDetector
+from ws_client import MarioWSClient
+from sound_effects import SoundEffects
 
 SERVER_URL = client_config.get("server_url", "ws://localhost:8765/ws")
 

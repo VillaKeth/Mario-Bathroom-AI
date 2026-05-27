@@ -18,6 +18,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 BG_COLOR = (20, 20, 40)
 TEXT_COLOR = (255, 255, 255)
+WINDOW_TITLE = "Mario AI 🍄"
 
 # Regex to strip emoji/symbol characters that Pygame fonts can't render
 _EMOJI_RE = re.compile(
@@ -466,7 +467,7 @@ class MarioDisplay:
 
         pygame.init()
         self._initialized = True
-        pygame.display.set_caption("Mario AI \U0001f344")
+        pygame.display.set_caption(WINDOW_TITLE)
         self._screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 
         # Auto-move window to Desktop 2 if available (keeps Desktop 1 clear for user)
@@ -476,7 +477,7 @@ class MarioDisplay:
             if len(desktops) >= 2:
                 import ctypes, ctypes.wintypes
                 # Find our window by title
-                hwnd = ctypes.windll.user32.FindWindowW(None, "Mario AI \U0001f344")
+                hwnd = ctypes.windll.user32.FindWindowW(None, WINDOW_TITLE)
                 if not hwnd:
                     # Fallback: use pygame's wm_info
                     hwnd = pygame.display.get_wm_info().get("window", 0)
