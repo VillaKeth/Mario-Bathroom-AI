@@ -7,6 +7,7 @@ sentence splitting, and catchphrase normalization/matching.
 import sys
 import os
 import asyncio
+import logging
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
@@ -448,7 +449,7 @@ class TestPrecleanTtsText:
 
     def test_ellipsis_at_end(self):
         from tts import _preclean_tts_text
-        assert _preclean_tts_text("Mama mia...") == "Mama mia"
+        assert _preclean_tts_text("Mama mia...") == "mama mee-ah"
 
     def test_ellipsis_at_start(self):
         from tts import _preclean_tts_text
@@ -468,7 +469,7 @@ class TestPrecleanTtsText:
 
     def test_comma_after_punctuation(self):
         from tts import _preclean_tts_text
-        assert _preclean_tts_text("Wahoo! ...Ready?") == "Wahoo! Ready?"
+        assert _preclean_tts_text("Wahoo! ...Ready?") == "wah-hoo! Ready?"
 
     def test_only_ellipsis(self):
         from tts import _preclean_tts_text
@@ -489,3 +490,61 @@ class TestPrecleanTtsText:
     def test_trailing_comma_removed(self):
         from tts import _preclean_tts_text
         assert _preclean_tts_text("Hello world,") == "Hello world"
+
+
+class TestTtsRvcRetries:
+    def test_synthesize_retries_rvc_once_before_succeeding(self, monkeypatch, caplog):
+        import tts
+
+        attempts = {"count": 0}
+
+        def fake_apply_rvc(wav_bytes):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise RuntimeError("first failure")
+            return b"mario_wav"
+
+        monkeypatch.setattr(tts, "USE_RVC", True)
+        monkeypatch.setattr(tts, "FAST_MODE", True)
+        monkeypatch.setattr(tts, "TTS_MODE", "edge")
+        monkeypatch.setattr(tts, "_xtts_available", False)
+        monkeypatch.setattr(tts, "_sovits_available", False)
+        monkeypatch.setattr(tts, "_synthesize_edge", lambda text, rate=None, pitch=None: b"edge_wav")
+        monkeypatch.setattr(tts, "_apply_rvc", fake_apply_rvc)
+        monkeypatch.setattr(tts, "_save_to_disk_cache", lambda cache_key, wav_bytes: None)
+        tts._audio_cache.clear()
+        tts._cache_order.clear()
+
+        with caplog.at_level(logging.WARNING):
+            result = tts.synthesize("Retry me", nocache=True)
+
+        assert result == b"mario_wav"
+        assert attempts["count"] == 2
+        assert "RVC voice conversion failed" in caplog.text
+
+    def test_synthesize_falls_back_to_base_audio_after_second_rvc_failure(self, monkeypatch, caplog):
+        import tts
+
+        attempts = {"count": 0}
+
+        def always_fail_rvc(wav_bytes):
+            attempts["count"] += 1
+            raise RuntimeError("still broken")
+
+        monkeypatch.setattr(tts, "USE_RVC", True)
+        monkeypatch.setattr(tts, "FAST_MODE", True)
+        monkeypatch.setattr(tts, "TTS_MODE", "edge")
+        monkeypatch.setattr(tts, "_xtts_available", False)
+        monkeypatch.setattr(tts, "_sovits_available", False)
+        monkeypatch.setattr(tts, "_synthesize_edge", lambda text, rate=None, pitch=None: b"edge_wav")
+        monkeypatch.setattr(tts, "_apply_rvc", always_fail_rvc)
+        monkeypatch.setattr(tts, "_save_to_disk_cache", lambda cache_key, wav_bytes: None)
+        tts._audio_cache.clear()
+        tts._cache_order.clear()
+
+        with caplog.at_level(logging.WARNING):
+            result = tts.synthesize("Retry me", nocache=True)
+
+        assert result == b"edge_wav"
+        assert attempts["count"] == 2
+        assert "RVC retry also failed" in caplog.text

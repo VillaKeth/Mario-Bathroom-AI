@@ -130,7 +130,7 @@ class TestPrecleanTtsText(unittest.TestCase):
         self.assertNotIn("*", result)
         self.assertNotIn("\u2026", result)
         self.assertNotIn("\u2014", result)
-        self.assertIn("Wahoo!", result)
+        self.assertIn("wah-hoo!", result)
         self.assertIn("Let's-a go", result)
         self.assertIn("it's party time!", result)
 
@@ -138,6 +138,14 @@ class TestPrecleanTtsText(unittest.TestCase):
         """Text that becomes empty after cleaning."""
         result = _preclean_tts_text('..."')
         self.assertEqual(result, "")
+
+    def test_pronunciation_substitutions(self):
+        result = _preclean_tts_text("Wahoo! Whoa! Yippee! Mamma mia! Mama mia! Okie dokie!")
+        self.assertEqual(result, "wah-hoo! woah! yip-pee! mama mee-ah! mama mee-ah! oh-key doh-key!")
+
+    def test_laughter_substitutions(self):
+        self.assertEqual(_preclean_tts_text("Ha ha ha"), "hah hah hah")
+        self.assertEqual(_preclean_tts_text("Ha ha"), "hah hah")
 
 
 if __name__ == "__main__":

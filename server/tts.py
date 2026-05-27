@@ -1150,6 +1150,16 @@ def _preclean_tts_text(text: str) -> str:
     t = _re_tts.sub(r'([.!?])\s*,', r'\1', t)     # Comma after sentence-end punctuation
     t = _re_tts.sub(r',\s*([!?])', r'\1', t)       # Comma before ! or ? (from "...!")
     t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
+    # Pronunciation improvements for TTS engines
+    # These words are commonly mispronounced by Edge TTS / XTTS
+    t = _re_tts.sub(r'\bwahoo\b', 'wah-hoo', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bwhoa\b', 'woah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\byippee\b', 'yip-pee', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bmamma mia\b', 'mama mee-ah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bmama mia\b', 'mama mee-ah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bokie dokie\b', 'oh-key doh-key', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'(?<!\w)ha ha ha(?!\w)', 'hah hah hah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'(?<!\w)ha ha(?!\w)', 'hah hah', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'\s+', ' ', t).strip()        # Collapse whitespace
     return t
 
@@ -1252,7 +1262,15 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     _gpu_busy.clear()
     try:
         if USE_RVC:
-            result = _apply_rvc(base_wav)
+            try:
+                result = _apply_rvc(base_wav)
+            except Exception as rvc_err:
+                logger.warning(f"RVC voice conversion failed ({rvc_err}), retrying once...")
+                try:
+                    result = _apply_rvc(base_wav)
+                except Exception:
+                    logger.error("RVC retry also failed — using base audio (will sound wrong)")
+                    result = base_wav
         else:
             result = base_wav
     finally:

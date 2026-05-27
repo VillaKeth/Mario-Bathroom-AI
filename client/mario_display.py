@@ -956,26 +956,26 @@ class MarioDisplay:
         cy = WINDOW_HEIGHT // 2 + 20
 
         particle_configs = {
-            "excited": {"color": (255, 215, 0), "count": 15, "shape": "star", "spread": 80},
-            "happy": {"color": (255, 255, 0), "count": 8, "shape": "circle", "spread": 60},
-            "surprised": {"color": (255, 100, 255), "count": 12, "shape": "circle", "spread": 100},
-            "confused": {"color": (150, 150, 255), "count": 6, "shape": "circle", "spread": 40},
-            "annoyed": {"color": (255, 100, 50), "count": 8, "shape": "circle", "spread": 50},
-            "sleepy": {"color": (100, 100, 200), "count": 3, "shape": "circle", "spread": 30},
-            "mischievous": {"color": (0, 255, 100), "count": 10, "shape": "star", "spread": 70},
-            "laughing": {"color": (255, 255, 100), "count": 10, "shape": "star", "spread": 70},
-            "loving": {"color": (255, 100, 150), "count": 12, "shape": "star", "spread": 75},
-            "love": {"color": (255, 80, 130), "count": 12, "shape": "star", "spread": 75},
-            "proud": {"color": (255, 200, 0), "count": 10, "shape": "star", "spread": 65},
-            "frustrated": {"color": (255, 60, 30), "count": 10, "shape": "circle", "spread": 55},
-            "embarrassed": {"color": (255, 150, 180), "count": 6, "shape": "circle", "spread": 45},
-            "worried": {"color": (180, 180, 255), "count": 5, "shape": "circle", "spread": 35},
-            "bored": {"color": (150, 150, 150), "count": 4, "shape": "circle", "spread": 30},
-            "determined": {"color": (255, 165, 0), "count": 8, "shape": "star", "spread": 60},
-            "sad": {"color": (100, 150, 255), "count": 6, "shape": "circle", "spread": 45},
-            "angry": {"color": (255, 30, 30), "count": 12, "shape": "circle", "spread": 70},
-            "nervous": {"color": (200, 200, 255), "count": 5, "shape": "circle", "spread": 40},
-            "scared": {"color": (180, 180, 255), "count": 8, "shape": "circle", "spread": 60},
+            "excited": {"color": (255, 215, 0), "count": 8, "shape": "star", "spread": 80},
+            "happy": {"color": (255, 255, 0), "count": 4, "shape": "circle", "spread": 60},
+            "surprised": {"color": (255, 100, 255), "count": 6, "shape": "circle", "spread": 100},
+            "confused": {"color": (150, 150, 255), "count": 3, "shape": "circle", "spread": 40},
+            "annoyed": {"color": (255, 100, 50), "count": 4, "shape": "circle", "spread": 50},
+            "sleepy": {"color": (100, 100, 200), "count": 2, "shape": "circle", "spread": 30},
+            "mischievous": {"color": (0, 255, 100), "count": 5, "shape": "star", "spread": 70},
+            "laughing": {"color": (255, 255, 100), "count": 5, "shape": "star", "spread": 70},
+            "loving": {"color": (255, 100, 150), "count": 6, "shape": "star", "spread": 75},
+            "love": {"color": (255, 80, 130), "count": 6, "shape": "star", "spread": 75},
+            "proud": {"color": (255, 200, 0), "count": 5, "shape": "star", "spread": 65},
+            "frustrated": {"color": (255, 60, 30), "count": 5, "shape": "circle", "spread": 55},
+            "embarrassed": {"color": (255, 150, 180), "count": 3, "shape": "circle", "spread": 45},
+            "worried": {"color": (180, 180, 255), "count": 3, "shape": "circle", "spread": 35},
+            "bored": {"color": (150, 150, 150), "count": 2, "shape": "circle", "spread": 30},
+            "determined": {"color": (255, 165, 0), "count": 4, "shape": "star", "spread": 60},
+            "sad": {"color": (100, 150, 255), "count": 3, "shape": "circle", "spread": 45},
+            "angry": {"color": (255, 30, 30), "count": 6, "shape": "circle", "spread": 70},
+            "nervous": {"color": (200, 200, 255), "count": 3, "shape": "circle", "spread": 40},
+            "scared": {"color": (180, 180, 255), "count": 4, "shape": "circle", "spread": 60},
         }
 
         cfg = particle_configs.get(emotion, {"color": (200, 200, 200), "count": 5, "shape": "circle", "spread": 50})
@@ -991,10 +991,10 @@ class MarioDisplay:
                 shape=cfg["shape"],
             ))
 
-        if len(self._particles) > 200:
-            self._particles = self._particles[-200:]
+        if len(self._particles) > 100:
+            self._particles = self._particles[-100:]
 
-    def _spawn_confetti(self, count=20):
+    def _spawn_confetti(self, count=10):
         """Spawn confetti particles for party mode."""
         for _ in range(count):
             color = random.choice(self._disco_colors)
@@ -1009,8 +1009,8 @@ class MarioDisplay:
                 shape="rect",
             ))
             self._particles[-1].gravity = 0.05
-        if len(self._particles) > 200:
-            self._particles = self._particles[-200:]
+        if len(self._particles) > 100:
+            self._particles = self._particles[-100:]
 
     def spawn_keyword_particles(self, effect_type: str):
         """Spawn themed particles based on keyword detection from server."""
@@ -1018,14 +1018,14 @@ class MarioDisplay:
         cy = WINDOW_HEIGHT // 2
 
         effects = {
-            "fire": {"color": (255, 100, 0), "count": 15, "shape": "circle", "vy": (-4, -1), "spread": 60},
-            "stars": {"color": (255, 215, 0), "count": 12, "shape": "star", "vy": (-3, -0.5), "spread": 80},
-            "hearts": {"color": (255, 80, 130), "count": 10, "shape": "star", "vy": (-2, -0.5), "spread": 70},
-            "confetti": {"color": None, "count": 20, "shape": "rect", "vy": (1, 3), "spread": 150},
-            "rain": {"color": (100, 150, 255), "count": 15, "shape": "circle", "vy": (2, 4), "spread": 120},
-            "sparkle": {"color": (255, 255, 200), "count": 8, "shape": "star", "vy": (-2, 0), "spread": 50},
-            "mushroom": {"color": (255, 50, 50), "count": 8, "shape": "circle", "vy": (-3, -1), "spread": 40},
-            "coins": {"color": (255, 215, 0), "count": 10, "shape": "circle", "vy": (-3, -1), "spread": 60},
+            "fire": {"color": (255, 100, 0), "count": 8, "shape": "circle", "vy": (-4, -1), "spread": 60},
+            "stars": {"color": (255, 215, 0), "count": 6, "shape": "star", "vy": (-3, -0.5), "spread": 80},
+            "hearts": {"color": (255, 80, 130), "count": 5, "shape": "star", "vy": (-2, -0.5), "spread": 70},
+            "confetti": {"color": None, "count": 10, "shape": "rect", "vy": (1, 3), "spread": 150},
+            "rain": {"color": (100, 150, 255), "count": 8, "shape": "circle", "vy": (2, 4), "spread": 120},
+            "sparkle": {"color": (255, 255, 200), "count": 4, "shape": "star", "vy": (-2, 0), "spread": 50},
+            "mushroom": {"color": (255, 50, 50), "count": 4, "shape": "circle", "vy": (-3, -1), "spread": 40},
+            "coins": {"color": (255, 215, 0), "count": 5, "shape": "circle", "vy": (-3, -1), "spread": 60},
         }
 
         cfg = effects.get(effect_type, effects["sparkle"])
@@ -1046,8 +1046,8 @@ class MarioDisplay:
                 p.gravity = 0.05
             self._particles.append(p)
 
-        if len(self._particles) > 200:
-            self._particles = self._particles[-200:]
+        if len(self._particles) > 100:
+            self._particles = self._particles[-100:]
 
     def _update_particles(self):
         """Update and remove dead particles."""
