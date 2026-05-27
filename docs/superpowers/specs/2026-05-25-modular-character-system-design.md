@@ -1,7 +1,7 @@
 # Modular Character System — Design Spec
 
 **Date:** 2026-05-25
-**Status:** Draft (pending user approval)
+**Status:** Approved
 **Safety Net:** Tag `v1.0-mario-stable` at commit `d28ba62`
 
 ## Problem

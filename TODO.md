@@ -1,5 +1,13 @@
 # Mario AI Party Bot - TODO
 
+## TTS Verification System — DONE ✅
+- [x] Comparison engine (WER, truncation detection, normalization)
+- [x] TTSAuditor class with audit_phrase, audit_batch, suggest_fix
+- [x] Curated test phrases YAML (29 phrases across 5 categories)
+- [x] TTS post-synthesis callback hook
+- [x] /admin/tts_audit endpoint and debug monitor toggle
+- [x] E2E verification — full audit run: 4 PASS, 25 MISPRONOUNCED (Italian phrases + short exclamations problematic)
+
 ## Critical LLM Fixes — DONE ✅
 - [x] Fix ImportError in llm.py that silently discarded ALL LLM responses
 - [x] Fix Easter egg interception: only trigger on short messages (≤5 words)
@@ -718,3 +726,5 @@
 - [x] Add set_collection_name() function to memory_semantic module
 - [x] Wire collection names from _character.collections in main.py initialization
 - [x] Move FaceMemory initialization to happen after _character is loaded
+
+- [x] Implemented Task 5: Added /admin/tts_audit endpoint and debug monitor to server/main.py
