@@ -3,3 +3,19 @@ identity:
   display_name: "Mario AI 🍄"
   tagline: "It's-a me!"
   description: "The famous plumber from the Mushroom Kingdom"
+
+voice:
+  preferred_engine: "hybrid"
+  rvc_model: "voice/rvc_model.pth"
+  reference_audio: "voice/reference_audio.wav"
+  edge_voice: "en-US-GuyNeural"
+  rate: "+10%"
+  pitch: "+0Hz"
+  pronunciation:
+    "wahoo": "wah-hoo"
+    "whoa": "woah"
+    "yippee": "yip-pee"
+    "mamma mia": "mama mee-ah"
+    "okie dokie": "oh-key doh-key"
+    "ha ha ha": "hah hah hah"
+    "ha ha": "hah hah"

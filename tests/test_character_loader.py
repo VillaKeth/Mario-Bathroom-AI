@@ -50,3 +50,32 @@ def test_missing_identity_name(tmp_chars):
 def test_character_dir_path(tmp_chars):
     loader = CharacterLoader(str(tmp_chars), "test_char")
     assert os.path.isdir(loader.character_dir)
+
+def test_voice_config(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["voice"] = {
+        "preferred_engine": "hybrid",
+        "edge_voice": "en-US-GuyNeural",
+        "rate": "+10%",
+        "pitch": "+0Hz",
+        "pronunciation": {"wahoo": "wah-hoo"},
+    }
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.voice_config["preferred_engine"] == "hybrid"
+    assert loader.pronunciation == {"wahoo": "wah-hoo"}
+
+def test_voice_config_defaults(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.voice_config["preferred_engine"] == "hybrid"
+    assert loader.pronunciation == {}
+
+def test_voice_config_invalid_engine(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["voice"] = {"preferred_engine": "invalid_engine"}
+    config_path.write_text(yaml.dump(config))
+    with pytest.raises(CharacterConfigError) as exc:
+        CharacterLoader(str(tmp_chars), "test_char")
+    assert "preferred_engine" in str(exc.value)

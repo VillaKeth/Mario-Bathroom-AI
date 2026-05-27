@@ -53,6 +53,25 @@ class CharacterLoader:
         self.description: str = identity.get("description", "")
         self.character_dir: str = str(self._char_dir)
 
+        # Parse voice config
+        voice = self._config.get("voice", {})
+        preferred_engine = voice.get("preferred_engine", "hybrid")
+        valid_engines = {"hybrid", "sovits", "edge", "xtts"}
+        if preferred_engine not in valid_engines:
+            raise CharacterConfigError(
+                f"voice.preferred_engine must be one of {valid_engines}, got '{preferred_engine}'",
+                character_name=character_name,
+            )
+        self.voice_config: dict = {
+            "preferred_engine": preferred_engine,
+            "rvc_model": str(self._resolve_path(voice["rvc_model"])) if voice.get("rvc_model") else None,
+            "reference_audio": str(self._resolve_path(voice["reference_audio"])) if voice.get("reference_audio") else None,
+            "edge_voice": voice.get("edge_voice", "en-US-GuyNeural"),
+            "rate": voice.get("rate", "+0%"),
+            "pitch": voice.get("pitch", "+0Hz"),
+        }
+        self.pronunciation: dict = voice.get("pronunciation", {})
+
     def _validate_required(self):
         """Check that required fields exist in the config."""
         missing = []
