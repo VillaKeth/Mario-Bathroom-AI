@@ -1,0 +1,11 @@
+finish all the todos, and also, remove some of those sparkles, there's too many damn sparkles, also, reudit the photos to check to make sure all of them have ALL of mario's limbs. like some of them     │
+│     seem to be missing his arms, some of them missing fingers, legs, etc, that's creepy, i don't want that. additionally, finish ALL the todos, show me how you're doing the face recognition, show me that   │
+│     it works with whatever test set you're doing to match voices to the face and how yiu're linking the two and confirming mario actually works. also, i've noticed that whenever I in particular message     │
+│     him, it does the fall back to the crappy edge tts voice, and i hate that, i want it to ALWAYS be the Mario voice. also, in a lot of the idle chatter, there's a lot of issues with uncommon words like    │
+│     "whoa" , "ha", and other uncommon things. check what mario is saying with the app open and confirm that he's saying the right thing, and if not, regenerate the speech until its correct. additionally i  │
+│     want some easily configurable yaml file that allows me to change the model, the voice, etc, because i want to start moving towards making this an incredibly modular model, where i can effectively       │
+│     replace the brain of the model to make a different character like sonic, rudi (grok's ai thing), or other fun characters that i would want to be able to talk to and have at parties throughout my life.  │
+│     i would really appreciate being able to start moving towards this, and i want a super easy pipeline so that i can easily train the new voice by simply feeding an existing voice, then an easy pipeline   │
+│     to upload photos, and then train memories and stuff. i basically want to start moving towards an app where i can make an ai of any character, through an extremely simple ui that lets me the user upload │
+│      items related to the character and modularly tune all of the elements until i reach a result that i like, and one that can be supported by my hardware. use superpowers to address ALL of my concerns,   │
+│     and if you have to make a new repo or fork this repo or make a new one in order to make this easier to manage. also, mario SUCKS at saying "wahoo!" which is kinda critical...      
