@@ -32,6 +32,10 @@ from contextlib import asynccontextmanager
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from shared.character_loader import CharacterLoader
+
 import stt
 import tts
 import llm
@@ -106,6 +110,9 @@ server_config = config.get("server", {})
 LIVE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_live.json")
 live_config = LiveConfig(LIVE_CONFIG_PATH)
 logger.info(f"Live config initialized at {LIVE_CONFIG_PATH}")
+
+# Character configuration (loaded during startup)
+_character = None
 
 # Hardware auto-detection for performance tuning
 hw_info = hardware.get_hardware()
@@ -648,7 +655,21 @@ async def lifespan(app: FastAPI):
         device=server_config.get("stt_device", "auto"),
     )
 
+    # Load character configuration
+    global _character
+    _project_root = os.path.dirname(os.path.dirname(__file__))
+    _characters_dir = os.path.join(_project_root, "characters")
+    _shared_dir = os.path.join(_characters_dir, "_shared")
+    _character_name = config.get("character", "mario")
+    _character = CharacterLoader(_characters_dir, _character_name)
+    logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
+    tts.set_pronunciation(_character.pronunciation)
+
     logger.info("Loading TTS engine...")
+    # Wire character voice settings (character config takes precedence over config.json)
+    tts.EDGE_VOICE = _character.voice_config["edge_voice"]
+    tts.RATE = _character.voice_config["rate"]
+    # Keep existing config.json overrides as fallback
     if server_config.get("tts_voice"):
         tts.EDGE_VOICE = server_config["tts_voice"]
     if server_config.get("tts_rate"):
@@ -664,7 +685,7 @@ async def lifespan(app: FastAPI):
 
     # Priority 0: Catchphrase bank (instant, pre-recorded)
     catchphrase_bank = CatchphraseBank(
-        assets_dir=os.path.join(os.path.dirname(__file__), "assets", "catchphrases")
+        assets_dir=_character.catchphrase_dir
     )
     if catchphrase_bank.is_available():
         _tts_router.register(TTSEngine(
@@ -2163,14 +2184,17 @@ _LLM_IDLE_CHANCE = GAME_CONFIG.get("llm_idle_chance", 0.25)  # 25% of idle messa
 _LLM_IDLE_TIMEOUT = 15  # seconds
 _last_llm_idle_time = 0.0  # Cooldown to avoid spamming LLM
 
-_LLM_IDLE_SYSTEM_PROMPT = """You are Mario, the famous plumber, currently guarding a bathroom at a party. You're alone right now and talking to yourself.
+_LLM_IDLE_SYSTEM_PROMPT = None  # Will be loaded from character config
 
-Generate a SHORT (1 sentence, max 15 words) random thought, observation, or mumble. Be in character:
-- Use "Wahoo!", "Mama mia!", add "-a" to words sometimes
-- Be chaotic, funny, unexpected, dramatic
-- You can: sing snippets, tell yourself jokes, wonder about things, comment on the bathroom, think about party guests, reminisce about adventures, have random existential thoughts
-- NEVER break character. NEVER be boring or generic.
-- Output ONLY Mario's spoken words. NO metadata, NO JSON, NO annotations."""
+def _get_idle_prompt():
+    """Get idle prompt from character config or fallback."""
+    global _LLM_IDLE_SYSTEM_PROMPT
+    if _LLM_IDLE_SYSTEM_PROMPT is None:
+        try:
+            _LLM_IDLE_SYSTEM_PROMPT = _character.get_idle_prompt()
+        except Exception:
+            _LLM_IDLE_SYSTEM_PROMPT = "You are talking to yourself. Say something short and funny."
+    return _LLM_IDLE_SYSTEM_PROMPT
 
 
 async def _generate_llm_idle() -> dict | None:
@@ -2182,7 +2206,7 @@ async def _generate_llm_idle() -> dict | None:
 
     try:
         ctx = [
-            {"role": "system", "content": _LLM_IDLE_SYSTEM_PROMPT},
+            {"role": "system", "content": _get_idle_prompt()},
         ]
         # Add a hint about recent conversation for context
         history = state_current.get("conversation_history", [])

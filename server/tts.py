@@ -1125,6 +1125,14 @@ def get_cached(text: str, rate: str = None, pitch: str = None) -> bytes | None:
 
 import re as _re_tts
 
+_character_pronunciation = {}
+
+def set_pronunciation(pronunciation: dict):
+    """Set character-specific pronunciation substitutions."""
+    global _character_pronunciation
+    _character_pronunciation = pronunciation
+
+
 def _preclean_tts_text(text: str) -> str:
     """Pre-clean text before any TTS engine sees it.
 
@@ -1160,6 +1168,9 @@ def _preclean_tts_text(text: str) -> str:
     t = _re_tts.sub(r'\bokie dokie\b', 'oh-key doh-key', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'(?<!\w)ha ha ha(?!\w)', 'hah hah hah', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'(?<!\w)ha ha(?!\w)', 'hah hah', t, flags=_re_tts.IGNORECASE)
+    # Character-loaded pronunciation (from character.yaml)
+    for word, phonetic in _character_pronunciation.items():
+        t = _re_tts.sub(r'(?<!\w)' + _re_tts.escape(word) + r'(?!\w)', phonetic, t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'\s+', ' ', t).strip()        # Collapse whitespace
     return t
 
