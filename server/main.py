@@ -55,6 +55,7 @@ from idle_behavior import IdleBehavior, MEMORIAL_ANNOUNCEMENT, MEMORIAL_SILENCE,
 from pose_analyzer import analyze_text
 import command_handlers
 from game_handlers import check_game_timeout
+import game_handlers as _game_handlers_mod
 import yaml
 from tts_auditor import TTSAuditor
 
@@ -652,6 +653,7 @@ async def lifespan(app: FastAPI):
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
+    _game_handlers_mod.set_character(_character.name, _character.display_name)
 
     # Wire character prompts into mario_prompt module (used by build_context)
     _char_sys_prompt = _character.get_system_prompt()
@@ -2348,7 +2350,8 @@ async def _generate_llm_idle() -> dict | None:
 
         # Add time/phase context
         hour = time.localtime().tm_hour
-        ctx.append({"role": "user", "content": f"It's {hour}:00. Say something random as Mario."})
+        _idle_char_name = _character.display_name if _character else "Mario"
+        ctx.append({"role": "user", "content": f"It's {hour}:00. Say something random as {_idle_char_name}."})
 
         llm_response = await asyncio.wait_for(
             llm.generate_response(ctx, model=llm_router.get_model(llm_router.classify("idle", response_type="casual"))),
@@ -4103,7 +4106,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Save to memory (conversations sync, facts/topics in background)
     if state_current["speaker_id"]:
         memory.save_conversation(state_current["speaker_id"], "user", text)
-        memory.save_conversation(state_current["speaker_id"], "mario", response_text)
+        memory.save_conversation(state_current["speaker_id"], _character_name or "mario", response_text)
         # Analyze for gossip-worthy content
         party_gossip.analyze_for_gossip(
             state_current.get("speaker_name", "someone"),

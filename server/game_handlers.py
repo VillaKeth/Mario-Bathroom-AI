@@ -13,6 +13,17 @@ from emotions import Emotion
 
 logger = logging.getLogger(__name__)
 
+# Character name for game responses — set by main.py at startup
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    """Set the active character for game responses."""
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    _CHARACTER_NAME = name
+    _CHARACTER_DISPLAY_NAME = display_name
+
 # ---------------------------------------------------------------------------
 # Valid game names — used for state validation
 # ---------------------------------------------------------------------------
@@ -988,7 +999,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         emotion_sys.current = Emotion.EXCITED
         first_q = questions[0]["q"]
         has_birthday = any(q.get("is_birthday_special") for q in questions)
-        intro = "MARIO TRIVIA TIME!"
+        intro = f"{_CHARACTER_DISPLAY_NAME.upper()} TRIVIA TIME!"
         if has_birthday:
             intro += " With BIRTHDAY SPECIAL questions about our guest of honor!"
         intro += f" {max_r} questions — let's-a see how smart you are! Question 1: {first_q}"
