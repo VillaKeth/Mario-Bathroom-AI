@@ -12,11 +12,12 @@ voice:
   rate: "+10%"
   pitch: "+0Hz"
   pronunciation:
-    "wahoo": "wah-hoo"
+    "wahoo": "wah hoo"
+    "yahoo": "yah hoo"
     "whoa": "woah"
-    "yippee": "yip-pee"
-    "mamma mia": "mama mee-ah"
-    "okie dokie": "oh-key doh-key"
+    "yippee": "yip pee"
+    "mamma mia": "mama mee ah"
+    "okie dokie": "okee dokee"
     "ha ha ha": "hah hah hah"
     "ha ha": "hah hah"
 

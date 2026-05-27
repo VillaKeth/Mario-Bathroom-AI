@@ -1176,12 +1176,15 @@ def _preclean_tts_text(text: str) -> str:
     t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
     # Pronunciation improvements for TTS engines
     # These words are commonly mispronounced by Edge TTS / XTTS
-    t = _re_tts.sub(r'\bwahoo\b', 'wah-hoo', t, flags=_re_tts.IGNORECASE)
+    # NOTE: Keep rules minimal — RVC voice conversion garbles phonetic substitutions.
+    # Only add rules proven to improve output quality through TTS audit testing.
+    t = _re_tts.sub(r'\bwahoo\b', 'wah hoo', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\byahoo\b', 'yah hoo', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'\bwhoa\b', 'woah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\byippee\b', 'yip-pee', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bmamma mia\b', 'mama mee-ah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bmama mia\b', 'mama mee-ah', t, flags=_re_tts.IGNORECASE)
-    t = _re_tts.sub(r'\bokie dokie\b', 'oh-key doh-key', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\byippee\b', 'yip pee', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bmamma mia\b', 'mama mee ah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bmama mia\b', 'mama mee ah', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\bokie dokie\b', 'okee dokee', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'(?<!\w)ha ha ha(?!\w)', 'hah hah hah', t, flags=_re_tts.IGNORECASE)
     t = _re_tts.sub(r'(?<!\w)ha ha(?!\w)', 'hah hah', t, flags=_re_tts.IGNORECASE)
     # Character-loaded pronunciation (from character.yaml)
