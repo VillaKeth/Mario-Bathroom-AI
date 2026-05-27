@@ -1,6 +1,6 @@
 # TTS Verification System Design
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-05-27
 **Author:** Copilot
 
@@ -40,22 +40,56 @@ Core module that handles the synthesize → transcribe → compare loop.
 ```python
 class TTSAuditor:
     def __init__(self):
-        self._stt_model = None  # Lazy-loaded faster-whisper
         self._results = []      # Audit results history
+        # Ensure STT model is initialized (same model used for voice input)
+        if stt._HAS_WHISPER and stt._model is None:
+            stt.init_model(model_size="base", device="auto")
     
     def audit_phrase(self, text: str) -> AuditResult:
         """Synthesize text, transcribe result, compare."""
-        # 1. Synthesize via tts.synthesize()
-        # 2. Save WAV to temp file
-        # 3. Transcribe via stt.transcribe()
-        # 4. Compare intended vs actual
-        # 5. Return AuditResult
+        # 1. Synthesize via tts.synthesize() → returns WAV bytes
+        wav_bytes = tts.synthesize(text)
+        
+        # 2. Extract PCM from WAV (stt.transcribe expects raw PCM int16 bytes)
+        import io, wave
+        with io.BytesIO(wav_bytes) as buf:
+            with wave.open(buf, 'rb') as wf:
+                pcm_data = wf.readframes(wf.getnframes())
+                sample_rate = wf.getframerate()
+                audio_duration = wf.getnframes() / float(wf.getframerate())
+        
+        # 3. Transcribe via stt.transcribe(pcm_bytes, sample_rate)
+        actual_text = stt.transcribe(pcm_data, sample_rate)
+        
+        # 4. Compare intended vs actual using WER + truncation detection
+        result = self._compare(text, actual_text, audio_duration)
+        self._results.append(result)
+        return result
     
     def audit_batch(self, phrases: list[str]) -> BatchReport:
         """Audit a list of phrases, return aggregate report."""
     
     def suggest_fix(self, intended: str, actual: str) -> dict | None:
-        """Suggest a pronunciation rule if a word is consistently wrong."""
+        """Suggest pronunciation rule based on word-level alignment.
+        Uses the STT output as a phonetic hint for the intended word."""
+        intended_words = intended.lower().split()
+        actual_words = actual.lower().split()
+        matcher = SequenceMatcher(None, intended_words, actual_words)
+        suggestions = {}
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag == 'replace' and (i2 - i1) == 1 and (j2 - j1) == 1:
+                word = intended_words[i1]
+                if len(word) > 2:
+                    suggestions[word] = actual_words[j1]
+        return suggestions if suggestions else None
+    
+    @staticmethod
+    def _get_audio_duration(wav_bytes: bytes) -> float:
+        """Get duration of WAV audio in seconds."""
+        import io, wave
+        with io.BytesIO(wav_bytes) as buf:
+            with wave.open(buf, 'rb') as wf:
+                return wf.getnframes() / float(wf.getframerate())
 ```
 
 **AuditResult dataclass:**
@@ -76,10 +110,43 @@ class AuditResult:
 
 Word-level diff using `difflib.SequenceMatcher`:
 - Normalize both strings: lowercase, strip punctuation, collapse whitespace
-- Compute word-level alignment
-- **Truncation detection**: if actual has <80% of intended word count, flag as truncated
-- **Mispronunciation detection**: aligned words that don't match
-- **Word Error Rate (WER)**: standard metric — (substitutions + insertions + deletions) / total intended words
+- Compute word-level alignment via `get_opcodes()`
+- **WER calculation**: count substitutions (replace), deletions (delete), insertions (insert) from opcodes, then WER = (S + D + I) / len(intended_words)
+- **Truncation detection**: flag if BOTH word ratio < 75% AND audio duration < 60% of expected (heuristic: ~2.5 words/second)
+- **Mispronunciation detection**: aligned words that don't match (replace opcodes)
+
+```python
+def calculate_wer(intended: str, actual: str) -> tuple[float, list, list]:
+    """Calculate Word Error Rate and extract mismatches."""
+    intended_words = _normalize(intended).split()
+    actual_words = _normalize(actual).split()
+    matcher = SequenceMatcher(None, intended_words, actual_words)
+    
+    substitutions = deletions = insertions = 0
+    missing_words = []
+    wrong_words = []
+    
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'replace':
+            substitutions += max(i2 - i1, j2 - j1)
+            for iw, aw in zip(intended_words[i1:i2], actual_words[j1:j2]):
+                wrong_words.append((iw, aw))
+        elif tag == 'delete':
+            deletions += i2 - i1
+            missing_words.extend(intended_words[i1:i2])
+        elif tag == 'insert':
+            insertions += j2 - j1
+    
+    wer = (substitutions + deletions + insertions) / max(1, len(intended_words))
+    return wer, missing_words, wrong_words
+
+def is_truncated(intended: str, actual: str, audio_duration_s: float) -> bool:
+    """Detect truncation using both word count and duration."""
+    word_ratio = len(actual.split()) / max(1, len(intended.split()))
+    expected_duration = len(intended.split()) / 2.5
+    duration_ratio = audio_duration_s / max(0.1, expected_duration)
+    return word_ratio < 0.75 and duration_ratio < 0.6
+```
 
 ### 3. Batch Audit Endpoint (`POST /admin/tts_audit`)
 
@@ -133,6 +200,37 @@ Toggled via `config_live.json`:
 }
 ```
 
+**Hook mechanism** — callback registry in `tts.py`:
+```python
+# Module-level in tts.py
+_post_synthesis_callbacks = []
+
+def register_post_synthesis_callback(callback):
+    """Register callback(text, wav_bytes) called after each synthesis."""
+    _post_synthesis_callbacks.append(callback)
+```
+
+In `synthesize()`, before returning, call all registered callbacks in a try/except.
+
+**Async background audit** — use `asyncio.to_thread()` to avoid blocking:
+```python
+async def background_audit_callback(text: str, wav_bytes: bytes):
+    """Non-blocking audit callback for debug monitor."""
+    import io, wave
+    with io.BytesIO(wav_bytes) as buf:
+        with wave.open(buf, 'rb') as wf:
+            pcm_data = wf.readframes(wf.getnframes())
+            sample_rate = wf.getframerate()
+    actual = await asyncio.to_thread(stt.transcribe, pcm_data, sample_rate)
+    # Compare and log mismatch...
+```
+
+When enabled at startup:
+```python
+if live_config.get("tts_debug_transcribe", False):
+    tts.register_post_synthesis_callback(tts_auditor.background_audit_callback)
+```
+
 When enabled:
 - After each TTS synthesis in the main pipeline, spawn a background thread
 - Transcribe the audio that was just generated
@@ -180,9 +278,12 @@ long_sentences:
   - "Did you know that the first Mario game was released in 1985, and it completely revolutionized the gaming industry?"
   - "Welcome to the party, everyone! I hope you're all ready for some fun, games, and maybe even a few surprises along the way!"
 
-tricky_words:
-  - "The plumber fixed the pipe with his wrench."
-  - "Princess Peach was rescued from Bowser's castle."
+existing_pronunciation_rules:
+  - "Okie dokie, let's start the game!"
+  - "Ha ha ha, that's really funny!"
+  - "Whoa, that's incredible!"
+  - "Wahoo! We did it!"
+  - "Yippee! That's the right answer!"
 ```
 
 ### 6. Dashboard Integration
@@ -192,6 +293,21 @@ Add a section to the existing dashboard showing:
 - Current pronunciation rules from character.yaml
 - Link to trigger batch audit
 - Live monitor status (enabled/disabled)
+
+**Dashboard API:**
+```python
+@app.get("/admin/tts_audit/results")
+async def get_audit_results(limit: int = 50):
+    """Get recent audit results for dashboard display."""
+    return {
+        "results": [asdict(r) for r in auditor._results[-limit:]],
+        "summary": {
+            "total": len(auditor._results),
+            "passed": sum(1 for r in auditor._results if r.word_error_rate < 0.1),
+            "failed": sum(1 for r in auditor._results if r.word_error_rate >= 0.1)
+        }
+    }
+```
 
 ## Semi-Auto Fix Flow
 
