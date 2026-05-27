@@ -170,3 +170,37 @@ def test_build_context_empty_when_no_prompts(tmp_chars):
     loader = CharacterLoader(str(tmp_chars), "test_char")
     ctx = loader.build_context()
     assert ctx == []
+
+def test_get_game_pools_character_only(tmp_chars):
+    games_dir = tmp_chars / "test_char" / "games"
+    games_dir.mkdir()
+    trivia = [{"question": "Test?", "answer": "Yes"}]
+    (games_dir / "trivia.yaml").write_text(yaml.dump(trivia))
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["games"] = {"pools_dir": "games/", "include_shared": False}
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    pools = loader.get_game_pools(str(tmp_chars / "_shared"))
+    assert len(pools["trivia"]) == 1
+    assert pools["trivia"][0]["question"] == "Test?"
+
+def test_get_game_pools_merges_shared(tmp_chars):
+    games_dir = tmp_chars / "test_char" / "games"
+    games_dir.mkdir()
+    (games_dir / "trivia.yaml").write_text(yaml.dump([{"question": "Char?", "answer": "Yes"}]))
+    shared_games = tmp_chars / "_shared" / "games"
+    shared_games.mkdir(parents=True)
+    (shared_games / "trivia.yaml").write_text(yaml.dump([{"question": "Shared?", "answer": "No"}]))
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["games"] = {"pools_dir": "games/", "include_shared": True}
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    pools = loader.get_game_pools(str(tmp_chars / "_shared"))
+    assert len(pools["trivia"]) == 2
+
+def test_get_game_pools_empty(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    pools = loader.get_game_pools(str(tmp_chars / "_shared"))
+    assert pools == {}

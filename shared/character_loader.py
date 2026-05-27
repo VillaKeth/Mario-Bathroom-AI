@@ -156,6 +156,44 @@ class CharacterLoader:
         """Read time_flavors.yaml — time-of-day/day-of-week flavor text."""
         return self._load_yaml_file("prompts/time_flavors.yaml", default={})
 
+    def get_game_pools(self, shared_dir: str = None) -> dict:
+        """Load game pools from character directory, optionally merging with shared."""
+        pools = {}
+        games_cfg = self._config.get("games", {})
+        pools_rel = games_cfg.get("pools_dir", "games/")
+        include_shared = games_cfg.get("include_shared", True)
+
+        # Load shared pools first (if enabled)
+        if include_shared and shared_dir:
+            shared_games = Path(shared_dir) / "games"
+            if shared_games.is_dir():
+                for yaml_file in shared_games.glob("*.yaml"):
+                    pool_name = yaml_file.stem
+                    data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+                    if data:
+                        pools[pool_name] = data
+
+        # Load character-specific pools (merge with shared)
+        char_games = self._resolve_path(pools_rel)
+        if char_games.is_dir():
+            for yaml_file in char_games.glob("*.yaml"):
+                pool_name = yaml_file.stem
+                data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+                if data is None:
+                    continue
+                if pool_name in pools:
+                    existing = pools[pool_name]
+                    if isinstance(existing, list) and isinstance(data, list):
+                        pools[pool_name] = existing + data
+                    elif isinstance(existing, dict) and isinstance(data, dict):
+                        existing.update(data)
+                    else:
+                        pools[pool_name] = data
+                else:
+                    pools[pool_name] = data
+
+        return pools
+
     def build_context(self, speaker_name: str = None, memories: list = None,
                       event: str = None, phase_modifier: dict = None,
                       guest_context: str = None, **kwargs) -> list[dict]:
