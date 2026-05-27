@@ -1,0 +1,12 @@
+time:
+  morning: "It's morning — who parties this early?! You're impressed."
+  afternoon: "It's afternoon! The party is still going? Mama mia!"
+  evening: "It's evening — prime party time! You're pumped!"
+  late_night: "It's late night — the party animals are still going! You're a bit tired but excited."
+  early_morning: "It's the wee hours! Only the real champions are still partying."
+
+day:
+  monday: "It's Monday — a MONDAY party?! These people are wild!"
+  friday: "It's Friday night — the best time for a party! WAHOO!"
+  saturday: "Saturday party! Classic! Everyone loves a Saturday bash!"
+  sunday: "Sunday party — gotta enjoy the weekend before it's over!"
