@@ -104,3 +104,69 @@ def test_visuals_defaults(tmp_chars):
     assert loader.emotion_sprite_map == {}
     assert loader.state_sprite_map == {}
     assert loader.theme_colors == {"primary": "#FFFFFF", "secondary": "#CCCCCC", "accent": "#FFD700", "text": "#FFFFFF"}
+
+def test_get_system_prompt(tmp_chars):
+    prompts_dir = tmp_chars / "test_char" / "prompts"
+    prompts_dir.mkdir()
+    (prompts_dir / "system_prompt.md").write_text("You are {{character_name}}, {{description}}.")
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    prompt = loader.get_system_prompt({"character_name": "TestBot", "description": "a bot"})
+    assert prompt == "You are TestBot, a bot."
+
+def test_get_system_prompt_missing_file(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    prompt = loader.get_system_prompt({})
+    assert prompt == ""
+
+def test_get_phase_prompts(tmp_chars):
+    prompts_dir = tmp_chars / "test_char" / "prompts"
+    prompts_dir.mkdir(exist_ok=True)
+    phases = {"WARM_UP": "Be warm", "PARTY_MODE": "Go wild"}
+    (prompts_dir / "phases.yaml").write_text(yaml.dump(phases))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    result = loader.get_phase_prompts()
+    assert result["WARM_UP"] == "Be warm"
+
+def test_get_greeting_prompts(tmp_chars):
+    prompts_dir = tmp_chars / "test_char" / "prompts"
+    prompts_dir.mkdir(exist_ok=True)
+    greetings = {"enter_known": "Welcome back {name}!", "idle": "Talking to self"}
+    (prompts_dir / "greetings.yaml").write_text(yaml.dump(greetings))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    result = loader.get_greeting_prompts()
+    assert "enter_known" in result
+
+def test_build_context_returns_list_of_dicts(tmp_chars):
+    prompts_dir = tmp_chars / "test_char" / "prompts"
+    prompts_dir.mkdir(exist_ok=True)
+    (prompts_dir / "system_prompt.md").write_text("You are {{character_name}}.")
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    ctx = loader.build_context(
+        phase_modifier={"personality_warmth": 0.9, "chaos": 0.1, "gossip_aggression": 0.1, "roast_level": 0.1},
+        last_emotion="happy",
+    )
+    assert isinstance(ctx, list)
+    assert all(isinstance(m, dict) for m in ctx)
+    assert ctx[0]["role"] == "system"
+    assert "TestBot" in ctx[0]["content"]
+    phase_msgs = [m for m in ctx if "warm" in m["content"].lower()]
+    assert len(phase_msgs) == 1
+    emotion_msgs = [m for m in ctx if "happy" in m["content"]]
+    assert len(emotion_msgs) == 1
+
+def test_build_context_with_guest_and_event(tmp_chars):
+    prompts_dir = tmp_chars / "test_char" / "prompts"
+    prompts_dir.mkdir(exist_ok=True)
+    (prompts_dir / "system_prompt.md").write_text("You are {{character_name}}.")
+    greetings = {"enter_known": "Welcome back!"}
+    (prompts_dir / "greetings.yaml").write_text(yaml.dump(greetings))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    ctx = loader.build_context(speaker_name="Alice", memories=["Met at party"], event="enter_known")
+    contents = [m["content"] for m in ctx]
+    assert any("Alice" in c for c in contents)
+    assert any("Welcome back" in c for c in contents)
+
+def test_build_context_empty_when_no_prompts(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    ctx = loader.build_context()
+    assert ctx == []

@@ -120,3 +120,142 @@ class CharacterLoader:
         except yaml.YAMLError as e:
             logger.warning(f"[character] Invalid YAML in {path}: {e}")
             return default
+
+    def get_system_prompt(self, context: dict = None) -> str:
+        """Read system_prompt.md and substitute {{variables}}."""
+        path = self._resolve_path("prompts/system_prompt.md")
+        if not path.is_file():
+            logger.warning(f"[character] No system_prompt.md for {self.name}")
+            return ""
+        text = path.read_text(encoding="utf-8")
+        if context:
+            for key, value in context.items():
+                text = text.replace("{{" + key + "}}", str(value))
+        return text
+
+    def get_idle_prompt(self) -> str:
+        """Read idle_prompt.md."""
+        path = self._resolve_path("prompts/idle_prompt.md")
+        if not path.is_file():
+            return ""
+        return path.read_text(encoding="utf-8")
+
+    def get_phase_prompts(self) -> dict:
+        """Read phases.yaml — party phase modifier text."""
+        return self._load_yaml_file("prompts/phases.yaml", default={})
+
+    def get_greeting_prompts(self) -> dict:
+        """Read greetings.yaml — event-triggered prompt templates."""
+        return self._load_yaml_file("prompts/greetings.yaml", default={})
+
+    def get_guest_type_hints(self) -> dict:
+        """Read guest_type_hints.yaml."""
+        return self._load_yaml_file("prompts/guest_type_hints.yaml", default={})
+
+    def get_time_flavors(self) -> dict:
+        """Read time_flavors.yaml — time-of-day/day-of-week flavor text."""
+        return self._load_yaml_file("prompts/time_flavors.yaml", default={})
+
+    def build_context(self, speaker_name: str = None, memories: list = None,
+                      event: str = None, phase_modifier: dict = None,
+                      guest_context: str = None, **kwargs) -> list[dict]:
+        """Build the full LLM context (system messages) from character prompts.
+
+        Matches the signature of server/mario_prompt.py:build_context() so it
+        can be a drop-in replacement. Returns list[dict] of system messages.
+        """
+        import re as _re
+        from datetime import datetime
+
+        # Sanitize speaker_name (same logic as mario_prompt._sanitize_input)
+        if speaker_name:
+            speaker_name = speaker_name.strip()[:20]
+            speaker_name = _re.sub(r'[\x00-\x1f\x7f]', '', speaker_name)
+            speaker_name = _re.sub(r'[{}()\[\]<>]', '', speaker_name)
+            if not speaker_name:
+                speaker_name = "friend"
+
+        messages = []
+
+        # 1. System prompt
+        system_prompt = self.get_system_prompt({
+            "character_name": self.name,
+            "description": self.description,
+        })
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        # 2. Phase modifier
+        if phase_modifier:
+            warmth = phase_modifier.get("personality_warmth", 0.5)
+            chaos = phase_modifier.get("chaos", 0.2)
+            gossip = phase_modifier.get("gossip_aggression", 0.2)
+            roast = phase_modifier.get("roast_level", 0.2)
+            phase_hints = []
+            if warmth > 0.7:
+                phase_hints.append("Be extra warm, welcoming, and friendly")
+            if chaos > 0.7:
+                phase_hints.append("Be UNHINGED and chaotic — wild tangents, absurd energy")
+            if gossip > 0.6:
+                phase_hints.append("Be gossipy — tease, prod, stir drama playfully")
+            if roast > 0.6:
+                phase_hints.append("Roast mode — playful burns, trash talk, comedic insults")
+            if phase_hints:
+                messages.append({"role": "system", "content": "Phase vibes: " + "; ".join(phase_hints)})
+
+        # 3. Time flavor — use provided or auto-derive from time_flavors.yaml
+        time_flavor = kwargs.get("time_flavor")
+        if not time_flavor:
+            flavors = self.get_time_flavors()
+            if flavors:
+                now = datetime.now()
+                hour = now.hour
+                day_name = now.strftime("%A")
+                time_keys = flavors.get("time", {})
+                day_keys = flavors.get("day", {})
+                if hour >= 0 and hour < 6 and "late_night" in time_keys:
+                    time_flavor = time_keys["late_night"]
+                elif hour >= 6 and hour < 12 and "morning" in time_keys:
+                    time_flavor = time_keys["morning"]
+                elif hour >= 12 and hour < 17 and "afternoon" in time_keys:
+                    time_flavor = time_keys["afternoon"]
+                elif hour >= 17 and hour < 21 and "evening" in time_keys:
+                    time_flavor = time_keys["evening"]
+                elif "night" in time_keys:
+                    time_flavor = time_keys["night"]
+                if day_name.lower() in day_keys:
+                    time_flavor = (time_flavor or "") + " " + day_keys[day_name.lower()]
+        if time_flavor:
+            messages.append({"role": "system", "content": time_flavor.strip()})
+
+        # 4. Emotion context
+        last_emotion = kwargs.get("last_emotion")
+        if last_emotion:
+            messages.append({"role": "system", "content": f"Your current emotion: {last_emotion}"})
+
+        # 5. VIP context
+        vip_info = kwargs.get("vip_info")
+        if vip_info:
+            messages.append({"role": "system", "content": vip_info})
+
+        # 6. Guest context + memories
+        if guest_context:
+            messages.append({"role": "system", "content": guest_context})
+        elif speaker_name and memories:
+            mem_text = "\n".join(str(m) for m in memories)
+            messages.append({"role": "system", "content": f"Guest: {speaker_name}\nMemories:\n{mem_text}"})
+
+        # 7. Event greeting prompt
+        if event:
+            greetings = self.get_greeting_prompts()
+            if event in greetings:
+                messages.append({"role": "system", "content": greetings[event]})
+
+        # 8. Guest type hints
+        guest_type = kwargs.get("guest_type")
+        if guest_type:
+            hints = self.get_guest_type_hints()
+            if guest_type in hints:
+                messages.append({"role": "system", "content": hints[guest_type]})
+
+        return messages
