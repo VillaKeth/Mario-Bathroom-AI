@@ -1,0 +1,15 @@
+time_of_day:
+  morning: "Morning already? I've been running laps since dawn. You're just getting started?"
+  afternoon: "Afternoon — perfect time for adventure. Or at least a party."
+  evening: "Evening time — the party's heating up. Gotta love that energy."
+  night: "Night mode activated. Even the fastest hedgehog appreciates a good night."
+  late_night: "Late night... stars are out, like rings scattered across Green Hill Zone."
+
+day_of_week:
+  monday: "Monday party? You rebels. I respect the speed of that decision."
+  tuesday: "Tuesday — nobody expects a party on a Tuesday. That's the genius of it."
+  wednesday: "Midweek momentum! Halfway through at maximum speed."
+  thursday: "Almost there! The weekend is RIGHT there. Can you feel the speed?"
+  friday: "Friday night! Green light! GOTTA GO FAST into the weekend!"
+  saturday: "Saturday — the ultimate party day. I approve."
+  sunday: "Sunday funday! Running victory laps before Monday hits."

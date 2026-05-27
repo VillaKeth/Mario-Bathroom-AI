@@ -783,9 +783,9 @@ LONELY_DEEP = [  # 30+ min alone
 
 
 class IdleBehavior:
-    """Manages Mario's autonomous behavior when idle."""
+    """Manages character's autonomous behavior when idle."""
 
-    def __init__(self):
+    def __init__(self, character_loader=None):
         self._last_idle_action = time.time()
         self._idle_interval = 15
         self._action_count = 0
@@ -796,13 +796,33 @@ class IdleBehavior:
         self._used_items = {}  # pool_name -> set of recently used items
         self._global_recent = []  # Global dedup: tracks last 50 messages sent regardless of pool
         self._last_time_comment_at = 0  # Cooldown for time-based comments
+
+        # Load character-specific idle pools if available
+        self._char_pools = {}
+        self._char_name = "Mario"
+        if character_loader is not None:
+            self._char_name = character_loader.name
+            self._char_pools = character_loader.get_idle_messages()
+            if self._char_pools:
+                logger.info(f"[idle_behavior] Loaded {sum(len(v) for v in self._char_pools.values() if isinstance(v, list))} character idle messages for {self._char_name}")
+
+        # Resolve pools: character-specific overrides > hardcoded Mario defaults
+        self._mumbles = self._char_pools.get("mumbles", IDLE_MUMBLES)
+        self._jokes = self._char_pools.get("jokes", MARIO_JOKES)
+        self._songs = self._char_pools.get("songs", MARIO_SONGS)
+        self._trivia = self._char_pools.get("trivia_idle", MARIO_TRIVIA)
+        self._plumbing = self._char_pools.get("deep_thoughts", PLUMBING_FACTS)
+        self._challenges = self._char_pools.get("challenges", MARIO_CHALLENGES)
+        self._compliments = self._char_pools.get("compliments", MARIO_COMPLIMENTS)
+        self._handwash = self._char_pools.get("handwash", HAND_WASH_REMINDERS)
+
         # Per-category rotation tracking
-        self._joke_index = random.randint(0, max(1, len(MARIO_JOKES)) - 1)
-        self._trivia_index = random.randint(0, max(1, len(MARIO_TRIVIA)) - 1)
-        self._song_index = random.randint(0, max(1, len(MARIO_SONGS)) - 1)
-        self._challenge_index = random.randint(0, max(1, len(MARIO_CHALLENGES)) - 1)
-        self._compliment_index = random.randint(0, max(1, len(MARIO_COMPLIMENTS)) - 1)
-        self._hand_wash_index = random.randint(0, max(1, len(HAND_WASH_REMINDERS)) - 1)
+        self._joke_index = random.randint(0, max(1, len(self._jokes)) - 1)
+        self._trivia_index = random.randint(0, max(1, len(self._trivia)) - 1)
+        self._song_index = random.randint(0, max(1, len(self._songs)) - 1)
+        self._challenge_index = random.randint(0, max(1, len(self._challenges)) - 1)
+        self._compliment_index = random.randint(0, max(1, len(self._compliments)) - 1)
+        self._hand_wash_index = random.randint(0, max(1, len(self._handwash)) - 1)
         # Memorial event tracking (fires once per party session)
         self._memorial_delivered = False
         self._memorial_shot_delivered = False
@@ -951,25 +971,25 @@ class IdleBehavior:
 
         # Rotate through categories for variety
         _categories = [
-            ("mumbles", list(IDLE_MUMBLES)),
-            ("songs", list(MARIO_SONGS)),
-            ("jokes", list(MARIO_JOKES)),
-            ("trivia", list(MARIO_TRIVIA + PLUMBING_FACTS)),
-            ("social", list(MARIO_CHALLENGES + MARIO_COMPLIMENTS)),
+            ("mumbles", list(self._mumbles)),
+            ("songs", list(self._songs)),
+            ("jokes", list(self._jokes)),
+            ("trivia", list(self._trivia + self._plumbing)),
+            ("social", list(self._challenges + self._compliments)),
         ]
         cat_name, options = random.choice(_categories)
 
         # Phase-driven tone adjustments
         if phase_val == 1:  # WARM_UP — heavier on compliments and friendly content
-            options.extend(MARIO_COMPLIMENTS * 2)
+            options.extend(self._compliments * 2)
         elif phase_val == 2:  # PARTY_MODE — more songs and energy
-            options.extend(MARIO_SONGS * 2)
+            options.extend(self._songs * 2)
             options.extend(DJ_ANNOUNCEMENTS)
         elif phase_val == 3:  # UNHINGED — jokes and wild mumbles dominate
-            options.extend(MARIO_JOKES * 3)
+            options.extend(self._jokes * 3)
         elif phase_val == 4:  # WIND_DOWN — trivia and sentimental content
-            options.extend(MARIO_TRIVIA * 2)
-            options.extend(MARIO_COMPLIMENTS)
+            options.extend(self._trivia * 2)
+            options.extend(self._compliments)
 
         # Add time-appropriate comments
         if 18 <= hour < 21:
@@ -987,18 +1007,18 @@ class IdleBehavior:
         return choice
 
     def get_joke(self) -> str:
-        joke = MARIO_JOKES[self._joke_index % len(MARIO_JOKES)]
+        joke = self._jokes[self._joke_index % len(self._jokes)]
         self._joke_index += 1
         return joke
 
     def get_trivia(self) -> str:
-        combined = MARIO_TRIVIA + PLUMBING_FACTS
+        combined = self._trivia + self._plumbing
         fact = combined[self._trivia_index % len(combined)]
         self._trivia_index += 1
         return fact
 
     def get_song(self) -> str:
-        song = MARIO_SONGS[self._song_index % len(MARIO_SONGS)]
+        song = self._songs[self._song_index % len(self._songs)]
         self._song_index += 1
         return song
 
@@ -1006,12 +1026,12 @@ class IdleBehavior:
         return self._pick_unique(NOISE_REACTIONS, "noise_reactions")
 
     def get_challenge(self) -> str:
-        challenge = MARIO_CHALLENGES[self._challenge_index % len(MARIO_CHALLENGES)]
+        challenge = self._challenges[self._challenge_index % len(self._challenges)]
         self._challenge_index += 1
         return challenge
 
     def get_compliment(self) -> str:
-        compliment = MARIO_COMPLIMENTS[self._compliment_index % len(MARIO_COMPLIMENTS)]
+        compliment = self._compliments[self._compliment_index % len(self._compliments)]
         self._compliment_index += 1
         return compliment
 

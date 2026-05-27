@@ -291,7 +291,7 @@ easter_egg_scheduler = EasterEggScheduler()
 # Systems
 emotion_system = EmotionSystem()
 party_stats = PartyStats()
-idle_behavior = IdleBehavior()
+idle_behavior = IdleBehavior()  # Initialized with defaults; reloaded with character in main()
 party_gossip = PartyGossip()
 
 # Night Progression — personality escalation across party phases
@@ -652,6 +652,10 @@ async def lifespan(app: FastAPI):
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
+
+    # Reinitialize idle behavior with character-specific pools
+    global idle_behavior
+    idle_behavior = IdleBehavior(character_loader=_character)
 
     # Initialize face memory with character-specific collection
     logger.info("Loading face memory...")

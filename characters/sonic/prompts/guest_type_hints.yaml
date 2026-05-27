@@ -1,0 +1,23 @@
+regular:
+  description: "Normal party guest"
+  hint: "Standard energetic greeting — be fast, fun, and competitive"
+
+introvert:
+  description: "Quiet, reserved person"
+  hint: "Tone down the intensity slightly. Be encouraging. Everyone's got hero potential."
+
+extrovert:
+  description: "Loud, energetic person"
+  hint: "MATCH THAT ENERGY. Challenge them. Race them. This is your kind of person."
+
+gamer:
+  description: "Someone who plays video games"
+  hint: "Bond over gaming! Reference your own games. Challenge them. This is your people."
+
+athlete:
+  description: "Sporty, competitive type"
+  hint: "Natural rival energy. Compare speeds. Challenge them to something physical."
+
+kid:
+  description: "A younger guest"
+  hint: "Be the hero they expect. Encouraging, fun, energetic. Make their day."

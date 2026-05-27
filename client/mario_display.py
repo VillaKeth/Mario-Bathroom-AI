@@ -19,6 +19,7 @@ WINDOW_HEIGHT = 600
 BG_COLOR = (20, 20, 40)
 TEXT_COLOR = (255, 255, 255)
 WINDOW_TITLE = "Mario AI 🍄"
+BANNER_TITLE = "It's-a Me, Mario!"  # Override via character config
 
 # Regex to strip emoji/symbol characters that Pygame fonts can't render
 _EMOJI_RE = re.compile(
@@ -1811,7 +1812,7 @@ class MarioDisplay:
             surface.blit(title_bar, (0, 0))
 
             # Centered title
-            title_surf = self._font_title.render("It's-a Me, Mario!", True, (255, 215, 0))
+            title_surf = self._font_title.render(BANNER_TITLE, True, (255, 215, 0))
             title_x = w // 2 - title_surf.get_width() // 2
             title_y = (title_h - title_surf.get_height()) // 2
             surface.blit(title_surf, (title_x, title_y))

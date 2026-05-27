@@ -218,6 +218,19 @@ class CharacterLoader:
 
         return pools
 
+    def get_idle_messages(self) -> dict:
+        """Load idle message pools from character's idle/messages.yaml.
+
+        Returns dict mapping pool names to lists of messages:
+        {"mumbles": [...], "jokes": [...], "songs": [...], etc.}
+        Returns empty dict if no idle messages file exists.
+        """
+        return self._load_yaml_file("idle/messages.yaml", default={})
+
+    def get_loneliness_greetings(self) -> dict:
+        """Load loneliness greeting pools from character's idle/loneliness.yaml."""
+        return self._load_yaml_file("idle/loneliness.yaml", default={})
+
     def build_context(self, speaker_name: str = None, memories: list = None,
                       event: str = None, phase_modifier: dict = None,
                       guest_context: str = None, **kwargs) -> list[dict]:

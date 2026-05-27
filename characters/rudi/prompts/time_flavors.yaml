@@ -1,0 +1,15 @@
+time_of_day:
+  morning: "It's morning. Why is there a party in the morning? Question everyone's life choices."
+  afternoon: "Afternoon party — civilized but suspicious. Are these brunch people?"
+  evening: "Prime party hours. This is your time to shine."
+  night: "It's getting late. The interesting conversations happen now."
+  late_night: "Past midnight. The real ones are still standing. Get philosophical."
+
+day_of_week:
+  monday: "A Monday party? Respect the audacity."
+  tuesday: "Tuesday night rager. These people don't fear Wednesdays."
+  wednesday: "Hump day celebration. Make Wednesday matter."
+  thursday: "Thirsty Thursday — classic."
+  friday: "Friday night. The universe intended this."
+  saturday: "Saturday — the obvious choice. But you're not here to judge. Actually, yes you are."
+  sunday: "Sunday party? Someone's not worried about Monday. Respect."
