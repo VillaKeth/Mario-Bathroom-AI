@@ -710,3 +710,4 @@
 - [ ] Test face recognition with real camera feed
 - [ ] Test speaker ID with real microphone audio
 - [ ] Tune speaker ID threshold for party noise levels
+
