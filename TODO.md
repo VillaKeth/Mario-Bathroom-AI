@@ -565,7 +565,23 @@
 - [ ] Add more walk/run pose variants for entrance animation
 - [ ] Consider adding a physical "flush" button trigger for fun
 - [ ] Tune speaker ID threshold for party noise levels
-- [ ] Add volume control / gain adjustment for noisy environments
+
+## Modular Character System
+- [ ] Install PyYAML and create shared package (Task 1)
+- [ ] Build CharacterLoader core — identity + path resolution (Task 2)
+- [ ] Add voice + pronunciation config to CharacterLoader (Task 3)
+- [ ] Add visuals config — 37 emotions, 9 states (Task 4)
+- [ ] Add prompt system + build_context() to CharacterLoader (Task 5)
+- [ ] Add game pool loading with shared merging (Task 6)
+- [ ] Add memory + speech config to CharacterLoader (Task 7)
+- [x] Extract Mario prompts to character files (Task 8)
+- [ ] Extract 20 game pools to YAML (608+ items) (Task 9)
+- [ ] Copy Mario assets to character directory (Task 10)
+- [ ] Wire server to use CharacterLoader (Task 11)
+- [ ] Wire memory systems — parameterize Qdrant collections (Task 12)
+- [ ] Wire client to use CharacterLoader (Task 13)
+- [ ] End-to-end verification on Desktop 2 (Task 14)
+- [ ] Create test_bot character to validate modularity (Task 15)- [ ] Add volume control / gain adjustment for noisy environments
 - [ ] Consider streaming TTS (start playing before full generation)
 ## Performance & Optimization
 - [ ] Measure full end-to-end conversation latency
