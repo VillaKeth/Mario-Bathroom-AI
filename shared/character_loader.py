@@ -72,6 +72,21 @@ class CharacterLoader:
         }
         self.pronunciation: dict = voice.get("pronunciation", {})
 
+        # Parse visuals
+        visuals = self._config.get("visuals", {})
+        self.sprite_dir: str = str(self._resolve_path(visuals.get("sprite_dir", "sprites/")))
+        self.ai_poses_dir: str = str(self._resolve_path(visuals.get("ai_poses_dir", "sprites/ai_poses/")))
+        size = visuals.get("ai_pose_size", [250, 250])
+        self.ai_pose_size: tuple = tuple(size) if isinstance(size, list) else (250, 250)
+        self.emotion_sprite_map: dict = visuals.get("emotion_sprite_map", {})
+        self.state_sprite_map: dict = visuals.get("state_sprite_map", {})
+        self.fallback_sprites: dict = visuals.get("fallback_sprites", {})
+        self.theme_colors: dict = visuals.get("theme_colors", {
+            "primary": "#FFFFFF", "secondary": "#CCCCCC",
+            "accent": "#FFD700", "text": "#FFFFFF",
+        })
+        self.particle_colors: list = visuals.get("particle_colors", [])
+
     def _validate_required(self):
         """Check that required fields exist in the config."""
         missing = []

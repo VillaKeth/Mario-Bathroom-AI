@@ -79,3 +79,28 @@ def test_voice_config_invalid_engine(tmp_chars):
     with pytest.raises(CharacterConfigError) as exc:
         CharacterLoader(str(tmp_chars), "test_char")
     assert "preferred_engine" in str(exc.value)
+
+def test_visuals_config(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["visuals"] = {
+        "sprite_dir": "sprites/",
+        "ai_poses_dir": "sprites/ai_poses/",
+        "ai_pose_size": [250, 250],
+        "emotion_sprite_map": {"happy": "positive/happy", "sad": "negative/sad"},
+        "state_sprite_map": {"idle": "neutral/idle", "talking": ["speech/talking"]},
+        "theme_colors": {"primary": "#E52521", "secondary": "#049CD8", "accent": "#FBD000", "text": "#FFFFFF"},
+        "particle_colors": ["#FFD700", "#E52521"],
+    }
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.emotion_sprite_map["happy"] == "positive/happy"
+    assert loader.state_sprite_map["idle"] == "neutral/idle"
+    assert loader.theme_colors["primary"] == "#E52521"
+    assert loader.ai_pose_size == (250, 250)
+
+def test_visuals_defaults(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.emotion_sprite_map == {}
+    assert loader.state_sprite_map == {}
+    assert loader.theme_colors == {"primary": "#FFFFFF", "secondary": "#CCCCCC", "accent": "#FFD700", "text": "#FFFFFF"}
