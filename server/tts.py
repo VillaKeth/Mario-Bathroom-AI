@@ -1133,6 +1133,22 @@ def set_pronunciation(pronunciation: dict):
     _character_pronunciation = pronunciation
 
 
+# Post-synthesis callback registry (for debug monitor)
+_post_synthesis_callbacks = []
+
+def register_post_synthesis_callback(callback):
+    """Register a callback called after each TTS synthesis.
+    
+    Callback signature: callback(text: str, wav_bytes: bytes)
+    Callbacks run in a try/except — failures are logged, not propagated.
+    """
+    _post_synthesis_callbacks.append(callback)
+
+def clear_post_synthesis_callbacks():
+    """Remove all post-synthesis callbacks."""
+    _post_synthesis_callbacks.clear()
+
+
 def _preclean_tts_text(text: str) -> str:
     """Pre-clean text before any TTS engine sees it.
 
@@ -1312,6 +1328,13 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
         except _queue_mod.Full:
             if DEBUG_TTS:
                 logger.info(f"[DEBUG_TTS] hybrid: regen queue full, skipping '{text[:40]}...'")
+
+    # Fire post-synthesis callbacks (debug monitor hook)
+    for cb in _post_synthesis_callbacks:
+        try:
+            cb(text, result)
+        except Exception as e:
+            logger.warning(f"[DEBUG_TTS] post-synthesis callback failed: {e}")
 
     return result
 
