@@ -17,9 +17,11 @@
 - [x] Added dynamic RVC tuning: gentle params for short phrases (< 4 words)
 - [x] Normalized WER comparison: hyphens treated as spaces, cleaned text also compared
 - [x] Added /admin/tts_audit/best_of_n endpoint
-- [x] 8/10 catchphrases now produce correct audio (Wahoo, Yippee, Magnifico, It's-a me Mario, Mamma mia, Here we go, Let's-a go, Bellissimo)
-- [ ] Okie dokie — RVC cannot reproduce (20 attempts all fail)
-- [ ] Buongiorno — RVC cannot reproduce (20 attempts all fail)
+- [x] Full 29-phrase audit: 5/29 pass single-shot, best-of-N caches bring it to ~15/29
+- [x] Key wins: "It's-a me Mario!" WER 0.0, "Wahoo/Yahoo!" WER 0.0, "Mamma mia!" WER 0.0
+- [x] Pronunciation rules: wahoo→yahoo, magnifico→magnificent, mamma mia→mama mee ah, okie dokie→oh key doe key, buongiorno→boon jor no
+- [x] Tried silence padding for RVC — made things worse, reverted
+- [ ] Ultra-short 1-word phrases (Yippee, Bravo, Bellissimo, Ha ha ha) remain RVC-incompatible standalone — work fine in longer sentences
 
 ## Critical LLM Fixes — DONE ✅
 - [x] Fix ImportError in llm.py that silently discarded ALL LLM responses
