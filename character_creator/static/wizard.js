@@ -1228,7 +1228,7 @@ class WizardUI {
                         <div class="model-info">
                             <strong>${model.name}</strong>
                             ${isRecommended ? '<span class="badge badge-primary">Recommended</span>' : ''}
-                            <p>Size: ${model.size} | VRAM: ${model.vram_required} GB</p>
+                            <p>VRAM: ${model.vram_gb || '?'} GB${model.installed ? ' | Installed' : ''}</p>
                             <span class="badge ${compatibilityClass}">${compatibilityText}</span>
                         </div>
                     </label>

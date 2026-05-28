@@ -826,3 +826,12 @@
 
 - [x] Implemented Task 5: Added /admin/tts_audit endpoint and debug monitor to server/main.py
 - [ ] Review character creator wizard spec readiness for planning
+
+
+- [x] Task 4: Known Character Database & Lookup API
+  - [x] Created known_characters.json with 25 popular characters (Goku, SpongeBob, Darth Vader, Pikachu, Batman, Spider-Man, Homer Simpson, Shrek, Naruto, Luigi, Yoshi, Link, Kirby, Patrick Star, Squidward, Thanos, Iron Man, Elsa, Buzz Lightyear, Garfield, Deadpool, Rick Sanchez, Groot, Stitch, Bender)
+  - [x] Implemented known_characters.py loader module with caching and lookup functions
+  - [x] Added API endpoints: GET /api/known-character/{name} and GET /api/known-characters
+  - [x] Added comprehensive tests for character lookup functionality
+  - [x] All 18 tests passing
+- [x] Task 14: Documentation for Character Creator Wizard (completed - docs/creating-a-character.md, docs/character-format.md, README.md updated)
