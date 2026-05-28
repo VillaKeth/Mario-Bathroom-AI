@@ -212,7 +212,7 @@ class MarioClient:
                 data = json.loads(req.read())
                 if data.get("status") == "ok":
                     logger.info(f"Server health OK — TTS cache: {data.get('tts_cache_size', '?')}, LLM: {data.get('llm_model', '?')}")
-                    self.display.set_mario_text("Server connected! Let's-a go!")
+                    self.display.set_mario_text("Server connected! Here we go!")
                     self.display.update()
                     return True
             except Exception as e:
@@ -394,13 +394,13 @@ class MarioClient:
         logger.warning("Disconnected from server!")
         self.display.connected = False
         self.display._reconnect_info = self.ws.reconnect_info
-        self.display.set_mario_text("Mama mia! Reconnecting...")
+        self.display.set_mario_text("Connection lost! Reconnecting...")
         self.display.set_state(STATE_IDLE)
 
     def _on_state_update(self, state: dict):
         if state.get("thinking"):
             self.display.set_state(STATE_THINKING)
-            self.display.set_mario_text("Hmm, let me-a think...")
+            self.display.set_mario_text("Hmm, let me think...")
             subtitle = state.get("subtitle")
             if subtitle:
                 self.display.set_subtitle(subtitle)
@@ -831,7 +831,7 @@ def _show_error_screen(error_msg: str, duration: float = 3.0):
                 font_big = _pg.font.Font(None, 44)
                 font_sm = _pg.font.Font(None, 26)
 
-                line1 = font_big.render("Oops! Mario tripped on a Goomba!", True, (255, 80, 80))
+                line1 = font_big.render("Oops! Something went wrong!", True, (255, 80, 80))
                 line2 = font_sm.render("Restarting automatically...", True, (200, 200, 200))
                 # Truncate long error messages
                 err_short = error_msg[:80] + ("..." if len(error_msg) > 80 else "")

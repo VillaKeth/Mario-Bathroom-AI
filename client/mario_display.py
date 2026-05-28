@@ -18,8 +18,8 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 BG_COLOR = (20, 20, 40)
 TEXT_COLOR = (255, 255, 255)
-WINDOW_TITLE = "Mario AI 🍄"
-BANNER_TITLE = "It's-a Me, Mario!"  # Override via character config
+WINDOW_TITLE = "AI Party Bot"
+BANNER_TITLE = "AI Party Bot"  # Override via character config
 
 # Regex to strip emoji/symbol characters that Pygame fonts can't render
 _EMOJI_RE = re.compile(
@@ -789,7 +789,7 @@ class MarioDisplay:
             self._connection_status = None
         else:
             if attempt >= max_attempts:
-                self._connection_status = "Cannot reach server - restart Mario AI"
+                self._connection_status = "Cannot reach server - please restart"
             elif attempt > 0:
                 self._connection_status = f"Reconnecting... (attempt {attempt}/{max_attempts})"
             else:
@@ -1587,7 +1587,7 @@ class MarioDisplay:
         big_font = pygame.font.Font(None, 40)
         sub_font = pygame.font.Font(None, 28)
 
-        msg = big_font.render("Mario is taking a bathroom break...", True, (255, 215, 0))
+        msg = big_font.render(f"{BANNER_TITLE} is taking a break...", True, (255, 215, 0))
         msg2 = sub_font.render("be right back!", True, (180, 220, 255))
         self._screen.blit(msg, (w // 2 - msg.get_width() // 2, h // 2 + 60))
         self._screen.blit(msg2, (w // 2 - msg2.get_width() // 2, h // 2 + 100))
