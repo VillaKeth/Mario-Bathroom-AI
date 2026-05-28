@@ -7,10 +7,417 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+    <a href="#main-content" class="sr-only">Skip to main content</a>
+    
     <div id="app">
-        <h1>🎭 Character Creator</h1>
-        <p>Loading wizard...</p>
+        <!-- Resume Draft Banner (hidden by default) -->
+        <div id="resume-banner" class="banner" style="display:none" role="alert">
+            <p>You have an unfinished character draft from <span id="draft-date"></span></p>
+            <div class="banner-actions">
+                <button onclick="wizard.resumeDraft()" class="btn btn-primary">Resume</button>
+                <button onclick="wizard.startFresh()" class="btn btn-secondary">Start Fresh</button>
+            </div>
+        </div>
+
+        <main id="main-content">
+            <header class="wizard-header">
+                <h1>🎭 Character Creator</h1>
+                <p class="subtitle">Create your AI character in 6 easy steps</p>
+            </header>
+
+            <!-- Progress Bar -->
+            <nav class="progress-bar" role="progressbar" aria-label="Wizard progress" aria-valuenow="1" aria-valuemin="1" aria-valuemax="6">
+                <div class="progress-steps">
+                    <button class="progress-step active" data-step="0" aria-label="Step 1: Identity">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Identity</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="1" aria-label="Step 2: Personality">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Personality</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="2" aria-label="Step 3: Voice">
+                        <span class="step-number">3</span>
+                        <span class="step-label">Voice</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="3" aria-label="Step 4: Appearance">
+                        <span class="step-number">4</span>
+                        <span class="step-label">Appearance</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="4" aria-label="Step 5: Hardware">
+                        <span class="step-number">5</span>
+                        <span class="step-label">Hardware</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="5" aria-label="Step 6: Review">
+                        <span class="step-number">6</span>
+                        <span class="step-label">Review</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Status/Error Message Region -->
+            <div id="status-region" class="status-region" aria-live="polite" role="status"></div>
+
+            <!-- Step 1: Identity -->
+            <section id="step-0" class="wizard-step active" role="tabpanel" aria-labelledby="step-0-heading">
+                <h2 id="step-0-heading" tabindex="-1">👤 Step 1: Identity</h2>
+                <p class="help-text">Tell us about your character. Type a name — if we recognize it, we'll auto-fill everything!</p>
+                
+                <fieldset>
+                    <legend class="sr-only">Character Type</legend>
+                    <div class="radio-group">
+                        <label class="radio-card">
+                            <input type="radio" name="char_type" value="known" checked>
+                            <span class="radio-label">🌟 Known Character</span>
+                            <span class="radio-desc">Pick a famous character — we auto-fill the details</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="char_type" value="original">
+                            <span class="radio-label">✨ Original Character</span>
+                            <span class="radio-desc">Create something entirely new</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="form-group">
+                    <label for="char-name">Character Name <span class="required">*</span></label>
+                    <input type="text" id="char-name" placeholder="e.g., Goku, SpongeBob, or your own creation" autocomplete="off">
+                    <p class="help-text" id="name-status"></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="display-name">Display Name</label>
+                    <span class="auto-filled-badge" id="display-name-badge" style="display:none">✨ Auto-filled</span>
+                    <input type="text" id="display-name" placeholder="e.g., Goku AI 🐉">
+                    <p class="help-text">The name shown in the UI, including emoji</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="tagline">Tagline</label>
+                    <span class="auto-filled-badge" id="tagline-badge" style="display:none">✨ Auto-filled</span>
+                    <input type="text" id="tagline" placeholder="e.g., Kamehameha!">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <span class="auto-filled-badge" id="description-badge" style="display:none">✨ Auto-filled</span>
+                    <textarea id="description" rows="3" placeholder="A brief description of your character..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Theme Colors</label>
+                    <span class="auto-filled-badge" id="colors-badge" style="display:none">✨ Auto-filled</span>
+                    <div class="color-picker-grid">
+                        <div class="color-picker-item">
+                            <label for="color-primary">Primary</label>
+                            <input type="color" id="color-primary" value="#7B2FBE">
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="color-secondary">Secondary</label>
+                            <input type="color" id="color-secondary" value="#1E90FF">
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="color-accent">Accent</label>
+                            <input type="color" id="color-accent" value="#FFD700">
+                        </div>
+                        <div class="color-picker-item">
+                            <label for="color-text">Text</label>
+                            <input type="color" id="color-text" value="#FFFFFF">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: Personality -->
+            <section id="step-1" class="wizard-step" role="tabpanel" aria-labelledby="step-1-heading" style="display:none">
+                <h2 id="step-1-heading" tabindex="-1">🎭 Step 2: Personality</h2>
+                <p class="help-text">Known characters come with personality pre-configured. Customize if you want!</p>
+                
+                <div class="skip-section" id="personality-skip">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skip-personality">
+                        <span>Skip — use defaults for this character</span>
+                    </label>
+                </div>
+
+                <div id="personality-fields">
+                    <div class="form-group">
+                        <label for="system-prompt">System Prompt</label>
+                        <textarea id="system-prompt" rows="6" placeholder="Describe how your character should behave, speak, and interact..."></textarea>
+                        <p class="help-text">This tells the AI how to act as your character</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Accent Markers</label>
+                        <div class="tag-input" id="accent-markers-container">
+                            <div class="tags" id="accent-tags"></div>
+                            <input type="text" id="accent-input" placeholder="Type and press Enter to add...">
+                        </div>
+                        <p class="help-text">Speech patterns and vocal quirks (e.g., "Speaks with Italian accent")</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Catchphrases</label>
+                        <div class="tag-input" id="catchphrases-container">
+                            <div class="tags" id="catchphrase-tags"></div>
+                            <input type="text" id="catchphrase-input" placeholder="Type and press Enter to add...">
+                        </div>
+                        <p class="help-text">Signature lines your character says often</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Voice -->
+            <section id="step-2" class="wizard-step" role="tabpanel" aria-labelledby="step-2-heading" style="display:none">
+                <h2 id="step-2-heading" tabindex="-1">🎤 Step 3: Voice</h2>
+                <p class="help-text">Choose how your character will sound. We'll use the best engine available for your hardware.</p>
+
+                <div class="card" id="voice-engines-card">
+                    <h3>Available Voice Engines</h3>
+                    <div id="voice-engines-list" class="engine-grid">
+                        <p class="loading">Loading engines...</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Reference Audio</h3>
+                    <p class="help-text">Upload a voice clip of your character (or record one). This enables voice cloning.</p>
+                    
+                    <div class="upload-zone" id="audio-upload-zone">
+                        <div class="upload-icon">🎵</div>
+                        <p>Drag &amp; drop audio file here</p>
+                        <p class="help-text">or click to browse (.wav, .mp3 — max 50MB)</p>
+                        <input type="file" id="audio-file-input" accept="audio/*" style="display:none">
+                    </div>
+
+                    <div id="audio-preview" style="display:none">
+                        <audio id="audio-player" controls></audio>
+                        <button class="btn btn-danger btn-sm" onclick="wizard.removeAudio()">Remove</button>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="btn-record" onclick="wizard.toggleRecording()">
+                            🎙️ Record
+                        </button>
+                        <button class="btn btn-secondary" id="btn-auto-find" onclick="wizard.autoFindVoice()">
+                            🔍 Auto-find Online
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Edge TTS Voice (Fallback)</h3>
+                    <p class="help-text">Select a Microsoft voice as backup. Always available, no GPU needed.</p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edge-voice-select">Voice</label>
+                            <select id="edge-voice-select">
+                                <option value="">Loading voices...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="voice-gender-filter">Gender</label>
+                            <select id="voice-gender-filter">
+                                <option value="">All</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="slider-group">
+                        <label for="voice-rate">Speed: <span id="voice-rate-display">+0%</span></label>
+                        <input type="range" id="voice-rate" min="-50" max="50" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label for="voice-pitch">Pitch: <span id="voice-pitch-display">+0Hz</span></label>
+                        <input type="range" id="voice-pitch" min="-50" max="50" value="0">
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="wizard.previewVoice()">▶ Preview Voice</button>
+                </div>
+
+                <div class="card">
+                    <h3>Pronunciation Rules</h3>
+                    <p class="help-text">Tell the voice engine how to say tricky words</p>
+                    <div id="pronunciation-rules">
+                        <div class="pronunciation-row">
+                            <input type="text" placeholder="Word" class="pron-word">
+                            <span class="arrow">→</span>
+                            <input type="text" placeholder="How to say it" class="pron-say">
+                            <button class="btn btn-danger btn-sm" onclick="wizard.removePronunciation(this)">✕</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="wizard.addPronunciation()">+ Add Rule</button>
+                </div>
+            </section>
+
+            <!-- Step 4: Appearance -->
+            <section id="step-3" class="wizard-step" role="tabpanel" aria-labelledby="step-3-heading" style="display:none">
+                <h2 id="step-3-heading" tabindex="-1">🎨 Step 4: Appearance</h2>
+                <p class="help-text">Choose how your character looks. Generate with AI or upload your own images.</p>
+
+                <fieldset>
+                    <legend class="sr-only">Sprite Source</legend>
+                    <div class="radio-group">
+                        <label class="radio-card">
+                            <input type="radio" name="sprite_source" value="generate" checked>
+                            <span class="radio-label">🤖 AI Generate All</span>
+                            <span class="radio-desc">We'll generate ~37 poses automatically</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="sprite_source" value="upload">
+                            <span class="radio-label">📤 Upload My Own</span>
+                            <span class="radio-desc">Upload your own images for each pose</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div id="generate-section">
+                    <div class="form-group">
+                        <label for="visual-description">Visual Description</label>
+                        <span class="auto-filled-badge" id="visual-desc-badge" style="display:none">✨ Auto-filled</span>
+                        <textarea id="visual-description" rows="3" placeholder="Describe your character's appearance in detail..."></textarea>
+                        <p class="help-text">Be specific: clothing, colors, features, style</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Art Style</label>
+                        <div class="style-picker" id="art-style-picker">
+                            <button class="style-btn active" data-style="3d_figurine">🧸 3D Figurine</button>
+                            <button class="style-btn" data-style="anime">🎌 Anime</button>
+                            <button class="style-btn" data-style="pixel_art">👾 Pixel Art</button>
+                            <button class="style-btn" data-style="realistic">📸 Realistic</button>
+                            <button class="style-btn" data-style="cartoon">🖍️ Cartoon</button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg" id="btn-generate-sprites" onclick="wizard.generateSprites()">
+                        🎨 Generate All Sprites
+                    </button>
+
+                    <div id="generation-progress" style="display:none">
+                        <div class="progress-bar-horizontal">
+                            <div class="progress-fill" id="sprite-progress-fill" style="width:0%"></div>
+                        </div>
+                        <p id="sprite-progress-text">Generating...</p>
+                    </div>
+                </div>
+
+                <div id="upload-section" style="display:none">
+                    <p class="help-text">At minimum, upload a 'neutral' image. Missing poses will fall back to the closest available.</p>
+                    
+                    <h3>Emotion Sprites</h3>
+                    <div class="sprite-grid" id="emotion-sprite-grid">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <h3>State Sprites</h3>
+                    <div class="sprite-grid" id="state-sprite-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div id="sprite-preview-grid" class="sprite-grid">
+                    <!-- Populated by JS after generation -->
+                </div>
+            </section>
+
+            <!-- Step 5: Hardware & Models -->
+            <section id="step-4" class="wizard-step" role="tabpanel" aria-labelledby="step-4-heading" style="display:none">
+                <h2 id="step-4-heading" tabindex="-1">⚙️ Step 5: Hardware &amp; Models</h2>
+                <p class="help-text">Pick a model that fits your GPU. Grayed-out models need more VRAM.</p>
+
+                <div class="card" id="hardware-info-card">
+                    <h3>Your Hardware</h3>
+                    <div class="hardware-grid" id="hardware-grid">
+                        <p class="loading">Detecting hardware...</p>
+                    </div>
+                </div>
+
+                <div class="card" id="models-card">
+                    <h3>AI Model Selection</h3>
+                    <div id="no-ollama-banner" class="banner banner-warning" style="display:none">
+                        <p>⚠️ Ollama not detected. <a href="https://ollama.com" target="_blank">Install Ollama</a> to use local AI models.</p>
+                    </div>
+                    <div id="models-list" class="models-grid">
+                        <p class="loading">Loading models...</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="advanced-models-toggle">
+                        <span>Advanced: Split models (separate quality &amp; fast models)</span>
+                    </label>
+                    <div id="dual-model-picker" style="display:none">
+                        <div class="form-group">
+                            <label for="quality-model-select">Quality Model (for conversations)</label>
+                            <select id="quality-model-select"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fast-model-select">Fast Model (for quick tasks)</label>
+                            <select id="fast-model-select"></select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 6: Review & Create -->
+            <section id="step-5" class="wizard-step" role="tabpanel" aria-labelledby="step-5-heading" style="display:none">
+                <h2 id="step-5-heading" tabindex="-1">🚀 Step 6: Review &amp; Create</h2>
+                <p class="help-text">Review your character settings. Click "Edit" on any section to make changes.</p>
+
+                <div class="review-cards" id="review-cards">
+                    <!-- Populated by JS -->
+                </div>
+
+                <button class="btn btn-primary btn-lg" id="btn-create-character" onclick="wizard.createCharacter()">
+                    🎉 Create Character
+                </button>
+
+                <div id="creation-progress" style="display:none">
+                    <div class="progress-bar-horizontal">
+                        <div class="progress-fill" id="create-progress-fill" style="width:0%"></div>
+                    </div>
+                    <p id="create-progress-text">Creating character...</p>
+                </div>
+            </section>
+
+            <!-- Success Screen -->
+            <section id="success-screen" class="wizard-step" style="display:none">
+                <div class="success-content">
+                    <h2 tabindex="-1">🎉 Character Created!</h2>
+                    <div id="success-details"></div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="wizard.startServer()">▶ Start Server</button>
+                        <button class="btn btn-secondary" onclick="wizard.createAnother()">+ Create Another</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Navigation Buttons -->
+            <div class="wizard-nav" id="wizard-nav">
+                <button class="btn btn-secondary" id="btn-back" onclick="wizard.prevStep()" style="display:none" aria-label="Go to previous step">
+                    ← Back
+                </button>
+                <div class="spacer"></div>
+                <button class="btn btn-primary" id="btn-next" onclick="wizard.nextStep()" aria-label="Go to next step">
+                    Next →
+                </button>
+            </div>
+        </main>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" aria-live="assertive"></div>
+
     <script src="/static/wizard.js"></script>
 </body>
 </html>
