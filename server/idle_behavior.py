@@ -908,7 +908,7 @@ class IdleBehavior:
     def _pick_unique(self, pool: list, pool_name: str = None) -> str:
         """Pick a random item from pool, avoiding recent repeats (per-pool + global)."""
         if not pool:
-            return "Wahoo!"
+            return "..."
         if pool_name is None:
             # Legacy behavior for callers that don't pass pool_name
             fresh = [o for o in pool if o not in self._recently_used and o not in self._global_recent]

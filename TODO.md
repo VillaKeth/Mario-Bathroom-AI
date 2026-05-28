@@ -710,8 +710,12 @@
 - [x] Sonic E2E verified: system prompt, voice (ChristopherNeural +25%), idle messages, emotions, Pygame on Desktop 2
 - [x] Mario regression verified: system prompt, voice (GuyNeural +10%), pre-cache, jokes, food handler
 - [x] 443/443 tests passing
-- [ ] Game content still Mario-themed for all characters (trivia questions, dares, RPS reactions)
-- [ ] Phase/greeting prompt key mismatch (WARM_UP vs warming_up, startup vs first_time)
+- [x] Game content character-specific: load_character_pools() loads 16 YAML pool types per character
+- [x] Phase/greeting prompt key mapping (warming_up→WARM_UP, first_time→enter_unknown, etc.)
+- [x] Added 6 more sprite aliases for Rudi and Sonic (waving, excited_jump, looking_left, etc.)
+- [x] Smart format validation: skip flat strings for trivia/WYR/NTC that need structured Q&A
+- [x] Truth/Dare split from flat list by "Truth:"/"Dare:" prefix
+- [ ] Rudi/Sonic trivia still uses Mario Q&A (their flat facts can't be used for structured trivia game)
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
