@@ -148,3 +148,25 @@ def test_detect_available_engines():
         assert "available" in engine
         assert "vram_required" in engine
         assert "status" in engine
+
+def test_upload_audio_endpoint():
+    import struct
+    client = TestClient(app)
+    sample_rate = 22050
+    num_samples = sample_rate
+    data_size = num_samples * 2
+    header = struct.pack('<4sI4s4sIHHIIHH4sI',
+        b'RIFF', 36 + data_size, b'WAVE',
+        b'fmt ', 16, 1, 1, sample_rate, sample_rate * 2, 2, 16,
+        b'data', data_size)
+    wav_bytes = header + b'\x00' * data_size
+    resp = client.post(
+        "/api/upload/audio",
+        files={"file": ("test.wav", wav_bytes, "audio/wav")},
+        data={"character_name": "test_upload"}
+    )
+    assert resp.status_code == 200
+    data_resp = resp.json()
+    assert data_resp["success"] is True
+    assert "_drafts" in data_resp["path"]
+

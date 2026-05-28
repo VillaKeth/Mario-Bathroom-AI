@@ -9,7 +9,8 @@ import logging
 import httpx
 import edge_tts
 import base64
-from fastapi import FastAPI
+import shutil
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
@@ -108,6 +109,7 @@ async def set_config_models(body: dict):
 
 from character_creator import voice_finder
 from character_creator.sprite_generator import get_all_poses
+from character_creator.voice_trainer import detect_available_engines, prepare_voice_artifacts
 
 @app.post("/api/voice/search")
 async def voice_search(body: dict):
@@ -128,6 +130,10 @@ async def voice_download(body: dict):
 @app.get("/api/sprites/poses")
 async def sprite_poses():
     return get_all_poses()
+
+@app.get("/api/voice/engines")
+async def voice_engines():
+    return {"engines": detect_available_engines()}
 
 @app.get("/api/voice/edge-voices")
 async def edge_voices():
@@ -163,6 +169,57 @@ async def voice_preview(body: dict):
     except Exception as e:
         logger.error(f"Voice preview failed: {e}")
         return {"success": False, "error": str(e)}
+
+@app.post("/api/upload/audio")
+async def upload_audio(file: UploadFile = File(...), character_name: str = Form(...)):
+    draft_dir = os.path.join(os.path.dirname(__file__), "_drafts", character_name.lower().replace(" ", "_"), "voice")
+    os.makedirs(draft_dir, exist_ok=True)
+    file_path = os.path.join(draft_dir, "reference_audio.wav")
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        if len(content) > 50 * 1024 * 1024:  # 50MB limit
+            return {"success": False, "error": "File too large (max 50MB)"}
+        f.write(content)
+    return {"success": True, "path": file_path}
+
+@app.post("/api/upload/sprite")
+async def upload_sprite(file: UploadFile = File(...), character_name: str = Form(...), 
+                         category: str = Form(...), emotion: str = Form(...)):
+    draft_dir = os.path.join(os.path.dirname(__file__), "_drafts", character_name.lower().replace(" ", "_"), "sprites", category)
+    os.makedirs(draft_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1] or ".png"
+    file_path = os.path.join(draft_dir, f"{emotion}{ext}")
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        if len(content) > 10 * 1024 * 1024:  # 10MB limit
+            return {"success": False, "error": "File too large (max 10MB)"}
+        f.write(content)
+    return {"success": True, "path": file_path}
+
+@app.delete("/api/upload/draft/{name}")
+async def delete_draft(name: str):
+    draft_dir = os.path.join(os.path.dirname(__file__), "_drafts", name.lower().replace(" ", "_"))
+    if os.path.isdir(draft_dir):
+        shutil.rmtree(draft_dir)
+        return {"success": True, "deleted": True}
+    return {"success": True, "deleted": False}
+
+@app.get("/api/upload/draft/{name}")
+async def list_draft(name: str):
+    draft_dir = os.path.join(os.path.dirname(__file__), "_drafts", name.lower().replace(" ", "_"))
+    result = {"audio": [], "sprites": {}}
+    if not os.path.isdir(draft_dir):
+        return result
+    voice_dir = os.path.join(draft_dir, "voice")
+    if os.path.isdir(voice_dir):
+        result["audio"] = os.listdir(voice_dir)
+    sprites_dir = os.path.join(draft_dir, "sprites")
+    if os.path.isdir(sprites_dir):
+        for cat in os.listdir(sprites_dir):
+            cat_path = os.path.join(sprites_dir, cat)
+            if os.path.isdir(cat_path):
+                result["sprites"][cat] = os.listdir(cat_path)
+    return result
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
