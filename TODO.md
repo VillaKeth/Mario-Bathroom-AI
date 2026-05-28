@@ -7,10 +7,15 @@
 - [ ] Implement auto-fill for known characters (description, voice, theme colors)
 - [ ] Voice step: upload, record, or auto-find via yt-dlp for known characters
 - [ ] Voice engine priority display with hardware compatibility indicators
-- [ ] Appearance step: AI-generate 30 poses via SubNP or guided manual upload
+- [ ] Voice training orchestration (Fish Speech, GPT-SoVITS, RVC, Edge TTS fallback)
+- [ ] Appearance step: AI-generate 37 poses via SubNP or guided manual upload
 - [ ] Hardware auto-detection with model compatibility gating (green/yellow/red)
 - [ ] Single model default, advanced toggle for dual fast/quality model selection
+- [ ] Config.json safe model read/write (no overwrite unless user explicitly changes)
+- [ ] Draft save/resume with localStorage and staged file uploads
 - [ ] Review & Create step: generates character.yaml, sprites, prompts, voice assets
+- [ ] Error handling: no-GPU, no-Ollama, no-yt-dlp, generation failures, partial creation
+- [ ] Accessibility: ARIA attributes, focus management, inline help text, keyboard nav
 - [ ] Create create_character.bat launcher script
 - [ ] Update setup.bat to auto-launch wizard if no characters exist
 - [ ] Write docs/creating-a-character.md beginner guide
@@ -732,7 +737,33 @@
 - [x] Added 6 more sprite aliases for Rudi and Sonic (waving, excited_jump, looking_left, etc.)
 - [x] Smart format validation: skip flat strings for trivia/WYR/NTC that need structured Q&A
 - [x] Truth/Dare split from flat list by "Truth:"/"Dare:" prefix
-- [ ] Rudi/Sonic trivia still uses Mario Q&A (their flat facts can't be used for structured trivia game)
+- [x] Rudi/Sonic trivia converted to structured Q&A (25 questions each)
+- [x] Rudi/Sonic WYR converted to structured a/b format (20 pairs each)
+- [x] Rudi/Sonic NTC converted to structured desc/a/accept (15 each)
+
+## Game Dialogue Character-Awareness — DONE ✅
+- [x] Replace 40+ hardcoded "Mario" references in game dialogue with _CHARACTER_DISPLAY_NAME
+- [x] Remove Mario-isms (Wahoo, Mama mia, Let's-a, It's-a me) from game responses
+- [x] Character-aware RPS reactions: created rps_win/rps_lose/rps_tie YAML for Rudi and Sonic
+- [x] Character-aware trivia intro, WYR intro, bathroom dare intro
+- [x] Character-aware RPS score display ("You vs Rudi" not "You vs Mario")
+- [x] Character-aware story builder (generic continuations, "My turn" not "Mario's turn")
+- [x] Character-aware hot_takes reactions (dynamic name in agree/disagree reactions)
+- [x] Character-aware NHIE reactions (dynamic name in confessions)
+- [x] Character-aware word chain (generic words, "AI's turn" not "Mario's turn")
+- [x] Add 5 more sprite aliases for Rudi and Sonic (dance, happy, confused, sad, excited)
+- [x] 58 total poses loaded (up from 53)
+- [x] 158 core tests passing
+
+## Remaining Character De-Mario-ification
+- [ ] command_handlers.py Easter eggs still Mario-themed (line 23+: bowser, mushroom, etc.)
+- [ ] command_handlers.py dares still Mario-themed (line 105+: Mario voice, Mario theme)
+- [ ] command_handlers.py fortunes still say "Mario's crystal ball" (line 124+)
+- [ ] command_handlers.py mood responses still Mario-themed (line 149+)
+- [ ] command_handlers.py mini-stories still Mario-themed (line 170+)
+- [ ] command_handlers.py needs set_character() like game_handlers
+- [ ] idle_behavior.py loneliness greetings have Mario-isms (lines 856-869)
+- [ ] Create rapid_fire structured Q&A for Rudi and Sonic (currently skipped by format validation)
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)

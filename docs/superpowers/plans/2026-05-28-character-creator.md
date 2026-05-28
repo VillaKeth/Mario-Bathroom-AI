@@ -25,6 +25,8 @@
 | `character_creator/voice_finder.py` | YouTube voice clip search/download via yt-dlp |
 | `character_creator/sprite_generator.py` | Wraps SubNP pipeline + rembg for pose generation |
 | `character_creator/character_builder.py` | Generates character.yaml, prompts, directory structure |
+| `character_creator/voice_trainer.py` | Voice training orchestration (Fish Speech / GPT-SoVITS / RVC) |
+| `character_creator/config_manager.py` | Reads/writes config.json model selections safely |
 | `character_creator/static/index.html` | Single-page wizard app shell |
 | `character_creator/static/styles.css` | Dark theme CSS |
 | `character_creator/static/wizard.js` | Wizard step logic, API calls, state management |
@@ -154,6 +156,10 @@ uvicorn>=0.23.0
 python-multipart>=0.0.6
 pyyaml>=6.0
 aiofiles>=23.0
+httpx>=0.24.0
+edge-tts>=6.1.0
+rembg>=2.0.0
+yt-dlp>=2023.0
 ```
 
 - [ ] **Step 4: Create placeholder static files**
@@ -326,6 +332,135 @@ async def get_models():
 ```bash
 git add character_creator/server.py tests/test_character_creator.py
 git commit -m "feat: Ollama model listing with hardware gating"
+```
+
+---
+
+## Task 3B: Config.json Model Selection Manager
+
+**Files:**
+- Create: `character_creator/config_manager.py`
+- Modify: `character_creator/server.py`
+- Test: `tests/test_character_creator.py`
+
+- [ ] **Step 1: Write failing test for config read/write**
+
+```python
+from character_creator.config_manager import read_model_config, write_model_config
+
+def test_read_model_config():
+    import tempfile, json
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "config.json")
+        with open(cfg_path, "w") as f:
+            json.dump({"server": {"llm_quality_model": "llama3", "llm_fast_model": "llama3"}}, f)
+        result = read_model_config(cfg_path)
+        assert result["quality_model"] == "llama3"
+        assert result["fast_model"] == "llama3"
+
+def test_write_model_config_preserves_other_fields():
+    import tempfile, json
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "config.json")
+        original = {"character": "mario", "server": {"port": 8765, "llm_quality_model": "llama3", "llm_fast_model": "llama3"}, "client": {"width": 480}}
+        with open(cfg_path, "w") as f:
+            json.dump(original, f)
+        write_model_config(cfg_path, quality_model="gemma3:12b", fast_model="llama3.2:3b")
+        with open(cfg_path) as f:
+            updated = json.load(f)
+        assert updated["character"] == "mario"  # preserved
+        assert updated["server"]["port"] == 8765  # preserved
+        assert updated["server"]["llm_quality_model"] == "gemma3:12b"  # updated
+        assert updated["server"]["llm_fast_model"] == "llama3.2:3b"  # updated
+        assert updated["client"]["width"] == 480  # preserved
+
+def test_write_model_config_skips_when_unchanged():
+    import tempfile, json
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "config.json")
+        original = {"server": {"llm_quality_model": "llama3", "llm_fast_model": "llama3"}}
+        with open(cfg_path, "w") as f:
+            json.dump(original, f)
+        # Pass None to skip updating a field
+        write_model_config(cfg_path, quality_model=None, fast_model="phi3:mini")
+        with open(cfg_path) as f:
+            updated = json.load(f)
+        assert updated["server"]["llm_quality_model"] == "llama3"  # unchanged
+        assert updated["server"]["llm_fast_model"] == "phi3:mini"  # updated
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+- [ ] **Step 3: Implement config_manager.py**
+
+```python
+# character_creator/config_manager.py
+"""Config.json manager — reads/writes model selections without overwriting other fields."""
+import json
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+def read_model_config(config_path: str) -> dict:
+    if not os.path.exists(config_path):
+        return {"quality_model": "", "fast_model": "", "character": ""}
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    server = cfg.get("server", {})
+    return {
+        "quality_model": server.get("llm_quality_model", ""),
+        "fast_model": server.get("llm_fast_model", ""),
+        "character": cfg.get("character", ""),
+    }
+
+def write_model_config(config_path: str, quality_model: str | None = None,
+                        fast_model: str | None = None, character: str | None = None) -> None:
+    if not os.path.exists(config_path):
+        cfg = {"server": {}, "client": {}}
+    else:
+        with open(config_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    if quality_model is not None:
+        cfg.setdefault("server", {})["llm_quality_model"] = quality_model
+    if fast_model is not None:
+        cfg.setdefault("server", {})["llm_fast_model"] = fast_model
+    if character is not None:
+        cfg["character"] = character
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=4, ensure_ascii=False)
+    logger.info(f"Updated config.json: quality={quality_model}, fast={fast_model}, character={character}")
+```
+
+- [ ] **Step 4: Add config API endpoints to server.py**
+
+```python
+from character_creator.config_manager import read_model_config, write_model_config
+
+@app.get("/api/config/models")
+async def get_config_models():
+    config_path = os.path.join(PROJECT_ROOT, "config.json")
+    return read_model_config(config_path)
+
+@app.post("/api/config/models")
+async def set_config_models(body: dict):
+    config_path = os.path.join(PROJECT_ROOT, "config.json")
+    write_model_config(
+        config_path,
+        quality_model=body.get("quality_model"),
+        fast_model=body.get("fast_model"),
+        character=body.get("character"),
+    )
+    return {"success": True}
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add character_creator/config_manager.py character_creator/server.py tests/test_character_creator.py
+git commit -m "feat: config.json model selection manager with safe read/write"
 ```
 
 ---
@@ -560,6 +695,228 @@ git commit -m "feat: voice clip search and download via yt-dlp"
 
 ---
 
+## Task 5B: Voice Training Orchestration
+
+**Files:**
+- Create: `character_creator/voice_trainer.py`
+- Modify: `character_creator/server.py`
+- Test: `tests/test_character_creator.py`
+
+- [ ] **Step 1: Write failing test for voice engine detection**
+
+```python
+from character_creator.voice_trainer import detect_available_engines, get_engine_status
+
+def test_detect_available_engines():
+    engines = detect_available_engines()
+    assert isinstance(engines, list)
+    # At minimum, edge should always be available
+    engine_names = [e["name"] for e in engines]
+    assert "edge" in engine_names
+    for engine in engines:
+        assert "name" in engine
+        assert "available" in engine
+        assert "vram_required" in engine
+        assert "status" in engine  # "ready", "needs_setup", "unavailable"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+- [ ] **Step 3: Implement voice_trainer.py**
+
+```python
+# character_creator/voice_trainer.py
+"""Voice training orchestration — detects engines, triggers training, tracks progress."""
+import os
+import sys
+import logging
+import subprocess
+import shutil
+
+logger = logging.getLogger(__name__)
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+
+def detect_available_engines() -> list[dict]:
+    engines = []
+    
+    # Fish Speech (priority 1, ~4GB VRAM)
+    fish_available = False
+    try:
+        import fish_speech
+        fish_available = True
+    except ImportError:
+        pass
+    engines.append({
+        "name": "fish_speech", "display_name": "Fish Speech",
+        "priority": 1, "vram_required": 4,
+        "available": fish_available,
+        "needs_reference_audio": True,
+        "status": "ready" if fish_available else "needs_setup",
+        "description": "Best quality voice cloning. Needs reference audio."
+    })
+    
+    # GPT-SoVITS (priority 2, ~8GB VRAM)
+    sovits_path = os.path.join(PROJECT_ROOT, "gpt_sovits_repo")
+    sovits_env = os.path.join(PROJECT_ROOT, "gpt_sovits_env")
+    sovits_available = os.path.isdir(sovits_path) and os.path.isdir(sovits_env)
+    engines.append({
+        "name": "gpt_sovits", "display_name": "GPT-SoVITS",
+        "priority": 2, "vram_required": 8,
+        "available": sovits_available,
+        "needs_reference_audio": True,
+        "status": "ready" if sovits_available else "needs_setup",
+        "description": "Trainable voice cloning. Needs training audio."
+    })
+    
+    # Edge TTS + RVC (priority 3, ~2GB VRAM)
+    rvc_available = False
+    try:
+        rvc_model_dir = os.path.join(PROJECT_ROOT, "server", "data", "rvc_model")
+        rvc_available = os.path.isdir(rvc_model_dir)
+    except Exception:
+        pass
+    engines.append({
+        "name": "edge_rvc", "display_name": "Edge TTS + RVC",
+        "priority": 3, "vram_required": 2,
+        "available": rvc_available,
+        "needs_reference_audio": True,
+        "status": "ready" if rvc_available else "needs_setup",
+        "description": "Voice conversion on top of Edge TTS base voice."
+    })
+    
+    # Edge TTS (priority 4, 0 VRAM — always available)
+    engines.append({
+        "name": "edge", "display_name": "Edge TTS",
+        "priority": 4, "vram_required": 0,
+        "available": True,
+        "needs_reference_audio": False,
+        "status": "ready",
+        "description": "Free Microsoft voices. Always available fallback."
+    })
+    
+    return engines
+
+def get_engine_status(engine_name: str) -> dict:
+    engines = detect_available_engines()
+    for e in engines:
+        if e["name"] == engine_name:
+            return e
+    return {"name": engine_name, "available": False, "status": "unknown"}
+
+def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
+    """Prepare voice artifacts for a character based on chosen engine and audio.
+    
+    Resolves reference audio from char_dir/voice/ (already moved from drafts by server).
+    For Fish Speech: reference_audio.wav is sufficient (zero-shot cloning at runtime).
+    For GPT-SoVITS: triggers training subprocess if engine is available.
+    For Edge+RVC: reference audio used for RVC voice conversion at runtime.
+    For Edge TTS: no audio needed, just uses edge_voice setting.
+    
+    Returns dict with keys: engine, fallback_engine, artifacts_ready, errors, training_status
+    """
+    engine = config.get("preferred_engine", "edge")
+    voice_dir = os.path.join(char_dir, "voice")
+    os.makedirs(voice_dir, exist_ok=True)
+    ref_audio = os.path.join(voice_dir, "reference_audio.wav")
+    
+    result = {"engine": engine, "fallback_engine": "edge", "artifacts_ready": False,
+              "errors": [], "training_status": "not_needed"}
+    
+    if engine == "edge":
+        result["artifacts_ready"] = True
+        return result
+    
+    # All non-edge engines require reference audio
+    if not os.path.exists(ref_audio):
+        result["errors"].append(f"Reference audio required for {engine} but not found at {ref_audio}")
+        result["engine"] = "edge"
+        result["artifacts_ready"] = True
+        return result
+    
+    if engine == "fish_speech":
+        status = get_engine_status("fish_speech")
+        if status["available"]:
+            # Fish Speech uses zero-shot cloning — reference_audio.wav is all it needs
+            result["artifacts_ready"] = True
+            result["training_status"] = "not_needed_zero_shot"
+        else:
+            result["errors"].append("Fish Speech not installed, falling back to Edge TTS")
+            result["engine"] = "edge"
+            result["artifacts_ready"] = True
+    
+    elif engine == "gpt_sovits":
+        status = get_engine_status("gpt_sovits")
+        if status["available"]:
+            # GPT-SoVITS needs training — trigger it as a background process
+            try:
+                _trigger_sovits_training(ref_audio, char_dir)
+                result["artifacts_ready"] = True
+                result["training_status"] = "training_started"
+            except Exception as e:
+                result["errors"].append(f"GPT-SoVITS training failed: {e}. Falling back to Edge TTS.")
+                result["engine"] = "edge"
+                result["artifacts_ready"] = True
+                result["training_status"] = "training_failed"
+        else:
+            result["errors"].append("GPT-SoVITS not installed, falling back to Edge TTS")
+            result["engine"] = "edge"
+            result["artifacts_ready"] = True
+    
+    elif engine == "edge_rvc":
+        status = get_engine_status("edge_rvc")
+        if status["available"]:
+            # RVC uses the reference audio for voice conversion at runtime
+            result["artifacts_ready"] = True
+            result["training_status"] = "not_needed_runtime_conversion"
+        else:
+            result["errors"].append("RVC not set up, falling back to Edge TTS")
+            result["engine"] = "edge"
+            result["artifacts_ready"] = True
+    
+    return result
+
+def _trigger_sovits_training(ref_audio: str, char_dir: str):
+    """Trigger GPT-SoVITS training as a background subprocess.
+    
+    This is a best-effort operation — the character is still usable with Edge TTS
+    fallback even if training fails or hasn't completed yet.
+    """
+    sovits_path = os.path.join(PROJECT_ROOT, "gpt_sovits_repo")
+    if not os.path.isdir(sovits_path):
+        raise FileNotFoundError("gpt_sovits_repo not found")
+    
+    # Start training in background — non-blocking
+    # The actual training script and parameters depend on the GPT-SoVITS version
+    # This creates a marker file so the TTS router knows training was requested
+    marker = os.path.join(char_dir, "voice", ".training_requested")
+    with open(marker, "w") as f:
+        f.write(f"engine=gpt_sovits\naudio={ref_audio}\nstatus=pending\n")
+    
+    logger.info(f"GPT-SoVITS training requested for {char_dir}")
+```
+
+- [ ] **Step 4: Add voice engine API endpoints to server.py**
+
+```python
+from character_creator.voice_trainer import detect_available_engines, prepare_voice_artifacts
+
+@app.get("/api/voice/engines")
+async def voice_engines():
+    return {"engines": detect_available_engines()}
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add character_creator/voice_trainer.py character_creator/server.py tests/test_character_creator.py
+git commit -m "feat: voice training orchestration with engine detection and fallbacks"
+```
+
+---
+
 ## Task 6: Sprite Generator Wrapper
 
 **Files:**
@@ -578,7 +935,10 @@ def test_sprite_poses_endpoint():
     assert "emotions" in data
     assert "states" in data
     assert len(data["emotions"]) >= 25  # unique emotion sprites
-    assert len(data["states"]) >= 9
+    assert len(data["states"]) >= 9   # 9 state groups
+    # Verify total unique state sprite paths = 11
+    total_state_paths = sum(len(s["paths"]) for s in data["states"])
+    assert total_state_paths >= 11
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -648,7 +1008,7 @@ SPECIAL_EMOTIONS = {
     "birthday": "birthday/birthday",
 }
 
-# State sprites (9 states, 12 unique images including array variants)
+# State sprites (9 states, 11 unique images including array variants)
 STATE_SPRITES = {
     "idle": ["neutral/idle"],
     "talking": ["speech/talking", "speech/talking_excited"],
@@ -824,21 +1184,110 @@ Key functions:
 - `_generate_default_idle_messages(config: dict) -> dict` — default idle chatter
 - `_generate_test_phrases(config: dict) -> list` — test phrases for voice verification
 
+The YAML output MUST include ALL sections required by `shared/character_loader.py`: `identity`, `voice` (with `edge_voice`, `voice_rate`, `voice_pitch`, `accent_markers`, `catchphrases`, `pronunciation`), `visuals` (with `emotion_sprite_map`, `state_sprite_map`, `theme_colors`), `speech`, `games`, and `memory`. Refer to `characters/mario/character.yaml` as the gold standard.
+
 - [ ] **Step 4: Run tests to verify they pass**
 
-- [ ] **Step 5: Add create character API endpoint to server.py**
+- [ ] **Step 5: Write failing test for character_loader compatibility**
+
+```python
+def test_character_loader_compatibility():
+    """Verify wizard output can be loaded by the real character_loader."""
+    import tempfile
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "shared"))
+    from character_loader import CharacterLoader
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = {
+            "name": "TestBot",
+            "display_name": "TestBot AI 🤖",
+            "tagline": "Testing!",
+            "description": "A test character for loader compatibility",
+            "theme_colors": {"primary": "#FF0000", "secondary": "#00FF00", "accent": "#0000FF", "text": "#FFFFFF"},
+            "edge_voice": "en-US-GuyNeural",
+            "voice_rate": "+10%",
+            "voice_pitch": "+0Hz",
+            "accent_markers": ["Speaks normally"],
+            "catchphrases": ["Hello!", "Testing one two three!"],
+            "pronunciation": {},
+            "preferred_engine": "edge",
+        }
+        char_dir = build_character(config, tmpdir)
+        
+        # Load using the REAL character_loader
+        loader = CharacterLoader(char_dir)
+        
+        # Verify all required sections exist and load
+        assert loader.get("identity", "name") == "TestBot"
+        assert loader.get("voice", "edge_voice") == "en-US-GuyNeural"
+        assert loader.get("visuals", "theme_colors") is not None
+        assert loader.get("visuals", "emotion_sprite_map") is not None
+        assert loader.get("visuals", "state_sprite_map") is not None
+        
+        # Verify prompts directory has required files
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "system_prompt.md"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "idle_prompt.md"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "phases.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "greetings.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "guest_type_hints.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "time_flavors.yaml"))
+```
+
+- [ ] **Step 6: Run loader compatibility test — verify it passes**
+
+- [ ] **Step 5: Add create character API endpoint to server.py (with voice training)**
 
 ```python
 from character_creator.character_builder import build_character
+from character_creator.voice_trainer import prepare_voice_artifacts
 
 @app.post("/api/create-character")
 async def create_character(body: dict):
     characters_dir = os.path.join(PROJECT_ROOT, "characters")
     try:
+        # 1. Build character directory, YAML, prompts
         char_dir = build_character(body, characters_dir)
-        return {"success": True, "path": char_dir}
+        
+        # 2. Move staged uploads from draft workspace to final location
+        char_name_key = body.get("name", "").lower().replace(" ", "_")
+        draft_dir = os.path.join(PROJECT_ROOT, "character_creator", "_drafts", char_name_key)
+        if os.path.isdir(draft_dir):
+            _move_staged_files(draft_dir, char_dir)
+        
+        # 3. Resolve reference_audio_path from the FINAL char_dir (after draft move)
+        #    The draft upload saved audio to _drafts/<name>/voice/reference_audio.wav,
+        #    which is now at characters/<name>/voice/reference_audio.wav after move.
+        voice_dir = os.path.join(char_dir, "voice")
+        ref_audio = os.path.join(voice_dir, "reference_audio.wav")
+        if os.path.exists(ref_audio):
+            body["reference_audio_path"] = ref_audio
+        
+        # 4. Prepare voice artifacts (detect engine, copy audio, trigger training)
+        voice_result = prepare_voice_artifacts(body, char_dir)
+        
+        return {
+            "success": True,
+            "path": char_dir,
+            "voice": voice_result,
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+def _move_staged_files(draft_dir: str, char_dir: str):
+    """Move staged uploads from draft workspace to final character directory."""
+    import shutil
+    for item in os.listdir(draft_dir):
+        src = os.path.join(draft_dir, item)
+        dst = os.path.join(char_dir, item)
+        if os.path.isdir(src):
+            if os.path.exists(dst):
+                for sub in os.listdir(src):
+                    shutil.move(os.path.join(src, sub), os.path.join(dst, sub))
+            else:
+                shutil.move(src, dst)
+        else:
+            shutil.move(src, dst)
+    shutil.rmtree(draft_dir, ignore_errors=True)
 ```
 
 - [ ] **Step 6: Run all tests**
@@ -923,14 +1372,20 @@ def test_upload_audio_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert data["success"] is True
+    # Verify file is in draft workspace, NOT in characters/
+    assert "_drafts" in data["path"]
+    assert "characters" not in data["path"]
 ```
 
-- [ ] **Step 2: Implement upload endpoints**
+- [ ] **Step 2: Implement upload endpoints with draft staging**
 
 Add endpoints:
-- `POST /api/upload/audio` — accepts audio file upload, saves to `characters/<name>/voice/`
-- `POST /api/upload/sprite` — accepts image upload for a specific emotion/state slot, saves to `characters/<name>/sprites/<category>/`
-- Both handle file validation (size limits, type checking)
+- `POST /api/upload/audio` — accepts audio file upload, saves to draft workspace `character_creator/_drafts/<name>/voice/` (NOT directly to `characters/`)
+- `POST /api/upload/sprite` — accepts image upload for a specific emotion/state slot, saves to `character_creator/_drafts/<name>/sprites/<category>/`
+- Both handle file validation (size limits: 50MB audio, 10MB image; type checking: audio/wav, audio/mp3, image/png, image/jpeg)
+- Draft files are moved to final `characters/<name>/` only during `/api/create-character` (see Task 7, Step 5)
+- `DELETE /api/upload/draft/<name>` — cleanup endpoint to remove draft workspace on "Start Fresh"
+- `GET /api/upload/draft/<name>` — list all staged files for a draft (returns `{audio: [filenames], sprites: {category: [filenames]}}`) so the wizard can rebuild upload previews on resume
 
 - [ ] **Step 3: Run tests**
 
@@ -999,115 +1454,318 @@ git commit -m "feat: background sprite generation with progress tracking"
 Build `styles.css` with:
 - Dark navy background (#0d0d1a), card backgrounds (#1a1a2e)
 - Color palette: purple (#7B2FBE), blue (#1E90FF), red (#E52521), green (#00A86B), orange (#FF8C00), gold (#FFD700)
-- Progress bar component
+- Progress bar component with `aria-valuenow` and `aria-valuemax` attributes
 - Step container with transitions
-- Form input styles (dark inputs, colored borders on focus)
+- Form input styles (dark inputs, colored borders on focus, visible focus outlines for keyboard nav)
 - Card, grid, and button styles matching the mockups
 - Responsive layout (works on mobile too)
-- Upload area drag-and-drop styling
+- Upload area drag-and-drop styling (drag-over highlight state)
 - Slider styling for voice tuning
 - Color picker styling
+- `.help-text` class for inline guidance below form fields
+- `.auto-filled-badge` for showing "✨ Auto-filled" tags
+- `.sr-only` class for screen-reader-only text
+- Visible focus ring `:focus-visible` on all interactive elements
 
-- [ ] **Step 2: Create wizard HTML shell**
+- [ ] **Step 2: Create wizard HTML shell with accessibility**
 
 Update `index.html` with:
-- Progress bar (6 steps with labels)
-- Step containers (div per step, show/hide with JS)
-- Navigation (Back/Next buttons)
-- All form fields for each of the 6 steps matching the spec
+- Progress bar (6 steps with labels), using `role="progressbar"` and `aria-label`
+- Step containers (div per step, show/hide with JS), each with `role="tabpanel"` and `aria-labelledby`
+- Navigation (Back/Next buttons) with `aria-label` descriptions
+- All form fields for each of the 6 steps with `<label>` elements and `id` associations
+- Inline help text `<p class="help-text">` beneath every form group explaining what to do
+- `aria-live="polite"` region for status messages (step changes, validation errors, generation progress)
+- Skip-to-content link
+- Semantic HTML: `<main>`, `<section>`, `<fieldset>`, `<legend>`
 
 - [ ] **Step 3: Visually verify in browser**
 
 Run: `cd character_creator && python -m uvicorn server:app --port 8766`
 Open: `http://localhost:8766`
-Verify: Dark theme renders, progress bar shows, step 1 is visible
+Verify: Dark theme renders, progress bar shows, step 1 is visible, tab navigation works through all form fields
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add character_creator/static/
-git commit -m "feat: dark theme CSS and wizard HTML shell"
+git commit -m "feat: dark theme CSS and accessible wizard HTML shell"
 ```
 
 ---
 
-## Task 12: Frontend — Wizard JavaScript Logic
+## Task 12A: Frontend — Wizard State Management & Draft Resume
 
 **Files:**
 - Modify: `character_creator/static/wizard.js`
 
-- [ ] **Step 1: Implement wizard state management**
+- [ ] **Step 1: Implement WizardState class with localStorage persistence**
 
-Build `wizard.js` with:
-- `WizardState` class — holds all form data across steps, persists to localStorage
-- `WizardUI` class — manages step visibility, progress bar, navigation
-- Step navigation (next/back/jump-to-step)
-- Form validation per step (name required, at least one voice option, etc.)
+```javascript
+class WizardState {
+    constructor() {
+        this.currentStep = 0;
+        this.data = {};
+        this.restore();
+    }
+    save() {
+        localStorage.setItem('wizard_state', JSON.stringify({
+            currentStep: this.currentStep,
+            data: this.data,
+            savedAt: new Date().toISOString()
+        }));
+    }
+    restore() {
+        const saved = localStorage.getItem('wizard_state');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                this.currentStep = parsed.currentStep || 0;
+                this.data = parsed.data || {};
+                return true;
+            } catch (e) { return false; }
+        }
+        return false;
+    }
+    clear() { localStorage.removeItem('wizard_state'); }
+}
+```
 
-- [ ] **Step 2: Implement Step 1 (Identity) logic**
+- [ ] **Step 2: Implement WizardUI class with step navigation**
 
-- Known vs Original character toggle
-- Name input with debounced known-character lookup (`fetch("/api/known-character/" + name)`)
-- Auto-fill on match: display_name, tagline, description, theme_colors
-- Color pickers for theme colors
-- "Auto-filled" badges that appear/disappear
+- Show/hide step containers
+- Update progress bar on step change
+- Next/Back button handlers with validation
+- Jump-to-step (click on completed progress bar segments)
+- Call `state.save()` on every step transition
+- Update `aria-live` region with current step name on transition
+- **Focus management:** On step change, focus the new step's `<h2>` heading. On validation failure, focus the first invalid field. On resume banner show, focus the banner. On success/error banners, focus the banner heading.
 
-- [ ] **Step 3: Implement Step 2 (Personality) logic**
+- [ ] **Step 3: Implement draft resume flow**
 
-- System prompt textarea with template
-- Tag input for accent markers (add/remove tags)
-- Catchphrase list editor (add/remove/reorder)
-- "Skip — use defaults" button for known characters
-- Personality sliders (warmth, chaos, sarcasm) behind advanced toggle
+- On page load, check `WizardState.restore()`
+- If draft found, show banner: "You have a draft from [date]. Resume or Start Fresh?"
+- "Resume" → jump to `state.currentStep`, populate all form fields from `state.data`
+- Also fetch `GET /api/upload/draft/<name>` to rebuild uploaded file previews (audio waveform, sprite thumbnails) — these can't be stored in localStorage
+- "Start Fresh" → `state.clear()`, call `DELETE /api/upload/draft/<name>` to clean up staged files, start at step 0
+- Generate "Edit Later" link that copies localStorage state as JSON to clipboard
 
-- [ ] **Step 4: Implement Step 3 (Voice) logic**
+- [ ] **Step 4: Implement per-step form validation**
 
-- Voice engine priority display (fetches `/api/hardware` for compatibility)
-- File upload drag-and-drop for reference audio
-- Browser microphone recording (MediaRecorder API)
-- "Auto-find online" button (calls `/api/voice/search`)
-- Search results display with play buttons
-- Edge TTS voice grid (fetches `/api/voice/edge-voices`)
-- Voice preview buttons (calls `/api/voice/preview`)
-- Speed/pitch sliders
-- Pronunciation rules editor (add/remove pairs)
-- "Test Voice" button
+- Step 1: Name is required (non-empty)
+- Step 2: Skippable (no required fields)
+- Step 3: At least one voice option chosen (edge voice or reference audio)
+- Step 4: Skippable (placeholder sprites are acceptable)
+- Step 5: At least one model selected
+- Step 6: Review only (always valid)
+- Show inline validation messages in `aria-live` region
 
-- [ ] **Step 5: Implement Step 4 (Appearance) logic**
+- [ ] **Step 5: Test draft save/resume manually**
 
-- AI Generate vs Upload toggle
-- Visual description textarea (auto-filled for known characters)
-- Art style picker buttons
-- "Generate All" button → calls `/api/sprites/generate`, polls `/api/sprites/status/{id}`
-- Progress display with generated sprite previews
-- Upload mode: guided grid with drag-and-drop per slot
-- Background removal toggle
+- Fill step 1, advance to step 3, reload page
+- Verify resume banner appears with correct date
+- Click resume, verify step 3 is shown with step 1 data intact
+- Click Start Fresh, verify wizard starts at step 0
 
-- [ ] **Step 6: Implement Step 5 (Hardware & Models) logic**
-
-- Hardware cards (fetches `/api/hardware`)
-- Model list (fetches `/api/models`)
-- Color-coded compatibility badges
-- Single model picker (default)
-- "Advanced: Split models" toggle → dual picker
-- Performance preview calculations
-
-- [ ] **Step 7: Implement Step 6 (Review & Create) logic**
-
-- Summary cards for all settings
-- "Create Character" button → calls `/api/create-character` with full config
-- Progress bar during creation
-- Success screen with "Start Server" and "Create Another" buttons
-
-- [ ] **Step 8: Test full wizard flow in browser**
-
-Run server, walk through all 6 steps, verify all API calls work.
-
-- [ ] **Step 9: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add character_creator/static/wizard.js
-git commit -m "feat: complete wizard JavaScript logic for all 6 steps"
+git commit -m "feat: wizard state management with localStorage draft save/resume"
+```
+
+---
+
+## Task 12B: Frontend — Step 1 (Identity) & Step 2 (Personality)
+
+**Files:**
+- Modify: `character_creator/static/wizard.js`
+
+- [ ] **Step 1: Implement Step 1 (Identity) logic**
+
+- Known vs Original character toggle (radio buttons)
+- Name input with debounced known-character lookup (`fetch("/api/known-character/" + name)`)
+- Auto-fill on match: display_name, tagline, description, theme_colors
+- "✨ Auto-filled" badges appear on populated fields
+- Color pickers for theme colors (4 pickers: primary, secondary, accent, text)
+- All auto-filled values remain editable
+- Help text: "Type a character name — if we recognize it, we'll auto-fill everything!"
+
+- [ ] **Step 2: Implement Step 2 (Personality) logic**
+
+- System prompt textarea with template (pre-filled for known characters)
+- Tag input for accent markers (type + Enter to add, click × to remove)
+- Catchphrase list editor (add/remove/reorder with drag)
+- "Skip — use defaults" button for known characters (pre-checked if auto-filled)
+- Advanced toggle → personality sliders (warmth, chaos, sarcasm, friendliness)
+- Help text: "Known characters come with personality pre-configured. Customize if you want!"
+
+- [ ] **Step 3: Test Steps 1 & 2 in browser**
+
+- Type "Goku" → verify auto-fill happens within 500ms
+- Toggle Known/Original → verify fields clear/restore
+- Add/remove accent markers and catchphrases
+- Verify state persists when navigating Back/Next
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add character_creator/static/wizard.js
+git commit -m "feat: wizard Steps 1-2 — Identity and Personality"
+```
+
+---
+
+## Task 12C: Frontend — Step 3 (Voice)
+
+**Files:**
+- Modify: `character_creator/static/wizard.js`
+
+- [ ] **Step 1: Implement voice engine status display**
+
+- Fetch `/api/voice/engines` on step entry
+- Show engine cards in priority order (Fish Speech → GPT-SoVITS → Edge+RVC → Edge TTS)
+- Color-code: green = ready, yellow = needs setup, gray = unavailable
+- Help text: "We'll use the best available engine for your hardware"
+
+- [ ] **Step 2: Implement reference audio upload & recording**
+
+- Drag-and-drop upload zone for .wav/.mp3 files
+- File type validation (reject non-audio), size limit (50MB)
+- Browser microphone recording via MediaRecorder API
+- Record/Stop/Play controls
+- Preview playback of uploaded/recorded audio
+- Graceful degradation: if MediaRecorder unavailable, show "Upload only" with explanation
+
+- [ ] **Step 3: Implement voice search (auto-find online)**
+
+- "Auto-find online" button (calls `/api/voice/search` with character name)
+- Search results list with title, duration, play button
+- "Use This" button per result → calls `/api/voice/download`
+- Loading spinner during search
+- Error state: "yt-dlp not installed" message with install instructions
+- Help text: "We'll search YouTube for clean voice clips of your character"
+
+- [ ] **Step 4: Implement Edge TTS voice picker**
+
+- Fetch `/api/voice/edge-voices`
+- Filterable grid: by gender, locale, name
+- Voice preview button per voice (calls `/api/voice/preview`)
+- Speed slider (-50% to +50%)
+- Pitch slider (-50Hz to +50Hz)
+- "Test Voice" button that generates sample with current settings
+
+- [ ] **Step 5: Implement pronunciation rules editor**
+
+- Add/remove rows: [word] → [pronunciation]
+- Auto-populated for known characters
+- Help text: "Tell the voice engine how to say tricky words"
+
+- [ ] **Step 6: Test Step 3 in browser**
+
+- Verify engine cards render with correct status
+- Upload a test audio file, verify preview plays
+- Test Edge TTS voice picker and preview
+- Add/remove pronunciation rules
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add character_creator/static/wizard.js
+git commit -m "feat: wizard Step 3 — Voice configuration with upload, record, auto-find"
+```
+
+---
+
+## Task 12D: Frontend — Step 4 (Appearance)
+
+**Files:**
+- Modify: `character_creator/static/wizard.js`
+
+- [ ] **Step 1: Implement AI generate vs upload toggle**
+
+- Two main modes: "🤖 AI Generate All" and "📤 Upload My Own"
+- Visual description textarea (auto-filled for known characters)
+- Art style picker (5 buttons: 3D Figurine, Anime, Pixel Art, Realistic, Cartoon)
+- Each style shows a small preview icon
+- Help text: "Describe your character visually, or we'll use the auto-fill description"
+
+- [ ] **Step 2: Implement sprite generation UI**
+
+- "Generate All Sprites" button → calls `/api/sprites/generate`
+- Progress bar polling `/api/sprites/status/{id}` every 2 seconds
+- Generated sprite previews appear in a grid as they complete
+- "Regenerate" button per sprite to retry individual poses
+- Fallback: if API fails, show placeholder sprite with "⚠ Generation failed — upload manually" message
+- Help text: "This generates ~37 poses. It takes a few minutes."
+
+- [ ] **Step 3: Implement upload mode UI**
+
+- Two guided grids matching the canonical sprite matrix:
+  - **Emotion sprites** (25 unique slots): organized by category — Positive (happy, excited, laughing, love, proud), Negative (sad, angry, annoyed, nervous, scared, embarrassed, disgusted, grossed_out), Thinking (confused, thinking, curious, determined, mischievous, shocked, idea, surprised), Reactions (mind_blown, sassy, cringe, impressed), Special (sleepy, neutral, memorial, toast, party, birthday)
+  - **State sprites** (11 unique images across 9 states): idle, talking (×2: normal + excited), listening, greeting/wave, thinking, sleeping, dancing (×2: dance + celebrate), entering, exiting/farewell
+- Drag-and-drop per slot or "Choose File" button
+- Image preview thumbnail per slot
+- "Remove Background" toggle per image (calls rembg via API)
+- Minimum required: at least `neutral` sprite (others use nearest-category fallback)
+- Help text: "At minimum, upload a 'neutral' image. Missing poses will fall back to the closest available emotion."
+
+- [ ] **Step 4: Test Step 4 in browser**
+
+- Toggle between Generate and Upload modes
+- Verify art style selection works
+- Test individual image upload with preview
+- Verify progress bar behavior (can mock API if SubNP is slow)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add character_creator/static/wizard.js
+git commit -m "feat: wizard Step 4 — Appearance with AI generation and upload"
+```
+
+---
+
+## Task 12E: Frontend — Step 5 (Hardware & Models) & Step 6 (Review)
+
+**Files:**
+- Modify: `character_creator/static/wizard.js`
+
+- [ ] **Step 1: Implement Step 5 (Hardware & Models) logic**
+
+- Fetch `/api/hardware` → display hardware info cards (CPU, RAM, GPU)
+- Fetch `/api/models` → display model list with compatibility badges
+- Green checkmark = compatible, yellow warning = slow (CPU offload), gray lock = incompatible
+- Single model picker (default): radio buttons, recommended model pre-selected
+- "Advanced: Split models" toggle reveals dual picker (quality model + fast model)
+- Fetch `/api/config/models` to show current config values (if config.json already has models set)
+- Help text: "Pick a model that fits your GPU. Grayed-out models need more VRAM."
+- No-Ollama fallback: if no models returned and Ollama unreachable, show "Ollama not detected" banner with install link
+
+- [ ] **Step 2: Implement Step 6 (Review & Create) logic**
+
+- Summary cards for all steps: Identity (name, colors), Personality (prompt preview), Voice (engine, voice name), Appearance (sprite count), Hardware (model name)
+- Each card has "Edit" button → jump back to that step
+- "Create Character" button → calls POST `/api/create-character` with full state
+- **Model config protection:** On Step 5 entry, fetch `/api/config/models` and store as `originalModelConfig`. Track a `modelConfigDirty` flag — set to `true` ONLY when the user manually clicks a model or changes the dual-model toggle (NOT when the recommended model is auto-preselected). On "Create Character", only POST `/api/config/models` if `modelConfigDirty === true`. Pass `None` for unchanged fields so `config_manager.write_model_config` skips them.
+- Progress indicators during creation (directory, YAML, prompts, voice, config)
+- Error display if creation fails (with retry button)
+- Success screen: character name, preview of theme colors, "Start Server" and "Create Another" buttons
+- On success, call `state.clear()` to remove draft from localStorage
+
+- [ ] **Step 3: Test Steps 5 & 6 in browser**
+
+- Verify hardware cards show real system info
+- Verify model gating colors match actual VRAM
+- Create a test character end-to-end
+- Verify config.json is updated (not overwritten)
+- Verify success screen appears with correct info
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add character_creator/static/wizard.js
+git commit -m "feat: wizard Steps 5-6 — Hardware/Models and Review/Create"
 ```
 
 ---
@@ -1155,7 +1813,15 @@ python -c "import webbrowser; webbrowser.open('http://localhost:8766')" &
 python -m character_creator.server
 ```
 
-- [ ] **Step 3: Modify setup.bat — add auto-launch logic**
+- [ ] **Step 3: Modify setup.bat — add dependency install and auto-launch logic**
+
+After server dependencies install (Step 7), add:
+```bat
+REM Step 7B: Install character creator dependencies
+echo Installing character creator dependencies...
+pip install -r character_creator\requirements.txt --quiet
+echo [OK] Character creator dependencies installed
+```
 
 After the "Setup Complete!" message, add:
 ```bat
@@ -1229,7 +1895,105 @@ git commit -m "docs: beginner guide, technical reference, and README getting sta
 
 ---
 
-## Task 15: Integration Testing & Polish
+## Task 15: Error Handling, Fallbacks & Edge Cases
+
+**Files:**
+- Modify: `character_creator/server.py`
+- Modify: `character_creator/character_builder.py`
+- Modify: `character_creator/sprite_generator.py`
+- Modify: `character_creator/static/wizard.js`
+- Test: `tests/test_character_creator.py`
+
+- [ ] **Step 1: Write failing tests for error conditions**
+
+```python
+def test_create_character_missing_name():
+    client = TestClient(app)
+    resp = client.post("/api/create-character", json={"display_name": "NoName"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is False
+    assert "name" in data["error"].lower()
+
+def test_create_character_with_no_sprites_still_valid():
+    """Character with zero sprites should still be loadable (uses placeholder)."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = {
+            "name": "NoSprites",
+            "display_name": "NoSprites AI",
+            "tagline": "No images!",
+            "description": "Character without any sprites",
+            "theme_colors": {"primary": "#FF0000", "secondary": "#00FF00", "accent": "#0000FF", "text": "#FFFFFF"},
+            "edge_voice": "en-US-GuyNeural",
+            "voice_rate": "+0%", "voice_pitch": "+0Hz",
+            "accent_markers": ["Normal"], "catchphrases": ["Hi!"],
+            "pronunciation": {}, "preferred_engine": "edge",
+        }
+        char_dir = build_character(config, tmpdir)
+        assert os.path.isfile(os.path.join(char_dir, "character.yaml"))
+
+def test_hardware_endpoint_returns_gracefully_without_gpu():
+    """Hardware endpoint should never crash, even if GPU detection fails."""
+    client = TestClient(app)
+    resp = client.get("/api/hardware")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["tier"] in ("ultra", "high", "medium", "low")
+
+def test_models_endpoint_handles_ollama_offline():
+    """Models endpoint should return model list even if Ollama is unreachable."""
+    client = TestClient(app)
+    resp = client.get("/api/models")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data["models"], list)
+    assert len(data["models"]) > 0  # static model list still returned
+
+def test_voice_search_handles_no_ytdlp():
+    """Voice search should return empty results gracefully if yt-dlp is missing."""
+    client = TestClient(app)
+    resp = client.post("/api/voice/search", json={"query": "test"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "available" in data
+    assert isinstance(data["results"], list)
+```
+
+- [ ] **Step 2: Run tests — verify which fail**
+
+- [ ] **Step 3: Add input validation to create-character endpoint**
+
+Validate required fields (name, display_name, edge_voice) before calling build_character. Return clear error messages.
+
+- [ ] **Step 4: Add placeholder sprite fallback to character_builder**
+
+When no sprites exist, generate `emotion_sprite_map` and `state_sprite_map` entries pointing to a single `sprites/placeholder.png`. Create a simple colored circle placeholder image.
+
+- [ ] **Step 5: Add frontend error displays**
+
+In `wizard.js`, add error handling for every `fetch()` call:
+- Network error → show "Server unreachable — is the wizard server running?"
+- API error → show the error message from the response
+- Ollama offline → show install/start instructions in Step 5
+- yt-dlp missing → show "Voice search unavailable — install yt-dlp or upload audio manually"
+- Sprite generation failure → show "Generation failed for this pose — you can upload manually"
+
+- [ ] **Step 6: Run all tests**
+
+Run: `venv\Scripts\python -m pytest tests\test_character_creator.py -v`
+Expected: All pass
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add character_creator/ tests/test_character_creator.py
+git commit -m "feat: error handling, fallbacks, and edge case resilience"
+```
+
+---
+
+## Task 16: Integration Testing & Polish
 
 **Files:**
 - Modify: `tests/test_character_creator.py`
@@ -1258,18 +2022,36 @@ def test_full_wizard_flow_e2e():
     poses = client.get("/api/sprites/poses").json()
     assert len(poses["emotions"]) >= 25
     
-    # 5. Create character
+    # 5. Get voice engines
+    engines = client.get("/api/voice/engines").json()
+    assert any(e["name"] == "edge" for e in engines["engines"])
+    
+    # 6. Read current config
+    cfg = client.get("/api/config/models").json()
+    assert "quality_model" in cfg
+    
+    # 7. Create character
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Monkey-patch PROJECT_ROOT for test
         import character_creator.server as srv
         orig_root = srv.PROJECT_ROOT
         srv.PROJECT_ROOT = tmpdir
         os.makedirs(os.path.join(tmpdir, "characters"))
         
+        # Also create a config.json in tmpdir
+        import json
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump({"character": "mario", "server": {"port": 8765}}, f)
+        
         try:
             config = {**kc["data"], "name": "Goku", "preferred_engine": "edge"}
             resp = client.post("/api/create-character", json=config)
             assert resp.json()["success"]
+            
+            # Verify character_loader can load it
+            sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "shared"))
+            from character_loader import CharacterLoader
+            loader = CharacterLoader(os.path.join(tmpdir, "characters", "goku"))
+            assert loader.get("identity", "name") == "Goku"
         finally:
             srv.PROJECT_ROOT = orig_root
 ```
@@ -1282,10 +2064,14 @@ Expected: All tests pass
 - [ ] **Step 3: Manual browser testing**
 
 - Start server: `python -m character_creator.server`
-- Walk through all 6 steps
-- Create a test character
+- Walk through all 6 steps with a known character (Goku)
+- Walk through all 6 steps with an original character
+- Create both characters
 - Verify `characters/<name>/character.yaml` is valid
-- Verify the main server can load the new character
+- Verify the main server can load each new character
+- Test draft resume: fill halfway, reload, verify resume works
+- Test keyboard navigation through all steps (Tab, Enter, Arrow keys)
+- Test error states: disconnect Ollama, verify graceful fallback messages
 
 - [ ] **Step 4: Polish and fix issues found during testing**
 

@@ -655,6 +655,7 @@ async def lifespan(app: FastAPI):
     tts.set_pronunciation(_character.pronunciation)
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
+    command_handlers.set_character(_character.name, _character.display_name)
 
     # Wire character prompts into mario_prompt module (used by build_context)
     _char_sys_prompt = _character.get_system_prompt()

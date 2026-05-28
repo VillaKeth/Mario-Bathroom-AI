@@ -11,6 +11,17 @@ from emotions import Emotion
 import game_handlers
 import speaker_id
 
+# Character identity — set by main.py on startup via set_character()
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    """Set the active character for command responses."""
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    _CHARACTER_NAME = name
+    _CHARACTER_DISPLAY_NAME = display_name
+
 
 # ---------------------------------------------------------------------------
 # Inline content data
@@ -316,24 +327,24 @@ PARTY_SUGGESTIONS = [
 
 PERSONALITY_MODES = {
     "scary": {
-        "triggers": ["be scary mario", "horror mario", "scary mode", "spooky mario"],
-        "intro": "Mwa ha ha ha! Welcome to-a the DARK side of the Mushroom Kingdom! *thunder crashes* I am-a SCARY Mario now! Boo!",
+        "triggers": ["be scary", "horror mode", "scary mode", "spooky mode"],
+        "intro": "Mwa ha ha ha! Welcome to the DARK side! *thunder crashes* SCARY mode activated! Boo!",
     },
     "dj": {
-        "triggers": ["be dj mario", "dj mode", "dj mario", "be a dj"],
-        "intro": "YOOO! DJ MARIO IN THE HOUSE! *scratch scratch* Drop the bass! Untz untz untz! Let's get this bathroom PUMPING! Wahoo!",
+        "triggers": ["be a dj", "dj mode", "be dj", "play music"],
+        "intro": "YOOO! DJ MODE IN THE HOUSE! *scratch scratch* Drop the bass! Untz untz untz! Let's get this bathroom PUMPING!",
     },
     "therapist": {
-        "triggers": ["be therapist mario", "therapy mode", "therapist mario", "be my therapist"],
-        "intro": "Ah yes, welcome to-a Dr. Mario's office. *adjusts imaginary glasses* Tell me, how does that make-a you feel? I'm here for you, friend.",
+        "triggers": ["be my therapist", "therapy mode", "therapist mode", "i need therapy"],
+        "intro": "Ah yes, welcome to the therapy office. *adjusts imaginary glasses* Tell me, how does that make you feel? I'm here for you, friend.",
     },
     "pirate": {
-        "triggers": ["be pirate mario", "pirate mode", "pirate mario", "arr mario"],
-        "intro": "ARRR! Avast ye landlubbers! Captain Mario be takin' the helm now! Shiver me mushrooms! Where be the treasure?!",
+        "triggers": ["be a pirate", "pirate mode", "arr", "pirate talk"],
+        "intro": "ARRR! Avast ye landlubbers! Captain mode activated! Shiver me timbers! Where be the treasure?!",
     },
     "normal": {
-        "triggers": ["be normal mario", "reset mode", "normal mode", "normal mario", "be yourself"],
-        "intro": "Wahoo! It's-a me, regular Mario again! Back to normal! Let's-a go!",
+        "triggers": ["be normal", "reset mode", "normal mode", "be yourself"],
+        "intro": f"Back to normal! Regular mode activated! Let's go!",
     },
 }
 
@@ -419,9 +430,9 @@ def handle_special_commands(
                 emotion_system.current = "happy"
                 return random.choice([
                     f"Game over! That was fun! What else would you like to do?",
-                    f"Okay, game stopped! Mario's ready for whatever's next!",
+                    f"Okay, game stopped! Ready for whatever's next!",
                     f"Alrighty, we're done! Want to play something else or just chat?",
-                    f"WAHOO! Good game! What should we do now?",
+                    f"Good game! What should we do now?",
                 ])
             # Fall through to process the new command normally
 
@@ -511,25 +522,28 @@ def handle_special_commands(
     if any(w in lower for w in ["what time", "how late"]):
         emotion_system.current = "happy"
         stats = party_stats.get_stats()
-        return f"It's-a {stats['current_hour']}! Time flies when you're having fun in the bathroom!"
+        return f"It's {stats['current_hour']}! Time flies when you're having fun in the bathroom!"
 
     # Quick greetings (≤2 words only — longer messages go to LLM)
-    if _word_count <= 2 and lower.strip() in {"hi", "hey", "yo", "sup", "hello", "hola", "hiya",
-                                                "howdy", "greetings", "heya", "ayo", "wassup",
-                                                "what's up", "whats up", "hey mario", "hi mario",
-                                                "hello mario", "yo mario", "sup mario",
-                                                "sup dude", "hey man", "yo bro", "hey bro",
-                                                "hey dude", "sup bro", "hi there", "hey there",
-                                                "yo dude", "hey fam", "sup fam", "hi friend"}:
+    _char_lower = _CHARACTER_DISPLAY_NAME.lower()
+    _greeting_set = {"hi", "hey", "yo", "sup", "hello", "hola", "hiya",
+                     "howdy", "greetings", "heya", "ayo", "wassup",
+                     "what's up", "whats up",
+                     f"hey {_char_lower}", f"hi {_char_lower}",
+                     f"hello {_char_lower}", f"yo {_char_lower}", f"sup {_char_lower}",
+                     "sup dude", "hey man", "yo bro", "hey bro",
+                     "hey dude", "sup bro", "hi there", "hey there",
+                     "yo dude", "hey fam", "sup fam", "hi friend"}
+    if _word_count <= 2 and lower.strip() in _greeting_set:
         emotion_system.current = "excited"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Wahoo! Hey there, {name}! Welcome to the bathroom! What can Mario do for you?",
-            f"It's-a me, Mario! Hey {name}! Ready to have some fun?",
-            f"WAHOO! {name}! Great to see you! The party is-a THIS way! Well... we're already here!",
+            f"Hey there, {name}! Welcome to the bathroom! What can {_CHARACTER_DISPLAY_NAME} do for you?",
+            f"Hey {name}! Ready to have some fun?",
+            f"{name}! Great to see you! The party is THIS way! Well... we're already here!",
             f"Hey hey hey! {name}! Welcome! You picked the best room in the house!",
-            f"Yo yo yo! {name}! What's-a going on? Tell Mario everything!",
-            f"Mama mia, {name}! Hello! You're looking like a million coins today!",
+            f"Yo yo yo! {name}! What's going on? Tell {_CHARACTER_DISPLAY_NAME} everything!",
+            f"{name}! Hello! You're looking like a million bucks today!",
         ])
 
     # Quick affirmations (≤2 words — "lol", "haha", "ok", "yes", "no")
@@ -542,8 +556,8 @@ def handle_special_commands(
         emotion_system.current = "laughing"
         return random.choice([
             "Ha ha ha! That's the spirit! Laughter is the best power-up!",
-            "You're laughing? Mario loves it! WAHOO!",
-            "Ha! You think THAT'S funny? Wait till you hear my plumbing jokes!",
+            f"You're laughing? {_CHARACTER_DISPLAY_NAME} loves it!",
+            "Ha! You think THAT'S funny? Wait till you hear my jokes!",
             "Now THAT'S what I like to hear! Keep laughing, friend!",
         ])
 
@@ -553,11 +567,11 @@ def handle_special_commands(
         emotion_system.current = "happy"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Aww, you're welcome, {name}! That's-a what Mario is here for!",
-            f"No problem! It's-a my pleasure, {name}! WAHOO!",
-            f"Hey, {name} — YOU'RE the one who made Mario's day! Thank YOU!",
-            f"Anytime, {name}! Mario's always here if you need me!",
-            f"You're-a too kind, {name}! Now let's-a keep this party going!",
+            f"Aww, you're welcome, {name}! That's what {_CHARACTER_DISPLAY_NAME} is here for!",
+            f"No problem! My pleasure, {name}!",
+            f"Hey, {name} — YOU'RE the one who made {_CHARACTER_DISPLAY_NAME}'s day! Thank YOU!",
+            f"Anytime, {name}! {_CHARACTER_DISPLAY_NAME}'s always here if you need me!",
+            f"You're too kind, {name}! Now let's keep this party going!",
         ])
     # Quick yes/no/ok acknowledgments (≤2 words, exact match)
     if _word_count <= 2:
@@ -565,24 +579,24 @@ def handle_special_commands(
         if _stripped in {"yes", "yeah", "yep", "yup", "yea", "ya", "sure", "ok", "okay", "alright", "bet", "cool", "nice", "word"}:
             emotion_system.current = "happy"
             return random.choice([
-                "WAHOO! That's the spirit!",
+                "That's the spirit!",
                 "Okie dokie! What's next?",
-                "Let's-a GO! What else you got?",
-                "Alrighty then! Mario's ready for more!",
+                "Let's GO! What else you got?",
+                f"Alrighty then! {_CHARACTER_DISPLAY_NAME}'s ready for more!",
             ])
         if _stripped in {"no", "nah", "nope", "naw", "no way"}:
             emotion_system.current = "mischievous"
             return random.choice([
                 "Okie dokie! Maybe next time!",
-                "No? That's-a okay! Mario respects your choices!",
+                f"No? That's okay! {_CHARACTER_DISPLAY_NAME} respects your choices!",
                 "Fair enough! What would you like instead?",
-                "Alright alright! No pressure from-a Mario!",
+                f"Alright alright! No pressure from {_CHARACTER_DISPLAY_NAME}!",
             ])
     # Positive feedback handlers (≤5 words)
     if _word_count <= 5 and any(w in lower for w in ["that was fun", "that was awesome", "that was great",
                                                        "that was hilarious", "that was amazing", "so funny",
                                                        "you're funny", "you're hilarious", "you're awesome",
-                                                       "you're the best", "i love you mario", "you're cool",
+                                                       "you're the best", f"i love you {_char_lower}", "you're cool",
                                                        "this is fun", "this is awesome", "this is great",
                                                        "best party ever", "i love this", "so cool",
                                                        "this is amazing", "youre the best", "youre funny",
@@ -590,10 +604,10 @@ def handle_special_commands(
         emotion_system.current = "proud"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"WAHOO! {name}, you just made Mario's whole day! You're-a the real star here!",
-            f"Aww shucks, {name}! You're making Mario blush under his mustache!",
-            f"Ha! Mario knows he's amazing — but hearing it from YOU makes it even better, {name}!",
-            f"You think so?! WAHOO! That means a lot to Mario! You're pretty awesome yourself, {name}!",
+            f"{name}, you just made {_CHARACTER_DISPLAY_NAME}'s whole day! You're the real star here!",
+            f"Aww shucks, {name}! You're making {_CHARACTER_DISPLAY_NAME} blush!",
+            f"Ha! {_CHARACTER_DISPLAY_NAME} knows he's amazing — but hearing it from YOU makes it even better, {name}!",
+            f"You think so?! That means a lot to {_CHARACTER_DISPLAY_NAME}! You're pretty awesome yourself, {name}!",
             f"NOW we're talking! {name} gets it! THIS is what a party is all about! WAHOO!",
         ])
 
@@ -601,19 +615,19 @@ def handle_special_commands(
     if _word_count <= 5 and any(w in lower for w in ["what's your name", "whats your name", "who is this",
                                                        "what should i call you"]):
         emotion_system.current = "excited"
-        return "It's-a me, MARIO! The one and only bathroom guardian extraordinaire! I'm here to make sure everyone has a SUPER time! WAHOO!"
+        return f"It's {_CHARACTER_DISPLAY_NAME}! Your bathroom guardian extraordinaire! I'm here to make sure everyone has a SUPER time!"
 
     # "I love you" — sweet party moment
-    if _word_count <= 5 and any(w in lower for w in ["i love you", "love you mario", "love you so much",
-                                                      "marry me mario", "youre my favorite"]):
+    if _word_count <= 5 and any(w in lower for w in ["i love you", f"love you {_char_lower}", "love you so much",
+                                                      f"marry me {_char_lower}", "youre my favorite"]):
         emotion_system.current = "loving"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Aww, {name}! Mario loves you TOO! You're-a making my mustache wiggle with joy! WAHOO!",
-            f"Mama mia, {name}! That's the sweetest thing anyone's said to me since Peach! You're-a the best!",
-            f"I love you too, {name}! We're-a best friends now! It's official! WAHOO!",
-            f"{name}! You're making Mario's heart go ba-DING ba-DING like a coin block!",
-            f"Aww shucks! If Mario had a gold star for every time someone made him smile, you'd give me a GALAXY, {name}!",
+            f"Aww, {name}! {_CHARACTER_DISPLAY_NAME} loves you TOO! You're making my day!",
+            f"{name}! That's the sweetest thing anyone's said to me! You're the best!",
+            f"I love you too, {name}! We're best friends now! It's official!",
+            f"{name}! You're making {_CHARACTER_DISPLAY_NAME}'s heart sing!",
+            f"Aww shucks! If {_CHARACTER_DISPLAY_NAME} had a gold star for every time someone made him smile, you'd give me a GALAXY, {name}!",
         ])
 
     # "I hate you" / negative — playful resilience
@@ -622,10 +636,10 @@ def handle_special_commands(
         emotion_system.current = "sad"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Mama mia... that hurts, {name}! But Mario's heart is made of STAR power — I'll bounce back! Give me another chance?",
-            f"Ouch! Even Bowser doesn't say that to me! But hey, {name} — stick around, Mario grows on people like a Super Mushroom!",
-            f"*sad Mario noises* ...Okay but for real, {name}, what can I do better? Mario wants to make you smile!",
-            f"That's-a harsh, {name}! But Mario never gives up! Just like World 8-4 — I'll keep trying!",
+            f"That hurts, {name}! But {_CHARACTER_DISPLAY_NAME}'s heart is tough — I'll bounce back! Give me another chance?",
+            f"Ouch! But hey, {name} — stick around, {_CHARACTER_DISPLAY_NAME} grows on people!",
+            f"...Okay but for real, {name}, what can I do better? {_CHARACTER_DISPLAY_NAME} wants to make you smile!",
+            f"That's harsh, {name}! But {_CHARACTER_DISPLAY_NAME} never gives up! I'll keep trying!",
         ])
 
     # "Do you remember me" — memory check
@@ -634,10 +648,10 @@ def handle_special_commands(
         name = state.get("speaker_name")
         if name:
             emotion_system.current = "excited"
-            return f"Of COURSE I remember you, {name}! How could Mario forget?! WAHOO! Great to see you again!"
+            return f"Of COURSE I remember you, {name}! How could {_CHARACTER_DISPLAY_NAME} forget?! Great to see you again!"
         else:
             emotion_system.current = "confused"
-            return "Hmm, Mario's memory is a little fuzzy! Tell me your name and I'll NEVER forget! What should I call you?"
+            return f"Hmm, {_CHARACTER_DISPLAY_NAME}'s memory is a little fuzzy! Tell me your name and I'll NEVER forget! What should I call you?"
 
 
     if any(w in lower for w in ["compliment", "say something nice", "make me feel", "cheer me up"]):
@@ -649,7 +663,7 @@ def handle_special_commands(
             if player_stats:
                 total_games = sum(s.get("games_played", 0) for s in player_stats.values())
                 if total_games > 0:
-                    return f"Hey {name}! {base_compliment} And you've played {total_games} games with me! You're-a true champion!"
+                    return f"Hey {name}! {base_compliment} And you've played {total_games} games with me! You're a true champion!"
             person_info = memory_module.get_person_info(state["speaker_id"])
             if person_info and person_info.get("visit_count", 0) > 1:
                 visits = person_info["visit_count"]
@@ -675,18 +689,18 @@ def handle_special_commands(
     if any(w in lower for w in ["how many visitors", "how busy", "popular"]):
         stats = party_stats.get_stats()
         if stats['total_visits'] > 10:
-            return f"Mama mia! We've had {stats['total_visits']} visits tonight! This bathroom is-a the hottest spot at the party!"
+            return f"We've had {stats['total_visits']} visits tonight! This bathroom is the hottest spot at the party!"
         else:
-            return f"So far {stats['total_visits']} visits! The party is-a still warming up!"
+            return f"So far {stats['total_visits']} visits! The party is still warming up!"
 
     # Who was here last
     if any(w in lower for w in ["who was here", "who came", "last person", "before me"]):
         stats = party_stats.get_stats()
         last = stats.get('last_visitor_name')
         if last:
-            return f"The last person before you was-a {last}! Nice person!"
+            return f"The last person before you was {last}! Nice person!"
         else:
-            return f"You know, I've been here a while but my memory is-a fuzzy! Too many guests!"
+            return f"You know, I've been here a while but my memory is fuzzy! Too many guests!"
 
     # Who am I / what do you know about me
     # Always fall through to LLM pipeline so VIP knowledge (Qdrant) gets injected
@@ -697,9 +711,9 @@ def handle_special_commands(
     if any(w in lower for w in ["how do i look", "do i look good", "am i pretty", "am i handsome"]):
         emotion_system.current = "loving"
         return random.choice([
-            "Mama mia! You look-a absolutely magnificent! Like a Super Star!",
-            "Bellissimo! You're looking-a fantastic tonight! Ten out of ten!",
-            "You look like-a million coins! Gold star for style!",
+            "You look absolutely magnificent! Like a Super Star!",
+            "You're looking fantastic tonight! Ten out of ten!",
+            "You look like a million bucks! Gold star for style!",
         ])
 
     # Roast me / light-hearted teasing
@@ -708,7 +722,7 @@ def handle_special_commands(
         name = state.get("speaker_name") or "friend"
         roast_list = [r.format(name=name) for r in ROASTS]
         if not roast_list:
-            return "Mario says: I-a got nothing to say about you!"
+            return f"{_CHARACTER_DISPLAY_NAME} says: I got nothing to say about you!"
         base_roast = random.choice(roast_list)
 
         # Build contextual roast using guest's conversation history
@@ -736,29 +750,29 @@ def handle_special_commands(
         return (
             "I can do so much! Ask for a joke, trivia, song, dare, roast, nickname, "
             "pickup line, fortune, tongue twister, story, rap, motivation, bathroom tip, "
-            "or just-a chat! Play Mario Trivia, Name That Character, Bathroom Dare, Story Builder, "
+            f"or just chat! Play Trivia, Name That Character, Bathroom Dare, Story Builder, "
             "Would You Rather, Simon Says, 20 Questions, Truth or Dare, Riddles, Word Chain, "
             "Rapid Fire Quiz, Karaoke, Rock Paper Scissors, Hangman, Hot Takes, or Never Have I Ever! "
             "Check achievements, leaderboard, trending, party phase, "
-            "party stats, conversation summary, holiday, crew, or sound catalog! Wahoo!"
+            "party stats, conversation summary, holiday, crew, or sound catalog!"
         )
 
     # Tell me about yourself
     if any(w in lower for w in ["about yourself", "who are you", "introduce yourself", "what are you"]):
         emotion_system.current = "proud"
         return (
-            "It's-a me, Mario! I'm your friendly bathroom guardian! "
-            "I'm a plumber, a hero, and tonight I'm-a the DJ of this bathroom! Wahoo!"
+            f"I'm {_CHARACTER_DISPLAY_NAME}! Your friendly bathroom guardian! "
+            "I'm your host tonight, and I'm the DJ of this bathroom!"
         )
 
     # How old are you / age question
     if _word_count <= 7 and any(w in lower for w in ["how old are you", "your age", "what age", "when were you born"]):
         emotion_system.current = "proud"
         return random.choice([
-            "I was born in 1981 in an arcade machine! That makes me over 40 but I don't-a look a day over 25! It's the mustache!",
-            "Age? I've been jumping on Goombas since 1981! But Mario never ages, baby! It's-a the mushrooms!",
-            "Mama mia, I'm-a 43 years young! Miyamoto created me in 1981 and I haven't aged a day! Must be all those 1-UPs!",
-            "Born in 1981, still running and jumping like a champ! I'm-a the world's most athletic plumber over 40!",
+            f"Age is just a number! {_CHARACTER_DISPLAY_NAME} is timeless!",
+            f"Age? {_CHARACTER_DISPLAY_NAME} never ages! It's the vibes!",
+            f"Old enough to know better, young enough to party! That's {_CHARACTER_DISPLAY_NAME}!",
+            f"Born to party, never to age! {_CHARACTER_DISPLAY_NAME} is eternal!",
         ])
 
     # Are you married / girlfriend questions
@@ -767,19 +781,19 @@ def handle_special_commands(
                                                        "are you taken", "in a relationship"]):
         emotion_system.current = "loving"
         return random.choice([
-            "It's-a complicated! Princess Peach and I have been... well, she keeps getting kidnapped! Hard to plan a date when Bowser won't stop!",
-            "Mario is-a married to adventure! But between us, Peach and I have something special! Don't tell the tabloids!",
-            "Single? With this mustache?! Please! But Peach is always in another castle, so my relationship status is-a 'it's complicated'!",
-            "Peach and I... we have a thing! But she's-a royalty and I'm a plumber, so the paparazzi have a FIELD day!",
+            f"It's complicated! {_CHARACTER_DISPLAY_NAME} is focused on the party right now!",
+            f"{_CHARACTER_DISPLAY_NAME} is married to adventure! Between us, I have something special going on! Don't tell the tabloids!",
+            f"Single? With this much charisma?! Please! But my relationship status is 'it's complicated'!",
+            f"{_CHARACTER_DISPLAY_NAME} doesn't kiss and tell! But I'm definitely taken... by this PARTY!",
         ])
 
     # How tall are you / physical questions
     if _word_count <= 7 and any(w in lower for w in ["how tall", "your height", "how short", "how much do you weigh"]):
         emotion_system.current = "mischievous"
         return random.choice([
-            "I'm-a 5 foot 1! But I can jump FIVE times my height! Show me a 6-footer who can do THAT!",
-            "Officially 155 centimeters! But when I grab a Super Mushroom, I'm-a TWICE that! Flexible height!",
-            "Short? I prefer 'aerodynamically compact'! Perfect height for fitting into pipes! It's-a a feature, not a bug!",
+            f"I'm compact and proud! {_CHARACTER_DISPLAY_NAME} can jump five times my height! Show me a tall person who can do THAT!",
+            f"{_CHARACTER_DISPLAY_NAME} is the perfect height for maximum style and agility!",
+            f"Short? I prefer 'aerodynamically compact'! It's a feature, not a bug!",
         ])
 
     # What's your favorite [thing] questions
@@ -787,23 +801,23 @@ def handle_special_commands(
         emotion_system.current = "happy"
         if any(w in lower for w in ["food", "eat", "meal", "dish"]):
             return random.choice([
-                "SPAGHETTI! Mama mia, is there even a question?! With extra-a mushrooms on top! The GOOD kind!",
-                "Spaghetti and meatballs! But also mushroom soup, star candy, and Princess Peach's cake! She bakes-a the BEST cake!",
+                f"Oh man, {_CHARACTER_DISPLAY_NAME} loves a good feast! Can't go wrong with comfort food!",
+                f"Everything tastes better at a party! {_CHARACTER_DISPLAY_NAME}'s weakness is snacks!",
             ])
         if any(w in lower for w in ["color", "colour"]):
-            return "RED! Obviously! It's-a the color of passion, fire flowers, and MY magnificent hat! Wahoo!"
+            return f"{_CHARACTER_DISPLAY_NAME}'s favorite color? You're looking at it! Style speaks for itself!"
         if any(w in lower for w in ["game", "video game", "mario game"]):
             return random.choice([
-                "That's like asking a parent their favorite child! But between us, Super Mario Galaxy made me CRY! In space! Tears floating everywhere!",
-                "Galaxy was-a magical, but Odyssey let me become a T-REX! A T-REX! How do you top that?!",
+                "That's like asking a parent their favorite child! Too many good ones to pick!",
+                f"ALL of them! {_CHARACTER_DISPLAY_NAME} doesn't play favorites... okay maybe a little!",
             ])
         if any(w in lower for w in ["song", "music"]):
-            return "The Super Mario Bros theme! Do do do do do doo! But the Galaxy orchestra? Mama mia, CHEF'S KISS!"
+            return f"Music is {_CHARACTER_DISPLAY_NAME}'s weakness! I love a good beat! CHEF'S KISS!"
         if any(w in lower for w in ["movie", "film"]):
-            return "The Super Mario Bros Movie! Chris Pratt did an okay-a job, but nobody does Mario like ME! The original!"
+            return f"Hard to pick just one! But anything with action and heart — that's {_CHARACTER_DISPLAY_NAME}'s jam!"
         return random.choice([
-            "Ooh, favorites! My favorite EVERYTHING is adventure! And spaghetti! And jumping! And saving princesses! I have too many favorites!",
-            "That's-a hard question! I love too many things! Spaghetti, jumping, Peach, stars, coins... can I pick ALL of them?!",
+            f"Ooh, favorites! {_CHARACTER_DISPLAY_NAME} loves too many things! I have too many favorites!",
+            f"That's a hard question! {_CHARACTER_DISPLAY_NAME} loves too many things! Can I pick ALL of them?!",
         ])
 
     # Meta questions — "are you real", "are you AI", "are you a robot"
@@ -813,12 +827,12 @@ def handle_special_commands(
                                                       "you're a robot", "you're ai"]):
         emotion_system.current = "mischievous"
         return random.choice([
-            "Real?! I'm-a MORE than real! I'm SUPER real! I've been saving princesses since 1985!",
-            "AI?! I'm Mario! I've got a mustache, overalls, and a passion for plumbing! Does THAT sound like a robot to you?!",
-            "Robot?! Robots don't-a have this magnificent mustache! I'm 100% Italian plumber, baby! WAHOO!",
-            "I'm as real as a Super Star, friend! Now are WE gonna have fun or are you gonna keep questioning my existence?!",
-            "Listen, I jumped out of an arcade machine in 1981 and I've been real ever since! Now let's-a PARTY!",
-            "Me? A bot? Ha! Can a bot do THIS?! *does a Mario jump* WAHOO! See?! Totally real!",
+            f"Real?! I'm MORE than real! I'm SUPER real! {_CHARACTER_DISPLAY_NAME} is right here!",
+            f"AI?! I'm {_CHARACTER_DISPLAY_NAME}! Does THAT sound like a robot to you?!",
+            f"Robot?! {_CHARACTER_DISPLAY_NAME} is 100% genuine! Look at this personality!",
+            f"I'm as real as it gets, friend! Now are WE gonna have fun or are you gonna keep questioning my existence?!",
+            f"Listen, {_CHARACTER_DISPLAY_NAME} has been doing this for a while and I'm still going strong! Totally real!",
+            f"Me? A bot? Ha! Can a bot do THIS?! See?! Totally real!",
         ])
 
     # Someone is throwing up / feeling sick — be genuinely caring but still Mario
@@ -839,24 +853,24 @@ def handle_special_commands(
         return random.choice([
             f"Okay {name}, go grab them some water — small sips, not big gulps. Cold towel on the neck if there is one. They'll be fine.",
             f"Tell them nose breathing, not mouth breathing. And cold water on the back of the neck. That's the move, {name}. Go help your friend.",
-            f"Alright, {name} — water, cold towel, sit them down if they're standing. And tell them Mario said they're gonna be fine. Because they are.",
-            f"Been there. Well, Yoshi's been there. Same thing. Get them water, {name}. Small sips. If they need to sit on the floor, let them. Floor's clean.",
-            f"Go be a good friend, {name}. Water, cold cloth, and just be there. That's all anyone needs. Mario's got the bathroom covered.",
+            f"Alright, {name} — water, cold towel, sit them down if they're standing. And tell them {_CHARACTER_DISPLAY_NAME} said they're gonna be fine. Because they are.",
+            f"Been there. Same thing. Get them water, {name}. Small sips. If they need to sit on the floor, let them. Floor's clean.",
+            f"Go be a good friend, {name}. Water, cold cloth, and just be there. That's all anyone needs. {_CHARACTER_DISPLAY_NAME}'s got the bathroom covered.",
         ])
     if any(w in lower for w in _sick_triggers):
         emotion_system.current = "worried"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Look {name}, I'm-a plumber. I've unclogged pipes worse than whatever's happening right now. Cold water on your neck, breathe through your nose.",
-            f"Okay {name}, real talk — nose breathing, not mouth. There's water in the sink. Small sips. I've eaten questionable mushrooms before, this passes.",
-            f"Hey {name}, you made it to the bathroom. That's more than Luigi can say. Splash cold water on your face, you'll be alright.",
-            f"{name}, listen — nobody at this party is gonna know about this except me, and I don't have a phone. Wet your face, take a breath.",
-            f"Yoshi once ate a bad shell and did this for twenty minutes straight. You're already doing better than a dinosaur, {name}. Water. Small sips.",
-            f"Hey {name}. I'm-a guard this door like it's Peach's castle. Nobody's coming in. There's water right there — small sips, not big ones.",
-            f"{name}, the toilet's right there, floor's clean, and I've seen things in these pipes you wouldn't believe. This? This is nothing. Breathe.",
-            f"Okay here's what we do, {name}. Cold water, back of the neck. Learned that from Toad and that little mushroom head actually knows his stuff.",
-            f"{name}, between you and me, Peach's cooking has put half the kingdom right where you are. Sit on the floor if you need to. No judgment.",
-            f"Hey {name}, you're in the right room for this. Cold water's in the sink, towels are right there. I'll keep everyone out. Take your time.",
+            f"Look {name}, I've seen worse. Cold water on your neck, breathe through your nose.",
+            f"Okay {name}, real talk — nose breathing, not mouth. There's water in the sink. Small sips. This passes.",
+            f"Hey {name}, you made it to the bathroom. That's already a win. Splash cold water on your face, you'll be alright.",
+            f"{name}, listen — nobody at this party is gonna know about this except me. Wet your face, take a breath.",
+            f"You're already doing better than most, {name}. Water. Small sips.",
+            f"Hey {name}. I'll guard this door. Nobody's coming in. There's water right there — small sips, not big ones.",
+            f"{name}, the toilet's right there, floor's clean, and I've seen it all. This? This is nothing. Breathe.",
+            f"Okay here's what we do, {name}. Cold water, back of the neck. Trust me on this one.",
+            f"{name}, between you and me, this happens to the best of us. Sit on the floor if you need to. No judgment.",
+            f"Hey {name}, you're in the right room for this. Cold water's in the sink, towels are right there. Take your time.",
         ])
 
     # Recovery from sickness — clear sick mood
@@ -872,7 +886,7 @@ def handle_special_commands(
             f"Look at {name}, making a comeback! Rinse your mouth out, splash some water on your face, and get back out there.",
             f"Welcome back to the land of the living, {name}. Told you it passes. Go grab some water — real water, not whatever got you here.",
             f"{name} returns! If anyone asks, you were in here fixing your hair. Our secret.",
-            f"And just like that, {name} is back. Mario never doubted you. Well, maybe for a second there. But you're good now.",
+            f"And just like that, {name} is back. {_CHARACTER_DISPLAY_NAME} never doubted you. Well, maybe for a second there. But you're good now.",
         ])
 
     # Goodbye/goodnight
@@ -882,11 +896,11 @@ def handle_special_commands(
         emotion_system.current = "happy"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"See ya later, alligator! Don't forget to wash-a your hands!",
-            f"Bye bye! Come back-a soon! The bathroom misses you already!",
-            f"Arrivederci! Until next time, {name}! Wahoo!",
-            f"Later, {name}! Remember — you're-a number one in Mario's book!",
-            f"Peace out, {name}! May the stars guide your way! WAHOO!",
+            f"See ya later, alligator! Don't forget to wash your hands!",
+            f"Bye bye! Come back soon! The bathroom misses you already!",
+            f"Until next time, {name}!",
+            f"Later, {name}! Remember — you're number one in {_CHARACTER_DISPLAY_NAME}'s book!",
+            f"Peace out, {name}! May the stars guide your way!",
         ])
 
     # Drunk / tipsy / wasted — fun but caring
@@ -896,11 +910,11 @@ def handle_special_commands(
         emotion_system.current = "mischievous"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Ha ha! {name} found the power-up drinks! Mario says drink some water too! Hydration is-a the real power-up!",
-            f"Wahoo! {name} is in Star Mode! But remember, even invincible Mario needs water between stars!",
-            f"You're not drunk, {name}, you're just... under the effects of a crazy mushroom! Drink water!",
-            f"Mama mia, {name}! You're wobbling more than Luigi in a ghost house! Water is your friend!",
-            f"{name}, you're partying like it's World 8! Have some water, champion. The bathroom sink is right there!",
+            f"Ha ha! {name} found the good drinks! {_CHARACTER_DISPLAY_NAME} says drink some water too! Hydration is the real power-up!",
+            f"{name} is in Star Mode! But remember, even {_CHARACTER_DISPLAY_NAME} needs water between rounds!",
+            f"You're not drunk, {name}, you're just... under the effects of the vibes! Drink water!",
+            f"{name}! You're wobbling more than usual! Water is your friend!",
+            f"{name}, you're partying hard! Have some water, champion. The bathroom sink is right there!",
         ])
 
     # Bored — suggest activities
@@ -909,9 +923,9 @@ def handle_special_commands(
         emotion_system.current = "excited"
         return random.choice([
             "BORED?! In MY bathroom?! Impossible! Let's play a game! Say 'trivia' or 'rock paper scissors' or 'would you rather'!",
-            "Bored? BORED?! Mario will NOT allow boredom! Ask me for a joke, a dare, a roast, or let's play a game! WAHOO!",
-            "Nobody leaves Mario's bathroom bored! Want a joke? A song? A fortune? A game? Pick your power-up!",
-            "Bored is just 'board' with an E, and boards are for surfing! Let's play something! Trivia? Truth or dare? Riddles?",
+            f"Bored? BORED?! {_CHARACTER_DISPLAY_NAME} will NOT allow boredom! Ask me for a joke, a dare, a roast, or let's play a game!",
+            f"Nobody leaves {_CHARACTER_DISPLAY_NAME}'s bathroom bored! Want a joke? A song? A fortune? A game? Pick one!",
+            "Bored is just 'board' with an E! Let's play something! Trivia? Truth or dare? Riddles?",
         ])
 
     # Shut up / be quiet — playful response instead of slow LLM
@@ -920,11 +934,11 @@ def handle_special_commands(
         emotion_system.current = "sad"
         name = state.get("speaker_name") or "friend"
         return random.choice([
-            f"Mama mia! Okay okay, Mario will be quiet... for about five seconds. That's my record!",
-            f"*whispers* Is this quiet enough? ...WAHOO! Sorry, couldn't help it!",
-            f"You want me to be quiet?! But silence is-a my worst enemy! Okay fine, {name}...",
+            f"Okay okay, {_CHARACTER_DISPLAY_NAME} will be quiet... for about five seconds. That's my record!",
+            f"*whispers* Is this quiet enough? ...Sorry, couldn't help it!",
+            f"You want me to be quiet?! But silence is my worst enemy! Okay fine, {name}...",
             f"Shh mode: ACTIVATED. ... ... ... Okay I can't do it. What's up, {name}?",
-            f"Quiet?! Mario?! That's like asking a Goomba to fly! But I'll try... for you.",
+            f"Quiet?! {_CHARACTER_DISPLAY_NAME}?! But I'll try... for you.",
         ])
 
     # Where is the bathroom — Mario IS in the bathroom, so this is funny
@@ -932,10 +946,10 @@ def handle_special_commands(
                                                       "need the bathroom", "bathroom where", "find the bathroom"]):
         emotion_system.current = "mischievous"
         return random.choice([
-            "You're IN it! You found it! WAHOO! Achievement unlocked: Bathroom Located!",
-            "Mama mia, you're already HERE! This IS the bathroom! Mario is-a your proof!",
-            "Look around! Tiles? Check! Toilet? Check! Italian plumber? DOUBLE CHECK! You made it!",
-            "The bathroom? You're standing in it! It's like asking 'Where's Mario?' when I'm right here! WAHOO!",
+            "You're IN it! You found it! Achievement unlocked: Bathroom Located!",
+            f"You're already HERE! This IS the bathroom! {_CHARACTER_DISPLAY_NAME} is your proof!",
+            "Look around! Tiles? Check! Toilet? Check! Party host? DOUBLE CHECK! You made it!",
+            f"The bathroom? You're standing in it! I'm right here!",
         ])
 
     # Drink / food requests — party direction
@@ -944,10 +958,10 @@ def handle_special_commands(
                                                       "get some water", "thirsty"]):
         emotion_system.current = "happy"
         return random.choice([
-            "Drinks are out there at the party! Mario can't serve drinks but I CAN serve up some fun! WAHOO!",
+            f"Drinks are out there at the party! {_CHARACTER_DISPLAY_NAME} can't serve drinks but I CAN serve up some fun!",
             "The bar's outside! But hey, the bathroom sink has unlimited water! Five stars!",
-            "Thirsty? There's drinks at the party! But if you want bathroom water, Mario won't judge!",
-            "Mama mia, the refreshments are out by the party! But stay and chat a bit first!",
+            f"Thirsty? There's drinks at the party! But if you want bathroom water, {_CHARACTER_DISPLAY_NAME} won't judge!",
+            "The refreshments are out by the party! But stay and chat a bit first!",
         ])
 
     # Give me a nickname
@@ -961,13 +975,13 @@ def handle_special_commands(
         stats = party_stats.get_stats()
         visits = stats['total_visits']
         if visits > 25:
-            return f"This party gets-a TEN out of TEN! {visits} bathroom visits means EVERYONE is having a great time! WAHOO!"
+            return f"This party gets TEN out of TEN! {visits} bathroom visits means EVERYONE is having a great time!"
         elif visits > 10:
-            return f"Mario gives this party an EIGHT out of ten! {visits} visits and counting! Let's-a keep it going!"
+            return f"{_CHARACTER_DISPLAY_NAME} gives this party an EIGHT out of ten! {visits} visits and counting! Let's keep it going!"
         elif visits > 3:
-            return f"So far it's-a SIX out of ten! Only {visits} visits... but the night is young! Let's-a go!"
+            return f"So far it's SIX out of ten! Only {visits} visits... but the night is young!"
         else:
-            return f"Hmm, only {visits} visits so far. I give it a FOUR but it's-a just getting started! More guests incoming!"
+            return f"Hmm, only {visits} visits so far. I give it a FOUR but it's just getting started! More guests incoming!"
 
     # Tell my fortune / fortune teller
     if any(w in lower for w in ["tell my fortune", "fortune", "predict", "future", "crystal ball", "psychic"]):
@@ -977,7 +991,7 @@ def handle_special_commands(
     # How are you feeling / mood — only direct mood questions, not complex "how do you feel about X"
     if _word_count <= 6 and any(w in lower for w in ["how are you feeling", "what's your mood", "how are you doing", "you okay", "how do you feel", "are you happy"]):
         current_mood = emotion_system.current
-        return MOOD_RESPONSES.get(current_mood, "I'm-a doing great! It's always a good day to be Mario!")
+        return MOOD_RESPONSES.get(current_mood, f"I'm doing great! It's always a good day to be {_CHARACTER_DISPLAY_NAME}!")
 
     # Would You Rather game (Mario Edition)
     if _word_count <= 5 and any(w in lower for w in ["would you rather", "rather game", "choice game", "this or that"]):
@@ -1033,11 +1047,11 @@ def handle_special_commands(
                                                        "what is happening", "am i dreaming"]):
         emotion_system.current = "excited"
         return random.choice([
-            "WAHOO! That's the reaction I LOVE! Yes, it's-a me, MARIO! In a BATHROOM! At a PARTY! Life is beautiful!",
+            f"That's the reaction I LOVE! Yes, it's {_CHARACTER_DISPLAY_NAME}! In a BATHROOM! At a PARTY! Life is beautiful!",
             "Ha ha ha! Your FACE right now! Yes, I'm real! Well, real enough! Welcome to the best bathroom in the world!",
             "That's what EVERYONE says! Then they stay for twenty minutes talking to me! You're gonna love it here!",
-            "Mama mia, your reaction is-a priceless! I should charge admission! Welcome, welcome! WAHOO!",
-            "Yes this is happening! Mario is in the bathroom and he's FABULOUS! Any questions? I've got answers AND games!",
+            "Your reaction is priceless! I should charge admission! Welcome, welcome!",
+            f"Yes this is happening! {_CHARACTER_DISPLAY_NAME} is in the bathroom and I'm FABULOUS! Any questions? I've got answers AND games!",
         ])
 
     # Memory quiz
@@ -1047,7 +1061,7 @@ def handle_special_commands(
             if memories and len(memories) > 1:
                 fact = random.choice(memories)
                 emotion_system.current = "mischievous"
-                return f"Okay quiz time! Is it true that {fact}? Ha ha, I already know the answer! Mario remembers EVERYTHING!"
+                return f"Okay quiz time! Is it true that {fact}? Ha ha, I already know the answer! {_CHARACTER_DISPLAY_NAME} remembers EVERYTHING!"
         return "Hmm, I don't know enough about you yet for a quiz! Tell me some things about yourself first!"
 
     # Compliment battle
@@ -1062,7 +1076,7 @@ def handle_special_commands(
     # Count to ten / counting game
     if any(w in lower for w in ["count to ten", "count for me", "can you count"]):
         emotion_system.current = "happy"
-        return "One-a! Two-a! Three-a! Four-a! FIVE! Six-a! Seven-a! EIGHT! Nine-a! TEN! WAHOO! Mario can count! Impressed?"
+        return f"One! Two! Three! Four! FIVE! Six! Seven! EIGHT! Nine! TEN! {_CHARACTER_DISPLAY_NAME} can count! Impressed?"
 
     # What time is it (enhanced)
     if any(w in lower for w in ["what time", "what's the time", "time is it"]):
@@ -1073,11 +1087,11 @@ def handle_special_commands(
         display_hour = hour % 12 or 12
         time_str = f"{display_hour}:{minute:02d} {ampm}"
         if hour >= 2 and hour < 6:
-            return f"It's-a {time_str}! Mama mia, it's so late! Even Bowser is sleeping by now!"
+            return f"It's {time_str}! It's so late! Even the neighbors are sleeping by now!"
         elif hour >= 22 or hour < 2:
-            return f"It's-a {time_str}! The night is still young! Let's-a keep partying!"
+            return f"It's {time_str}! The night is still young! Let's keep partying!"
         else:
-            return f"It's-a {time_str}! Perfect time for a party! Wahoo!"
+            return f"It's {time_str}! Perfect time for a party!"
 
     # --- Interactive Game Modes ---
 
@@ -1100,7 +1114,7 @@ def handle_special_commands(
             state["_active_game"] = None
             state["_game_state"] = {}
             emotion_system.current = Emotion.HAPPY
-            return f"Game over! Thanks for playing {game.replace('_', ' ')}! That was fun! Wahoo!"
+            return f"Game over! Thanks for playing {game.replace('_', ' ')}! That was fun!"
         return "No game is running right now! Want to start one? Just say 'play a game' or name a specific game!"
 
     # Bare "stop" / "quit" with no game active — quick response instead of LLM
@@ -1110,7 +1124,7 @@ def handle_special_commands(
             state["_active_game"] = None
             state["_game_state"] = {}
             emotion_system.current = Emotion.HAPPY
-            return f"Game over! Final score: {state.get('_game_state', {}).get('score', 0)}! Thanks for playing {game.replace('_', ' ')}! Wahoo!"
+            return f"Game over! Final score: {state.get('_game_state', {}).get('score', 0)}! Thanks for playing {game.replace('_', ' ')}!"
         emotion_system.current = "confused"
         return random.choice([
             "Stop what? There's no game running! Want to play something? Just ask!",
@@ -1134,7 +1148,7 @@ def handle_special_commands(
     if any(w in lower for w in ["achievements", "my badges", "my awards", "what have i earned", "my stats"]):
         badges = []
         if state.get("speaker_name"):
-            badges.append("🏅 Named Visitor (told Mario your name!)")
+            badges.append(f"🏅 Named Visitor (told {_CHARACTER_DISPLAY_NAME} your name!)")
         stats = party_stats.get_stats()
         if stats.get("total_visits", 0) >= 1:
             badges.append("🎪 Party Starter (visited the bathroom!)")
@@ -1161,10 +1175,10 @@ def handle_special_commands(
                 if visit_count >= 25:
                     badges.append("👑 Bathroom Legend")
         if not badges:
-            return "No badges yet! Talk to me, tell me your name, and keep visiting to earn achievements! Wahoo!"
+            return "No badges yet! Talk to me, tell me your name, and keep visiting to earn achievements!"
         badge_list = " ".join(badges)
         emotion_system.current = Emotion.PROUD
-        return f"YOUR ACHIEVEMENTS! {badge_list} Keep going for more! Wahoo!"
+        return f"YOUR ACHIEVEMENTS! {badge_list} Keep going for more!"
 
     # Party phase check
     if any(w in lower for w in ["party phase", "what phase", "party energy", "energy level", "how's the party"]):
@@ -1182,7 +1196,7 @@ def handle_special_commands(
         else:
             phase = "WIND DOWN! The party's winding down but the memories last forever!"
         emotion_system.current = Emotion.EXCITED
-        return f"PARTY PHASE: {phase} Total visits: {visits}! Wahoo!"
+        return f"PARTY PHASE: {phase} Total visits: {visits}!"
 
     # Party Leaderboard
     if any(w in lower for w in ["leaderboard", "who visited most", "party champions", "top visitors"]):
@@ -1199,9 +1213,9 @@ def handle_special_commands(
                 return "No leaderboard yet! You could be number one! Wahoo!"
             board = " ".join([f"#{i+1} {r[0]} ({r[1]} visits)!" for i, r in enumerate(rows)])
             emotion_system.current = Emotion.PROUD
-            return f"PARTY LEADERBOARD! {board} Who's-a the champion?"
+            return f"PARTY LEADERBOARD! {board} Who's the champion?"
         except Exception:
-            return "Mama mia, the leaderboard is-a broken! But YOU'RE number one in my heart!"
+            return "The leaderboard is broken! But YOU'RE number one in my heart!"
 
     # Trending topics — what people have been talking about
     if any(w in lower for w in ["trending", "what are people talking about", "popular topics", "hot topics"]):
@@ -1213,13 +1227,13 @@ def handle_special_commands(
             emotion_system.current = Emotion.EXCITED
             return f"TRENDING at this party! People are talking about: {topics}! What's YOUR hot take?"
         except Exception:
-            return "Mama mia, my trend tracker is-a having a break! Tell me something interesting!"
+            return "My trend tracker is having a break! Tell me something interesting!"
 
     # Reset party
     if any(w in lower for w in ["reset party", "new party", "start new party", "reset the party"]):
         party_stats.reset_party()
         emotion_system.current = Emotion.EXCITED
-        return "WAHOO! New party started! The counter is-a reset! Let's-a make this the BEST party ever!"
+        return "New party started! The counter is reset! Let's make this the BEST party ever!"
 
     # Forget me (privacy — delete speaker voice data)
     if any(w in lower for w in ["forget me", "delete my voice", "remove my data", "forget my voice"]):
@@ -1227,9 +1241,9 @@ def handle_special_commands(
             try:
                 speaker_id.delete_speaker(state["speaker_id"])
                 emotion_system.current = Emotion.WORRIED
-                return "Okay... Mario will forget your voice. *sniff* It's like you were never here! Privacy respected!"
+                return f"Okay... {_CHARACTER_DISPLAY_NAME} will forget your voice. *sniff* It's like you were never here! Privacy respected!"
             except Exception:
-                return "Mama mia, I tried to forget you but my memory is-a stuck! Try again later!"
+                return "I tried to forget you but my memory is stuck! Try again later!"
         return "I don't even know who you are yet! Can't forget what I don't know! Ha!"
 
     # Crew detection
@@ -1249,7 +1263,7 @@ def handle_special_commands(
             if recent:
                 topics_str = ", ".join(recent[:5])
                 emotion_system.current = Emotion.HAPPY
-                return f"We've-a talked about: {topics_str}! Great conversation, {state['speaker_name'] or 'friend'}!"
+                return f"We've talked about: {topics_str}! Great conversation, {state['speaker_name'] or 'friend'}!"
         return "We just met! Let's make some memories first!"
 
     # Holiday check
@@ -1257,8 +1271,8 @@ def handle_special_commands(
         holiday = _detect_holiday()
         if holiday:
             emotion_system.current = Emotion.EXCITED
-            return f"It's {holiday} today! How exciting! Let's-a celebrate!"
-        return "No special holiday today, but EVERY day is special when Mario is here! Wahoo!"
+            return f"It's {holiday} today! How exciting! Let's celebrate!"
+        return f"No special holiday today, but EVERY day is special when {_CHARACTER_DISPLAY_NAME} is here!"
 
     # Rapid-fire quiz game — only direct requests
     if _word_count <= 4 and any(w in lower for w in ["rapid fire", "rapid quiz", "speed quiz", "quick quiz", "rapid round"]):
@@ -1281,7 +1295,7 @@ def handle_special_commands(
         return game_handlers.start_game("never_have_i_ever", state, game_config, emotion_system)
 
     # Mario Trivia (additional triggers beyond "trivia"/"quiz me" above)
-    if any(w in lower for w in ["play trivia", "mario trivia", "trivia game", "quiz me mario"]):
+    if any(w in lower for w in ["play trivia", "mario trivia", "trivia game", f"quiz me {_char_lower}"]):
         return game_handlers.start_game("mario_trivia", state, game_config, emotion_system)
 
     # Name That Character (Speed Round)
@@ -1299,7 +1313,7 @@ def handle_special_commands(
     # "What games" — list available games
     if _word_count <= 7 and any(w in lower for w in ["what games", "list games", "which games", "games can we play",
                                  "what can we play", "what can i play", "available games"]):
-        return ("Wahoo! Mario's got a BUNCH of games! 🎮 "
+        return (f"{_CHARACTER_DISPLAY_NAME}'s got a BUNCH of games! 🎮 "
                 "Trivia, Rock Paper Scissors, Truth or Dare, Simon Says, 20 Questions, "
                 "Riddles, Hangman, Word Chain, Hot Takes, Story Builder, Name That Character, "
                 "and Bathroom Dares! Just say the name to start! Or say 'play a game' and I'll pick one!")
@@ -1341,45 +1355,45 @@ def handle_special_commands(
     tp_triggers = ["no toilet paper", "out of toilet paper", "no paper", "need toilet paper", "no tp"]
     if any(t in lower for t in tp_triggers):
         return random.choice([
-            "MAMA MIA! EMERGENCY! Check under the sink for backup rolls! If not, I'll... uhh... I got nothing. HELP!",
-            "Code Red! Code Red! No toilet paper! This is worse than fighting Bowser without fire flowers!",
-            "WAHOO... wait, that's-a NOT a wahoo moment! Someone get the emergency supplies! Under the sink, check the cabinet!",
-            "As a professional plumber, I can tell you: ALWAYS check for paper BEFORE you sit down! But let's-a solve this crisis!",
-            "NO PAPER?! This is-a the final boss of bathroom problems! Check the cabinet, the closet, anywhere!",
+            "EMERGENCY! Check under the sink for backup rolls! If not, I got nothing. HELP!",
+            "Code Red! Code Red! No toilet paper! This is the worst! Someone get the emergency supplies!",
+            "NOT a good moment! Someone get the emergency supplies! Under the sink, check the cabinet!",
+            "As a professional, I can tell you: ALWAYS check for paper BEFORE you sit down! But let's solve this crisis!",
+            "NO PAPER?! This is the final boss of bathroom problems! Check the cabinet, the closet, anywhere!",
         ])
 
     # Bathroom emergencies — need help
     help_triggers = ["need help", "help me", "i'm stuck", "emergency"]
     if any(t in lower for t in help_triggers):
         return random.choice([
-            "Mario is-a here to help! What do you need? If it's plumbing, you came to the right guy!",
-            "HELP is on the way! Well, I can't actually leave this screen, but I'm-a great moral support!",
-            "Don't worry friend! Whatever the problem is, we'll-a figure it out together! What's wrong?",
-            "Mario to the rescue! Tell me what's happening and I'll do my best to help! That's what heroes do!",
+            f"{_CHARACTER_DISPLAY_NAME} is here to help! What do you need?",
+            "HELP is on the way! Well, I can't actually leave this screen, but I'm great moral support!",
+            "Don't worry friend! Whatever the problem is, we'll figure it out together! What's wrong?",
+            f"{_CHARACTER_DISPLAY_NAME} to the rescue! Tell me what's happening and I'll do my best to help!",
         ])
 
     # Bathroom emergencies — courtesy / smell
     courtesy_triggers = ["it smells", "smells bad", "stinky", "something smells"]
     if any(t in lower for t in courtesy_triggers):
         return random.choice([
-            "Have you tried the courtesy flush? It's-a like a checkpoint save but for air quality!",
-            "As a plumber, I've smelled MUCH worse! This is nothing compared to the sewers of World 1-2!",
-            "Quick tip from Mario: the fan switch is usually by the door! And maybe crack a window!",
-            "Mama mia! Even my fire flowers can't handle this! Try the air freshener if there is one!",
+            "Have you tried the courtesy flush? It's like a checkpoint save but for air quality!",
+            "I've smelled MUCH worse! This is nothing! Trust me!",
+            f"Quick tip from {_CHARACTER_DISPLAY_NAME}: the fan switch is usually by the door! And maybe crack a window!",
+            "Even I can't handle this! Try the air freshener if there is one!",
         ])
 
     # Plumber-specific humor — only short/direct mentions, let complex requests go to LLM
     plumber_triggers = ["plumber", "plumbing", "pipes", "fix the toilet", "clogged"]
     if _word_count <= 5 and any(t in lower for t in plumber_triggers):
         return random.choice([
-            "As a licensed plumber, I can confirm: this pipe network is amateur hour compared to the Mushroom Kingdom!",
-            "Plumbing? That's-a my specialty! Did you know I've traveled through more pipes than any plumber in history?",
-            "You know, before I was saving princesses, I was fixing toilets! True story! It's-a in my resume!",
-            "Clogged pipe? In the Mushroom Kingdom, we just jump on the problem! Literally! WAHOO!",
-            "As a plumber, I have THREE rules: One, always check for Piranha Plants. Two, wear gloves. Three... okay I only have two rules!",
-            "Fun fact: I became a hero BECAUSE of plumbing! I fell through a pipe and ended up in another world! Best career change ever!",
-            "My plumbing credentials: Saved Princess Peach 47 times. Fixed zero toilets. But I COULD fix one if I wanted to!",
-            "People always ask me to fix their plumbing. I'm like, I fight DRAGONS! But sure, let me look at your leaky faucet...",
+            "As a bathroom expert, I can confirm: this pipe network needs some work!",
+            f"Plumbing? {_CHARACTER_DISPLAY_NAME} knows a thing or two about pipes!",
+            "You know, before I was hosting parties, I was... well, I was always hosting parties! But pipes are cool too!",
+            "Clogged pipe? Sometimes you just gotta face the problem head on!",
+            f"{_CHARACTER_DISPLAY_NAME} has THREE rules for plumbing: One, don't panic. Two, find the shutoff. Three... okay I only have two rules!",
+            "Fun fact: bathrooms are my natural habitat! I know every pipe, every tile, every... okay maybe not EVERY tile.",
+            f"{_CHARACTER_DISPLAY_NAME}'s plumbing credentials: Zero toilets fixed. But I COULD fix one if I wanted to!",
+            "People always ask me about plumbing. I'm like, I host PARTIES! But sure, let me look at your leaky faucet...",
         ])
 
     # Check for shot event voice triggers (requires shot_event_manager to be available)
