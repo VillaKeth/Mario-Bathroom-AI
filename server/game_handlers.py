@@ -24,6 +24,115 @@ def set_character(name: str, display_name: str):
     _CHARACTER_NAME = name
     _CHARACTER_DISPLAY_NAME = display_name
 
+
+def load_character_pools(character_loader):
+    """Load game content pools from a character's YAML files.
+
+    Replaces the hardcoded Mario game data with character-specific content.
+    Falls back to existing hardcoded data for any missing pools.
+    """
+    global SIMON_ACTIONS, TWENTY_Q_THINGS, RIDDLES, STARTER_WORDS, KARAOKE_SONGS
+    global RAPID_FIRE_QUESTIONS, TRUTH_QUESTIONS, DARES, WOULD_YOU_RATHER
+    global RPS_WIN_REACTIONS, RPS_LOSE_REACTIONS, RPS_TIE_REACTIONS
+    global HANGMAN_WORDS, HOT_TAKES, MARIO_TRIVIA_QUESTIONS, NAME_THAT_CHARACTER
+    global BATHROOM_DARES, STORY_STARTERS, WYR_EXTENDED, NHIE_PROMPTS
+
+    pools = character_loader.get_game_pools()
+    if not pools:
+        logger.info("[GAMES] No character game pools found, using defaults")
+        return
+
+    # Map YAML pool names to module-level variables
+    _POOL_MAP = {
+        "simon": ("SIMON_ACTIONS", SIMON_ACTIONS),
+        "twenty_questions": ("TWENTY_Q_THINGS", TWENTY_Q_THINGS),
+        "riddles": ("RIDDLES", RIDDLES),
+        "word_chains": ("STARTER_WORDS", STARTER_WORDS),
+        "karaoke": ("KARAOKE_SONGS", KARAOKE_SONGS),
+        "rapid_fire": ("RAPID_FIRE_QUESTIONS", RAPID_FIRE_QUESTIONS),
+        "truth_or_dare": ("_TRUTH_AND_DARE", None),  # special: split into truth/dare
+        "would_you_rather": ("WOULD_YOU_RATHER", WOULD_YOU_RATHER),
+        "reactions": ("_REACTIONS", None),  # special: split into win/lose/tie
+        "hangman": ("HANGMAN_WORDS", HANGMAN_WORDS),
+        "hot_takes": ("HOT_TAKES", HOT_TAKES),
+        "trivia": ("MARIO_TRIVIA_QUESTIONS", MARIO_TRIVIA_QUESTIONS),
+        "name_that_character": ("NAME_THAT_CHARACTER", NAME_THAT_CHARACTER),
+        "story_starters": ("STORY_STARTERS", STORY_STARTERS),
+        "wyr_extended": ("WYR_EXTENDED", WYR_EXTENDED),
+        "nhie": ("NHIE_PROMPTS", NHIE_PROMPTS),
+    }
+
+    loaded = []
+    for pool_name, (var_name, _default) in _POOL_MAP.items():
+        if pool_name not in pools:
+            continue
+        data = pools[pool_name]
+        if not data:
+            continue
+
+        # Handle special pools that need splitting
+        if pool_name == "truth_or_dare":
+            if isinstance(data, dict):
+                if "truths" in data and data["truths"]:
+                    TRUTH_QUESTIONS = data["truths"]
+                    loaded.append("truths")
+                if "dares" in data and data["dares"]:
+                    DARES = data["dares"]
+                    loaded.append("dares")
+                if "bathroom_dares" in data and data["bathroom_dares"]:
+                    BATHROOM_DARES = data["bathroom_dares"]
+                    loaded.append("bathroom_dares")
+            elif isinstance(data, list):
+                # Split "Truth: ..." and "Dare: ..." from flat list
+                _truths = [s.replace("Truth: ", "", 1) for s in data if s.startswith("Truth:")]
+                _dares = [s.replace("Dare: ", "", 1) for s in data if s.startswith("Dare:")]
+                if _truths:
+                    TRUTH_QUESTIONS = _truths
+                    loaded.append("truths")
+                if _dares:
+                    DARES = _dares
+                    BATHROOM_DARES = _dares
+                    loaded.append("dares")
+            continue
+
+        if pool_name == "reactions":
+            if isinstance(data, dict):
+                if "win" in data and data["win"]:
+                    RPS_WIN_REACTIONS = data["win"]
+                    loaded.append("rps_win")
+                if "lose" in data and data["lose"]:
+                    RPS_LOSE_REACTIONS = data["lose"]
+                    loaded.append("rps_lose")
+                if "tie" in data and data["tie"]:
+                    RPS_TIE_REACTIONS = data["tie"]
+                    loaded.append("rps_tie")
+            elif isinstance(data, list):
+                # Use same reactions for all RPS outcomes
+                RPS_WIN_REACTIONS = data
+                RPS_LOSE_REACTIONS = data
+                RPS_TIE_REACTIONS = data
+                loaded.append("reactions")
+            continue
+
+        # Simple list pools — validate format for structured data
+        if isinstance(data, list) and data:
+            # Trivia/rapid_fire need dicts with 'q' key; skip flat strings
+            if pool_name in ("trivia", "rapid_fire") and isinstance(data[0], str):
+                logger.debug(f"[GAMES] Skipping {pool_name}: flat strings, needs structured Q&A")
+                continue
+            # WYR pools need dicts with 'a'/'b' keys
+            if pool_name in ("would_you_rather", "wyr_extended") and isinstance(data[0], str):
+                logger.debug(f"[GAMES] Skipping {pool_name}: flat strings, needs a/b dicts")
+                continue
+            # Name that character needs dicts with 'answer'/'hints'
+            if pool_name == "name_that_character" and isinstance(data[0], str):
+                logger.debug(f"[GAMES] Skipping {pool_name}: flat strings, needs answer/hints dicts")
+                continue
+            globals()[var_name] = data
+            loaded.append(pool_name)
+
+    logger.info(f"[GAMES] Loaded {len(loaded)} character game pools: {loaded}")
+
 # ---------------------------------------------------------------------------
 # Valid game names — used for state validation
 # ---------------------------------------------------------------------------

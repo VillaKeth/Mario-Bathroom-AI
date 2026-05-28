@@ -654,20 +654,59 @@ async def lifespan(app: FastAPI):
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
     _game_handlers_mod.set_character(_character.name, _character.display_name)
+    _game_handlers_mod.load_character_pools(_character)
 
     # Wire character prompts into mario_prompt module (used by build_context)
     _char_sys_prompt = _character.get_system_prompt()
     if _char_sys_prompt:
         mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
         logger.info(f"[CHARACTER] System prompt loaded ({len(_char_sys_prompt)} chars)")
+
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
-        mario_prompt.PHASE_PROMPTS = _char_phases
-        logger.info(f"[CHARACTER] Phase prompts loaded ({len(_char_phases)} phases)")
+        # Map character phase keys to server enum names
+        # Server uses: WARM_UP, PARTY_MODE, UNHINGED, WIND_DOWN
+        _PHASE_KEY_MAP = {
+            "warming_up": "WARM_UP", "warm_up": "WARM_UP",
+            "peak_party": "PARTY_MODE", "party_mode": "PARTY_MODE",
+            "winding_down": "WIND_DOWN", "wind_down": "WIND_DOWN",
+            "after_hours": "UNHINGED", "unhinged": "UNHINGED",
+        }
+        _mapped_phases = {}
+        for k, v in _char_phases.items():
+            server_key = _PHASE_KEY_MAP.get(k, k.upper())
+            # Extract modifier text from dict or use string directly
+            if isinstance(v, dict):
+                _mapped_phases[server_key] = v.get("modifier", str(v))
+            else:
+                _mapped_phases[server_key] = str(v)
+        mario_prompt.PHASE_PROMPTS = _mapped_phases
+        logger.info(f"[CHARACTER] Phase prompts loaded ({len(_mapped_phases)} phases: {list(_mapped_phases.keys())})")
+
     _char_greetings = _character.get_greeting_prompts()
     if _char_greetings:
-        mario_prompt.GREETING_PROMPTS = _char_greetings
-        logger.info(f"[CHARACTER] Greeting prompts loaded ({len(_char_greetings)} events)")
+        # Map character greeting keys to server greeting keys
+        # Server uses: startup, enter_known, enter_unknown, exit_known, exit_unknown, idle, etc.
+        _GREETING_KEY_MAP = {
+            "first_time": "enter_unknown", "returning": "enter_known",
+            "vip": "milestone_visit", "group": "party_peak",
+            "couple": "enter_unknown", "late_arrival": "late_night",
+            "birthday_person": "first_visitor", "shy_person": "enter_unknown",
+            "drunk_person": "enter_unknown", "leaving": "exit_known",
+            "host": "first_visitor", "repeat_visitor": "return_quick",
+            "awkward_silence": "idle", "post_game": "challenge",
+            "emotional": "enter_unknown", "selfie_request": "enter_unknown",
+        }
+        _mapped_greetings = {}
+        for k, v in _char_greetings.items():
+            server_key = _GREETING_KEY_MAP.get(k, k)
+            if isinstance(v, dict):
+                _mapped_greetings[server_key] = v.get("prompt", str(v))
+            else:
+                _mapped_greetings[server_key] = str(v)
+        mario_prompt.GREETING_PROMPTS = _mapped_greetings
+        logger.info(f"[CHARACTER] Greeting prompts loaded ({len(_mapped_greetings)} events)")
+
     _char_guest_hints = _character.get_guest_type_hints()
     if _char_guest_hints:
         mario_prompt.GUEST_TYPE_HINTS = _char_guest_hints
