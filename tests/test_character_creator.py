@@ -19,3 +19,15 @@ def test_health_endpoint():
     data = resp.json()
     assert "status" in data
     assert data["status"] == "ok"
+
+def test_hardware_endpoint():
+    client = TestClient(app)
+    resp = client.get("/api/hardware")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "cpu_cores" in data
+    assert "ram_gb" in data
+    assert "gpu_vram_gb" in data
+    assert "gpu_name" in data
+    assert "tier" in data
+    assert data["tier"] in ("ultra", "high", "medium", "low")
