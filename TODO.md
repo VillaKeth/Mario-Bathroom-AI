@@ -32,7 +32,10 @@
 - [x] Created Ani idle messages.yaml (100+ mumbles, 36 songs, 21 jokes, 15 trivia, etc.)
 - [x] Fixed idle_behavior.py: time_comments and noise_reactions now use character YAML instead of hardcoded Mario text
 - [x] Fixed client/main.py and client/mario_display.py hardcoded Mario strings
-- [ ] Fix remaining hardcoded Mario text in: command_handlers, game_handlers, party_report, party_stats, birthday_vip, emotions, tts, catchphrase_mirror, night_progression
+- [x] Fix remaining hardcoded Mario text in: command_handlers, game_handlers, party_report, party_stats, birthday_vip, emotions, tts, catchphrase_mirror, night_progression
+- [x] Wire set_character() calls in main.py for all 7 new modules
+- [x] Created characters/mario/idle/messages.yaml (700+ entries extracted from hardcoded constants)
+- [x] 247 character-related tests passing
 - [ ] Generate proper AI sprites for Ani (replace Pillow placeholders)
 - [ ] Find reliable free image generation API (SubNP down, Pollinations rate-limited)
 
