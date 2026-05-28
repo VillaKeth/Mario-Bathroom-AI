@@ -10,6 +10,22 @@ from character_creator.sprite_generator import (
     EMOTION_SPRITES, EMOTION_ALIASES, SPECIAL_EMOTIONS, STATE_SPRITES
 )
 
+
+def _format_rate(val) -> str:
+    """Format voice rate as Edge TTS string like '+5%' or '-10%'."""
+    if isinstance(val, str) and "%" in val:
+        return val
+    n = int(val) if val else 0
+    return f"+{n}%" if n >= 0 else f"{n}%"
+
+
+def _format_pitch(val) -> str:
+    """Format voice pitch as Edge TTS string like '+3Hz' or '-5Hz'."""
+    if isinstance(val, str) and "Hz" in val:
+        return val
+    n = int(val) if val else 0
+    return f"+{n}Hz" if n >= 0 else f"{n}Hz"
+
 def build_character(config: dict, characters_dir: str) -> str:
     """Build complete character directory. Returns path to created dir."""
     name = config.get("name", "").strip()
@@ -120,8 +136,8 @@ def _generate_character_yaml(config: dict) -> dict:
         "voice": {
             "preferred_engine": preferred_engine,
             "edge_voice": config.get("edge_voice", "en-US-GuyNeural"),
-            "rate": config.get("voice_rate", "+0%"),
-            "pitch": config.get("voice_pitch", "+0Hz"),
+            "rate": _format_rate(config.get("voice_rate", 0)),
+            "pitch": _format_pitch(config.get("voice_pitch", 0)),
             "pronunciation": config.get("pronunciation", {}),
         },
         "visuals": {

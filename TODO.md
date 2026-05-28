@@ -1,6 +1,6 @@
 # Mario AI Party Bot - TODO
 
-## Character Creator Wizard — NEARLY COMPLETE ✅
+## Character Creator Wizard — COMPLETE ✅
 - [x] Build standalone FastAPI server for character creation wizard (port 8766)
 - [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 6-step UI skeleton
 - [x] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
@@ -21,8 +21,10 @@
 - [x] Write docs/creating-a-character.md beginner guide
 - [x] Write docs/character-format.md technical reference
 - [x] Update README.md with zero-to-hero getting started section
-- [ ] Error handling: no-GPU, no-Ollama, no-yt-dlp, generation failures, partial creation
-- [ ] Integration testing and polish
+- [x] Error handling: no-GPU, no-Ollama, no-yt-dlp, generation failures, partial creation
+- [x] Integration testing and polish
+- [x] Created "Ani" character — warm empathetic AI personality (Rudi's counterpart)
+- [x] Fixed voice rate/pitch format bug in character_builder.py (now outputs "-5%" / "+3Hz" strings)
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)
