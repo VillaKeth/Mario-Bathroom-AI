@@ -11,6 +11,17 @@ from difflib import SequenceMatcher
 
 logger = logging.getLogger("birthday-vip")
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
 
 class BirthdayVIP:
     """Manages birthday person detection and VIP prompt injection."""
@@ -94,31 +105,21 @@ class BirthdayVIP:
         if not self.is_birthday_person(speaker_name):
             return None
 
-        # Personalized greetings referencing Jacob's real accomplishments
         personalized_greetings = [
             (
-                f"The BIRTHDAY BOY is here! {self._name}, the man who got "
-                f"PUBLISHED in a Taylor and Francis book before graduation! "
-                f"Everybody make some noise! 🎂"
+                f"The guest of honor is here! Happy birthday, {self._name}! {_CHARACTER_NAME} is officially starting the celebration! 🎂"
             ),
             (
-                f"JACOB! Happy birthday you absolute legend! Seven live projects "
-                f"and counting! GatorCommunities, CelebMax, the works! "
-                f"This party is ALL for you! 🎉"
+                f"Happy birthday, {self._name}! {_CHARACTER_NAME} has been waiting for the VIP to arrive! 🎉"
             ),
             (
-                f"It's-a the birthday king himself! {self._name}, the guy who "
-                f"built an earthquake prediction game called Normal Weather! "
-                f"That's the kind of beautiful chaos I love! 🎂"
+                f"There you are, {self._name}! The party feels brighter now that you're here. Happy birthday from {_CHARACTER_NAME}! 🎂"
             ),
             (
-                f"WAHOO! {self._name}'s in the building! Published researcher, "
-                f"full-stack developer, and tonight's VIP! Happy birthday! 🎉"
+                f"Big birthday energy detected! {self._name}, {_CHARACTER_NAME} is so glad you're here tonight! 🎉"
             ),
             (
-                f"The man of the hour! {self._name}, your dad Carl and mom Stacy "
-                f"raised a GENIUS! Happy birthday from your favorite bathroom "
-                f"companion! 🎂"
+                f"{self._name}! Time to celebrate you properly. {_CHARACTER_NAME} says this party just leveled up! 🎂"
             ),
         ]
 
@@ -131,7 +132,7 @@ class BirthdayVIP:
             # After many visits, mix personalized with a recurring-visit variant
             recurring = (
                 f"There's my birthday bestie {self._name}! "
-                f"Visit #{self._interaction_count + 1} tonight — you really love this party! 🎉"
+                f"Visit #{self._interaction_count + 1} tonight — {_CHARACTER_NAME} is always happy to celebrate you! 🎉"
             )
             return random.choice(personalized_greetings + [recurring])
 

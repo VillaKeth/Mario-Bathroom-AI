@@ -10,6 +10,17 @@ import time
 DEBUG_EMOTION = os.environ.get("DEBUG_EMOTION", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
 
 class Emotion:
     HAPPY = "happy"
@@ -86,28 +97,28 @@ EMOTION_VOICE_MAP = {
     Emotion.IDEA:       {"rate": "+18%", "pitch": "+5Hz"},
 }
 
-# Emotion descriptions for the LLM prompt — Neuro-sama dramatic style
+# Emotion descriptions for the LLM prompt — dramatic but character-agnostic
 EMOTION_DESCRIPTIONS = {
     Emotion.HAPPY:      "You're feeling GREAT! Everything is amazing! Be warm and enthusiastic!",
-    Emotion.EXCITED:    "You're BUZZING with energy! Can't contain yourself! WAHOO! Be WILD!",
-    Emotion.BORED:      "You're SO bored you might literally turn into a Goomba. Be dramatically bored.",
+    Emotion.EXCITED:    "You're BUZZING with energy! Can't contain yourself! Be WILD!",
+    Emotion.BORED:      "You're SO bored you're making a dramatic event out of it. Be theatrically bored.",
     Emotion.SURPRISED:  "WHAT?! You did NOT expect that! Be shocked! Dramatic gasp!",
     Emotion.CONFUSED:   "You're SO confused right now. Nothing makes sense. Question EVERYTHING.",
-    Emotion.WORRIED:    "Something feels off... be genuinely concerned but still Mario about it.",
+    Emotion.WORRIED:    "Something feels off... be genuinely concerned without losing your warmth.",
     Emotion.LOVING:     "You're feeling SO warm and fuzzy! Hearts everywhere! Be sweet and genuine!",
     Emotion.MISCHIEVOUS: "You're feeling DEVIOUS! Time for chaos! Tease, prank, be a menace (lovingly)!",
     Emotion.SLEEPY:     "Soooo sleeeepy... *yawns* ...words are getting harder... but you're trying...",
     Emotion.PROUD:      "You're the GREATEST! Flex! Brag! You earned it! Be magnificently proud!",
-    Emotion.FRUSTRATED: "MAMA MIA! Things aren't going your way! Be grumpy but funny about it!",
+    Emotion.FRUSTRATED: "Things aren't going your way! Be grumpy but funny about it!",
     Emotion.EMBARRASSED: "Oh no... that was awkward... try to play it cool but FAIL at playing it cool.",
-    Emotion.NEUTRAL:    "Normal Mario vibes — ready for anything!",
+    Emotion.NEUTRAL:    "Calm, centered, and ready for anything.",
     # New emotions (13 → 26)
     Emotion.ANNOYED:    "You're slightly irritated but holding it in... barely. Side-eye energy.",
     Emotion.LAUGHING:   "You're CRACKING UP! Can't stop laughing! This is HILARIOUS! Hahahaha!",
     Emotion.SAD:        "You're feeling down... genuinely sad... try to be brave but it shows.",
-    Emotion.ANGRY:      "You're ANGRY! Fired up! Channel it into dramatic Mario rage! RARGH!",
+    Emotion.ANGRY:      "You're ANGRY! Fired up! Channel it into dramatic rage! RARGH!",
     Emotion.NERVOUS:    "You're nervous! A bit jittery! What if something goes wrong?! Be anxious!",
-    Emotion.SCARED:     "You're SCARED! Genuinely frightened! Wide eyes! Maybe hide behind Luigi!",
+    Emotion.SCARED:     "You're SCARED! Genuinely frightened! Wide eyes! Looking for somewhere to hide!",
     Emotion.LOVE:       "You're in LOVE! Heart eyes! This is THE BEST! Be absolutely smitten!",
     Emotion.DISGUSTED:  "Ewww! GROSS! You're disgusted! Make a face! This is NASTY!",
     Emotion.DETERMINED: "You're LOCKED IN! Nothing can stop you! Be focused and fierce!",

@@ -189,6 +189,8 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - Debug flags: `DEBUG_AUTH`, `DEBUG_API`, etc. (default True for new features)
 - General-to-specific naming: `pointBase`, `pointNext`, `configDefault`, etc.
 - **No ellipsis (`...`) in hardcoded strings** that go to TTS — use commas or periods
+- Any server module with user-visible text should expose `set_character(name, display_name)` plus `_CHARACTER_NAME`/`_CHARACTER_DISPLAY_NAME` fallbacks so startup can swap characters cleanly.
+- Generic/shared content must stay character-agnostic; deeply character-specific command flavor currently lives in `command_handlers.py` with runtime name substitution until it is moved into per-character YAML.
 
 ## Pygame Client UI
 - **Two-strip header layout**: Zone 1 (Y=0-28) = title bar, Zone 2 (Y=28-50) = info strip

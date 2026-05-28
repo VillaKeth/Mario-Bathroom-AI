@@ -11,6 +11,17 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "memory.db")
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
 
 class PartyStats:
     """Tracks party-wide statistics for fun Mario commentary."""
@@ -222,7 +233,7 @@ class PartyStats:
         ]
         if s["longest_visit_name"]:
             lines.append(
-                f"- Longest visit: {s['longest_visit_name']} ({round(s['longest_visit_seconds'])}s — Mama mia!)"
+                f"- Longest visit: {s['longest_visit_name']} ({round(s['longest_visit_seconds'])}s — what a run!)"
             )
         if s["most_frequent_name"]:
             lines.append(
@@ -301,23 +312,23 @@ class PartyStats:
     # ------------------------------------------------------------------
 
     PARTY_MILESTONES = {
-        5: "FIVE visitors! The party is officially ON! Mario approves!",
-        10: "TEN visitors tonight! This bathroom is LEGENDARY! Double digits, baby!",
+        5: "FIVE visitors! The party is officially ON!",
+        10: "TEN visitors tonight! This bathroom is legendary! Double digits!",
         15: "FIFTEEN visitors! At this rate, we need a bigger bathroom!",
-        20: "TWENTY visitors?! This is the most popular bathroom in the Mushroom Kingdom!",
-        25: "TWENTY-FIVE! A quarter century of bathroom visits! I'm crying!",
+        20: "TWENTY visitors?! This bathroom is the hottest stop at the party!",
+        25: "TWENTY-FIVE! A quarter century of bathroom visits!",
         30: "THIRTY visitors! This bathroom needs its own zip code!",
-        50: "FIFTY VISITORS! We're making HISTORY tonight! Wahoo!",
-        75: "Seventy-five! This party goes down in the RECORD BOOKS!",
-        100: "ONE HUNDRED VISITORS! I can't believe it! This is the greatest night EVER!",
+        50: "FIFTY VISITORS! We're making party history tonight!",
+        75: "SEVENTY-FIVE visitors! This party belongs in the record books!",
+        100: "ONE HUNDRED VISITORS! This is the biggest night yet!",
     }
 
     HOUR_MILESTONES = {
         1: "We've been partying for ONE HOUR! The night is young!",
         2: "TWO HOURS of partying! Everyone still going strong?",
-        3: "THREE HOURS! This is a marathon party! I love it!",
-        4: "FOUR HOURS?! Mama mia, time flies when you're having fun!",
-        5: "FIVE HOURS of party! We're night owls and I LOVE it!",
+        3: "THREE HOURS! This is a marathon party! Loving the stamina!",
+        4: "FOUR HOURS?! Time flies when you're having fun!",
+        5: "FIVE HOURS of party! Certified night-owl behavior!",
         6: "SIX HOURS! We might be setting records here!",
     }
 

@@ -852,3 +852,4 @@
   - [x] Added comprehensive tests for character lookup functionality
   - [x] All 18 tests passing
 - [x] Task 14: Documentation for Character Creator Wizard (completed - docs/creating-a-character.md, docs/character-format.md, README.md updated)
+- [] Move command_handlers character-specific easter eggs and fortunes into character YAML files

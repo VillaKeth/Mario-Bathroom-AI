@@ -970,29 +970,33 @@ class TestCharacterBreakingFilter:
         self._fn = filter_response
 
     def test_strips_ai_self_reference(self):
+        from server.safety_filter import set_character
+        set_character("ani", "Ani AI 💫")
         result = self._fn("I'm an AI language model and I can help!")
         assert "AI" not in result
-        assert "Mario" in result
+        assert "Ani" in result
 
     def test_strips_as_an_ai(self):
+        from server.safety_filter import set_character
+        set_character("ani", "Ani AI 💫")
         result = self._fn("As an AI, I don't have feelings about that.")
-        assert "As-a Mario" in result
+        assert "as ani" in result.lower()
 
     def test_strips_trained_by(self):
         result = self._fn("I was trained by researchers to help people.")
         assert "trained" not in result
-        assert "Mushroom Kingdom" in result
+        assert "made to" in result
 
     def test_strips_my_programming(self):
         result = self._fn("My algorithms tell me this is correct.")
         assert "algorithm" not in result
-        assert "plumbing" in result
+        assert "perspective" in result
 
     def test_strips_model_names(self):
         for name in ["GPT-4", "Claude", "Llama", "Mistral"]:
             result = self._fn(f"I'm powered by {name} technology!")
             assert name not in result
-            assert "Mushroom Kingdom" in result
+            assert "usual style" in result
 
     def test_preserves_normal_mario_text(self):
         text = "Wahoo! It's-a me, Mario! Let's-a go!"
@@ -1001,7 +1005,7 @@ class TestCharacterBreakingFilter:
     def test_strips_no_feelings(self):
         result = self._fn("I don't have feelings about that topic.")
         assert "don't have feelings" not in result
-        assert "full of feelings" in result
+        assert "do have feelings" in result
 
     def test_truncation_still_works(self):
         long_text = "Wahoo! " * 100
@@ -1123,7 +1127,7 @@ class TestGreetingTimeout:
         }
 
     def test_greeting_timeout_sends_emergency_fallback(self):
-        """When greeting flow times out, an emergency 'It's-a me, Mario!' message is sent."""
+        """When greeting flow times out, an emergency generic greeting is sent."""
         import asyncio
         from unittest.mock import AsyncMock
 
@@ -1139,8 +1143,7 @@ class TestGreetingTimeout:
             try:
                 await asyncio.wait_for(slow_greeting(ws, {}), timeout=0.05)
             except asyncio.TimeoutError:
-                # Mirror the emergency fallback from main.py line ~3504
-                await send_response(ws, "It's-a me, Mario! Welcome! Wahoo!", None,
+                await send_response(ws, "Hey there! Welcome!", None,
                                     sound="greeting", pose_hint="greeting/wave_high")
             finally:
                 state["_greeting_in_progress"] = False
@@ -1149,7 +1152,7 @@ class TestGreetingTimeout:
         asyncio.run(run())
         send_response.assert_called_once()
         call_args = send_response.call_args
-        assert "It's-a me, Mario!" in call_args[0][1]
+        assert call_args[0][1] == "Hey there! Welcome!"
 
     def test_greeting_clears_in_progress_flag_on_success(self):
         """After successful greeting, _greeting_in_progress should be False."""
@@ -1517,9 +1520,8 @@ class TestTextInputTimeout:
         )
         idx_finally = rest.index('finally:')
         handler_block = rest[:idx_finally]
-        assert 'Something went wrong' in handler_block, (
-            "Error fallback message 'Something went wrong' not found in "
-            "text_input exception handler"
+        assert 'Something went wrong' in handler_block or '_generic_error_text()' in handler_block, (
+            "Error fallback message not found in text_input exception handler"
         )
 
 

@@ -13,6 +13,21 @@ from datetime import datetime
 
 logger = logging.getLogger("party-gossip")
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
+
+def _format_template(template: str, **kwargs) -> str:
+    return template.format(character=_CHARACTER_NAME, character_display=_CHARACTER_DISPLAY_NAME, **kwargs)
+
 # --- Gossip Entry Types ---
 GOSSIP_TYPES = {
     "quote": "said something memorable",
@@ -72,14 +87,14 @@ _GOSSIP_TEMPLATES = [
     # --- Expanded templates (v3.2) ---
     "So {name} walks in and just {gossip_summary}. I was SPEECHLESS! Well, briefly.",
     "You're never gonna guess what happened — {name} {gossip_summary}! Classic!",
-    "Okay this is TOP SECRET but {name} totally {gossip_summary}. Mama mia!",
+    "Okay this is TOP SECRET but {name} totally {gossip_summary}. I had to tell somebody!",
     "I've been DYING to tell someone — {name} {gossip_summary}! What do you think?",
     "If the bathroom walls could talk... well they'd say {name} {gossip_summary}!",
     "Plot twist of the night: {name} {gossip_summary}. I did NOT see that coming!",
     "I promised {name} I wouldn't tell anyone they {gossip_summary}. Oops!",
-    "The bathroom has-a witnessed many things tonight. Like when {name} {gossip_summary}!",
+    "This bathroom has witnessed many things tonight. Like when {name} {gossip_summary}!",
     "Hold on, hold on — did you know that {name} {gossip_summary}? BREAKING NEWS!",
-    "In my professional plumber opinion, the most interesting thing tonight is that {name} {gossip_summary}.",
+    "In my extremely unbiased opinion, the most interesting thing tonight is that {name} {gossip_summary}.",
 ]
 
 # Comparison templates
@@ -89,7 +104,7 @@ _COMPARISON_TEMPLATES = [
     "That's the OPPOSITE of what {name} said! I sense a rivalry!",
     "Interesting... {name} would totally agree with you on that.",
     "Ha! {name} said the exact same thing! Great minds!",
-    "Wait, {name} told me the opposite! Someone's lying to poor Mario!",
+    "Wait, {name} told me the opposite! Somebody is keeping {character} on their toes!",
     "You and {name} should team up — you both {similarity}!",
 ]
 
@@ -101,10 +116,10 @@ _RIVALRY_TEMPLATES = [
     "This bathroom has seen some DRAMA tonight between opinions!",
     # --- Expanded templates (v3.2) ---
     "The rivalry between {name1} and {name2} is the best thing I've seen all night!",
-    "Mario declares a BATHROOM FEUD between {name1} and {name2}! Fight!",
+    "{character} declares a BATHROOM FEUD between {name1} and {name2}! Fight!",
     "If {name1} and {name2} had a debate, I'd sell tickets! Who's buying?",
     "Somebody get popcorn! {name1} vs {name2} is the party's main event!",
-    "Oh mama mia, {name1} and {name2} on opposite teams. I love this party!",
+    "Oh wow, {name1} and {name2} are on opposite teams. I love this party!",
 ]
 
 # Alliance templates (when guests agree)
@@ -113,7 +128,7 @@ _ALLIANCE_TEMPLATES = [
     "Looks like {name1} and {name2} agree about {topic}! I love harmony!",
     "{name1} would HIGH FIVE you — they said the same thing about {topic}!",
     "You and {name2} are on the SAME TEAM about {topic}! Alliance formed!",
-    "BREAKING: {name1} and {name2} unite over {topic}! Friendship is-a beautiful!",
+    "BREAKING: {name1} and {name2} unite over {topic}! Friendship is a beautiful thing!",
     "{name1} and {name2}, the dynamic duo of {topic}! Someone write a buddy comedy!",
     "TWO guests agree about {topic}! {name1} and {name2}, take a bow!",
 ]
@@ -125,7 +140,7 @@ _TRENDING_TEMPLATES = [
     "The number one topic tonight? {topic}! {names} all brought it up!",
     "If this party had a hashtag, it would be #{topic}! {count} guests and counting!",
     "{topic} is the STAR of the party tonight — {names} all agree it's worth discussing!",
-    "Breaking from the Mushroom Kingdom News Desk: {topic} is officially the party's biggest topic! {names} all weighed in!",
+    "Breaking from {character}'s News Desk: {topic} is officially the party's biggest topic! {names} all weighed in!",
 ]
 
 # Gossip seed questions — designed to generate gossip-worthy answers early in the party
@@ -134,10 +149,10 @@ _GOSSIP_SEED_QUESTIONS = [
     "If you could only eat ONE food for the rest of your life, what would it be?",
     "What's the most embarrassing song you secretly love? No judgment! (Full judgment.)",
     "What's your most CONTROVERSIAL opinion? Something that would start a debate!",
-    "What's your biggest fear? I'm-a taking notes for science!",
-    "If you could have ONE superpower, what would it be? (Plumbing powers don't count!)",
+    "What's your biggest fear? I'm collecting the lore!",
+    "If you could have ONE superpower, what would it be?",
     "What's the best movie ever made? This is a TEST!",
-    "Are you a morning person or a night owl? I need to know who I'm-a dealing with!",
+    "Are you a morning person or a night owl? I need the full vibe report!",
     "What's the most adventurous thing you've ever done?",
     "If this party had a theme song, what would it be?",
 ]
@@ -158,11 +173,11 @@ _TITLE_ADJS = ["Magnificent", "Fearless", "Sassy", "Legendary", "Brave",
               "Ridiculous", "Glorious", "Mighty", "Mysterious", "Unhinged",
               "Chaotic", "Fabulous", "Unstoppable", "Dramatic", "Sparkly"]
 _TITLE_NOUNS = ["Bathroom Visitor", "Party Champion", "Toilet Philosopher",
-               "Soap Enthusiast", "Mirror Gazer", "Mushroom Friend",
-               "Plumbing Appreciator", "Hand Wash Hero", "Dance Floor Survivor",
+               "Soap Enthusiast", "Mirror Gazer", "Party Pal",
+               "Vibe Appreciator", "Hand Wash Hero", "Dance Floor Survivor",
                "Late Night Legend", "Gossip Collector", "Coin Finder"]
 _TITLE_THINGS = ["the Bathroom", "Hand Soap", "Good Vibes", "the Toilet Paper Roll",
-                "Mushroom Kingdom", "the Dance Floor", "Midnight Snacks",
+                "the Party", "the Dance Floor", "Midnight Snacks",
                 "Bad Jokes", "Dramatic Exits", "Awkward Silences"]
 
 
@@ -367,7 +382,8 @@ class PartyGossip:
                 "dream": "shared a dream or aspiration",
             }
             gossip_summary = summaries.get(gtype, f"talked about {kw}")
-            formatted = template.format(
+            formatted = _format_template(
+                template,
                 name=gossip["speaker_name"],
                 gossip_summary=gossip_summary,
                 topic=kw,
@@ -398,7 +414,8 @@ class PartyGossip:
                             break
                     if guest_name:
                         template = random.choice(_COMPARISON_TEMPLATES)
-                        return template.format(
+                        return _format_template(
+                            template,
                             name=guest_name,
                             similarity=f"talked about {topic}",
                         )
@@ -417,7 +434,7 @@ class PartyGossip:
             if topic in lower:
                 self._shared_rivalries.add(idx)
                 template = random.choice(_RIVALRY_TEMPLATES)
-                return template.format(name1=name1, name2=name2)
+                return _format_template(template, name1=name1, name2=name2)
         return None
 
     def get_alliance_hint(self, current_speaker_id: str, text: str) -> str | None:
@@ -433,7 +450,7 @@ class PartyGossip:
             if topic in lower:
                 self._shared_alliances.add(idx)
                 template = random.choice(_ALLIANCE_TEMPLATES)
-                return template.format(name1=name1, name2=name2, topic=topic)
+                return _format_template(template, name1=name1, name2=name2, topic=topic)
         return None
 
     def get_trending_topic_hint(self, current_speaker_id: str = None) -> str | None:
@@ -459,7 +476,7 @@ class PartyGossip:
         if not names:
             return None
         template = random.choice(_TRENDING_TEMPLATES)
-        return template.format(topic=topic, count=count, names=", ".join(names[:3]))
+        return _format_template(template, topic=topic, count=count, names=", ".join(names[:3]))
 
     def get_new_rivalry_announcements(self) -> list[str]:
         """Return dramatic announcements for any newly detected rivalries.
@@ -617,11 +634,11 @@ class PartyGossip:
         if total_visits >= 10 and elapsed_hrs >= 1:
             rate = total_visits / elapsed_hrs
             if rate > 5:
-                return "This bathroom is BUSIER than a Mushroom Kingdom highway tonight!"
+                return "This bathroom is BUSIER than the snack table tonight!"
             elif rate < 1:
-                return "It's been quiet tonight... too quiet. Like the calm before a the bad guy attack!"
+                return "It's been quiet tonight... too quiet. Like the calm before the next wave of party chaos!"
         if total_visits >= 20:
-            return f"{total_visits} visitors tonight! This bathroom is more popular than World 1-1!"
+            return f"{total_visits} visitors tonight! This bathroom is more popular than the dance floor!"
         return None
 
     def get_guest_count(self) -> int:

@@ -690,6 +690,14 @@ async def lifespan(app: FastAPI):
     _game_handlers_mod.load_character_pools(_character)
     command_handlers.set_character(_character.name, _character.display_name)
 
+    # Wire character identity into all modules with set_character()
+    import party_report, party_stats as ps_mod, party_gossip as pg_mod
+    import catchphrase_mirror as cm_mod, emotions as emo_mod
+    import birthday_vip as bv_mod, night_progression as np_mod
+    for mod in (party_report, ps_mod, pg_mod, cm_mod, emo_mod, bv_mod, np_mod):
+        if hasattr(mod, "set_character"):
+            mod.set_character(_character.name, _character.display_name)
+
     # Wire character prompts into mario_prompt module (used by build_context)
     _char_sys_prompt = _character.get_system_prompt()
     if _char_sys_prompt:

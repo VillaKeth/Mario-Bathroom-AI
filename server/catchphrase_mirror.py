@@ -10,6 +10,18 @@ from collections import Counter, defaultdict
 
 logger = logging.getLogger("catchphrase-mirror")
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
+
 # Common words to exclude from tracking
 STOP_WORDS = frozenset({
     "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
@@ -33,11 +45,11 @@ STOP_WORDS = frozenset({
     "thats", "its", "hes", "shes", "theyre", "youre", "were",
 })
 
-MARIO_TEMPLATES = [
-    "Mama mia, you really love talking about {phrase}!",
-    "Again with the {phrase}! You're-a obsessed, haha!",
-    "If I had a coin for every time you said {phrase}... I'd have-a lot of coins!",
-    "{phrase}! {phrase}! {phrase}! That's-a your new catchphrase!",
+MIRROR_TEMPLATES = [
+    "You really love talking about {phrase}!",
+    "Again with the {phrase}! You're obsessed, haha!",
+    "If I kept score every time you said {phrase}, you'd be way ahead!",
+    "{phrase}! {phrase}! {phrase}! That's your new catchphrase!",
     "You keep saying {phrase} — is that your superstar word tonight?",
 ]
 
@@ -48,7 +60,7 @@ MIRROR_THRESHOLD = 3
 
 
 class CatchphraseMirror:
-    """Track word frequency per guest and generate Mario-ified callouts."""
+    """Track word frequency per guest and generate playful callouts."""
 
     def __init__(self, threshold: int = MIRROR_THRESHOLD):
         self._threshold = threshold
@@ -67,7 +79,7 @@ class CatchphraseMirror:
         self._word_counts[name_key].update(words)
 
     def get_mirror_phrase(self, speaker_name: str) -> str | None:
-        """If guest repeats a word/phrase 3+ times, return a Mario-ified callout."""
+        """If a guest repeats a word/phrase 3+ times, return a playful callout."""
         if not speaker_name:
             return None
         name_key = speaker_name.lower().strip()
@@ -89,7 +101,7 @@ class CatchphraseMirror:
         top_word, top_count = candidates[0]
         mirrored.add(top_word)
 
-        template = MARIO_TEMPLATES[self._template_index % len(MARIO_TEMPLATES)]
+        template = MIRROR_TEMPLATES[self._template_index % len(MIRROR_TEMPLATES)]
         self._template_index += 1
 
         phrase = template.format(phrase=f'"{top_word}"')
@@ -116,9 +128,10 @@ class CatchphraseMirror:
         # Remove punctuation, lowercase
         cleaned = re.sub(r"[^a-zA-Z\s]", "", text.lower())
         words = cleaned.split()
+        dynamic_stop_words = {_CHARACTER_NAME.lower(), _CHARACTER_DISPLAY_NAME.lower()}
         return [
             w for w in words
-            if len(w) >= MIN_WORD_LENGTH and w not in STOP_WORDS
+            if len(w) >= MIN_WORD_LENGTH and w not in STOP_WORDS and w not in dynamic_stop_words
         ]
 
     def reset(self):

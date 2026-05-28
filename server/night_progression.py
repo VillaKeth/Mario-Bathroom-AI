@@ -15,6 +15,17 @@ logger = logging.getLogger("night-progression")
 
 DEBUG_NIGHT = True
 
+_CHARACTER_NAME = "Mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
 
 class Phase(IntEnum):
     WARM_UP = 1
@@ -23,28 +34,28 @@ class Phase(IntEnum):
     WIND_DOWN = 4
 
 
-# 20 absurd Mario-themed obsession topics for Phase 3 fallback
+# 20 absurd fallback obsession topics for Phase 3
 FALLBACK_OBSESSION_TOPICS = [
-    "whether Goombas have feelings",
-    "Luigi's secret diary entries",
-    "the true flavor of Super Mushrooms",
-    "Bowser's skincare routine",
-    "why pipes connect to other dimensions",
-    "Toad's real height without his mushroom cap",
-    "Princess Peach's hidden martial arts skills",
-    "the calorie count of a Fire Flower",
-    "Yoshi's egg-laying biology",
-    "why coins float and spin in midair",
-    "Chain Chomp anger management therapy",
-    "the Mushroom Kingdom real estate market",
-    "Boo's social anxiety diagnosis",
-    "Wario's garlic-based cryptocurrency",
-    "the plumbing union contract disputes in World 1-1",
-    "Lakitu's cloud fuel efficiency",
-    "Dry Bones' calcium supplement regimen",
-    "the existential crisis of a Bullet Bill",
-    "Waluigi's exclusion from Smash Bros",
-    "whether Bob-ombs respawn or if each one is unique",
+    "whether the snack table has a secret hierarchy",
+    "why party playlists peak on the fourth song",
+    "the emotional meaning of a half-finished drink",
+    "whether balloons can sense fear",
+    "why bathroom mirrors make every conversation more dramatic",
+    "the true identity of the mystery dip on the counter",
+    "whether the DJ is reading everyone's mind",
+    "how many people are fake-laughing versus real-laughing",
+    "the social politics of calling the last slice of pizza",
+    "whether the host planned this chaos or just embraced it",
+    "why someone always starts a deep conversation near the sink",
+    "the secret economy of borrowed phone chargers",
+    "whether confetti is a decoration or a warning",
+    "the statistical likelihood of two people wearing the same shoes",
+    "why every party develops one incredibly specific inside joke",
+    "whether the quietest guest actually knows the most gossip",
+    "the moral implications of leaving one chip in the bowl",
+    "why late-night snacks taste more profound after midnight",
+    "whether the bathroom line is a portal to another timeline",
+    "how a single song can reset the whole room's energy",
 ]
 
 
