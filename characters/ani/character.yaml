@@ -15,7 +15,7 @@ voice:
   pronunciation: {}
 visuals:
   sprite_dir: sprites/
-  ai_poses_dir: sprites/ai_poses/
+  ai_poses_dir: sprites/
   ai_pose_size:
   - 250
   - 250

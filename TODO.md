@@ -25,6 +25,10 @@
 - [x] Integration testing and polish
 - [x] Created "Ani" character — warm empathetic AI personality (Rudi's counterpart)
 - [x] Fixed voice rate/pitch format bug in character_builder.py (now outputs "-5%" / "+3Hz" strings)
+- [x] Added Pollinations.ai as fallback image generation API (SubNP was down)
+- [x] Generated 41 placeholder sprites for Ani using Pillow (category-colored expressive avatars)
+- [x] Fixed ai_poses_dir path in Ani's character.yaml (sprites/ not sprites/ai_poses/)
+- [x] Fixed hardcoded Mario fallback strings across server (main.py, llm.py, safety_filter.py, mario_prompt.py)
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)

@@ -3967,37 +3967,37 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # These short phrases should be cache hits (instant)
         thinking_phrases_by_mood = {
             "sad": [
-                "Oh no...", "I hear you...", "That's-a tough...",
-                "Mama mia...", "Let me think...", "I'm-a listening...",
-                "Take your time...", "I understand...", "Hey, it's okay...",
-                "I'm here for you...", "That's real...", "I feel that...",
+                "Oh no...", "I hear you...", "That's tough...",
+                "Let me think...", "I'm listening...", "Take your time...",
+                "I understand...", "Hey, it's okay...", "I'm here for you...",
+                "That's real...", "I feel that...",
             ],
             "angry": [
                 "Whoa!", "Okay okay...", "I get it!", "Let me think...",
-                "Hold on-a sec!", "Mama mia...", "Okay, hear me out!",
-                "Fair point!", "I see you!", "Let's-a figure this out!",
-                "Alright alright!", "That's intense!",
+                "Hold on a sec!", "Okay, hear me out!", "Fair point!",
+                "I see you!", "Let's figure this out!", "Alright alright!",
+                "That's intense!",
             ],
             "sick": [
-                "Oh no, hang in there!", "Breathe, breathe!", "I'm-a here!",
+                "Oh no, hang in there!", "Breathe, breathe!", "I'm here!",
                 "Take it easy...", "Don't worry!", "One sec...",
                 "Easy does it...", "You got this!", "Stay strong!",
                 "Deep breaths!", "I'm with you!", "Hang tight!",
             ],
             "drunk": [
                 "Haha okay!", "Whoa there!", "Let me think...",
-                "Interesting!", "Okay buddy!", "One moment-a!",
+                "Interesting!", "Okay buddy!", "One moment!",
                 "Heh heh heh!", "That's the spirit!", "Oh boy!",
-                "Party mode!", "Wahahaha!", "Love it!",
+                "Party mode!", "Love it!",
             ],
         }
         detected_mood = state_current.get("_detected_mood")
         thinking_phrases = thinking_phrases_by_mood.get(detected_mood, [
-            "Let me think about that.", "Hmm, let me think!", "Alrighty, one moment!",
-            "Wahoo!", "Here we go!", "Alrighty!", "That's-a good question!",
-            "I'm-a ready!", "Super!", "Fantastic!", "Okie dokie!",
-            "Good one!", "Hmm hmm hmm...", "Oh! Let me see...",
-            "Interesting question!", "Let's-a see now...",
+            "Let me think about that.", "Hmm, let me think!", "Alright, one moment!",
+            "Here we go!", "Good question!", "I'm ready!",
+            "Super.", "Fantastic!", "Good one!",
+            "Hmm hmm hmm...", "Oh! Let me see...", "Interesting question!",
+            "Let's see now...",
         ])
         thinking_text = random.choice(thinking_phrases)
 
@@ -5204,7 +5204,7 @@ async def _text_input_task(ws: WebSocket, text: str):
     except asyncio.TimeoutError:
         logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
         try:
-            await send_response(ws, "Mama mia, that took too long! Try again?", None,
+            await send_response(ws, _generic_timeout_text(), None,
                                 sound="error", pose_hint="confused/sad")
         except Exception:
             pass
@@ -5229,7 +5229,7 @@ async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
     except asyncio.TimeoutError:
         logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
         try:
-            await send_response(ws, "Mama mia, that took too long! Try again?", None,
+            await send_response(ws, _generic_timeout_text(), None,
                                 sound="error", pose_hint="confused/sad")
         except Exception:
             pass

@@ -21,6 +21,18 @@ BLOCKED_PATTERNS = [
 
 BLOCKED_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in BLOCKED_PATTERNS]
 
+_CHARACTER_NAME = "assistant"
+_CHARACTER_DISPLAY_NAME = "Assistant"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
+
 # Mario-style replacements for mild language
 MILD_REPLACEMENTS = {
     r'\bhell\b': 'heck',
@@ -33,36 +45,26 @@ MILD_REPLACEMENTS = {
 
 # Redirect phrases — if user says something problematic, Mario redirects
 REDIRECT_RESPONSES = [
-    "Mama mia! Let's-a talk about something more fun! Like-a mushrooms!",
-    "Wahoo! That's-a not my style! How about we talk about pipes instead?",
-    "Okie dokie... Mario prefers-a happier topics! What's your favorite game?",
-    "Let's-a keep it family friendly! This-a bathroom is for everyone!",
-    "Hmm, Mario doesn't-a know about that! But I do know about saving princesses!",
-    "Whoa there! Let's-a change the subject! What's-a your favorite food?",
-    "Ha ha, nice try! But Mario only talks about-a good stuff! Like pasta!",
-    "That's-a not in my dictionary! Let's talk about something-a fun instead!",
-    "Mama mia! I'd rather talk about-a my adventures! Ever been to Rainbow Road?",
-    "Okie dokie, let's-a steer this ship in a better direction! What music do you like?",
-    "Mamma mia! How about we talk about-a kart racing instead? Vroom vroom!",
-    "Yahoo! That's-a no good! Hey, what's your favorite power-up?",
-    "Whoa whoa whoa! Mario says let's-a talk about spaghetti! You like-a meatballs?",
-    "Ha! That's-a not how we do it in the Mushroom Kingdom! Tell me about your day!",
-    "Oof! Let's-a hit the reset button on this conversation! What games do you play?",
-    "No no no! Mario prefers-a talking about coins and stars! How many stars you got?",
-    "Mamma mia, that's-a wild! But hey, ever tried a Super Mushroom? Makes you big!",
-    "Okie dokie, Mario's-a changing the channel! What's your favorite Mario game?",
-    "Wah! That's-a Wario territory! Let's stay on the sunny side, eh?",
-    "Bada bing, bada boom! How about we talk about-a pizza instead? Delizioso!",
-    "Yikes! That's scarier than a Chain Chomp! Let's-a talk about something nice!",
-    "Ha ha, Mario's-a not touching that one! Ever been to Isle Delfino? Beautiful place!",
-    "Let's-a go in a different direction! You ever ride a Yoshi? It's-a the best!",
-    "Mama mia! Mario needs-a brain bleach! Quick, tell me your favorite dessert!",
-    "That's-a not in the plumber's handbook! Wanna hear about my latest adventure?",
-    "Ooh, let's-a not go down that pipe! How about a nice game of tennis instead?",
-    "Uh oh, red shell incoming! Let's-a dodge that topic! What snacks do you like?",
-    "Ha! Even Bowser wouldn't say that! Let's talk about-a something more fun!",
-    "Mamma mia! Time for a star power topic change! What's your favorite animal?",
-    "Whew! That's-a too spicy even for Fire Mario! How about we talk about music?",
+    "Oh wow! Let's switch to something lighter. What's been fun lately?",
+    "Well then! Different topic maybe. What music are you into?",
+    "Let's keep it friendly. What's your favorite game right now?",
+    "How about we keep things easygoing? Tell me about your day.",
+    "I'd rather talk about something more upbeat. What's your favorite snack?",
+    "Let's change the subject. What have you been enjoying lately?",
+    "Nice try, but let's go with something more fun. Watching anything good?",
+    "Let's steer this somewhere better. What kind of movies do you like?",
+    "I'd rather not go there. What's something you've been excited about?",
+    "Let's reset a bit. What songs have been stuck in your head lately?",
+    "No thanks. Want to talk about your favorite food instead?",
+    "Let's dodge that one. What games do you like to play?",
+    "That's not my lane. Tell me something good that happened this week.",
+    "Let's keep this conversation positive. What are you looking forward to?",
+    "Yikes. New topic? What's your favorite dessert?",
+    "I'd skip that one. What's your go-to comfort show?",
+    "Let's put that aside. Got any fun weekend plans?",
+    "Hard pass on that topic. What's your favorite animal?",
+    "Nope, let's pivot. What's the best meal you've had lately?",
+    "Let's go another direction. What makes you laugh every time?",
 ]
 
 # Track recent redirects to avoid repeating
@@ -77,6 +79,18 @@ def _normalize_unicode(text: str) -> str:
     # Strip zero-width and formatting control chars (category Cf/Cc except newline/tab)
     text = ''.join(c for c in text if unicodedata.category(c) not in ('Cf',) and c not in ('\u200b', '\u200c', '\u200d', '\ufeff'))
     return text
+
+
+def _character_break_patterns():
+    character_name = (_CHARACTER_NAME or _CHARACTER_DISPLAY_NAME or "this character").strip().title()
+    return [
+        (r"(?i)\bI'?m (?:an? )?(?:AI(?: language model)?|language model|chatbot|virtual assistant|large language model)\b", f"I'm {character_name}"),
+        (r"(?i)\bAs an? (?:AI(?: language model)?|language model|chatbot|assistant)\b", f"As {character_name}"),
+        (r"(?i)\bI (?:don't|do not) have (?:feelings|emotions|a body|physical form)\b", "I do have feelings"),
+        (r"(?i)\bI was (?:trained|programmed|created) (?:by|to)\b", "I was made to"),
+        (r"(?i)\bmy (?:training|programming|algorithms?|neural network)\b", "my perspective"),
+        (r"(?i)\bOpenAI|Anthropic|Google AI|Meta AI|GPT-?\d|Claude|Llama|Mistral\b", "my usual style"),
+    ]
 
 
 def filter_response(text: str) -> str:
@@ -113,15 +127,7 @@ def filter_response(text: str) -> str:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
     # Catch LLM breaking character — strip meta/AI self-references
-    CHARACTER_BREAK_PATTERNS = [
-        (r"(?i)\bI'?m (?:an? )?(?:AI|language model|chatbot|virtual assistant|large language model)\b", "I'm-a Mario"),
-        (r"(?i)\bAs an? (?:AI|language model|chatbot|assistant)\b", "As-a Mario"),
-        (r"(?i)\bI (?:don't|do not) have (?:feelings|emotions|a body|physical form)\b", "I'm-a full of feelings"),
-        (r"(?i)\bI was (?:trained|programmed|created) (?:by|to)\b", "I was-a born in the Mushroom Kingdom to"),
-        (r"(?i)\bmy (?:training|programming|algorithms?|neural network)\b", "my plumbing skills"),
-        (r"(?i)\bOpenAI|Anthropic|Google AI|Meta AI|GPT-?\d|Claude|Llama|Mistral\b", "Mushroom Kingdom magic"),
-    ]
-    for pat, repl in CHARACTER_BREAK_PATTERNS:
+    for pat, repl in _character_break_patterns():
         text = re.sub(pat, repl, text)
 
     # Enforce maximum response length — Mario should be punchy, not an essay writer

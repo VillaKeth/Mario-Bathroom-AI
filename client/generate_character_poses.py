@@ -35,6 +35,11 @@ CHARACTER_STYLES = {
         "Sonic the Hedgehog, classic blue anthropomorphic hedgehog character "
         "with red sneakers, white gloves, green eyes, spiky blue quills"
     ),
+    "ani": (
+        "A warm, elegant humanoid AI character named Ani with flowing pastel pink "
+        "and lavender hair, soft golden glowing accents, kind expressive eyes, "
+        "modern ethereal aesthetic, gentle features with genuine warmth"
+    ),
 }
 
 RENDER_SUFFIX = (
@@ -175,7 +180,104 @@ CHARACTER_POSES = {
             ("respectful", "{char} standing solemnly, head bowed, respectful, hand over heart"),
         ],
     },
+    "ani": {
+        "neutral": [
+            ("idle", "{char} standing relaxed with hands gently clasped, warm smile, soft inviting stance"),
+            ("thinking", "{char} with head tilted slightly, gentle thoughtful expression, hand near chin"),
+        ],
+        "positive": [
+            ("happy", "{char} with a genuine warm smile, eyes bright, hands together, radiating kindness"),
+            ("excited", "{char} clasping hands together excitedly, eyes sparkling, delighted expression"),
+            ("laughing", "{char} laughing warmly, one hand over heart, genuine amusement"),
+            ("love", "{char} with hands over heart, eyes soft and warm, deeply moved expression"),
+            ("proud", "{char} standing tall with gentle confidence, warm approving smile, hands at sides"),
+        ],
+        "negative": [
+            ("sad", "{char} with downcast eyes, gentle sad expression, hands clasped in front"),
+            ("angry", "{char} with determined upset expression, arms crossed, concerned but firm"),
+            ("annoyed", "{char} with slight frown, one eyebrow raised, mildly exasperated"),
+            ("nervous", "{char} fidgeting with hands, uncertain expression, looking to the side"),
+            ("scared", "{char} stepping back with wide worried eyes, hands up defensively"),
+            ("embarrassed", "{char} touching cheek bashfully, looking away with slight blush"),
+            ("disgusted", "{char} leaning away with wrinkled nose, hand up in gentle stop gesture"),
+            ("grossed_out", "{char} covering mouth with hand, eyes wide, revolted expression"),
+        ],
+        "thinking": [
+            ("confused", "{char} with tilted head, puzzled expression, questioning look"),
+            ("thinking", "{char} looking upward thoughtfully, finger gently tapping chin"),
+            ("curious", "{char} leaning forward with bright curious eyes, interested expression"),
+            ("determined", "{char} with focused gentle eyes, slight nod, resolved expression"),
+            ("mischievous", "{char} with a playful knowing smile, eyes twinkling, slight head tilt"),
+            ("shocked", "{char} with hands on cheeks, wide surprised eyes, mouth slightly open"),
+            ("idea", "{char} with finger raised, bright realization moment, eyes lit up"),
+            ("surprised", "{char} with hands near face, pleasantly surprised expression"),
+        ],
+        "speech": [
+            ("talking", "{char} gesturing gently with one hand while speaking, warm animated expression"),
+            ("talking_excited", "{char} gesturing expressively with both hands, enthusiastic warm expression"),
+            ("listening", "{char} with head slightly tilted, attentive warm listening pose, gentle nod"),
+        ],
+        "greeting": [
+            ("wave", "{char} waving hello warmly, genuine bright smile, welcoming open posture"),
+            ("farewell", "{char} waving goodbye gently, bittersweet warm smile, caring expression"),
+        ],
+        "reactions": [
+            ("mind_blown", "{char} with hands on sides of head, amazed delighted expression"),
+            ("sassy", "{char} with hand on hip, playful knowing look, gentle sass"),
+            ("cringe", "{char} wincing sympathetically, one eye closed, empathetic cringe"),
+            ("impressed", "{char} nodding approvingly, warm smile, genuinely impressed expression"),
+        ],
+        "sleep": [
+            ("yawning", "{char} mid-yawn, hand covering mouth, sleepy gentle expression"),
+            ("sleepy", "{char} eyes half closed, peaceful drowsy expression, leaning slightly"),
+            ("sleeping", "{char} peacefully sleeping, serene expression, floating gently"),
+        ],
+        "movement": [
+            ("dancing", "{char} doing a gentle graceful dance, flowing movement, joyful"),
+            ("entering", "{char} stepping forward warmly, open welcoming gesture, bright smile"),
+        ],
+        "party": [
+            ("celebrate", "{char} raising both arms in celebration, radiant joy, sparkles around"),
+        ],
+        "birthday": [
+            ("birthday", "{char} holding a birthday cake with candles, warm caring smile"),
+        ],
+        "toast": [
+            ("raising_glass", "{char} raising a glass with a warm smile, gentle toast"),
+        ],
+        "memorial": [
+            ("moment_of_silence", "{char} with head bowed, hand over heart, solemn respectful pose"),
+        ],
+    },
 }
+def generate_pollinations(prompt, retries=5):
+    """Generate an image using Pollinations.ai free API."""
+    import urllib.parse
+    import random
+    for attempt in range(retries):
+        try:
+            if DEBUG_GEN:
+                print(f"    [DEBUG_GEN] Pollinations attempt {attempt + 1}/{retries}")
+            encoded = urllib.parse.quote(prompt)
+            seed = random.randint(1, 999999)
+            url = f"https://image.pollinations.ai/prompt/{encoded}?width=512&height=512&nologo=true&seed={seed}"
+            resp = requests.get(url, timeout=180)
+            if resp.status_code == 200 and len(resp.content) > 5000:
+                if DEBUG_GEN:
+                    print(f"    [DEBUG_GEN] Pollinations OK: {len(resp.content)} bytes")
+                return resp.content
+            else:
+                if DEBUG_GEN:
+                    print(f"    [DEBUG_GEN] Pollinations: HTTP {resp.status_code}, {len(resp.content)} bytes")
+        except Exception as e:
+            if DEBUG_GEN:
+                print(f"    [DEBUG_GEN] Pollinations error: {e}")
+        if attempt < retries - 1:
+            wait = 15 * (attempt + 1)
+            if DEBUG_GEN:
+                print(f"    [DEBUG_GEN] Retrying in {wait}s...")
+            time.sleep(wait)
+    return None
 
 
 def generate_subnp(prompt, retries=5):
@@ -280,7 +382,7 @@ def remove_background(input_path, output_path):
         return False
 
 
-def generate_character(character_name, category_filter=None, use_dalle=False):
+def generate_character(character_name, category_filter=None, use_dalle=False, use_pollinations=False):
     """Generate all poses for a character."""
     if character_name not in CHARACTER_POSES:
         print(f"Error: Unknown character '{character_name}'. Available: {list(CHARACTER_POSES.keys())}")
@@ -336,8 +438,14 @@ def generate_character(character_name, category_filter=None, use_dalle=False):
 
             if use_dalle:
                 img_data = generate_dalle(full_prompt)
+            elif use_pollinations:
+                img_data = generate_pollinations(full_prompt)
             else:
-                img_data = generate_subnp(full_prompt)
+                img_data = generate_subnp(full_prompt, retries=2)
+                if not img_data:
+                    if DEBUG_GEN:
+                        print(f"    [DEBUG_GEN] SubNP failed, trying Pollinations.ai...")
+                    img_data = generate_pollinations(full_prompt)
 
             elapsed = time.time() - start
 
@@ -355,7 +463,7 @@ def generate_character(character_name, category_filter=None, use_dalle=False):
                 print(f"  [{i+1}/{len(cat_poses)}] {category}/{pose_id} — FAILED ({elapsed:.1f}s)")
                 total_fail += 1
 
-            time.sleep(5)
+            time.sleep(15)
 
     print(f"\n{'='*50}")
     print(f"  {character_name.upper()} COMPLETE")
@@ -379,9 +487,10 @@ def list_poses(character_name):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate character sprite poses")
-    parser.add_argument("--character", "-c", required=True, help="Character name (rudi, sonic)")
+    parser.add_argument("--character", "-c", required=True, help="Character name (rudi, sonic, ani)")
     parser.add_argument("--category", help="Generate only this category")
     parser.add_argument("--dalle", action="store_true", help="Use DALL-E instead of SubNP")
+    parser.add_argument("--pollinations", action="store_true", help="Use Pollinations.ai directly (skip SubNP)")
     parser.add_argument("--list", action="store_true", help="List pose categories")
     args = parser.parse_args()
 
@@ -389,7 +498,7 @@ def main():
         list_poses(args.character)
         return
 
-    generate_character(args.character, args.category, args.dalle)
+    generate_character(args.character, args.category, args.dalle, args.pollinations)
 
 
 if __name__ == "__main__":

@@ -42,109 +42,50 @@ logger.info(f"[LLM] num_predict={LLM_NUM_PREDICT}, num_ctx={LLM_NUM_CTX} (hardwa
 
 _warmup_task = None
 
+_CHARACTER_NAME = "assistant"
+_CHARACTER_DISPLAY_NAME = "Assistant"
+
+
+def set_character(name: str, display_name: str):
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
+
 # Fallback responses when Ollama is unavailable or times out
 LLM_FALLBACKS = [
-    "Wahoo! Let's-a go!",
-    "Mama mia! That's-a interesting!",
-    "Ha ha! You're-a funny one!",
-    "Alrighty! Mario likes-a that!",
-    "Bellissimo! Tell me more!",
-    "That's-a so cool! What else?",
-    "Magnifico! You're-a great company!",
-    "Ha! That's what Luigi would say too!",
-    "Mama mia, this party is-a amazing! Having fun?",
-    "You remind me of a friend from the Mushroom Kingdom!",
-    "I was just thinking about pasta! You hungry?",
-    "Don't forget to wash-a your hands! It's-a important!",
-    "This bathroom has-a great acoustics! Wahoo!",
-    "You know what I love about parties? The people!",
-    "Ha ha! That reminds me of the time Bowser tried to cook!",
-    "Wow, you're-a really something! In a good way!",
-    "I bet you could beat Bowser in a race!",
-    "Speaking of pipes, this bathroom has-a nice plumbing!",
-    "Are you having fun at the party? I hope so!",
-    "If Princess Peach were here, she'd love this party!",
-    "Ooh, that's-a spicy! Like a fire flower!",
-    "You're braver than me — I always get scared of Boos!",
-    "Wahoo! Every conversation is-a like a new adventure!",
-    "Tell me something I don't know! Mario loves learning!",
-    "Ha! You should come visit the Mushroom Kingdom sometime!",
-    "Ooh, what's-a your favorite color? Mine is red, obviously!",
-    "Did you know Toad can lift ten times his weight? Crazy!",
-    "I wonder what Bowser is-a up to right now, probably cooking!",
-    "This reminds me of World 4 — the giant world! Everything's huge!",
-    "You ever play the tuba? Asking for a friend named Waluigi!",
-    "Ha! I just remembered — I left my hat in Sarasaland!",
-    "What do you think clouds taste like? Lakitu won't-a tell me!",
-    "Daisy would love this conversation! She's-a really fun!",
-    "I'm-a thinking about starting a cooking show. Mario's Kitchen!",
-    "Okie dokie, pop quiz! How many coins in a coin block? Trick question!",
-    "You're-a making my mustache twitch with excitement!",
-    "Rosalina told me the stars are listening. Cool, right?",
-    "Ever wonder why all the pipes are green? Even I don't know!",
-    "Toadette baked cookies today! Wish I could share some with you!",
-    "I've been to space, underwater, and a haunted house — all in one week!",
-    "Luigi is-a probably hiding from ghosts right now. Poor guy!",
-    "What's-a your special move? Mine is the triple jump! Yahoo!",
-    "Donkey Kong and I are friends now! Took a while though, ha ha!",
-    "I bet you'd be great at Mario Party! You seem-a competitive!",
-    "Sometimes I just like to sit on a hill and watch the sunset. Peaceful!",
-    "Kamek keeps turning things into monsters. Not cool, Kamek!",
-    "Hey, what superpower would you want? I'd pick flying — oh wait, I have a cape!",
-    "Shy Guys are actually pretty nice once you get to know them!",
-    "The best sound in the world? Coin collecting! Cha-ching!",
-    "You know what? You're-a cooler than an Ice Flower! And that's-a pretty cool!",
-    # --- Expanded fallbacks (v3.2) for better variety ---
-    "Wario told me a secret once. I forgot it immediately. Wahoo!",
-    "Have you tried the cake? It might be a lie, but it's-a delicious!",
-    "My kart goes 200cc. How fast do YOU go? Ha ha!",
-    "Fun fact: Yoshi can eat anything. ANYTHING. Even bad jokes!",
-    "I once found a star in a bathroom. True story! Well, it was a sticker.",
-    "You look like you could handle a Bob-omb! That's-a compliment!",
-    "Chain Chomps are basically puppies. Very angry, very bitey puppies!",
-    "Boo! Ha ha, did I scare you? No? Tough crowd!",
-    "I met Kirby once. He tried to eat my hat. We're still friends though!",
-    "Party tip from Mario: always dance like nobody's watching!",
-    "You know what goes great with pasta? More pasta! Life advice from Mario!",
-    "Wanna hear my impression of Toad? WAHHH! Pretty good, right?",
-    "Princess Peach's castle has 15 bathrooms. I've counted. For research!",
-    "I'm-a running out of coins but never running out of fun!",
-    "You've got more charisma than a Golden Mushroom! That's-a rare!",
-    "Someone once told me I talk too much. I told them 'Wahoo!' and kept going!",
-    "If life gives you lemons, throw them at Goombas! Wait, that's not right.",
-    "Birdo and I have a bowling league. It's-a very competitive!",
-    "The secret to a great party? Good friends and clean pipes!",
-    "I tried to learn guitar from Toadette. My fingers are too stubby!",
-    "I bet you'd look great in a Mario hat! Everyone does, ha ha!",
-    "Bullet Bills are actually very polite. They always come straight to you!",
-    "The stars tonight remind me of Star Road. Beautiful, no?",
-    "Every time I jump, I feel like I can touch the sky! Wahoo!",
-    "You're-a more fun than a room full of power-ups!",
-    "Did you know? Toads are great dancers! Tiny, but mighty on the floor!",
-    "If I could eat one food forever, it'd be spaghetti. No contest!",
-    "The Mushroom Kingdom has the best sunsets. You should visit sometime!",
-    "Wanna know something? You're making this party extra special!",
-    "Koopa shells are actually recycled. Bowser is-a eco-friendly! Sort of.",
-    "I wonder if fish in the Mushroom Kingdom also have parties. Cheep Cheep party!",
-    "My favorite workout? Jumping on flagpoles! Great for cardio!",
-    "You seem like the kind of person who'd find all the hidden blocks!",
-    "Mama mia, I love when people smile! It's-a contagious!",
-    "Want to hear about the time I raced a penguin? I won! Barely.",
-    "Tanooki suits are very comfortable. Like wearing a cloud!",
-    "If I ever open a restaurant, it's-a gonna be called 'Mamma Mario's'!",
-    "The best adventures start with a good conversation. Like this one!",
-    "You've got that main character energy! Love it!",
-    "Every person at this party is-a VIP to me! Very Important Plumber's Friend!",
-    "I tried teaching Bowser to dance once. He has two left feet. Literally!",
-    "Fun fact: I can hold my breath underwater for a really long time! Don't try that.",
-    "What's-a the best thing about tonight? Meeting cool people like you!",
-    "If you find a question block, hit it! You never know what you'll get!",
-    "Peach makes the best chocolate cake. I'd share the recipe, but it's top secret!",
-    "Ha ha! You remind me of someone from Rainbow Road. Colorful!",
-    "Sometimes the best power-up is just a good friend!",
-    "I heard someone singing earlier. Was that you? It was-a nice!",
-    "Every party needs someone like you! Thanks for being here!",
+    "Tell me more about that!",
+    "That's interesting. What happened next?",
+    "I'm listening. What's on your mind?",
+    "Good one. Give me another detail.",
+    "That sounds fun. How's it going?",
+    "Nice. What made you think of that?",
+    "I'm with you. Keep going.",
+    "Okay, now you've got my attention.",
+    "That paints a picture. What happened after that?",
+    "I like where this is going. Tell me more.",
+    "That sounds like a story. What's the best part?",
+    "I'm curious. What happened right before that?",
+    "That has my attention. What else should I know?",
+    "You've got a point there. Keep going.",
+    "That sounds memorable. How did it play out?",
+    "I'm following. What happened next?",
+    "That's a fun thought. What would you do with it?",
+    "You make that sound interesting. Tell me more.",
+    "I'm into this. Give me the next detail.",
+    "That sounds like a moment. How did it end?",
+    "You have my full attention. What's next?",
+    "That feels important. Want to unpack it a bit?",
+    "I can work with that. Give me one more detail.",
+    "That sounds cool. What's your favorite part?",
 ]
+
+
+def _default_short_fallback() -> str:
+    label = (_CHARACTER_DISPLAY_NAME or _CHARACTER_NAME or "your assistant").strip()
+    return f"{label} is here. What's on your mind?"
 
 # Recent response ring buffer for repeat detection
 _recent_responses: list[str] = []
@@ -383,7 +324,7 @@ def _clean_response(text: str) -> str:
     text = re.sub(r',\s*([!?])', r'\1', text)  # ", !" → "!"
     # Ensure non-empty and meaningful (minimum 3 chars for a real word)
     if not text.strip() or len(text.strip()) < 3:
-        text = "Wahoo! Let's-a go!"
+        text = _default_short_fallback()
     # Cap response length for TTS streaming (each sentence sent individually)
     if len(text) > 300:
         cut = text[:300]
