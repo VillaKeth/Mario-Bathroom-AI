@@ -43,6 +43,7 @@ import hardware
 import speaker_id
 import memory
 import mario_prompt
+import safety_filter
 from mario_prompt import PHASE_PROMPTS, _infer_guest_type, GUEST_TYPE_HINTS
 import tts_router as tts_router_mod
 from fish_speech_tts import FishSpeechTTS
@@ -116,6 +117,36 @@ logger.info(f"Live config initialized at {LIVE_CONFIG_PATH}")
 
 # Character configuration (loaded during startup)
 _character = None
+
+
+def _active_character_display_name() -> str | None:
+    if _character is None:
+        return None
+    return getattr(_character, "display_name", None) or getattr(_character, "name", None)
+
+
+def _health_status_message() -> str:
+    label = _active_character_display_name()
+    return f"Hello from {label}!" if label else "Hello there!"
+
+
+def _startup_greeting_fallback() -> str:
+    label = _active_character_display_name()
+    return f"Hey! I'm {label}!" if label else "Hey there!"
+
+
+def _welcome_greeting_fallback() -> str:
+    label = _active_character_display_name()
+    return f"Hey! I'm {label}! Welcome!" if label else "Hey there! Welcome!"
+
+
+def _generic_timeout_text() -> str:
+    return "That took too long! Try again?"
+
+
+def _generic_error_text() -> str:
+    return "Something went wrong! Let me try that again."
+
 
 # TTS Auditor for batch verification
 _tts_auditor = TTSAuditor()
@@ -653,6 +684,8 @@ async def lifespan(app: FastAPI):
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
+    llm.set_character(_character.name, _character.display_name)
+    safety_filter.set_character(_character.name, _character.display_name)
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
     command_handlers.set_character(_character.name, _character.display_name)
@@ -741,6 +774,15 @@ async def lifespan(app: FastAPI):
     # Wire character voice settings (character config takes precedence over config.json)
     tts.EDGE_VOICE = _character.voice_config["edge_voice"]
     tts.RATE = _character.voice_config["rate"]
+    # Per-character RVC model — only enable if character has one
+    _char_rvc = _character.voice_config.get("rvc_model")
+    if _char_rvc and os.path.isfile(_char_rvc):
+        tts.RVC_MODEL_PATH = _char_rvc
+        tts.USE_RVC = True
+        logger.info(f"[TTS] Character RVC model: {_char_rvc}")
+    elif _character_name != "mario":
+        tts.USE_RVC = False
+        logger.info(f"[TTS] No RVC model for {_character_name} — RVC disabled")
     # Only use config.json overrides for the default "mario" character
     if _character_name == "mario":
         if server_config.get("tts_voice"):
@@ -773,7 +815,10 @@ async def lifespan(app: FastAPI):
         logger.info("  ○ Catchphrase bank: no WAV files found (skipped)")
 
     # Priority 1: Fish Speech (voice cloning)
-    _ref_audio_path = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences.wav")
+    _ref_audio_path = _character.voice_config.get("reference_audio")
+    if not _ref_audio_path or not os.path.isfile(_ref_audio_path):
+        # Fallback to legacy Mario reference audio
+        _ref_audio_path = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences.wav")
     fish_speech = FishSpeechTTS(reference_audio=_ref_audio_path)
     if fish_speech.is_available():
         _tts_router.register(TTSEngine(
@@ -1254,7 +1299,7 @@ async def health():
         "avg_response_time_ms": round(avg_response_ms),
         "error_count": _error_count,
         # Legacy fields preserved for backward compatibility
-        "message": "It's-a me, Mario!",
+        "message": _health_status_message(),
         "emotion": emotion_system.current,
         "emotion_intensity": emotion_system.intensity,
         "total_visits": stats["total_visits"],
@@ -2115,21 +2160,23 @@ async def websocket_endpoint(ws: WebSocket):
                                 pose_hint=analyzed["pose_hint"])
         except asyncio.TimeoutError:
             logger.error("Startup greeting timed out after 30s")
+            _fallback_greeting = _startup_greeting_fallback()
             try:
-                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
-                await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
+                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize(_fallback_greeting))
+                await send_response(ws, _fallback_greeting, fallback_audio, sound="greeting",
                                     pose_hint="positive/excited_jump")
             except Exception:
-                await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                await send_response(ws, _fallback_greeting, None, sound="greeting",
                                     pose_hint="positive/excited_jump")
         except Exception as e:
             logger.error(f"Startup greeting failed: {e}")
+            _fallback_greeting = _startup_greeting_fallback()
             try:
-                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize("Wahoo!"))
-                await send_response(ws, "It's-a me, Mario! Wahoo!", fallback_audio, sound="greeting",
+                fallback_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize(_fallback_greeting))
+                await send_response(ws, _fallback_greeting, fallback_audio, sound="greeting",
                                     pose_hint="positive/excited_jump")
             except Exception:
-                await send_response(ws, "It's-a me, Mario! Wahoo!", None, sound="greeting",
+                await send_response(ws, _fallback_greeting, None, sound="greeting",
                                     pose_hint="positive/excited_jump")
 
     _loop = asyncio.get_event_loop()
@@ -4047,11 +4094,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if not response_text:
                 logger.error(f"LLM timed out after {_LLM_TIMEOUT}s — using fallback response")
                 _llm_fallback_responses = [
-                    "Mama mia, my brain went on vacation! What were we talking about?",
-                    "Whoa, I totally blanked out for a second! Say that again?",
-                    "Ha ha! My thoughts got lost in a warp pipe! One more time?",
-                    "Oops! I was thinking SO hard my brain did a blue screen! What was that?",
-                    "Wait wait wait — I was having the most AMAZING thought but it escaped! What did you say?",
+                    "My train of thought drifted off for a second. What were we talking about?",
+                    "Whoa, I blanked out for a moment. Can you say that again?",
+                    "I lost the thread there. One more time?",
+                    "That slipped right past me. What did you say?",
+                    "I was thinking hard and lost the plot for a second. Can you repeat that?",
                 ]
                 response_text = random.choice(_llm_fallback_responses)
                 logger.warning(f"[LLM] Using fallback response - LLM unavailable")
@@ -4061,11 +4108,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             # Catch ALL non-timeout LLM/thinking failures (ConnectionError, HTTPError, etc.)
             logger.error(f"[LLM] Non-timeout failure: {type(_llm_exc).__name__}: {_llm_exc}")
             response_text = random.choice([
-                "Mama mia, something went wrong in my brain! What were we talking about?",
-                "Whoa, I hit a glitch! Say that again, friend?",
-                "Oops! My thoughts went through a bad warp pipe! One more time?",
-                "Ha ha! Technical difficulties! Even Mario has off moments! What did you say?",
-                "My brain just did a barrel roll! Can you repeat that?",
+                "Something went wrong in my train of thought. What were we talking about?",
+                "I hit a glitch for a second. Can you say that again?",
+                "My thoughts got scrambled there. One more time?",
+                "Technical hiccup on my side. What did you say?",
+                "I lost the thread there. Can you repeat that?",
             ])
             emotion_system.current = Emotion.CONFUSED
             emotion_system.intensity = 0.6
@@ -4076,7 +4123,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     _t_filter = time.time()
     # Guard against None response_text from any failure path
     if not response_text:
-        response_text = "Wahoo! Let's-a keep talking! What's on your mind?"
+        response_text = "Let's keep talking! What's on your mind?"
     response_text = filter_response(response_text)
     response_text = mario_prompt.maybe_add_question(response_text, text)
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
@@ -4449,7 +4496,7 @@ async def _handle_special_commands(transcript: str) -> str:
                 return f"Ohhh, you said the magic words! Let's-a do this! {matched_event.name} incoming!"
             else:
                 logger.warning(f"[VOICE_TRIGGER] Failed to trigger {matched_event.name}: {trigger_result}")
-                return "Mama mia! Something went wrong with that request!"
+                return "Something went wrong with that request!"
         else:
             # Event already fired or not found
             return None
@@ -4826,7 +4873,7 @@ async def handle_event(ws: WebSocket, event: dict):
         except asyncio.TimeoutError:
             logger.error("[GREETING] Entire greeting flow timed out after 60s — sending emergency fallback")
             try:
-                await send_response(ws, "It's-a me, Mario! Welcome! Wahoo!", None,
+                await send_response(ws, _welcome_greeting_fallback(), None,
                                     sound="greeting", pose_hint="greeting/wave_high")
             except Exception:
                 pass
@@ -5164,7 +5211,7 @@ async def _text_input_task(ws: WebSocket, text: str):
     except Exception as e:
         logger.error(f"[TEXT_INPUT] Pipeline failed: {e}", exc_info=True)
         try:
-            await send_response(ws, "Oops! Something went wrong. Try again!", None,
+            await send_response(ws, _generic_error_text(), None,
                                 sound="error", pose_hint="confused/sad")
         except Exception:
             pass
@@ -5216,7 +5263,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
     except Exception as e:
         logger.error(f"[TEXT_INPUT_ERROR] Exception in response pipeline for '{text[:50]}': {e}", exc_info=True)
         try:
-            await ws.send_json({"type": "mario_response", "text": f"Mama mia! Something went wrong: {e}", "emotion": "confused"})
+            await ws.send_json({"type": "mario_response", "text": _generic_error_text(), "emotion": "confused"})
         except Exception as e2:
             logger.debug(f"[WS] Error response send also failed: {e2}")
 

@@ -56,7 +56,7 @@ class CharacterLoader:
         # Parse voice config
         voice = self._config.get("voice", {})
         preferred_engine = voice.get("preferred_engine", "hybrid")
-        valid_engines = {"hybrid", "sovits", "edge", "xtts"}
+        valid_engines = {"hybrid", "sovits", "edge", "xtts", "fish_speech"}
         if preferred_engine not in valid_engines:
             raise CharacterConfigError(
                 f"voice.preferred_engine must be one of {valid_engines}, got '{preferred_engine}'",

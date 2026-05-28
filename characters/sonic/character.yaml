@@ -6,6 +6,7 @@ identity:
 
 voice:
   preferred_engine: "edge"
+  reference_audio: "voice/reference_audio.wav"
   edge_voice: "en-US-ChristopherNeural"
   rate: "+25%"
   pitch: "+10Hz"
