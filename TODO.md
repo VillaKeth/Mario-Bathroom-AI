@@ -1,7 +1,8 @@
 # Mario AI Party Bot - TODO
 
 ## Character Creator Wizard (In Progress)
-- [ ] Build standalone FastAPI server for character creation wizard (port 8766)
+- [x] Build standalone FastAPI server for character creation wizard (port 8766)
+- [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 6-step UI skeleton
 - [ ] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
 - [ ] Build known_characters.json database with 20-30 popular characters
 - [ ] Implement auto-fill for known characters (description, voice, theme colors)
