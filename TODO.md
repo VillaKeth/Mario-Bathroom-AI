@@ -29,6 +29,12 @@
 - [x] Generated 41 placeholder sprites for Ani using Pillow (category-colored expressive avatars)
 - [x] Fixed ai_poses_dir path in Ani's character.yaml (sprites/ not sprites/ai_poses/)
 - [x] Fixed hardcoded Mario fallback strings across server (main.py, llm.py, safety_filter.py, mario_prompt.py)
+- [x] Created Ani idle messages.yaml (100+ mumbles, 36 songs, 21 jokes, 15 trivia, etc.)
+- [x] Fixed idle_behavior.py: time_comments and noise_reactions now use character YAML instead of hardcoded Mario text
+- [x] Fixed client/main.py and client/mario_display.py hardcoded Mario strings
+- [ ] Fix remaining hardcoded Mario text in: command_handlers, game_handlers, party_report, party_stats, birthday_vip, emotions, tts, catchphrase_mirror, night_progression
+- [ ] Generate proper AI sprites for Ani (replace Pillow placeholders)
+- [ ] Find reliable free image generation API (SubNP down, Pollinations rate-limited)
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)
