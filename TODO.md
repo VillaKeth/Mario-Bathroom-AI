@@ -756,12 +756,11 @@
 - [x] 158 core tests passing
 
 ## Remaining Character De-Mario-ification
-- [ ] command_handlers.py Easter eggs still Mario-themed (line 23+: bowser, mushroom, etc.)
-- [ ] command_handlers.py dares still Mario-themed (line 105+: Mario voice, Mario theme)
-- [ ] command_handlers.py fortunes still say "Mario's crystal ball" (line 124+)
-- [ ] command_handlers.py mood responses still Mario-themed (line 149+)
-- [ ] command_handlers.py mini-stories still Mario-themed (line 170+)
-- [ ] command_handlers.py needs set_character() like game_handlers
+- [x] command_handlers.py needs set_character() like game_handlers — DONE ✅
+- [x] command_handlers.py functional dialogue de-Mario-ified (100+ replacements) — DONE ✅
+- [x] Personality modes made character-generic — DONE ✅
+- [x] Dynamic greeting/love/compliment triggers use character name — DONE ✅
+- [ ] command_handlers.py data pools (Easter eggs, dares, fortunes, stories, raps, etc.) still Mario-themed as defaults — need character YAML overrides
 - [ ] idle_behavior.py loneliness greetings have Mario-isms (lines 856-869)
 - [ ] Create rapid_fire structured Q&A for Rudi and Sonic (currently skipped by format validation)
 

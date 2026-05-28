@@ -1,4 +1,4 @@
-"""Idle behavior and autonomous actions for Mario."""
+"""Idle behavior and autonomous actions for the party bot."""
 
 import os
 import random
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ── Memorial text constants (no ellipsis — TTS convention) ──────────────
 MEMORIAL_ANNOUNCEMENT = (
-    "*Mario removes his hat and holds it to his chest* "
+    "*removes hat and holds it to chest* "
     "Hey everyone, can I have your attention for just a moment? "
     "Tonight we are celebrating Jacob's birthday, but I want us to take "
     "a special moment to honor someone very important to this family."
@@ -30,16 +30,16 @@ MEMORIAL_TOAST = (
     "She would want us to CELEBRATE! So right now, everybody grab a drink! "
     "We are taking a shot for Aunt Lisa! "
     "To Lisa Webb, the kind of person who made every room brighter! "
-    "Ready? One, two, three, CHEERS! Wahoo!"
+    "Ready? One, two, three, CHEERS!"
 )
 
 MEMORIAL_FADEOUT = (
     "That was beautiful, everyone. Lisa would be so proud. "
     "Now, let us keep this party going for Jacob! "
-    "Wahoo! Let's-a go!"
+    "Let's go!"
 )
 
-# Things Mario says/does when nobody is around
+# Things the character says/does when nobody is around
 IDLE_MUMBLES = [
     "♪ Do do do do do doo... ♪",
     "*inspects the pipes under the sink* Nice-a copper piping!",
@@ -847,30 +847,30 @@ class IdleBehavior:
             logger.info("[DEBUG_IDLE] visitor_left: loneliness timer started")
 
     def get_loneliness_greeting_boost(self) -> str | None:
-        """Get an extra-enthusiastic greeting if Mario has been alone a long time."""
+        """Get an extra-enthusiastic greeting if the character has been alone a long time."""
         mins_alone = (time.time() - self._alone_since) / 60
         if mins_alone < 5:
             return None
         if mins_alone < 15:
             return random.choice([
                 "FINALLY! A human! I was starting to talk to the soap!",
-                "Oh thank-a goodness, someone's here! I was getting lonely!",
-                "WAHOO! A visitor! I was just about to start a one-man show!",
+                "Oh thank goodness, someone's here! I was getting lonely!",
+                "A visitor! I was just about to start a one-man show!",
             ])
         if mins_alone < 30:
             return random.choice([
                 "OH MY GOSH A REAL PERSON! I've been in here SO LONG! You have NO idea how happy I am to see you!",
-                "A VISITOR! I was THIS close to befriending the toilet brush! You saved-a me!",
+                "A VISITOR! I was THIS close to befriending the toilet brush! You saved me!",
                 "FINALLY! I was starting to think everyone forgot about me in here! Best moment of my LIFE!",
             ])
         return random.choice([
             "IS THAT... A HUMAN?! *tears of joy* I thought you'd NEVER come! I named all the tiles! STEVE SAYS HI!",
-            "OH MAMA MIA! A REAL ACTUAL PERSON! I was about to file a missing plumber report on MYSELF!",
+            "A REAL ACTUAL PERSON! I was about to file a missing person report on MYSELF!",
             "YOU CAME! You ACTUALLY came! I have SO much to tell you! I've had a LOT of time to think in here!",
         ])
 
     def get_lonely_action(self) -> str | None:
-        """Get a loneliness-arc message based on how long Mario has been alone.
+        """Get a loneliness-arc message based on how long the character has been alone.
 
         Returns None if not time for a lonely message yet (uses own cooldown).
         """
