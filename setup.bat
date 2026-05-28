@@ -99,6 +99,11 @@ if !errorlevel! neq 0 (
 )
 echo [OK] Client dependencies installed
 
+REM Step 8.5: Install character creator dependencies
+echo Installing character creator dependencies...
+pip install -r character_creator\requirements.txt --quiet
+echo [OK] Character creator dependencies installed
+
 REM Step 9: Detect hardware tier
 echo.
 echo Detecting hardware...
@@ -205,6 +210,20 @@ echo.
 echo   That's it! No other setup needed.
 echo  ========================================
 echo.
+
+REM Check if any characters exist (besides _shared and test_bot)
+set HAS_CHARS=0
+for /d %%d in (characters\*) do (
+    if /I not "%%~nxd"=="_shared" if /I not "%%~nxd"=="test_bot" set HAS_CHARS=1
+)
+if !HAS_CHARS!==0 (
+    echo.
+    echo  No characters found! Launching Character Creator Wizard...
+    echo  Create your first character in the browser.
+    echo.
+    start http://localhost:8766
+    python -m character_creator.server
+)
 pause
 exit /b 0
 
