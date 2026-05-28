@@ -92,6 +92,10 @@
 - [x] Verify zero idle leaks during active conversation (was 2-4 per 20 prompts)
 
 ## Current Focus
+- [x] Per-character voice cloning infrastructure (reference_audio.wav for Rudi and Sonic)
+- [x] Per-character RVC model support (disable RVC for non-Mario characters)
+- [x] Fish Speech uses character-specific reference audio instead of hardcoded Mario path
+- [x] Added fish_speech as valid engine type in character_loader.py
 - [x] Quick greeting handlers for "hi", "hey", "yo" etc. (instant response, no LLM wait)
 - [x] Quick laugh handlers for "lol", "haha" etc.
 - [x] Relaxed word count guards: joke/secret/story handlers now ≤7 words (was ≤5)
