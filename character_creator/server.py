@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, "server"))
 import hardware
+from character_creator.known_characters import lookup as kc_lookup, list_all as kc_list
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,20 @@ def _move_staged_files(draft_dir: str, char_dir: str):
         else:
             shutil.move(src, dst)
     shutil.rmtree(draft_dir, ignore_errors=True)
+
+@app.get("/api/known-character/{name}")
+async def get_known_character(name: str):
+    """Lookup a known character by name."""
+    result = kc_lookup(name)
+    if result:
+        return {"found": True, "data": result}
+    return {"found": False, "data": None}
+
+@app.get("/api/known-characters")
+async def get_known_characters():
+    """Get list of all available known characters."""
+    characters = kc_list()
+    return {"characters": characters}
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
