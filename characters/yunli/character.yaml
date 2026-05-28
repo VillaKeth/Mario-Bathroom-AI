@@ -1,0 +1,97 @@
+identity:
+  name: Yunli
+  display_name: Yunli ⚔️
+  tagline: My blade speaks for me!
+  description: A fierce young swordswoman with an oversized blade and unwavering determination
+voice:
+  preferred_engine: edge
+  reference_audio: voice/reference_audio.wav
+  edge_voice: en-US-AriaNeural
+  rate: +0%
+  pitch: +0Hz
+  pronunciation: {}
+visuals:
+  sprite_dir: sprites/
+  ai_poses_dir: sprites/
+  ai_pose_size:
+  - 250
+  - 250
+  theme_colors:
+    primary: '#FF0000'
+    secondary: '#FFFFFF'
+    accent: '#800080'
+    text: '#E0E0E0'
+  particle_colors:
+  - '#FF0000'
+  - '#FFFFFF'
+  - '#800080'
+  - '#1A1A2E'
+  emotion_sprite_map:
+    happy: positive/happy
+    excited: positive/excited
+    surprised: reactions/shocked
+    confused: thinking/confused
+    annoyed: negative/annoyed
+    sleepy: sleep/yawning
+    mischievous: thinking/scheming
+    laughing: positive/laughing
+    sad: negative/sad
+    angry: negative/angry
+    nervous: negative/nervous
+    scared: negative/startled
+    love: positive/charmed
+    loving: positive/charmed
+    proud: positive/confident
+    embarrassed: negative/embarrassed
+    disgusted: negative/disgusted
+    determined: thinking/focused
+    bored: sleep/yawning
+    worried: negative/nervous
+    curious: thinking/curious
+    thinking: thinking/pondering
+    shocked: reactions/shocked
+    idea: thinking/idea
+    frustrated: negative/annoyed
+    neutral: neutral/idle
+    memorial: memorial/respectful
+    toast: toast/raising_glass
+    party: party/celebrate
+    mind_blown: reactions/mind_blown
+    sassy: reactions/sassy
+    cringe: reactions/cringe
+    impressed: reactions/impressed
+    celebratory: party/celebrate
+    solemn: memorial/respectful
+    birthday: party/birthday
+    sarcastic: reactions/sassy
+  state_sprite_map:
+    idle: neutral/idle
+    talking:
+    - speech/talking
+    - speech/explaining
+    listening: speech/listening
+    greeting: greeting/wave
+    thinking: thinking/pondering
+    sleeping: sleep/sleeping
+    dancing:
+    - movement/action
+    - party/celebrate
+    entering: movement/entering
+    exiting: greeting/farewell
+  fallback_sprites:
+    emotion: neutral/idle
+    state: neutral/idle
+speech:
+  accent_markers:
+  - Speaks in character as Yunli
+  catchphrase_dir: catchphrases/
+games:
+  pools_dir: games/
+  include_shared: true
+memory:
+  collections:
+    faces: yunli_faces
+    voices: yunli_voices
+    memories: yunli_memories
+  vip_profiles_dir: memories/vip_profiles/
+  lore_file: memories/lore.yaml

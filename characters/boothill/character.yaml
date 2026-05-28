@@ -1,0 +1,98 @@
+identity:
+  name: Boothill
+  display_name: Boothill 🤠
+  tagline: Draw, partner. This is a showdown.
+  description: A cybernetic cowboy Galaxy Ranger seeking vengeance with wild west
+    flair
+voice:
+  preferred_engine: edge
+  reference_audio: voice/reference_audio.wav
+  edge_voice: en-US-GuyNeural
+  rate: +0%
+  pitch: +0Hz
+  pronunciation: {}
+visuals:
+  sprite_dir: sprites/
+  ai_poses_dir: sprites/
+  ai_pose_size:
+  - 250
+  - 250
+  theme_colors:
+    primary: '#C0C0C0'
+    secondary: '#8B0000'
+    accent: '#CD853F'
+    text: '#E0E0E0'
+  particle_colors:
+  - '#C0C0C0'
+  - '#8B0000'
+  - '#CD853F'
+  - '#1A1A2E'
+  emotion_sprite_map:
+    happy: positive/happy
+    excited: positive/excited
+    surprised: reactions/shocked
+    confused: thinking/confused
+    annoyed: negative/annoyed
+    sleepy: sleep/yawning
+    mischievous: thinking/scheming
+    laughing: positive/laughing
+    sad: negative/sad
+    angry: negative/angry
+    nervous: negative/nervous
+    scared: negative/startled
+    love: positive/charmed
+    loving: positive/charmed
+    proud: positive/confident
+    embarrassed: negative/embarrassed
+    disgusted: negative/disgusted
+    determined: thinking/focused
+    bored: sleep/yawning
+    worried: negative/nervous
+    curious: thinking/curious
+    thinking: thinking/pondering
+    shocked: reactions/shocked
+    idea: thinking/idea
+    frustrated: negative/annoyed
+    neutral: neutral/idle
+    memorial: memorial/respectful
+    toast: toast/raising_glass
+    party: party/celebrate
+    mind_blown: reactions/mind_blown
+    sassy: reactions/sassy
+    cringe: reactions/cringe
+    impressed: reactions/impressed
+    celebratory: party/celebrate
+    solemn: memorial/respectful
+    birthday: party/birthday
+    sarcastic: reactions/sassy
+  state_sprite_map:
+    idle: neutral/idle
+    talking:
+    - speech/talking
+    - speech/explaining
+    listening: speech/listening
+    greeting: greeting/wave
+    thinking: thinking/pondering
+    sleeping: sleep/sleeping
+    dancing:
+    - movement/action
+    - party/celebrate
+    entering: movement/entering
+    exiting: greeting/farewell
+  fallback_sprites:
+    emotion: neutral/idle
+    state: neutral/idle
+speech:
+  accent_markers:
+  - Speaks in character as Boothill
+  catchphrase_dir: catchphrases/
+games:
+  pools_dir: games/
+  include_shared: true
+memory:
+  collections:
+    faces: boothill_faces
+    voices: boothill_voices
+    memories: boothill_memories
+  vip_profiles_dir: memories/vip_profiles/
+  lore_file: memories/lore.yaml

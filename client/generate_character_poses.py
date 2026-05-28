@@ -27,18 +27,192 @@ MODEL = "magic"
 # Character-specific style suffixes
 CHARACTER_STYLES = {
     "rudi": (
-        "A sleek humanoid AI character named Rudi with a dark hoodie, "
-        "neon cyan glowing circuit-pattern accents, confident smirk, "
-        "modern tech-punk aesthetic, slightly robotic features with human expression"
+        "A cute 3D animated orange red panda character named Rudi with big blue eyes, "
+        "small rounded ears with white inner ear markings, a tuft of orange hair on top, "
+        "brown facial markings, a small smile showing one tooth, wearing a pink/red hoodie "
+        "and dark navy shorts, short stubby orange paws with no shoes, chubby adorable proportions"
     ),
     "sonic": (
-        "Sonic the Hedgehog, classic blue anthropomorphic hedgehog character "
-        "with red sneakers, white gloves, green eyes, spiky blue quills"
+        "Sonic the Hedgehog, 3D rendered modern design, blue anthropomorphic hedgehog "
+        "with large swept-back blue quills, green eyes, tan/peach muzzle and belly, "
+        "small black nose, brown inner ears, wearing white gloves with sock cuffs, "
+        "and iconic red shoes with white straps and gold buckles"
     ),
     "ani": (
         "A warm, elegant humanoid AI character named Ani with flowing pastel pink "
         "and lavender hair, soft golden glowing accents, kind expressive eyes, "
         "modern ethereal aesthetic, gentle features with genuine warmth"
+    ),
+    # ── Honkai: Star Rail Characters ──
+    "stelle": (
+        "Stelle from Honkai Star Rail, 3D anime style, young woman with short messy silver-white hair "
+        "with pink gradient tips, bright amber-orange eyes, small frame, wearing a cropped dark vest "
+        "with star emblem over white shirt, dark pleated skirt, tall dark boots, carrying a baseball bat"
+    ),
+    "march7th": (
+        "March 7th from Honkai Star Rail, 3D anime style, cheerful young woman with long flowing pink hair "
+        "with ice crystal hair ornaments, bright blue eyes, wearing a white and ice-blue outfit with ribbons "
+        "and bow details, energetic bubbly appearance, carries an ice bow and a camera"
+    ),
+    "danheng": (
+        "Dan Heng from Honkai Star Rail, 3D anime style, calm young man with long black hair tied in "
+        "a low ponytail with teal streaks, teal eyes, reserved expression, wearing a dark teal and black "
+        "form-fitting outfit with dragon motifs, carries a jade spear"
+    ),
+    "himeko": (
+        "Himeko from Honkai Star Rail, 3D anime style, elegant mature woman with long wavy crimson red hair, "
+        "red eyes, wearing a long dark professional coat with red accents over a white blouse, sophisticated "
+        "appearance, carries a flaming sword"
+    ),
+    "welt": (
+        "Welt Yang from Honkai Star Rail, 3D anime style, mature gentleman with dark brown hair slicked back, "
+        "wearing glasses, brown eyes, wearing a long dark trenchcoat over formal clothes, carries a cane, "
+        "dignified intellectual appearance"
+    ),
+    "kafka": (
+        "Kafka from Honkai Star Rail, 3D anime style, mysterious woman with purple-lilac hair covering one eye, "
+        "one visible purple eye, wearing a dark purple-black bodysuit with revealing cut, silver earrings, "
+        "seductive confident appearance, carries a pistol"
+    ),
+    "silverwolf": (
+        "Silver Wolf from Honkai Star Rail, 3D anime style, young woman with short messy blue-purple hair "
+        "with long side bangs, green eyes, wearing a dark hoodie with digital circuit patterns and headphones, "
+        "tech gamer aesthetic, carries a handheld gaming device"
+    ),
+    "seele": (
+        "Seele from Honkai Star Rail, 3D anime style, young woman with long purple-blue hair, purple eyes, "
+        "wearing a dark purple and white dress with butterfly wing motifs, delicate but fierce appearance, "
+        "carries a large scythe"
+    ),
+    "blade_hsr": (
+        "Blade from Honkai Star Rail, 3D anime style, brooding man with long flowing dark black hair, "
+        "red eyes, visible scars on skin, wearing a dark tattered robe, intense dangerous appearance, "
+        "carries a broken cursed sword"
+    ),
+    "jingyuan": (
+        "Jing Yuan from Honkai Star Rail, 3D anime style, regal man with long flowing white-blonde hair, "
+        "golden eyes, wearing ornate golden and white general's robes with fur trim, commanding majestic "
+        "presence, accompanied by a small lightning lion"
+    ),
+    "bronya_hsr": (
+        "Bronya Rand from Honkai Star Rail, 3D anime style, young woman with silver-white hair in twin "
+        "drill tails, blue eyes, wearing a white military commander's uniform with cape and medals, "
+        "serious authoritative appearance"
+    ),
+    "clara": (
+        "Clara from Honkai Star Rail, 3D anime style, young girl with short brown hair in pigtails, "
+        "brown eyes, wearing simple modest work clothes, accompanied by a large red-eyed mechanical "
+        "guardian robot named Svarog standing behind her"
+    ),
+    "fuxuan": (
+        "Fu Xuan from Honkai Star Rail, 3D anime style, petite short woman with pink-magenta hair in "
+        "elaborate updo with ornamental hairpins, golden eyes, wearing elaborate traditional purple and "
+        "gold Chinese-style divination robes with celestial patterns"
+    ),
+    "jingliu": (
+        "Jingliu from Honkai Star Rail, 3D anime style, ethereal woman with long flowing white hair, "
+        "ice-blue eyes with a blindfold partially covering them, wearing elegant white and ice-blue "
+        "traditional Chinese robes, cold ethereal beauty, carries a katana"
+    ),
+    "topaz_hsr": (
+        "Topaz from Honkai Star Rail, 3D anime style, young professional woman with orange-red hair in "
+        "a neat ponytail, amber eyes, wearing a sharp blue and gold IPC business suit, confident corporate "
+        "appearance, accompanied by small floating creature companion Numby"
+    ),
+    "ruanmei": (
+        "Ruan Mei from Honkai Star Rail, 3D anime style, refined woman with long green hair adorned with "
+        "flowers, green eyes, wearing an elegant white and green cheongsam with lab coat elements, "
+        "scientific beauty, holds a plum blossom branch"
+    ),
+    "drratio": (
+        "Dr. Ratio from Honkai Star Rail, 3D anime style, muscular athletic man with a distinctive "
+        "white marble-textured mask covering his face, wearing a dark scholarly toga and robes with "
+        "golden philosophical trim, intellectual warrior appearance"
+    ),
+    "blackswan": (
+        "Black Swan from Honkai Star Rail, 3D anime style, elegant woman with long flowing dark "
+        "purple-black hair, golden eyes, wearing an elegant dark purple and black dress with veil "
+        "and ornate mask elements, mysterious gothic fortune teller aesthetic"
+    ),
+    "sparkle_hsr": (
+        "Sparkle from Honkai Star Rail, 3D anime style, woman with multi-colored gradient hair from "
+        "pink to purple to blue, heterochromatic eyes, wearing a theatrical colorful jester and "
+        "harlequin outfit with masks, playful chaotic trickster appearance"
+    ),
+    "acheron": (
+        "Acheron from Honkai Star Rail, 3D anime style, stoic woman with long straight dark purple-black "
+        "hair, cold purple eyes, wearing a dark samurai-style outfit with red accents and flowing kimono "
+        "elements, carries a katana, warrior of finality appearance"
+    ),
+    "aventurine": (
+        "Aventurine from Honkai Star Rail, 3D anime style, charming man with styled blonde hair, "
+        "turquoise-green eyes, wearing a stylish white and gold suit with jeweled accessories and "
+        "gemstone cufflinks, confident suave gambler appearance"
+    ),
+    "robin_hsr": (
+        "Robin from Honkai Star Rail, 3D anime style, beautiful woman with long wavy golden-blonde hair, "
+        "warm blue eyes, wearing an elegant white dress with angelic wing motifs and golden halo accessory, "
+        "celestial singer and idol aesthetic, gentle ethereal beauty"
+    ),
+    "firefly": (
+        "Firefly from Honkai Star Rail, 3D anime style, sweet young woman with short brown hair with bangs, "
+        "warm brown eyes, innocent youthful face, wearing a casual white and pink outfit with butterfly "
+        "hair clips, gentle sincere appearance"
+    ),
+    "sunday": (
+        "Sunday from Honkai Star Rail, 3D anime style, elegant man with white-platinum hair swept back, "
+        "golden eyes, wearing a pristine white suit with angelic golden wing accessories extending from "
+        "his back, authoritative beautiful androgynous appearance"
+    ),
+    "theherta": (
+        "The Herta from Honkai Star Rail, 3D anime style, small doll-like young woman with purple twin "
+        "tails, purple eyes, wearing a small purple and white Victorian-style dress with gear motifs, "
+        "puppet-like proportions, genius scientist aesthetic"
+    ),
+    "luocha": (
+        "Luocha from Honkai Star Rail, 3D anime style, handsome man with long blonde hair, green eyes, "
+        "wearing a white and green clerical healer outfit with cross motifs, carries a large ornate "
+        "coffin on his back, mysterious elegant healer"
+    ),
+    "argenti": (
+        "Argenti from Honkai Star Rail, 3D anime style, beautiful man with long flowing silver-white hair, "
+        "golden eyes, wearing ornate white and gold knight's armor with rose motifs and a flowing cape, "
+        "radiant handsome paladin of beauty"
+    ),
+    "huohuo": (
+        "Huohuo from Honkai Star Rail, 3D anime style, small young foxian girl with short green hair "
+        "and fluffy fox ears, green eyes, wearing a traditional green and white foxian shaman outfit, "
+        "carries a large fluffy tail spirit, perpetually nervous scared expression"
+    ),
+    "gallagher": (
+        "Gallagher from Honkai Star Rail, 3D anime style, middle-aged man with brown hair slicked to the "
+        "side, amber eyes, wearing a bartender outfit with vest rolled sleeves and bowtie, carries a "
+        "cocktail glass, detective bartender aesthetic"
+    ),
+    "boothill": (
+        "Boothill from Honkai Star Rail, 3D anime style, cybernetic cowboy with silver mechanical body "
+        "parts mixed with organic skin, wearing a cowboy hat and red bandana around neck, wild grin, "
+        "carries dual revolvers, wild west gunslinger with robot enhancements"
+    ),
+    "yunli": (
+        "Yunli from Honkai Star Rail, 3D anime style, fierce young girl with long dark hair in a high "
+        "ponytail, purple eyes, wearing a traditional red and white Chinese martial arts outfit with "
+        "arm wraps, carries an oversized greatsword, determined warrior"
+    ),
+    "feixiao": (
+        "Feixiao from Honkai Star Rail, 3D anime style, confident woman with short gray-white hair and "
+        "fox ears, blue eyes, wearing a white and blue military general's outfit with epaulettes, "
+        "carries dual curved swords, warrior leader appearance"
+    ),
+    "lingsha": (
+        "Lingsha from Honkai Star Rail, 3D anime style, cheerful woman with long orange-red hair in an "
+        "updo, amber eyes, wearing a colorful traditional Chinese outfit with medical motifs and ribbons, "
+        "accompanied by a small dragon companion, healer"
+    ),
+    "jiaoqiu": (
+        "Jiaoqiu from Honkai Star Rail, 3D anime style, elegant fox spirit man with long orange hair "
+        "with fluffy fox ears and multiple flowing fox tails, golden eyes, wearing traditional ornate "
+        "robes with floral patterns, refined strategist appearance"
     ),
 }
 
@@ -250,6 +424,84 @@ CHARACTER_POSES = {
         ],
     },
 }
+
+# ── Shared HSR humanoid pose template ──
+_HSR_POSES = {
+    "neutral": [
+        ("idle", "{char} standing in a relaxed signature pose, calm confident expression"),
+        ("thinking", "{char} with hand on chin, looking thoughtfully to the side"),
+    ],
+    "positive": [
+        ("happy", "{char} with a genuine warm smile, eyes bright, cheerful expression"),
+        ("excited", "{char} with fists clenched in excitement, big grin, energetic pose"),
+        ("laughing", "{char} laughing heartily, head tilted back, genuine amusement"),
+        ("charmed", "{char} with a warm gentle smile, hand near heart, pleasantly touched"),
+        ("confident", "{char} standing tall with hands on hips, confident proud expression"),
+    ],
+    "negative": [
+        ("annoyed", "{char} with arms crossed, slight frown, one eyebrow raised, unimpressed"),
+        ("disappointed", "{char} pinching bridge of nose, eyes closed, disappointed sigh"),
+        ("angry", "{char} with intense angry expression, fists clenched, battle stance"),
+        ("disgusted", "{char} leaning away with wrinkled nose, hand up in stop gesture"),
+        ("sad", "{char} looking down with sorrowful expression, hands at sides, dejected"),
+        ("nervous", "{char} looking to the side nervously, fidgeting with hands, uncertain"),
+        ("startled", "{char} jumping back with wide eyes, arms up defensively, surprised"),
+        ("embarrassed", "{char} looking away with slight blush, hand behind head, sheepish"),
+    ],
+    "thinking": [
+        ("pondering", "{char} looking upward thoughtfully, finger tapping chin"),
+        ("confused", "{char} with tilted head, puzzled expression, question mark vibe"),
+        ("scheming", "{char} with a sly knowing grin, fingers steepled, plotting"),
+        ("focused", "{char} with intense focused eyes, determined expression, ready stance"),
+        ("curious", "{char} leaning forward with bright curious eyes, intrigued"),
+        ("idea", "{char} with finger raised, bright idea moment, eyes lit up with realization"),
+    ],
+    "speech": [
+        ("talking", "{char} gesturing with one hand while speaking, animated expression"),
+        ("explaining", "{char} with both hands open, explaining something passionately"),
+        ("listening", "{char} with head slightly tilted, attentive listening pose"),
+    ],
+    "greeting": [
+        ("wave", "{char} waving hello warmly, friendly smile, welcoming pose"),
+        ("farewell", "{char} waving goodbye, warm but bittersweet expression"),
+    ],
+    "reactions": [
+        ("shocked", "{char} with hands on cheeks, wide eyes, absolutely stunned"),
+        ("mind_blown", "{char} with hands on sides of head, amazed expression"),
+        ("impressed", "{char} nodding approvingly, arms crossed, genuine respect"),
+        ("sassy", "{char} with hand on hip, head tilted, confident attitude"),
+        ("cringe", "{char} cringing with one eye closed, teeth gritted, looking away"),
+    ],
+    "sleep": [
+        ("yawning", "{char} mid-yawn, hand covering mouth, drowsy eyes"),
+        ("sleeping", "{char} peacefully sleeping, serene expression, eyes closed"),
+    ],
+    "movement": [
+        ("entering", "{char} making a dramatic entrance, confident stride, cool arrival"),
+        ("action", "{char} in dynamic action pose, weapon drawn, battle ready"),
+    ],
+    "party": [
+        ("celebrate", "{char} raising both arms in celebration, huge joyful grin, confetti"),
+        ("birthday", "{char} holding a birthday cake with candles, warm smile"),
+    ],
+    "toast": [
+        ("raising_glass", "{char} raising a glass, charming smile, celebratory toast"),
+    ],
+    "memorial": [
+        ("respectful", "{char} with head bowed, hand over heart, solemn respectful pose"),
+    ],
+}
+
+_HSR_CHARACTERS = [
+    "stelle", "march7th", "danheng", "himeko", "welt", "kafka", "silverwolf",
+    "seele", "blade_hsr", "jingyuan", "bronya_hsr", "clara", "fuxuan",
+    "jingliu", "topaz_hsr", "ruanmei", "drratio", "blackswan", "sparkle_hsr",
+    "acheron", "aventurine", "robin_hsr", "firefly", "sunday", "theherta",
+    "luocha", "argenti", "huohuo", "gallagher", "boothill", "yunli",
+    "feixiao", "lingsha", "jiaoqiu",
+]
+for _c in _HSR_CHARACTERS:
+    CHARACTER_POSES[_c] = _HSR_POSES
 def generate_pollinations(prompt, retries=5):
     """Generate an image using Pollinations.ai free API."""
     import urllib.parse
