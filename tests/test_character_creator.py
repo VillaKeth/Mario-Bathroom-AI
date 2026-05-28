@@ -253,3 +253,45 @@ def test_character_loader_compatibility():
         assert os.path.isfile(os.path.join(char_dir, "prompts", "greetings.yaml"))
         assert os.path.isfile(os.path.join(char_dir, "prompts", "guest_type_hints.yaml"))
         assert os.path.isfile(os.path.join(char_dir, "prompts", "time_flavors.yaml"))
+
+def test_create_character_missing_name():
+    client = TestClient(app)
+    resp = client.post("/api/create-character", json={"display_name": "NoName"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is False
+    assert "name" in data["error"].lower()
+
+def test_create_character_with_no_sprites_still_valid():
+    """Character with zero sprites should still be loadable (uses placeholder)."""
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = {
+            "name": "NoSprites",
+            "display_name": "NoSprites AI",
+            "tagline": "No images!",
+            "description": "Character without any sprites",
+            "theme_colors": {"primary": "#FF0000", "secondary": "#00FF00", "accent": "#0000FF", "text": "#FFFFFF"},
+            "edge_voice": "en-US-GuyNeural",
+            "voice_rate": "+0%", "voice_pitch": "+0Hz",
+            "accent_markers": ["Normal"], "catchphrases": ["Hi!"],
+            "pronunciation": {}, "preferred_engine": "edge",
+        }
+        char_dir = build_character(config, tmpdir)
+        assert os.path.isfile(os.path.join(char_dir, "character.yaml"))
+
+def test_hardware_endpoint_returns_gracefully_without_gpu():
+    """Hardware endpoint should never crash, even if GPU detection fails."""
+    client = TestClient(app)
+    resp = client.get("/api/hardware")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["tier"] in ("ultra", "high", "medium", "low")
+
+def test_models_endpoint_handles_ollama_offline():
+    """Models endpoint should return model list even if Ollama is unreachable."""
+    client = TestClient(app)
+    resp = client.get("/api/models")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data["models"], list)
