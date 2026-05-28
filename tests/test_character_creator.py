@@ -126,3 +126,25 @@ def test_voice_finder_is_available():
 def test_voice_finder_search_returns_list():
     results = search("test query", max_results=1)
     assert isinstance(results, list)
+
+def test_edge_voices_endpoint():
+    client = TestClient(app)
+    resp = client.get("/api/voice/edge-voices")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "voices" in data
+    assert isinstance(data["voices"], list)
+
+# Voice Trainer Tests
+from character_creator.voice_trainer import detect_available_engines
+
+def test_detect_available_engines():
+    engines = detect_available_engines()
+    assert isinstance(engines, list)
+    engine_names = [e["name"] for e in engines]
+    assert "edge" in engine_names
+    for engine in engines:
+        assert "name" in engine
+        assert "available" in engine
+        assert "vram_required" in engine
+        assert "status" in engine
