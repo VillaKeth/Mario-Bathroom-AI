@@ -6,6 +6,39 @@
 
 ---
 
+## 🎯 Getting Started
+
+### Quick Start (5 minutes)
+
+1. **Install prerequisites:** Python 3.10+, Ollama (optional)
+2. **Clone and setup:**
+   ```bash
+   git clone https://github.com/VillaKeth/Mario-Bathroom-AI.git
+   cd Mario-Bathroom-AI
+   setup.bat          # Windows
+   ./setup.sh         # Mac/Linux
+   ```
+3. **Create a character** (wizard auto-opens if it's your first time):
+   - Follow the 6-step Character Creator Wizard
+   - Full guide: **[Creating a Character](docs/creating-a-character.md)**
+4. **Start the server:**
+   ```bash
+   start_server.bat   # Windows
+   ./start_server.sh  # Mac/Linux
+   ```
+5. **Start the client and play:**
+   ```bash
+   start_client.bat   # Windows
+   ./start_client.sh  # Mac/Linux
+   ```
+
+### Want to customize your character?
+
+- **Beginner:** [Creating a Character](docs/creating-a-character.md) — Walk-through of the Character Creator Wizard
+- **Power User:** [Character Format](docs/character-format.md) — Technical reference for manual editing (YAML, prompts, sprites)
+
+---
+
 ## 🚀 SETUP (Fresh Computer — Do This Before The Party)
 
 ### Prerequisites — Install These First
