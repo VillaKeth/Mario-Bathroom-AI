@@ -87,6 +87,18 @@ def test_models_endpoint():
         assert "compatibility" in m
         assert m["compatibility"] in ("compatible", "slow", "incompatible")
 
+# Sprite Generator Tests
+from character_creator.sprite_generator import get_all_poses, EMOTION_SPRITES, SPECIAL_EMOTIONS, STATE_SPRITES
+
+def test_sprite_poses_structure():
+    data = get_all_poses()
+    assert "emotions" in data
+    assert "states" in data
+    assert len(data["emotions"]) >= 25
+    assert len(data["states"]) >= 9
+    total_state_paths = sum(len(s["paths"]) for s in data["states"])
+    assert total_state_paths >= 11
+
 def test_known_character_lookup_found():
     client = TestClient(app)
     resp = client.get("/api/known-character/goku")
