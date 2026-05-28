@@ -1,27 +1,28 @@
 # Mario AI Party Bot - TODO
 
-## Character Creator Wizard (In Progress)
+## Character Creator Wizard — NEARLY COMPLETE ✅
 - [x] Build standalone FastAPI server for character creation wizard (port 8766)
 - [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 6-step UI skeleton
-- [ ] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
-- [ ] Build known_characters.json database with 20-30 popular characters
-- [ ] Implement auto-fill for known characters (description, voice, theme colors)
-- [ ] Voice step: upload, record, or auto-find via yt-dlp for known characters
-- [ ] Voice engine priority display with hardware compatibility indicators
-- [ ] Voice training orchestration (Fish Speech, GPT-SoVITS, RVC, Edge TTS fallback)
-- [ ] Appearance step: AI-generate 37 poses via SubNP or guided manual upload
-- [ ] Hardware auto-detection with model compatibility gating (green/yellow/red)
-- [ ] Single model default, advanced toggle for dual fast/quality model selection
-- [ ] Config.json safe model read/write (no overwrite unless user explicitly changes)
-- [ ] Draft save/resume with localStorage and staged file uploads
-- [ ] Review & Create step: generates character.yaml, sprites, prompts, voice assets
+- [x] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
+- [x] Build known_characters.json database with 25 popular characters
+- [x] Implement auto-fill for known characters (description, voice, theme colors)
+- [x] Voice step: upload, record, or auto-find via yt-dlp for known characters
+- [x] Voice engine priority display with hardware compatibility indicators
+- [x] Voice training orchestration (Fish Speech, GPT-SoVITS, RVC, Edge TTS fallback)
+- [x] Appearance step: AI-generate 37 poses via SubNP or guided manual upload
+- [x] Hardware auto-detection with model compatibility gating (green/yellow/red)
+- [x] Single model default, advanced toggle for dual fast/quality model selection
+- [x] Config.json safe model read/write (no overwrite unless user explicitly changes)
+- [x] Draft save/resume with localStorage and staged file uploads
+- [x] Review & Create step: generates character.yaml, sprites, prompts, voice assets
+- [x] Accessibility: ARIA attributes, focus management, inline help text, keyboard nav
+- [x] Create create_character.bat launcher script
+- [x] Update setup.bat to auto-launch wizard if no characters exist
+- [x] Write docs/creating-a-character.md beginner guide
+- [x] Write docs/character-format.md technical reference
+- [x] Update README.md with zero-to-hero getting started section
 - [ ] Error handling: no-GPU, no-Ollama, no-yt-dlp, generation failures, partial creation
-- [ ] Accessibility: ARIA attributes, focus management, inline help text, keyboard nav
-- [ ] Create create_character.bat launcher script
-- [ ] Update setup.bat to auto-launch wizard if no characters exist
-- [ ] Write docs/creating-a-character.md beginner guide
-- [ ] Write docs/character-format.md technical reference
-- [ ] Update README.md with zero-to-hero getting started section
+- [ ] Integration testing and polish
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)

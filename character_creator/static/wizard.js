@@ -1454,7 +1454,7 @@ class WizardUI {
             <div class="success-card">
                 <p>✅ Character profile created</p>
                 <p>📁 Saved to: <code>${result.path || 'characters/'}</code></p>
-                <p>🎤 Voice: ${result.voice || 'Edge TTS'}</p>
+                <p>🎤 Voice: ${typeof result.voice === 'object' ? (result.voice.engine || result.voice.status || 'Configured') : (result.voice || 'Edge TTS')}</p>
             </div>
         `;
         
