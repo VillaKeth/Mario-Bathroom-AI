@@ -242,6 +242,43 @@ async def sprite_generation_status(task_id: str):
     from character_creator.sprite_generator import get_task_status
     return get_task_status(task_id)
 
+from character_creator.character_builder import build_character
+
+@app.post("/api/create-character")
+async def create_character(body: dict):
+    characters_dir = os.path.join(PROJECT_ROOT, "characters")
+    try:
+        char_dir = build_character(body, characters_dir)
+        
+        # Move staged uploads from draft workspace
+        char_name_key = body.get("name", "").lower().replace(" ", "_")
+        draft_dir = os.path.join(os.path.dirname(__file__), "_drafts", char_name_key)
+        if os.path.isdir(draft_dir):
+            _move_staged_files(draft_dir, char_dir)
+        
+        # Prepare voice artifacts
+        voice_result = prepare_voice_artifacts(body, char_dir)
+        
+        return {"success": True, "path": char_dir, "voice": voice_result}
+    except Exception as e:
+        logger.error(f"Character creation failed: {e}")
+        return {"success": False, "error": str(e)}
+
+def _move_staged_files(draft_dir: str, char_dir: str):
+    import shutil
+    for item in os.listdir(draft_dir):
+        src = os.path.join(draft_dir, item)
+        dst = os.path.join(char_dir, item)
+        if os.path.isdir(src):
+            if os.path.exists(dst):
+                for sub in os.listdir(src):
+                    shutil.move(os.path.join(src, sub), os.path.join(dst, sub))
+            else:
+                shutil.move(src, dst)
+        else:
+            shutil.move(src, dst)
+    shutil.rmtree(draft_dir, ignore_errors=True)
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 if __name__ == "__main__":

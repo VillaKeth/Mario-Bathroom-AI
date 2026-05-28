@@ -181,3 +181,75 @@ def test_sprite_generation_start():
     data = resp.json()
     assert "task_id" in data
     assert data["status"] == "started"
+
+# Character Builder Tests
+import tempfile
+import yaml
+from character_creator.character_builder import build_character
+
+def test_build_character_creates_directory():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = {
+            "name": "TestBot",
+            "display_name": "TestBot AI 🤖",
+            "tagline": "Testing!",
+            "description": "A test character",
+            "theme_colors": {"primary": "#FF0000", "secondary": "#00FF00", "accent": "#0000FF", "text": "#FFFFFF"},
+            "edge_voice": "en-US-GuyNeural",
+            "voice_rate": "+10%",
+            "voice_pitch": "+0Hz",
+            "accent_markers": ["Speaks normally"],
+            "catchphrases": ["Hello!"],
+            "pronunciation": {},
+            "preferred_engine": "edge",
+        }
+        char_dir = build_character(config, tmpdir)
+        
+        assert os.path.isdir(char_dir)
+        assert os.path.isfile(os.path.join(char_dir, "character.yaml"))
+        assert os.path.isdir(os.path.join(char_dir, "sprites"))
+        assert os.path.isdir(os.path.join(char_dir, "prompts"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "system_prompt.md"))
+        
+        with open(os.path.join(char_dir, "character.yaml")) as f:
+            data = yaml.safe_load(f)
+        assert data["identity"]["name"] == "TestBot"
+        assert data["voice"]["edge_voice"] == "en-US-GuyNeural"
+
+def test_character_loader_compatibility():
+    """Verify wizard output can be loaded by the real character_loader."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config = {
+            "name": "TestBot",
+            "display_name": "TestBot AI 🤖",
+            "tagline": "Testing!",
+            "description": "A test character for loader compatibility",
+            "theme_colors": {"primary": "#FF0000", "secondary": "#00FF00", "accent": "#0000FF", "text": "#FFFFFF"},
+            "edge_voice": "en-US-GuyNeural",
+            "voice_rate": "+10%",
+            "voice_pitch": "+0Hz",
+            "accent_markers": ["Speaks normally"],
+            "catchphrases": ["Hello!", "Testing one two three!"],
+            "pronunciation": {},
+            "preferred_engine": "edge",
+        }
+        char_dir = build_character(config, tmpdir)
+        char_name = os.path.basename(char_dir)
+        
+        # Load using the REAL character_loader
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "shared"))
+        from character_loader import CharacterLoader
+        loader = CharacterLoader(tmpdir, char_name)
+        
+        assert loader.name == "TestBot"
+        assert loader.voice_config["edge_voice"] == "en-US-GuyNeural"
+        assert loader.theme_colors is not None
+        assert loader.emotion_sprite_map is not None
+        assert loader.state_sprite_map is not None
+        
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "system_prompt.md"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "idle_prompt.md"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "phases.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "greetings.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "guest_type_hints.yaml"))
+        assert os.path.isfile(os.path.join(char_dir, "prompts", "time_flavors.yaml"))
