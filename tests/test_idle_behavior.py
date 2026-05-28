@@ -206,7 +206,7 @@ class TestUniqueSelection:
     def test_handles_empty_pool(self):
         ib = IdleBehavior()
         result = ib._pick_unique([], "empty")
-        assert result == "Wahoo!"
+        assert result == "..."
 
 
 # ── TestMemorialEvent ────────────────────────────────────────────────────

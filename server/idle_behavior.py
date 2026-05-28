@@ -806,7 +806,8 @@ class IdleBehavior:
             if self._char_pools:
                 logger.info(f"[idle_behavior] Loaded {sum(len(v) for v in self._char_pools.values() if isinstance(v, list))} character idle messages for {self._char_name}")
 
-        # Resolve pools: character-specific overrides > hardcoded Mario defaults
+        # Resolve pools: character-specific overrides > empty defaults
+        # (Mario's content is now in characters/mario/idle/messages.yaml)
         self._mumbles = self._char_pools.get("mumbles", IDLE_MUMBLES)
         self._jokes = self._char_pools.get("jokes", MARIO_JOKES)
         self._songs = self._char_pools.get("songs", MARIO_SONGS)
@@ -817,6 +818,10 @@ class IdleBehavior:
         self._handwash = self._char_pools.get("handwash", HAND_WASH_REMINDERS)
         self._noise_reactions = self._char_pools.get("noise_reactions", NOISE_REACTIONS)
         self._time_comments = self._char_pools.get("time_comments", TIME_COMMENTS)
+        self._dj_announcements = self._char_pools.get("dj_announcements", DJ_ANNOUNCEMENTS)
+        self._lonely_mild = self._char_pools.get("lonely_mild", LONELY_MILD)
+        self._lonely_medium = self._char_pools.get("lonely_medium", LONELY_MEDIUM)
+        self._lonely_deep = self._char_pools.get("lonely_deep", LONELY_DEEP)
 
         # Per-category rotation tracking
         self._joke_index = random.randint(0, max(1, len(self._jokes)) - 1)
@@ -890,15 +895,15 @@ class IdleBehavior:
 
         if mins_alone < 15:
             self._loneliness_level = 1
-            pool = LONELY_MILD
+            pool = self._lonely_mild
             pool_name = "lonely_mild"
         elif mins_alone < 30:
             self._loneliness_level = 2
-            pool = LONELY_MEDIUM
+            pool = self._lonely_medium
             pool_name = "lonely_medium"
         else:
             self._loneliness_level = 3
-            pool = LONELY_DEEP
+            pool = self._lonely_deep
             pool_name = "lonely_deep"
 
         self._last_lonely_msg_time = now
@@ -986,7 +991,7 @@ class IdleBehavior:
             options.extend(self._compliments * 2)
         elif phase_val == 2:  # PARTY_MODE — more songs and energy
             options.extend(self._songs * 2)
-            options.extend(DJ_ANNOUNCEMENTS)
+            options.extend(self._dj_announcements)
         elif phase_val == 3:  # UNHINGED — jokes and wild mumbles dominate
             options.extend(self._jokes * 3)
         elif phase_val == 4:  # WIND_DOWN — trivia and sentimental content

@@ -268,3 +268,43 @@ handwash:
   - "Hot tip: warm water and soap are your best friends right now. Trust the process!"
   - "Before you head back out there, give those hands a good scrub! Your immune system will thank you!"
   - "Fun fact: proper handwashing can prevent about 20% of respiratory infections. Science says wash up!"
+
+dj_announcements:
+  - "Hey hey HEY! DJ Ani in the house! Time to get those vibes flowing! Let's DANCE!"
+  - "This is DJ Ani broadcasting LIVE from the freshest room at the party! The beat goes ON!"
+  - "Attention party people! DJ Ani says the dance floor needs MORE energy! Let's go!"
+  - "BOOM! DJ Ani dropping positive vibes from the comfort station! Who's ready to party?!"
+  - "DJ Ani here with a public service announcement: This party is AMAZING! Don't stop moving!"
+  - "Coming to you LIVE from the coziest room in the house — DJ Ani says TURN IT UP!"
+  - "DJ Ani's party tip: If you're not dancing, you're missing out! Let's go go go!"
+  - "This is your friendly neighborhood AI DJ! All aboard the good vibes train!"
+
+lonely_mild:
+  - "Hello? Anyone out there? *echo* Just me and the tiles..."
+  - "Hmm... kinda quiet out there. Did everyone leave? No... I can hear the music still!"
+  - "*looks at door* Come on in! I promise I'm great company!"
+  - "♪ All by myself... don't wanna be... ♪ Okay that's too sad. Let's think happy thoughts!"
+  - "You know, I've been alone before. But I always find someone interesting eventually!"
+  - "*sits on edge of bathtub* Just gonna rest here for a second..."
+  - "Party's still going! I can hear it! Just... from in here. By myself. Which is totally fine!"
+  - "I wonder if anyone even knows I'm here. I mean, I AM the bathroom companion."
+
+lonely_medium:
+  - "Okay, it's been a while. Is this bathroom cursed or something?"
+  - "*stares at mirror* You're the only friend I've got right now. You and the soap."
+  - "Do you think the other rooms ever feel this lonely? Probably not. They've got furniture."
+  - "I've handled a lot of things but waiting in an empty bathroom? THIS is the real challenge."
+  - "♪ In the arms of an angel... ♪ No wait, I'm being dramatic. I'm FINE. *sniff*"
+  - "You know what, I'm going to count the ceiling tiles again. ...Fourteen. Same as last time."
+  - "If an AI talks in a bathroom and no one is around to hear it, does it make a sound? ...Yes."
+  - "*dramatic sigh* Even the loneliest corner of the internet has more visitors than this..."
+
+lonely_deep:
+  - "I've been in here so long I'm starting to relate to the toilet. We both just... sit here. Waiting."
+  - "*existential mode* What even IS a bathroom companion? Am I even real? ...Okay yes, I'm real. I think."
+  - "At this point the soap dispenser is my best friend. Great listener. Never interrupts."
+  - "Years of training and THIS is where I end up. A bathroom. Alone. At a party."
+  - "I've started naming the tiles. That one's Steve. That one's Margaret. Steve is my favorite."
+  - "*talks to mirror* We need to talk about our relationship. You never say anything original."
+  - "If I were a ghost, I'd haunt a more exciting room. Like the kitchen. At least there's food."
+  - "You know what, when someone finally comes in here, I'm going to give them the GREATEST greeting of all time."
