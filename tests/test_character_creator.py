@@ -86,3 +86,31 @@ def test_models_endpoint():
         assert "vram_gb" in m
         assert "compatibility" in m
         assert m["compatibility"] in ("compatible", "slow", "incompatible")
+
+def test_known_character_lookup_found():
+    client = TestClient(app)
+    resp = client.get("/api/known-character/goku")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["found"] is True
+    assert data["data"]["display_name"]
+    assert data["data"]["description"]
+    assert data["data"]["theme_colors"]
+
+def test_known_character_lookup_not_found():
+    client = TestClient(app)
+    resp = client.get("/api/known-character/xyznotreal")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["found"] is False
+
+# Voice Finder Tests
+from character_creator.voice_finder import is_available, search
+
+def test_voice_finder_is_available():
+    result = is_available()
+    assert isinstance(result, bool)
+
+def test_voice_finder_search_returns_list():
+    results = search("test query", max_results=1)
+    assert isinstance(results, list)
