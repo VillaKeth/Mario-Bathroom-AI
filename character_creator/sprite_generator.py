@@ -147,3 +147,84 @@ def get_all_poses() -> dict:
         })
 
     return {"emotions": unique_emotions, "states": states}
+
+import asyncio
+import uuid
+import httpx
+from pathlib import Path
+
+# Track background generation tasks
+_generation_tasks = {}
+
+async def generate_single_pose(char_name: str, visual_description: str, art_style: str,
+                                 pose_name: str, pose_prompt: str, output_dir: str) -> dict:
+    """Generate a single sprite pose using SubNP API."""
+    style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
+    full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
+    
+    output_path = os.path.join(output_dir, f"{pose_name}.png")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "https://subnp.com/api/free/generate",
+                json={"prompt": full_prompt, "model": "magic"},
+                timeout=60,
+            )
+            if resp.status_code == 200:
+                with open(output_path, "wb") as f:
+                    f.write(resp.content)
+                
+                # Try background removal
+                try:
+                    from rembg import remove
+                    from PIL import Image
+                    import io
+                    input_img = Image.open(output_path)
+                    output_img = remove(input_img)
+                    output_img.save(output_path)
+                except ImportError:
+                    logger.warning("rembg not installed, skipping background removal")
+                except Exception as e:
+                    logger.warning(f"Background removal failed for {pose_name}: {e}")
+                
+                return {"pose": pose_name, "status": "done", "path": output_path}
+            else:
+                return {"pose": pose_name, "status": "failed", "error": f"API returned {resp.status_code}"}
+    except Exception as e:
+        logger.error(f"Sprite generation failed for {pose_name}: {e}")
+        return {"pose": pose_name, "status": "failed", "error": str(e)}
+
+async def generate_all_poses(task_id: str, char_name: str, visual_description: str,
+                               art_style: str, output_dir: str):
+    """Generate all sprite poses as a background task."""
+    all_poses = {}
+    for name, prompt in POSE_PROMPTS.items():
+        category = EMOTION_SPRITES.get(name, SPECIAL_EMOTIONS.get(name, name))
+        all_poses[name] = {"prompt": prompt, "category": category}
+    for name, prompt in STATE_PROMPTS.items():
+        all_poses[f"state_{name}"] = {"prompt": prompt, "category": f"states/{name}"}
+    
+    total = len(all_poses)
+    completed = 0
+    results = []
+    
+    _generation_tasks[task_id] = {
+        "status": "running", "total": total, "completed": 0,
+        "current": "", "results": results,
+    }
+    
+    for pose_name, info in all_poses.items():
+        _generation_tasks[task_id]["current"] = pose_name
+        pose_dir = os.path.join(output_dir, info["category"].split("/")[0] if "/" in info["category"] else "")
+        result = await generate_single_pose(char_name, visual_description, art_style,
+                                              pose_name, info["prompt"], output_dir)
+        results.append(result)
+        completed += 1
+        _generation_tasks[task_id]["completed"] = completed
+    
+    _generation_tasks[task_id]["status"] = "completed"
+
+def get_task_status(task_id: str) -> dict:
+    return _generation_tasks.get(task_id, {"status": "not_found"})

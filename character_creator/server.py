@@ -10,6 +10,8 @@ import httpx
 import edge_tts
 import base64
 import shutil
+import asyncio
+import uuid
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -220,6 +222,25 @@ async def list_draft(name: str):
             if os.path.isdir(cat_path):
                 result["sprites"][cat] = os.listdir(cat_path)
     return result
+
+@app.post("/api/sprites/generate")
+async def start_sprite_generation(body: dict):
+    from character_creator.sprite_generator import generate_all_poses, _generation_tasks
+    task_id = str(uuid.uuid4())[:8]
+    char_name = body.get("character_name", "unknown")
+    visual_desc = body.get("visual_description", "")
+    art_style = body.get("art_style", "3d_figurine")
+    output_dir = os.path.join(os.path.dirname(__file__), "_drafts", char_name, "sprites")
+    os.makedirs(output_dir, exist_ok=True)
+    
+    asyncio.create_task(generate_all_poses(task_id, char_name, visual_desc, art_style, output_dir))
+    
+    return {"task_id": task_id, "status": "started", "total_poses": 37}
+
+@app.get("/api/sprites/status/{task_id}")
+async def sprite_generation_status(task_id: str):
+    from character_creator.sprite_generator import get_task_status
+    return get_task_status(task_id)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

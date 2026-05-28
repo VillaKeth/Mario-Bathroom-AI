@@ -170,3 +170,14 @@ def test_upload_audio_endpoint():
     assert data_resp["success"] is True
     assert "_drafts" in data_resp["path"]
 
+def test_sprite_generation_start():
+    client = TestClient(app)
+    resp = client.post("/api/sprites/generate", json={
+        "character_name": "test_gen",
+        "visual_description": "A friendly robot with blue eyes",
+        "art_style": "3d_figurine",
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "task_id" in data
+    assert data["status"] == "started"
