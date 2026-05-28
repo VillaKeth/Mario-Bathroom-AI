@@ -36,8 +36,9 @@
 - [x] Wire set_character() calls in main.py for all 7 new modules
 - [x] Created characters/mario/idle/messages.yaml (700+ entries extracted from hardcoded constants)
 - [x] 247 character-related tests passing
-- [ ] Generate proper AI sprites for Ani (replace Pillow placeholders)
-- [ ] Find reliable free image generation API (SubNP down, Pollinations rate-limited)
+- [x] Generate proper AI sprites for Ani (replace Pillow placeholders) — 41/41 via Pollinations.ai
+- [x] Generate all Sonic character sprites — 38/38 complete
+- [x] Find reliable free image generation API (SubNP down, Pollinations rate-limited) — Pollinations works with 90-120s delay
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)
@@ -793,6 +794,49 @@
 - [ ] Run generate_expanded_poses.py --category reactions (10 reaction poses)
 - [ ] Run generate_expanded_poses.py --category birthday (5 birthday poses)
 - [ ] Run generate_expanded_poses.py --category gaming (5 gaming poses)
+
+## Honkai: Star Rail Character Sprites — IN PROGRESS 🔄
+- [x] Add 34 HSR character visual descriptions to CHARACTER_STYLES
+- [x] Create shared _HSR_POSES template (40 poses across 12 categories)
+- [x] Create character.yaml configs for all 34 HSR characters
+- [x] Create character directories (sprites, games, memories, voice, catchphrases)
+- [x] Create batch_generate_hsr.py automated generator script
+- [ ] Complete Sonic sprite generation (in progress)
+- [ ] Retry Rudi positive/charmed sprite (rate limited)
+- [ ] Generate sprites for Stelle
+- [ ] Generate sprites for March 7th
+- [ ] Generate sprites for Dan Heng
+- [ ] Generate sprites for Himeko
+- [ ] Generate sprites for Welt
+- [ ] Generate sprites for Kafka
+- [ ] Generate sprites for Silver Wolf
+- [ ] Generate sprites for Seele
+- [ ] Generate sprites for Blade
+- [ ] Generate sprites for Jing Yuan
+- [ ] Generate sprites for Bronya
+- [ ] Generate sprites for Clara
+- [ ] Generate sprites for Fu Xuan
+- [ ] Generate sprites for Jingliu
+- [ ] Generate sprites for Topaz
+- [ ] Generate sprites for Ruan Mei
+- [ ] Generate sprites for Dr. Ratio
+- [ ] Generate sprites for Black Swan
+- [ ] Generate sprites for Sparkle
+- [ ] Generate sprites for Acheron
+- [ ] Generate sprites for Aventurine
+- [ ] Generate sprites for Robin
+- [ ] Generate sprites for Firefly
+- [ ] Generate sprites for Sunday
+- [ ] Generate sprites for The Herta
+- [ ] Generate sprites for Luocha
+- [ ] Generate sprites for Argenti
+- [ ] Generate sprites for Huohuo
+- [ ] Generate sprites for Gallagher
+- [ ] Generate sprites for Boothill
+- [ ] Generate sprites for Yunli
+- [ ] Generate sprites for Feixiao
+- [ ] Generate sprites for Lingsha
+- [ ] Generate sprites for Jiaoqiu
 - [ ] Review generated images and re-run any that look bad
 - [ ] Verify transparent backgrounds look clean in mario_display
 - [ ] Test new EMOTION_SPRITE_MAP list-based random selection in live display
