@@ -1094,10 +1094,10 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         max_r = get_adaptive_rounds("mario_trivia", 5, state)
         questions = _mix_jacob_trivia(MARIO_TRIVIA_QUESTIONS, count=max_r)
         if not questions:
-            return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
+            return "I ran out of trivia questions! Let's play something else!"
         max_r = min(max_r, len(questions))
         if max_r == 0:
-            return "Mama mia! I ran out of trivia questions! Let's-a play something else!"
+            return "I ran out of trivia questions! Let's play something else!"
         state["_active_game"] = "mario_trivia"
         state["_game_state"] = {
             "questions": questions[:max_r],
@@ -1111,14 +1111,14 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         intro = f"{_CHARACTER_DISPLAY_NAME.upper()} TRIVIA TIME!"
         if has_birthday:
             intro += " With BIRTHDAY SPECIAL questions about our guest of honor!"
-        intro += f" {max_r} questions — let's-a see how smart you are! Question 1: {first_q}"
+        intro += f" {max_r} questions — let's see how smart you are! Question 1: {first_q}"
         return intro
 
     # --- Name That Character ---
     if game_name == "name_that_character":
         chars = list(NAME_THAT_CHARACTER)
         if not chars:
-            return "Mama mia! I ran out of characters to describe! Let's-a play something else!"
+            return "I ran out of characters to describe! Let's play something else!"
         random.shuffle(chars)
         max_r = min(5, len(chars))
         state["_active_game"] = "name_that_character"
@@ -1138,7 +1138,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
     if game_name == "bathroom_dare":
         dares = list(BATHROOM_DARES)
         if not dares:
-            return "Mama mia! I ran out of dares! Let's-a play something else!"
+            return "I ran out of dares! Let's play something else!"
         random.shuffle(dares)
         max_r = 3
         state["_active_game"] = "bathroom_dare"
@@ -1150,7 +1150,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         }
         emotion_sys.current = Emotion.MISCHIEVOUS
         first_dare = dares[0]
-        return f"BATHROOM DARE TIME! Mario's got some challenges for you! Dare 1 of {max_r}: {first_dare} Say 'done' when you finish, or 'skip' if you're chicken! Bawk bawk!"
+        return f"BATHROOM DARE TIME! {_CHARACTER_DISPLAY_NAME}'s got some challenges for you! Dare 1 of {max_r}: {first_dare} Say 'done' when you finish, or 'skip' if you're chicken! Bawk bawk!"
 
     # --- Story Builder ---
     if game_name == "story_builder":
@@ -1181,7 +1181,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         }
         emotion_sys.current = Emotion.MISCHIEVOUS
         q = combined[0]
-        return f"WOULD YOU RATHER — MARIO EDITION! The CRAZIEST choices from the Mushroom Kingdom! Round 1 of {max_rounds}! Would you rather: A) {q['a']} OR B) {q['b']}? Say A or B!"
+        return f"WOULD YOU RATHER — {_CHARACTER_DISPLAY_NAME.upper()} EDITION! The CRAZIEST choices! Round 1 of {max_rounds}! Would you rather: A) {q['a']} OR B) {q['b']}? Say A or B!"
 
     return None
 
@@ -1226,8 +1226,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         state["_game_state"] = {}
         emotion_sys.current = Emotion.HAPPY
         if game == "twenty_questions":
-            return (f"The answer was '{gs.get('answer', '???')}'! Thanks for playing! Wahoo!", "game_over")
-        return (f"Game over! Final score: {score}! Thanks for playing {game_name}! Wahoo!", "game_over")
+            return (f"The answer was '{gs.get('answer', '???')}'! Thanks for playing!", "game_over")
+        return (f"Game over! Final score: {score}! Thanks for playing {game_name}!", "game_over")
 
     # --- Simon Says ---
     if game == "simon_says":
@@ -1240,17 +1240,17 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             if correct:
                 gs["score"] += 1
                 feedback = random.choice([
-                    "CORRECT! Wahoo!",
-                    "You got it! Smart-a cookie!",
-                    "RIGHT! You're-a good at this!",
-                    "YES! Mario is-a impressed!",
+                        "CORRECT! Nice!",
+                        "You got it! Smart cookie!",
+                        "RIGHT! You're good at this!",
+                        f"YES! {_CHARACTER_DISPLAY_NAME} is impressed!",
                 ])
                 sfx = "correct"
             else:
                 if is_simon and didnt:
                     feedback = "Oops! Simon DID say it! You should have done it!"
                 else:
-                    feedback = "HA! Simon DIDN'T say it! You fell for my trick! Mama mia!"
+                    feedback = "HA! Simon DIDN'T say it! You fell for my trick!"
                 sfx = "wrong"
 
             gs["round"] += 1
@@ -1295,7 +1295,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             ql = gs["questions_left"]
             state["_game_state"] = {}
             emotion_sys.current = Emotion.EXCITED
-            return (f"YES! It's-a {answer}! You got it with {ql} questions left! WAHOO! You're-a genius!", "correct")
+            return (f"YES! It's {answer}! You got it with {ql} questions left! You're a genius!", "correct")
 
         # Yes/no response to their question
         gs["questions_left"] -= 1
@@ -1319,26 +1319,26 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
     if game == "truth_or_dare":
         if "truth" in lower:
             if not TRUTH_QUESTIONS:
-                return ("Mama mia! I ran out of truth questions! Let's-a play something else!", "game_over")
+                return ("I ran out of truth questions! Let's play something else!", "game_over")
             truth = random.choice(TRUTH_QUESTIONS)
             gs["round"] += 1
             emotion_sys.current = Emotion.MISCHIEVOUS
             if gs["round"] > gs["max_rounds"]:
                 state["_active_game"] = None
                 state["_game_state"] = {}
-                return (f"TRUTH! {truth} ...And that's the final round! Great game! Wahoo!", "game_over")
+                return (f"TRUTH! {truth} ...And that's the final round! Great game!", "game_over")
             return (f"TRUTH! {truth} Tell me your answer, then say 'truth' or 'dare' for round {gs['round']}!", None)
 
         if "dare" in lower:
             if not DARES:
-                return ("Mama mia! I ran out of dares! Let's-a play something else!", "game_over")
+                return ("I ran out of dares! Let's play something else!", "game_over")
             dare = random.choice(DARES)
             gs["round"] += 1
             emotion_sys.current = Emotion.EXCITED
             if gs["round"] > gs["max_rounds"]:
                 state["_active_game"] = None
                 state["_game_state"] = {}
-                return (f"DARE! {dare} ...And that's the final round! You're-a brave! Wahoo!", "game_over")
+                return (f"DARE! {dare} ...And that's the final round! You're brave!", "game_over")
             return (f"DARE! {dare} When you're done, say 'truth' or 'dare' for round {gs['round']}!", None)
 
         return ("Say 'truth' or 'dare'! Or 'quit' to stop playing!", None)
@@ -1361,7 +1361,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_game_state"] = {}
             emotion_sys.current = Emotion.EXCITED
             if attempts == 1:
-                return (f"WAHOO! '{answer.upper()}'! You got it on the FIRST try! You're-a a GENIUS!", "correct")
+                return (f"WAHOO! '{answer.upper()}'! You got it on the FIRST try! You're a GENIUS!", "correct")
             return (f"YES! The answer is '{answer.upper()}'! You got it in {attempts} guesses! Bravo!", "correct")
 
         if gs["attempts"] >= gs["max_attempts"]:
@@ -1398,25 +1398,25 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             score = gs["score"]
             state["_game_state"] = {}
             emotion_sys.current = Emotion.EXCITED
-            return (f"WAHOO! {score} words in the chain! You're-a the Word Chain CHAMPION! Incredible!", "achievement")
+            return (f"WAHOO! {score} words in the chain! You're the Word Chain CHAMPION! Incredible!", "achievement")
 
-        # Mario's turn
-        mario_letter = player_word[-1]
-        MARIO_WORDS = {
-            "a": "adventure", "b": "bowser", "c": "castle", "d": "dragon", "e": "exciting",
-            "f": "fireball", "g": "galaxy", "h": "hero", "i": "invincible", "j": "jumping",
-            "k": "kingdom", "l": "luigi", "m": "mushroom", "n": "nintendo", "o": "odyssey",
-            "p": "princess", "q": "quest", "r": "rainbow", "s": "starlight", "t": "toadstool",
-            "u": "underwater", "v": "victory", "w": "wahoo", "x": "extreme", "y": "yoshi", "z": "zap",
+        # AI's turn
+        ai_letter = player_word[-1]
+        AI_WORDS = {
+            "a": "adventure", "b": "brilliant", "c": "castle", "d": "daring", "e": "exciting",
+            "f": "fantastic", "g": "galaxy", "h": "hero", "i": "invincible", "j": "jumping",
+            "k": "kingdom", "l": "legendary", "m": "mystery", "n": "nimble", "o": "odyssey",
+            "p": "powerful", "q": "quest", "r": "rainbow", "s": "starlight", "t": "triumph",
+            "u": "unstoppable", "v": "victory", "w": "wonder", "x": "extreme", "y": "youthful", "z": "zap",
         }
-        mario_word = MARIO_WORDS.get(mario_letter, f"{mario_letter}ario")
-        while mario_word in gs["used_words"]:
-            mario_word = mario_word + "s"
-        gs["used_words"].append(mario_word)
-        gs["last_word"] = mario_word
-        next_letter = mario_word[-1].upper()
+        ai_word = AI_WORDS.get(ai_letter, f"{ai_letter}ario")
+        while ai_word in gs["used_words"]:
+            ai_word = ai_word + "s"
+        gs["used_words"].append(ai_word)
+        gs["last_word"] = ai_word
+        next_letter = ai_word[-1].upper()
         emotion_sys.current = Emotion.HAPPY
-        return (f"Nice! '{player_word}'! My turn: '{mario_word.upper()}'! Now you say a word starting with '{next_letter}'! Score: {gs['score']}!", "correct")
+        return (f"Nice! '{player_word}'! My turn: '{ai_word.upper()}'! Now you say a word starting with '{next_letter}'! Score: {gs['score']}!", "correct")
 
     # --- Rapid Fire Quiz ---
     if game == "rapid_fire":
@@ -1424,7 +1424,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if current_idx >= len(gs["questions"]):
             state["_active_game"] = None
             state["_game_state"] = {}
-            return (f"Quiz over! Score: {gs['score']}/{gs['max_rounds']}! Wahoo!", "game_over")
+            return (f"Quiz over! Score: {gs['score']}/{gs['max_rounds']}!", "game_over")
 
         question = gs["questions"][current_idx]
         answer = question["a"].lower()
@@ -1444,7 +1444,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 total = gs["max_rounds"]
                 state["_game_state"] = {}
                 emotion_sys.current = Emotion.EXCITED
-                return (f"CORRECT! Final score: {score}/{total} in {elapsed:.0f}s! Wahoo! You're a Mario expert!", "achievement")
+                return (f"CORRECT! Final score: {score}/{total} in {elapsed:.0f}s! You're an expert!", "achievement")
             else:
                 next_q = gs["questions"][next_idx]["q"]
                 return (f"YES! Q{next_idx + 1}: {next_q}", "correct")
@@ -1472,16 +1472,16 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if gs["current"] >= len(gs["questions"]):
             state["_active_game"] = None
             state["_game_state"] = {}
-            return ("Game over! Great choices! Wahoo!", "game_over")
+            return ("Game over! Great choices!", "game_over")
         q = gs["questions"][gs["current"]]
         chosen_text = q["a"] if chose_a else q["b"]
         gs["choices"].append(choice)
 
         reactions = [
-            f"Interesting! You chose: {chosen_text}! Mario likes-a that answer!",
-            f"{chosen_text}? Great choice! Mario would pick the same!",
-            f"Ooh, {chosen_text}! Bold move! Wahoo!",
-            f"{chosen_text} — that's-a spicy choice! I love it!",
+            f"Interesting! You chose: {chosen_text}! {_CHARACTER_DISPLAY_NAME} likes that answer!",
+            f"{chosen_text}? Great choice! {_CHARACTER_DISPLAY_NAME} would pick the same!",
+            f"Ooh, {chosen_text}! Bold move!",
+            f"{chosen_text} — that's a spicy choice! I love it!",
         ]
         reaction = random.choice(reactions)
 
@@ -1490,7 +1490,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_active_game"] = None
             state["_game_state"] = {}
             emotion_sys.current = Emotion.HAPPY
-            return (f"{reaction} Game over! Great choices! You're-a unique! Wahoo!", "game_over")
+            return (f"{reaction} Game over! Great choices! You're unique!", "game_over")
         else:
             next_q = gs["questions"][gs["current"]]
             next_round = gs["current"] + 1
@@ -1503,7 +1503,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         player_scissors = any(w in lower for w in ["scissors", "cut", "snip"])
 
         if not player_rock and not player_paper and not player_scissors:
-            return ("Say 'rock', 'paper', or 'scissors'! Let's-a battle!", None)
+            return ("Say 'rock', 'paper', or 'scissors'! Let's battle!", None)
 
         if player_rock:
             player_choice = "rock"
@@ -1529,8 +1529,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             reaction = random.choice(RPS_WIN_REACTIONS)
             sfx = "wrong"
 
-        status = f"You: {player_choice.upper()} vs Mario: {mario_choice.upper()}! {reaction}"
-        score_text = f"Score — You: {gs['player_score']} | Mario: {gs['mario_score']}"
+        status = f"You: {player_choice.upper()} vs {_CHARACTER_DISPLAY_NAME}: {mario_choice.upper()}! {reaction}"
+        score_text = f"Score — You: {gs['player_score']} | {_CHARACTER_DISPLAY_NAME}: {gs['mario_score']}"
 
         gs["round"] += 1
         if gs["round"] > gs["max_rounds"]:
@@ -1540,13 +1540,13 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_game_state"] = {}
             if p > m:
                 emotion_sys.current = Emotion.HAPPY
-                return (f"{status} {score_text} — YOU WIN the battle! Mama mia, you're-a TOUGH!", "achievement")
+                return (f"{status} {score_text} — YOU WIN the battle! You're TOUGH!", "achievement")
             elif m > p:
                 emotion_sys.current = Emotion.EXCITED
-                return (f"{status} {score_text} — MARIO WINS! Ha ha! Better luck next time!", "game_over")
+                return (f"{status} {score_text} — {_CHARACTER_DISPLAY_NAME.upper()} WINS! Ha ha! Better luck next time!", "game_over")
             else:
                 emotion_sys.current = Emotion.SURPRISED
-                return (f"{status} {score_text} — It's a DRAW! We're-a perfectly matched! Wahoo!", "game_over")
+                return (f"{status} {score_text} — It's a DRAW! We're perfectly matched!", "game_over")
 
         return (f"{status} {score_text} | Round {gs['round']} of {gs['max_rounds']}! Say rock, paper, or scissors!", sfx)
 
@@ -1582,7 +1582,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 state["_active_game"] = None
                 state["_game_state"] = {}
                 emotion_sys.current = Emotion.EXCITED
-                return (f"YES! '{guess.upper()}' is correct! The word is {word.upper()}! YOU WIN! WAHOO! You're-a a genius!", "achievement")
+                return (f"YES! '{guess.upper()}' is correct! The word is {word.upper()}! YOU WIN! You're a genius!", "achievement")
             count = word.count(guess)
             emotion_sys.current = Emotion.HAPPY
             return (f"YES! '{guess.upper()}' is in there {count} time{'s' if count > 1 else ''}! {display} | Wrong: {gs['wrong_guesses']}/{gs['max_wrong']} | Guess another letter!", "correct")
@@ -1609,27 +1609,27 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if gs["current"] >= len(gs["takes"]):
             state["_active_game"] = None
             state["_game_state"] = {}
-            return ("That's all my takes! Wahoo!", "game_over")
+            return ("That's all my takes!", "game_over")
         current_take = gs["takes"][gs["current"]]
 
         if agrees:
             gs["agreements"] += 1
             defend_reactions = [
-                f"YES! You GET it! \"{current_take}\" — that's just FACTS! Wahoo!",
-                f"FINALLY someone with TASTE! Mario KNEW you'd agree! We're-a soulmates!",
+                f"YES! You GET it! \"{current_take}\" — that's just FACTS!",
+                f"FINALLY someone with TASTE! {_CHARACTER_DISPLAY_NAME} KNEW you'd agree! We're soulmates!",
                 f"See?! I TOLD everyone! Thank you for having a BRAIN! Ha ha!",
-                f"That's RIGHT! You and Mario are on the same wavelength! High five!",
-                f"WAHOO! A person of CULTURE! I'm-a so happy right now!",
+                f"That's RIGHT! You and {_CHARACTER_DISPLAY_NAME} are on the same wavelength! High five!",
+                f"A person of CULTURE! I'm so happy right now!",
             ]
             reaction = random.choice(defend_reactions)
             emotion_sys.current = Emotion.EXCITED
             sfx = "correct"
         else:
             concede_reactions = [
-                f"WHAT?! You DISAGREE with \"{current_take}\"?! Mama mia, we need to TALK!",
-                f"Oh come ON! How can you not see the TRUTH?! Mario is-a SHOCKED!",
+                f"WHAT?! You DISAGREE with \"{current_take}\"?! We need to TALK!",
+                f"Oh come ON! How can you not see the TRUTH?! {_CHARACTER_DISPLAY_NAME} is SHOCKED!",
                 f"Fine fine, you're entitled to your WRONG opinion! Ha ha! Just kidding... mostly!",
-                f"DISAGREE?! That's-a like saying spaghetti isn't delicious! UNBELIEVABLE!",
+                f"DISAGREE?! UNBELIEVABLE!",
                 f"Okay okay, I RESPECT your view... but you're still WRONG! He he!",
             ]
             reaction = random.choice(concede_reactions)
@@ -1643,11 +1643,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             total = gs["max_rounds"]
             state["_game_state"] = {}
             if agreed == total:
-                return (f"{reaction} That's all my takes! You agreed with ALL {total}! We're-a BEST FRIENDS now! Wahoo!", "achievement")
+                return (f"{reaction} That's all my takes! You agreed with ALL {total}! We're BEST FRIENDS now!", "achievement")
             elif agreed == 0:
-                return (f"{reaction} That's all my takes! You disagreed with EVERYTHING! Mama mia, we're-a RIVALS! Ha ha!", "game_over")
+                return (f"{reaction} That's all my takes! You disagreed with EVERYTHING! We're RIVALS! Ha ha!", "game_over")
             else:
-                return (f"{reaction} That's all my takes! You agreed with {agreed} out of {total}! Not bad! Wahoo!", "game_over")
+                return (f"{reaction} That's all my takes! You agreed with {agreed} out of {total}! Not bad!", "game_over")
 
         next_take = gs["takes"][gs["current"]]
         next_round = gs["current"] + 1
@@ -1662,32 +1662,32 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             if gs["current"] >= len(gs["prompts"]):
                 state["_active_game"] = None
                 state["_game_state"] = {}
-                return ("That's all the rounds! Wahoo!", "game_over")
+                return ("That's all the rounds!", "game_over")
             current_prompt = gs["prompts"][gs["current"]]
 
             if i_have:
                 gs["daring_score"] += 1
                 reactions_have = [
-                    "MAMA MIA! You actually did that?! Ha ha ha!",
-                    "WAHOO! You're-a WILD one! I can't believe it!",
-                    "NO WAY! You really did?! Mario is-a SHOCKED!",
-                    "Oh my COINS! For real?! That's-a hilarious!",
-                    "MAMA MIA! I knew you were brave but THAT brave?!",
-                    "HA! You're-a crazier than Bowser on a Monday!",
-                    "I'm-a speechless! Actually no I'm not — WAHOO!",
+                    "Whoa! You actually did that?! Ha ha ha!",
+                    "You're a WILD one! I can't believe it!",
+                    f"NO WAY! You really did?! {_CHARACTER_DISPLAY_NAME} is SHOCKED!",
+                    "Oh my! For real?! That's hilarious!",
+                    "I knew you were brave but THAT brave?!",
+                    "HA! You're crazier than I thought!",
+                    "I'm speechless! Actually no I'm not — AMAZING!",
                 ]
                 reaction = random.choice(reactions_have)
                 emotion_sys.current = Emotion.SURPRISED
                 sfx = "coin"
             else:
                 confessions = [
-                    "Smart choice! Mario hasn't either... okay MAYBE once!",
+                    f"Smart choice! {_CHARACTER_DISPLAY_NAME} hasn't either... okay MAYBE once!",
                     "Same here! Well... actually... no comment! He he!",
                     "Good, good! Between you and me, I TOTALLY have though! Shh!",
-                    "You haven't? Neither have I! ...Why is Luigi laughing?",
-                    "Wise choice! I wish I could say the same! Mama mia!",
-                    "Ha! You're-a playing it safe! Unlike me at last Tuesday's party!",
-                    "Neither have I! ...Okay Luigi says I'm lying but DON'T LISTEN TO HIM!",
+                    "You haven't? Neither have I!",
+                    "Wise choice! I wish I could say the same!",
+                    "Ha! You're playing it safe! Unlike me at last Tuesday's party!",
+                    "Neither have I! ...Or have I?!",
                 ]
                 reaction = random.choice(confessions)
                 emotion_sys.current = Emotion.MISCHIEVOUS
@@ -1699,12 +1699,12 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 score = gs["daring_score"]
                 state["_game_state"] = {}
                 if score <= 1:
-                    rating = "You're-a CAUTIOUS! Playing it safe like a true Toad!"
+                    rating = "You're CAUTIOUS! Playing it safe!"
                 elif score <= 3:
-                    rating = "You're-a ADVENTUROUS! A real explorer like Mario!"
+                    rating = "You're ADVENTUROUS! A real explorer!"
                 else:
-                    rating = "You're-a WILD! Even Wario says 'WHOA, calm down!'"
-                return (f"{reaction} That's all the rounds! You said 'I have' {score} times out of {gs['max_rounds']}! {rating} Wahoo!", "achievement")
+                    rating = "You're WILD! Even I say 'WHOA, calm down!'"
+                return (f"{reaction} That's all the rounds! You said 'I have' {score} times out of {gs['max_rounds']}! {rating}", "achievement")
 
             next_prompt = gs["prompts"][gs["current"]]
             next_round = gs["current"] + 1
@@ -1719,7 +1719,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if current_idx >= len(gs["questions"]):
             state["_active_game"] = None
             state["_game_state"] = {}
-            return (f"Trivia over! Score: {gs['score']}/{gs['max_rounds']}! Wahoo!", "game_over")
+            return (f"Trivia over! Score: {gs['score']}/{gs['max_rounds']}!", "game_over")
 
         question = gs["questions"][current_idx]
         accepted = question["accept"]
@@ -1745,10 +1745,10 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 ])
             else:
                 feedback = random.choice([
-                    "CORRECT! Wahoo! You REALLY know your Mario!",
-                    "YES! That's-a RIGHT! You're a true Mario fan!",
-                    "MAMA MIA! You got it! Impressive!",
-                    "WAHOO! Correct! Are you secretly a Toad scholar?!",
+                    "CORRECT! You REALLY know your stuff!",
+                    "YES! That's RIGHT! You're a true fan!",
+                    "You got it! Impressive!",
+                    "Correct! Are you secretly a scholar?!",
                 ])
             feedback += fun_fact_line
             sfx = "correct"
@@ -1774,11 +1774,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_active_game"] = None
             state["_game_state"] = {}
             if score == total:
-                return (f"{feedback} PERFECT SCORE! {score}/{total}! You're a MARIO MASTER! Wahoo!", "achievement")
+                return (f"{feedback} PERFECT SCORE! {score}/{total}! You're a MASTER!", "achievement")
             elif score >= 3:
                 return (f"{feedback} Final score: {score}/{total}! Great job, you know your stuff!", "game_over")
             else:
-                return (f"{feedback} Final score: {score}/{total}! Time to play more Mario games! Ha ha!", "game_over")
+                return (f"{feedback} Final score: {score}/{total}! Time to study up! Ha ha!", "game_over")
         else:
             next_q = gs["questions"][next_idx]["q"]
             return (f"{feedback} Question {next_idx + 1}: {next_q}", sfx)
@@ -1804,7 +1804,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             if elapsed < 5:
                 feedback = f"LIGHTNING FAST! {elapsed:.1f} seconds! You INSTANTLY knew it! INCREDIBLE!"
             elif elapsed < 15:
-                feedback = f"Nice! {elapsed:.1f} seconds! Quick thinker! Wahoo!"
+                feedback = f"Nice! {elapsed:.1f} seconds! Quick thinker!"
             else:
                 feedback = f"You got it in {elapsed:.1f} seconds! A bit slow but CORRECT!"
             sfx = "correct"
@@ -1820,11 +1820,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_active_game"] = None
             state["_game_state"] = {}
             if score == total:
-                return (f"{feedback} PERFECT! {score}/{total} in {total_time:.0f}s total! You know EVERYONE in the Mushroom Kingdom!", "achievement")
+                return (f"{feedback} PERFECT! {score}/{total} in {total_time:.0f}s total! You know EVERYONE!", "achievement")
             elif score >= 3:
                 return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Not bad at all!", "game_over")
             else:
-                return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Time to study your Mario characters!", "game_over")
+                return (f"{feedback} Final: {score}/{total} in {total_time:.0f}s! Time to study your characters!", "game_over")
         else:
             gs["round_start"] = time.time()
             next_desc = gs["characters"][next_idx]["desc"]
@@ -1844,11 +1844,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if did_it:
             gs["completed"] += 1
             reactions = [
-                "WAHOO! You actually DID it! Mario is-a SO PROUD of you!",
-                "INCREDIBLE! You're braver than me fighting Bowser! Respect!",
+                f"WAHOO! You actually DID it! {_CHARACTER_DISPLAY_NAME} is SO PROUD of you!",
+                "INCREDIBLE! You're braver than most! Respect!",
                 "YES! You're a CHAMPION! That took GUTS! Ha ha!",
-                "MAMA MIA! You really did it?! You're AMAZING! Wahoo!",
-                "BRAVO! Standing ovation from Mario! *clap clap clap*",
+                "You really did it?! You're AMAZING!",
+                f"BRAVO! Standing ovation from {_CHARACTER_DISPLAY_NAME}! *clap clap clap*",
             ]
             reaction = random.choice(reactions)
             sfx = "correct"
@@ -1856,7 +1856,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         elif skipped:
             reactions = [
                 "Bawk bawk BAWK! Chicken! Ha ha, just kidding! It's okay!",
-                "Skipped! Mario understands, not everyone can be as brave as a plumber!",
+                "Skipped! Not everyone can be that brave!",
                 "No worries! That one WAS pretty tough! Maybe next time!",
                 "Oh come ON! ...Fine fine, we'll move on! Ha ha!",
             ]
@@ -1875,11 +1875,11 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             state["_active_game"] = None
             state["_game_state"] = {}
             if completed == total:
-                return (f"{reaction} ALL DARES COMPLETED! {completed}/{total}! You're the DARE CHAMPION! Wahoo!", "achievement")
+                return (f"{reaction} ALL DARES COMPLETED! {completed}/{total}! You're the DARE CHAMPION!", "achievement")
             elif completed > 0:
                 return (f"{reaction} Dares over! You completed {completed}/{total}! Not bad!", "game_over")
             else:
-                return (f"{reaction} Dares over! You skipped them ALL?! Mama mia! Ha ha!", "game_over")
+                return (f"{reaction} Dares over! You skipped them ALL?! Ha ha!", "game_over")
 
         next_dare = gs["dares"][next_idx]
         return (f"{reaction} Dare {next_idx + 1} of {gs['max_rounds']}: {next_dare} Say 'done' or 'skip'!", sfx)
@@ -1900,26 +1900,26 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                 state["_active_game"] = None
                 state["_game_state"] = {}
                 emotion_sys.current = Emotion.HAPPY
-                return (f"THE END! What a MASTERPIECE! Here's our story: {full_story} ...WAHOO! We should write a BOOK together!", "achievement")
+                return (f"THE END! What a MASTERPIECE! Here's our story: {full_story} ...We should write a BOOK together!", "achievement")
 
-            # Mario adds his part
-            mario_continuations = [
-                "And THEN, out of NOWHERE, a giant Goomba appeared wearing sunglasses and said 'What's up?!'",
-                "But WAIT! Bowser showed up riding a skateboard and doing kickflips! Nobody expected THAT!",
-                "Suddenly the ground started shaking and a GOLDEN pipe burst through the floor!",
-                "Just when things couldn't get crazier, Luigi showed up with a BOOMBOX blasting the Mario theme!",
-                "And then — PLOT TWIST — it was all a dream! Just kidding! A Koopa in a tuxedo appeared!",
-                "BUT the Star Power activated and EVERYTHING turned to disco lights and funky music!",
-                "Out of the shadows, Toad appeared carrying the BIGGEST pizza anyone had ever seen!",
-                "And in that exact moment, a Bullet Bill flew by carrying a love letter from Princess Peach!",
-                "Then Waluigi crashed through the wall on a motorcycle yelling 'WAAAH!' at the top of his lungs!",
-                "Suddenly a warp pipe opened and 50 coins came flying out like a golden fountain!",
+            # AI adds its part
+            ai_continuations = [
+                "And THEN, out of NOWHERE, a mysterious figure appeared wearing sunglasses and said 'What's up?!'",
+                "But WAIT! A villain showed up riding a skateboard and doing kickflips! Nobody expected THAT!",
+                "Suddenly the ground started shaking and a GOLDEN treasure burst through the floor!",
+                "Just when things couldn't get crazier, a stranger showed up with a BOOMBOX blasting music!",
+                "And then — PLOT TWIST — it was all a dream! Just kidding! A butler in a tuxedo appeared!",
+                "BUT the power activated and EVERYTHING turned to disco lights and funky music!",
+                "Out of the shadows, a tiny hero appeared carrying the BIGGEST pizza anyone had ever seen!",
+                "And in that exact moment, a flying machine flew by carrying a mysterious love letter!",
+                "Then a wild card character crashed through the wall on a motorcycle yelling at the top of their lungs!",
+                "Suddenly a portal opened and 50 gold coins came flying out like a golden fountain!",
             ]
-            mario_part = random.choice(mario_continuations)
-            gs["story"].append(mario_part)
+            ai_part = random.choice(ai_continuations)
+            gs["story"].append(ai_part)
             gs["whose_turn"] = "player"
             rnd = gs["current_round"]
-            return (f"LOVE IT! Mario's turn: {mario_part} ...Round {rnd} of {gs['max_rounds']}! YOUR turn! Add the next part!", "correct")
+            return (f"LOVE IT! My turn: {ai_part} ...Round {rnd} of {gs['max_rounds']}! YOUR turn! Add the next part!", "correct")
 
         return ("It's YOUR turn! Add a sentence to the story!", None)
 
@@ -1934,18 +1934,18 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         if gs["current"] >= len(gs["questions"]):
             state["_active_game"] = None
             state["_game_state"] = {}
-            return ("All rounds done! Wahoo!", "game_over")
+            return ("All rounds done!", "game_over")
         q = gs["questions"][gs["current"]]
         chosen_text = q["a"] if chose_a else q["b"]
         other_text = q["b"] if chose_a else q["a"]
         gs["choices"].append({"choice": choice, "text": chosen_text})
 
         dramatic_reactions = [
-            f"MAMA MIA! You chose '{chosen_text}' over '{other_text}'?! That says SO MUCH about you! Ha ha!",
-            f"'{chosen_text}'?! REALLY?! Mario would have picked '{other_text}'! We're-a so different! Wahoo!",
+            f"Whoa! You chose '{chosen_text}' over '{other_text}'?! That says SO MUCH about you! Ha ha!",
+            f"'{chosen_text}'?! REALLY?! {_CHARACTER_DISPLAY_NAME} would have picked '{other_text}'! We're so different!",
             f"Interesting! '{chosen_text}'! You know what, I RESPECT that choice! Bold move!",
-            f"WAHOO! '{chosen_text}'! That's the choice of a TRUE adventurer! Or maybe a crazy person! Either way I love it!",
-            f"'{chosen_text}'! Ooh ooh ooh! {random.choice(['Luigi', 'Peach', 'Toad', 'Bowser'])} would be SO jealous of that answer!",
+            f"'{chosen_text}'! That's the choice of a TRUE adventurer! Or maybe a crazy person! Either way I love it!",
+            f"'{chosen_text}'! Ooh ooh ooh! Great answer!",
         ]
         reaction = random.choice(dramatic_reactions)
 
@@ -1955,7 +1955,7 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
             choices_summary = ", ".join([c["choice"] for c in gs["choices"]])
             state["_game_state"] = {}
             emotion_sys.current = Emotion.HAPPY
-            return (f"{reaction} All rounds done! Your choices were: {choices_summary}! You are TRULY one of a kind! Wahoo!", "game_over")
+            return (f"{reaction} All rounds done! Your choices were: {choices_summary}! You are TRULY one of a kind!", "game_over")
         else:
             next_q = gs["questions"][gs["current"]]
             next_round = gs["current"] + 1

@@ -1,5 +1,22 @@
 # Mario AI Party Bot - TODO
 
+## Character Creator Wizard (In Progress)
+- [ ] Build standalone FastAPI server for character creation wizard (port 8766)
+- [ ] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
+- [ ] Build known_characters.json database with 20-30 popular characters
+- [ ] Implement auto-fill for known characters (description, voice, theme colors)
+- [ ] Voice step: upload, record, or auto-find via yt-dlp for known characters
+- [ ] Voice engine priority display with hardware compatibility indicators
+- [ ] Appearance step: AI-generate 30 poses via SubNP or guided manual upload
+- [ ] Hardware auto-detection with model compatibility gating (green/yellow/red)
+- [ ] Single model default, advanced toggle for dual fast/quality model selection
+- [ ] Review & Create step: generates character.yaml, sprites, prompts, voice assets
+- [ ] Create create_character.bat launcher script
+- [ ] Update setup.bat to auto-launch wizard if no characters exist
+- [ ] Write docs/creating-a-character.md beginner guide
+- [ ] Write docs/character-format.md technical reference
+- [ ] Update README.md with zero-to-hero getting started section
+
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)
 - [x] TTSAuditor class with audit_phrase, audit_batch, suggest_fix
@@ -777,3 +794,4 @@
 - [x] Move FaceMemory initialization to happen after _character is loaded
 
 - [x] Implemented Task 5: Added /admin/tts_audit endpoint and debug monitor to server/main.py
+- [ ] Review character creator wizard spec readiness for planning
