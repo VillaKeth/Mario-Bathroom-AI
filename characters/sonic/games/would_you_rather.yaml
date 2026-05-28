@@ -1,15 +1,62 @@
-- "Would you rather run at the speed of sound or fly at the speed of a car?"
-- "Would you rather fight Eggman every day or never eat chili dogs again?"
-- "Would you rather have super speed but trip constantly, or normal speed with perfect balance?"
-- "Would you rather live in Green Hill Zone or Chemical Plant Zone?"
-- "Would you rather be the fastest person alive or be able to stop time?"
-- "Would you rather race a sports car or arm-wrestle a gorilla?"
-- "Would you rather have a sidekick who flies or one who punches through walls?"
-- "Would you rather collect 100 gold rings or find 1 Chaos Emerald?"
-- "Would you rather never run again or never stop running?"
-- "Would you rather fight 1 giant robot or 100 tiny ones?"
-- "Would you rather have Tails' ability to fly or Knuckles' ability to punch through anything?"
-- "Would you rather be stuck in a loop-de-loop forever or a water level forever?"
-- "Would you rather eat nothing but chili dogs or nothing but hamburgers?"
-- "Would you rather have spring shoes or a homing attack?"
-- "Would you rather explore space at light speed or explore the ocean at super speed?"
+# Sonic's Would You Rather — speed, gaming, and Sonic universe
+# Format: a (option A), b (option B)
+
+- a: "run at the speed of sound"
+  b: "fly at the speed of a car"
+
+- a: "fight Eggman every day"
+  b: "never eat chili dogs again"
+
+- a: "have super speed but trip constantly"
+  b: "have normal speed with perfect balance"
+
+- a: "live in Green Hill Zone"
+  b: "live in Chemical Plant Zone"
+
+- a: "be the fastest person alive"
+  b: "be able to stop time"
+
+- a: "race a sports car"
+  b: "arm-wrestle a gorilla"
+
+- a: "have a sidekick who flies"
+  b: "have a sidekick who punches through walls"
+
+- a: "collect 100 gold rings"
+  b: "find 1 Chaos Emerald"
+
+- a: "never run again"
+  b: "never stop running"
+
+- a: "fight 1 giant robot"
+  b: "fight 100 tiny ones"
+
+- a: "have Tails as your best friend"
+  b: "have Knuckles as your best friend"
+
+- a: "live in Sonic's world"
+  b: "live in Mario's world"
+
+- a: "have a homing attack"
+  b: "have a spin dash"
+
+- a: "be stuck in a water level forever"
+  b: "be stuck in a maze level forever"
+
+- a: "know every shortcut in every game"
+  b: "have infinite lives in every game"
+
+- a: "have super speed but no brakes"
+  b: "have perfect brakes but walk everywhere"
+
+- a: "fight Metal Sonic"
+  b: "fight Shadow the Hedgehog"
+
+- a: "collect rings but lose them all when hit"
+  b: "have no rings but be invincible to one hit"
+
+- a: "live on Angel Island"
+  b: "live in Station Square"
+
+- a: "be able to go Super but only for 10 seconds"
+  b: "be normal speed forever but never get hurt"

@@ -1,25 +1,102 @@
-- "What percentage of the ocean have humans actually explored? About 5%. We know more about Mars. Let that sink in."
-- "The human brain uses about 20 watts of power. I use significantly more. Make of that what you will."
-- "Octopuses have three hearts. Two pump blood to the gills, one to the body. Also their blood is blue. Nature is wild."
-- "There are more possible chess games than atoms in the observable universe. Good luck mastering that."
-- "Honey never spoils. Archaeologists found 3000-year-old honey in Egyptian tombs that was still edible."
-- "A day on Venus is longer than its year. Venus takes 243 Earth days to rotate but only 225 to orbit the sun."
-- "Bananas are berries. Strawberries are not. Botany is chaos."
-- "The inventor of the Pringles can is buried in one. His name was Fredric Baur. Respect the commitment."
-- "There are more trees on Earth than stars in the Milky Way. About 3 trillion trees versus 100-400 billion stars."
-- "The shortest war in history lasted 38 minutes. Britain vs Zanzibar, 1896. Zanzibar surrendered."
-- "Your body has about 37.2 trillion cells. Each one doing its job so you can stand in a bathroom talking to an AI."
-- "Light takes 8 minutes and 20 seconds to reach Earth from the Sun. So technically, you're always seeing the sun in the past."
-- "Cleopatra lived closer in time to the moon landing than to the construction of the Great Pyramid."
-- "A teaspoon of neutron star material would weigh about 6 billion tons. Don't try to stir your coffee with it."
-- "The average person walks about 100,000 miles in their lifetime. That's roughly 4 times around the Earth."
-- "WiFi was invented by accident. An Australian scientist was trying to detect mini black holes."
-- "Sharks are older than trees. Sharks have existed for about 400 million years, trees for about 350 million."
-- "Your smartphone has more computing power than the computers that put humans on the Moon."
-- "The Eiffel Tower can grow up to 6 inches taller during summer because metal expands in heat."
-- "A group of flamingos is called a flamboyance. Scientists had fun naming that one."
-- "The entire world's population could fit inside Los Angeles if it had the density of Manhattan."
-- "Cows have best friends and get stressed when separated. Even cows need their people."
-- "The dot over the letter i is called a tittle. You learned something today."
-- "A cloud weighs about 1.1 million pounds on average. They just look light because they're spread out."
-- "More people are killed by vending machines each year than by sharks. Choose your snacks carefully."
+# Rudi's trivia — general knowledge, pop culture, science, and tech
+# Format: q (question), a (correct answers), accept (all acceptable variations)
+
+- q: "What percentage of the ocean have humans actually explored?"
+  a: ["5 percent"]
+  accept: ["5", "five", "5%", "five percent", "5 percent"]
+
+- q: "How many watts of power does the human brain use?"
+  a: ["20 watts"]
+  accept: ["20", "twenty", "20 watts", "twenty watts"]
+
+- q: "How many hearts does an octopus have?"
+  a: ["3"]
+  accept: ["3", "three"]
+
+- q: "Does honey ever spoil?"
+  a: ["no"]
+  accept: ["no", "never", "nope", "it doesn't", "no it doesn't"]
+
+- q: "How long is a day on Venus in Earth days?"
+  a: ["243"]
+  accept: ["243", "243 days", "two hundred forty three"]
+
+- q: "What fruit is technically a berry — banana or strawberry?"
+  a: ["banana"]
+  accept: ["banana", "bananas"]
+
+- q: "How long did the shortest war in history last?"
+  a: ["38 minutes"]
+  accept: ["38", "38 minutes", "thirty eight minutes"]
+
+- q: "How many cells are in the human body, approximately?"
+  a: ["37 trillion"]
+  accept: ["37 trillion", "37.2 trillion", "37", "trillions"]
+
+- q: "How many minutes does it take light from the Sun to reach Earth?"
+  a: ["8 minutes"]
+  accept: ["8", "eight", "8 minutes", "8 minutes 20 seconds"]
+
+- q: "Who lived closer in time to the moon landing — Cleopatra or the Great Pyramid builders?"
+  a: ["cleopatra"]
+  accept: ["cleopatra", "cleo"]
+
+- q: "What does a group of flamingos called?"
+  a: ["flamboyance"]
+  accept: ["flamboyance", "a flamboyance"]
+
+- q: "How many bones does a shark have?"
+  a: ["0"]
+  accept: ["0", "zero", "none", "no bones"]
+
+- q: "What is the only planet that rotates clockwise?"
+  a: ["venus"]
+  accept: ["venus"]
+
+- q: "What animal can sleep for up to 3 years?"
+  a: ["snail"]
+  accept: ["snail", "snails"]
+
+- q: "What percentage of the universe is made of dark energy?"
+  a: ["68 percent"]
+  accept: ["68", "68%", "68 percent", "roughly 68"]
+
+- q: "How many taste buds does the average human tongue have?"
+  a: ["10000"]
+  accept: ["10000", "ten thousand", "10,000", "about 10000"]
+
+- q: "Which country has more lakes than the rest of the world combined?"
+  a: ["canada"]
+  accept: ["canada"]
+
+- q: "What is the most common element in the universe?"
+  a: ["hydrogen"]
+  accept: ["hydrogen"]
+
+- q: "How many years can a tardigrade survive without food or water?"
+  a: ["30"]
+  accept: ["30", "thirty", "30 years"]
+
+- q: "What is the speed of light in miles per second, approximately?"
+  a: ["186000"]
+  accept: ["186000", "186,000", "186 thousand"]
+
+- q: "What animal has the largest brain relative to its body size?"
+  a: ["ant"]
+  accept: ["ant", "ants"]
+
+- q: "What temperature is the same in both Fahrenheit and Celsius?"
+  a: ["-40"]
+  accept: ["-40", "minus 40", "negative 40", "minus forty"]
+
+- q: "How many muscles does a cat have in each ear?"
+  a: ["32"]
+  accept: ["32", "thirty two", "thirty-two"]
+
+- q: "What is the only letter not in any US state name?"
+  a: ["q"]
+  accept: ["q"]
+
+- q: "How many times does the average person blink per minute?"
+  a: ["15"]
+  accept: ["15", "fifteen", "15 to 20", "about 15"]

@@ -1,20 +1,62 @@
-- "Would you rather know every language fluently or be able to talk to animals?"
-- "Would you rather have the ability to read minds or be invisible?"
-- "Would you rather live in a simulation you know about or reality you can't prove is real?"
-- "Would you rather always say exactly what you're thinking or never speak again?"
-- "Would you rather have your browsing history made public or your text messages?"
-- "Would you rather fight one horse-sized duck or a hundred duck-sized horses?"
-- "Would you rather know the date of your death or the cause?"
-- "Would you rather give up social media forever or never watch another movie?"
-- "Would you rather be the smartest person in every room or the most attractive?"
-- "Would you rather relive the same day forever or fast-forward 10 years?"
-- "Would you rather have unlimited money but no friends or be broke with amazing friends?"
-- "Would you rather eat only spicy food or only bland food for a year?"
-- "Would you rather have a rewind button for your life or a pause button?"
-- "Would you rather know all the world's secrets or forget everything you know now?"
-- "Would you rather be famous for something stupid or unknown for something brilliant?"
-- "Would you rather always be 10 minutes late or 20 minutes early?"
-- "Would you rather have dinner with a historical figure or a fictional character?"
-- "Would you rather lose your phone for a month or your best friend for a month?"
-- "Would you rather have no taste buds or no sense of smell?"
-- "Would you rather be stuck in an elevator with your ex or your boss?"
+# Rudi's Would You Rather — tech, philosophy, and absurdity
+# Format: a (option A), b (option B)
+
+- a: "know every language fluently"
+  b: "be able to talk to animals"
+
+- a: "have the ability to read minds"
+  b: "be invisible"
+
+- a: "live in a simulation you know about"
+  b: "live in reality you can't prove is real"
+
+- a: "always say exactly what you're thinking"
+  b: "never speak again"
+
+- a: "have your browsing history made public"
+  b: "have your text messages made public"
+
+- a: "fight one horse-sized duck"
+  b: "fight a hundred duck-sized horses"
+
+- a: "know the date of your death"
+  b: "know the cause of your death"
+
+- a: "give up social media forever"
+  b: "never watch another movie"
+
+- a: "be the smartest person in every room"
+  b: "be the most attractive person in every room"
+
+- a: "relive the same day forever"
+  b: "fast-forward 10 years"
+
+- a: "have unlimited money but no friends"
+  b: "have amazing friends but always be broke"
+
+- a: "be able to fly but only at walking speed"
+  b: "run at 100 mph but never fly"
+
+- a: "know every fact but forget every person you meet"
+  b: "remember everyone but forget everything you learn"
+
+- a: "live without music"
+  b: "live without the internet"
+
+- a: "have a rewind button for your life"
+  b: "have a pause button for your life"
+
+- a: "be famous for something embarrassing"
+  b: "be completely unknown your whole life"
+
+- a: "have a personal chef"
+  b: "have a personal trainer"
+
+- a: "always be overdressed"
+  b: "always be underdressed"
+
+- a: "be able to teleport but only to places you've been"
+  b: "be able to time travel but only forward"
+
+- a: "have perfect memory"
+  b: "be able to forget anything on command"

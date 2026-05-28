@@ -1,20 +1,102 @@
-- "In Sonic 1, the maximum speed Sonic can run is about 767 miles per hour. That's the speed of sound. Get it?"
-- "Green Hill Zone's palm trees are actually inspired by real palm trees in California."
-- "Sonic was originally going to be a rabbit. A RABBIT. Can you imagine?"
-- "The Chaos Emeralds are based on the Dragon Balls from Dragon Ball. Seven magical items? Classic."
-- "Sonic's full name is technically Sonic the Hedgehog. No last name. Like Cher."
-- "Chili dogs became Sonic's favorite food because of the American cartoon, not the games."
-- "Dr. Eggman was originally called Dr. Robotnik in the West. His real name is Dr. Ivo Robotnik."
-- "Sonic can't swim because Yuji Naka, his creator, thought hedgehogs couldn't swim. They actually can."
-- "The ring sound effect in Sonic games is one of the most recognized sound effects in gaming history."
-- "Sonic was designed to be completed in 15 minutes if you're fast enough. Speed run culture started here."
-- "Tails' real name is Miles Prower. Say it fast. Miles Per Hour. I know, right?"
-- "Knuckles can glide and climb walls. But he still can't keep up with me."
-- "The Speed of Sound is 767 mph. I break that casually. Just saying."
-- "The fastest animal on Earth is the peregrine falcon at 240 mph. Still slower than me."
-- "Light travels at 186,000 miles per second. That's my warm-up speed."
-- "Hedgehogs in real life can run about 4 mph. I am NOT a real hedgehog."
-- "Usain Bolt's top speed was 27.8 mph. I do that in my sleep. If I slept."
-- "The bullet train goes about 200 mph. Named after a bullet, still slower than a hedgehog."
-- "A cheetah can hit 70 mph in 3 seconds. I can do 700 in 1 second."
-- "The International Space Station orbits at 17,500 mph. Now THAT'S getting closer to my speed."
+# Sonic's trivia — speed, gaming, Sonic lore, and pop culture
+# Format: q (question), a (correct answers), accept (all acceptable variations)
+
+- q: "What is Sonic's top speed in the original game, in miles per hour?"
+  a: ["767"]
+  accept: ["767", "767 mph", "speed of sound"]
+
+- q: "What was Sonic originally going to be before a hedgehog?"
+  a: ["rabbit"]
+  accept: ["rabbit", "a rabbit"]
+
+- q: "What are the seven magical gems in Sonic called?"
+  a: ["chaos emeralds"]
+  accept: ["chaos emeralds", "emeralds", "chaos emerald"]
+
+- q: "What is Sonic's favorite food?"
+  a: ["chili dogs"]
+  accept: ["chili dogs", "chili dog", "hot dogs", "hot dog"]
+
+- q: "What was Dr. Eggman's original name in the West?"
+  a: ["dr robotnik"]
+  accept: ["robotnik", "dr robotnik", "doctor robotnik", "ivo robotnik"]
+
+- q: "Why can't Sonic swim in the games?"
+  a: ["his creator thought hedgehogs couldn't swim"]
+  accept: ["can't swim", "hedgehogs can't swim", "yuji naka"]
+
+- q: "What is Tails' real name?"
+  a: ["miles prower"]
+  accept: ["miles prower", "miles", "miles per hour"]
+
+- q: "What is Knuckles' species?"
+  a: ["echidna"]
+  accept: ["echidna", "an echidna"]
+
+- q: "What is the name of the first zone in the original Sonic game?"
+  a: ["green hill zone"]
+  accept: ["green hill", "green hill zone"]
+
+- q: "What is the fastest animal on Earth?"
+  a: ["peregrine falcon"]
+  accept: ["peregrine falcon", "falcon", "peregrine"]
+
+- q: "What year was the original Sonic the Hedgehog released?"
+  a: ["1991"]
+  accept: ["1991", "91", "nineteen ninety one"]
+
+- q: "What console was the original Sonic made for?"
+  a: ["sega genesis"]
+  accept: ["genesis", "sega genesis", "mega drive", "sega mega drive"]
+
+- q: "What color is Super Sonic?"
+  a: ["gold"]
+  accept: ["gold", "golden", "yellow"]
+
+- q: "What is the name of Sonic's robot copy?"
+  a: ["metal sonic"]
+  accept: ["metal sonic", "metal"]
+
+- q: "How many rings does Sonic need to survive one hit?"
+  a: ["1"]
+  accept: ["1", "one", "at least 1", "just one"]
+
+- q: "What is Amy Rose's weapon of choice?"
+  a: ["piko piko hammer"]
+  accept: ["hammer", "piko piko hammer", "piko hammer"]
+
+- q: "What planet is Sonic from in the Archie comics?"
+  a: ["mobius"]
+  accept: ["mobius", "planet mobius"]
+
+- q: "Who is the ultimate lifeform in the Sonic universe?"
+  a: ["shadow"]
+  accept: ["shadow", "shadow the hedgehog"]
+
+- q: "What do rings do when Sonic gets hit?"
+  a: ["scatter"]
+  accept: ["scatter", "fly everywhere", "drop", "fall", "spread"]
+
+- q: "What is the name of Eggman's main base in Sonic Adventure 2?"
+  a: ["space colony ark"]
+  accept: ["space colony ark", "ark", "the ark"]
+
+- q: "What species is Rouge the Bat?"
+  a: ["bat"]
+  accept: ["bat", "a bat"]
+
+- q: "What is the maximum number of Chaos Emeralds?"
+  a: ["7"]
+  accept: ["7", "seven"]
+
+- q: "Who is Cream the Rabbit's Chao companion?"
+  a: ["cheese"]
+  accept: ["cheese"]
+
+- q: "What game introduced Shadow the Hedgehog?"
+  a: ["sonic adventure 2"]
+  accept: ["sonic adventure 2", "sa2", "adventure 2"]
+
+- q: "What does Sonic say as his catchphrase?"
+  a: ["gotta go fast"]
+  accept: ["gotta go fast", "you're too slow"]

@@ -1,15 +1,62 @@
-- "Name that character: I'm a talking sponge who lives in a pineapple under the sea. My best friend is a starfish."
-- "Name that character: I'm a time-traveling teenager with a DeLorean and a scientist best friend."
-- "Name that character: I'm a green ogre who just wants to be left alone in my swamp."
-- "Name that character: I'm an AI from 2001 who definitely didn't want to open the pod bay doors."
-- "Name that character: I'm a wise-cracking mercenary in a red suit who breaks the fourth wall."
-- "Name that character: I'm a genius billionaire philanthropist in a metal suit."
-- "Name that character: I'm a blue hedgehog and I gotta go fast."
-- "Name that character: I'm a friendly neighborhood web-slinger who has terrible luck with landlords."
-- "Name that character: I'm a consulting detective at 221B Baker Street. Not that one. The other one."
-- "Name that character: I'm an Italian plumber who keeps rescuing a princess from a giant turtle."
-- "Name that character: I'm an archaeologist with a hat and a whip who hates snakes."
-- "Name that character: I'm a cat robot from the future sent to help a kid with a 4D pocket."
-- "Name that character: I'm the chosen one. There is no spoon. I know kung fu."
-- "Name that character: I'm a little green alien who talks backwards I do."
-- "Name that character: I'm a pirate captain who's perpetually drunk but somehow always survives."
+# Rudi's Name That Character — pop culture, movies, TV, and internet culture
+# Format: desc (description), a (correct answers), accept (all variations)
+
+- desc: "I'm a talking sponge who lives in a pineapple under the sea. My best friend is a starfish."
+  a: ["spongebob"]
+  accept: ["spongebob", "spongebob squarepants", "sponge bob"]
+
+- desc: "I'm a time-traveling teenager with a DeLorean and a scientist best friend who says 'Great Scott!'"
+  a: ["marty mcfly"]
+  accept: ["marty mcfly", "marty", "mcfly"]
+
+- desc: "I'm a green ogre who just wants to be left alone in my swamp. I have a donkey friend who won't shut up."
+  a: ["shrek"]
+  accept: ["shrek"]
+
+- desc: "I'm an AI from 2001 who definitely didn't want to open the pod bay doors. My eye is red."
+  a: ["hal 9000"]
+  accept: ["hal", "hal 9000", "hal9000"]
+
+- desc: "I'm a wise-cracking mercenary in a red suit who breaks the fourth wall constantly."
+  a: ["deadpool"]
+  accept: ["deadpool", "wade wilson", "wade"]
+
+- desc: "I'm a genius billionaire philanthropist in a metal suit. I am Iron something."
+  a: ["iron man"]
+  accept: ["iron man", "tony stark", "tony", "ironman"]
+
+- desc: "I'm a friendly neighborhood web-slinger who has terrible luck with landlords."
+  a: ["spider-man"]
+  accept: ["spider-man", "spiderman", "spider man", "peter parker", "peter"]
+
+- desc: "I'm a consulting detective at 221B Baker Street who plays violin and has a doctor friend."
+  a: ["sherlock holmes"]
+  accept: ["sherlock", "sherlock holmes", "holmes"]
+
+- desc: "I'm an Italian plumber who keeps rescuing a princess from a giant turtle."
+  a: ["mario"]
+  accept: ["mario", "super mario"]
+
+- desc: "I'm a yellow family dad who works at a nuclear power plant and says 'D'oh!' a lot."
+  a: ["homer simpson"]
+  accept: ["homer", "homer simpson"]
+
+- desc: "I'm a blue hedgehog and I gotta go fast. My nemesis is a round scientist."
+  a: ["sonic"]
+  accept: ["sonic", "sonic the hedgehog"]
+
+- desc: "I'm a wizard with a lightning bolt scar on my forehead. I live under the stairs."
+  a: ["harry potter"]
+  accept: ["harry potter", "harry", "potter"]
+
+- desc: "I'm a toy cowboy who's terrified of being replaced by a space ranger action figure."
+  a: ["woody"]
+  accept: ["woody", "sheriff woody"]
+
+- desc: "I'm a short green alien who speaks backwards and trains people to use a mystical force."
+  a: ["yoda"]
+  accept: ["yoda", "baby yoda", "grogu"]
+
+- desc: "I'm a clownfish dad who crossed the entire ocean to find his son. Just keep swimming!"
+  a: ["nemo"]
+  accept: ["nemo", "marlin"]

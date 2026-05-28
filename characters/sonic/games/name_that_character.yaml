@@ -1,15 +1,62 @@
-- "Name that character: I'm a two-tailed fox who builds machines and follows a blue hedgehog everywhere."
-- "Name that character: I'm a red echidna who punches things and guards a big green gem."
-- "Name that character: I'm a pink hedgehog with a giant hammer who's obsessed with a certain blue guy."
-- "Name that character: I'm the ultimate life form. Black and red hedgehog. Very edgy."
-- "Name that character: I'm a fat scientist with a big mustache who builds robots. My IQ is 300."
-- "Name that character: I'm a cat princess from another dimension who controls fire."
-- "Name that character: I'm a bee that can fly and I'm way too cheerful for my own good."
-- "Name that character: I'm a crocodile who runs a detective agency and loves money."
-- "Name that character: I'm a purple cat from the future who uses psychic powers."
-- "Name that character: I'm a blue hedgehog who runs fast and loves chili dogs. Too easy?"
-- "Name that character: I'm a rabbit with a pet Chao and I'm way too polite."
-- "Name that character: I'm a hawk who rides hoverboards and talks a LOT of trash."
-- "Name that character: I'm a bat who's a spy and a jewel thief. I have wings."
-- "Name that character: I'm a robot copy of the real Sonic. They call me Metal."
-- "Name that character: I'm a genie-like being trapped in a lamp. My master is Dr. Eggman."
+# Sonic's Name That Character — gaming, Sonic universe, and pop culture
+# Format: desc (description), a (correct answers), accept (all variations)
+
+- desc: "I'm a two-tailed fox who can fly by spinning my tails like a helicopter. I build machines."
+  a: ["tails"]
+  accept: ["tails", "miles prower", "miles"]
+
+- desc: "I'm a red echidna who guards a giant emerald on a floating island. I don't chuckle."
+  a: ["knuckles"]
+  accept: ["knuckles", "knuckles the echidna"]
+
+- desc: "I'm a round scientist with a huge mustache who builds robots to take over the world."
+  a: ["eggman"]
+  accept: ["eggman", "dr eggman", "robotnik", "dr robotnik", "doctor eggman"]
+
+- desc: "I'm a pink hedgehog with a giant hammer who has a massive crush on a certain blue hero."
+  a: ["amy"]
+  accept: ["amy", "amy rose"]
+
+- desc: "I'm the ultimate lifeform, created on a space station. I have red stripes and hover shoes."
+  a: ["shadow"]
+  accept: ["shadow", "shadow the hedgehog"]
+
+- desc: "I'm a treasure-hunting bat who works for the government and has a thing for gems."
+  a: ["rouge"]
+  accept: ["rouge", "rouge the bat"]
+
+- desc: "I'm a robot version of a fast blue hedgehog. I was built to be faster than the original."
+  a: ["metal sonic"]
+  accept: ["metal sonic", "metal"]
+
+- desc: "I'm a giant water creature that lives inside a chaos emerald-powered shrine."
+  a: ["chaos"]
+  accept: ["chaos", "chaos 0"]
+
+- desc: "I'm a rabbit with a Chao companion named after a dairy product."
+  a: ["cream"]
+  accept: ["cream", "cream the rabbit"]
+
+- desc: "I'm a purple cat from another dimension with pyrokinetic powers."
+  a: ["blaze"]
+  accept: ["blaze", "blaze the cat"]
+
+- desc: "I'm a green hawk who leads a group of extreme gear riders."
+  a: ["jet"]
+  accept: ["jet", "jet the hawk"]
+
+- desc: "I'm a small blue creature that can evolve into different forms. I hang out in gardens."
+  a: ["chao"]
+  accept: ["chao", "a chao"]
+
+- desc: "I'm an Italian plumber in red overalls who jumps on things. My brother wears green."
+  a: ["mario"]
+  accept: ["mario", "super mario"]
+
+- desc: "I'm a Sega mascot from the 90s — a blue blur who collects golden rings at supersonic speed."
+  a: ["sonic"]
+  accept: ["sonic", "sonic the hedgehog"]
+
+- desc: "I'm a robot made by a scientist to be his greatest creation. I can copy weapons."
+  a: ["mega man"]
+  accept: ["mega man", "megaman", "rock man", "rockman"]
