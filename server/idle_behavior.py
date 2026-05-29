@@ -807,21 +807,21 @@ class IdleBehavior:
                 logger.info(f"[idle_behavior] Loaded {sum(len(v) for v in self._char_pools.values() if isinstance(v, list))} character idle messages for {self._char_name}")
 
         # Resolve pools: character-specific overrides > empty defaults
-        # (Mario's content is now in characters/mario/idle/messages.yaml)
-        self._mumbles = self._char_pools.get("mumbles", IDLE_MUMBLES)
-        self._jokes = self._char_pools.get("jokes", MARIO_JOKES)
-        self._songs = self._char_pools.get("songs", MARIO_SONGS)
-        self._trivia = self._char_pools.get("trivia_idle", MARIO_TRIVIA)
-        self._plumbing = self._char_pools.get("deep_thoughts", PLUMBING_FACTS)
-        self._challenges = self._char_pools.get("challenges", MARIO_CHALLENGES)
-        self._compliments = self._char_pools.get("compliments", MARIO_COMPLIMENTS)
-        self._handwash = self._char_pools.get("handwash", HAND_WASH_REMINDERS)
-        self._noise_reactions = self._char_pools.get("noise_reactions", NOISE_REACTIONS)
-        self._time_comments = self._char_pools.get("time_comments", TIME_COMMENTS)
-        self._dj_announcements = self._char_pools.get("dj_announcements", DJ_ANNOUNCEMENTS)
-        self._lonely_mild = self._char_pools.get("lonely_mild", LONELY_MILD)
-        self._lonely_medium = self._char_pools.get("lonely_medium", LONELY_MEDIUM)
-        self._lonely_deep = self._char_pools.get("lonely_deep", LONELY_DEEP)
+        # All character content lives in characters/<name>/idle/messages.yaml
+        self._mumbles = self._char_pools.get("mumbles", [])
+        self._jokes = self._char_pools.get("jokes", [])
+        self._songs = self._char_pools.get("songs", [])
+        self._trivia = self._char_pools.get("trivia_idle", [])
+        self._plumbing = self._char_pools.get("deep_thoughts", [])
+        self._challenges = self._char_pools.get("challenges", [])
+        self._compliments = self._char_pools.get("compliments", [])
+        self._handwash = self._char_pools.get("handwash", [])
+        self._noise_reactions = self._char_pools.get("noise_reactions", [])
+        self._time_comments = self._char_pools.get("time_comments", [])
+        self._dj_announcements = self._char_pools.get("dj_announcements", [])
+        self._lonely_mild = self._char_pools.get("lonely_mild", [])
+        self._lonely_medium = self._char_pools.get("lonely_medium", [])
+        self._lonely_deep = self._char_pools.get("lonely_deep", [])
 
         # Per-category rotation tracking
         self._joke_index = random.randint(0, max(1, len(self._jokes)) - 1)
@@ -1014,36 +1014,48 @@ class IdleBehavior:
         return choice
 
     def get_joke(self) -> str:
+        if not self._jokes:
+            return None
         joke = self._jokes[self._joke_index % len(self._jokes)]
         self._joke_index += 1
         return joke
 
     def get_trivia(self) -> str:
         combined = self._trivia + self._plumbing
+        if not combined:
+            return None
         fact = combined[self._trivia_index % len(combined)]
         self._trivia_index += 1
         return fact
 
     def get_song(self) -> str:
+        if not self._songs:
+            return None
         song = self._songs[self._song_index % len(self._songs)]
         self._song_index += 1
         return song
 
     def get_noise_reaction(self) -> str:
+        if not self._noise_reactions:
+            return None
         return self._pick_unique(self._noise_reactions, "noise_reactions")
 
     def get_challenge(self) -> str:
+        if not self._challenges:
+            return None
         challenge = self._challenges[self._challenge_index % len(self._challenges)]
         self._challenge_index += 1
         return challenge
 
     def get_compliment(self) -> str:
+        if not self._compliments:
+            return None
         compliment = self._compliments[self._compliment_index % len(self._compliments)]
         self._compliment_index += 1
         return compliment
 
     def get_idle_gossip_recap(self, party_gossip) -> str | None:
-        """When alone, Mario reflects on the party gossip out loud.
+        """When alone, the character reflects on the party gossip out loud.
         Takes the party_gossip instance and generates a self-talk line."""
         if party_gossip is None:
             return None
@@ -1053,17 +1065,17 @@ class IdleBehavior:
         # Trending topics
         trending = [(t, len(ids)) for t, ids in party_gossip._topic_mentions.items() if len(ids) >= 2]
         for topic, count in trending[:3]:
-            options.append(f"*talking to self* Everyone keeps-a talking about {topic}! {count} people mentioned it!")
+            options.append(f"*talking to self* Everyone keeps talking about {topic}! {count} people mentioned it!")
             options.append(f"*musing* If I hear one more person talk about {topic}... actually, I love it! Keep going!")
 
         # Rivalries
         for r in party_gossip._rivalries[-3:]:
-            options.append(f"*chuckling* The {r[0]} vs {r[1]} rivalry about {r[2]} is-a the best drama tonight!")
+            options.append(f"*chuckling* The {r[0]} vs {r[1]} rivalry about {r[2]} is the best drama tonight!")
             options.append(f"*dramatic whisper* {r[0]} and {r[1]} still disagree about {r[2]}... this is better than a soap opera!")
 
         # Alliances
         for a in party_gossip._alliances[-3:]:
-            options.append(f"*happy sigh* {a[0]} and {a[1]} bonding over {a[2]}... friendship is-a beautiful!")
+            options.append(f"*happy sigh* {a[0]} and {a[1]} bonding over {a[2]}... friendship is beautiful!")
 
         # Guest titles
         for gid, title in list(party_gossip._guest_titles.items())[-3:]:
@@ -1076,7 +1088,9 @@ class IdleBehavior:
         return random.choice(options)
 
     def get_hand_wash_reminder(self) -> str:
-        reminder = HAND_WASH_REMINDERS[self._hand_wash_index % len(HAND_WASH_REMINDERS)]
+        if not self._handwash:
+            return None
+        reminder = self._handwash[self._hand_wash_index % len(self._handwash)]
         self._hand_wash_index += 1
         return reminder
 

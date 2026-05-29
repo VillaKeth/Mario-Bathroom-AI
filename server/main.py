@@ -689,6 +689,15 @@ async def lifespan(app: FastAPI):
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
     command_handlers.set_character(_character.name, _character.display_name)
+    # Load character-specific content pools (easter eggs, secrets, dares, etc.)
+    _extras = _character.get_extras_content()
+    if _extras:
+        command_handlers.set_character_content(_extras)
+        logger.info(f"[CHARACTER] Extras content loaded ({len(_extras)} pools)")
+    else:
+        # No extras.yaml — clear all pools to prevent Mario content leaking
+        command_handlers.set_character_content({})
+        logger.info("[CHARACTER] No extras content — pools cleared")
 
     # Wire character identity into all modules with set_character()
     import party_report, party_stats as ps_mod, party_gossip as pg_mod
@@ -753,6 +762,32 @@ async def lifespan(app: FastAPI):
     if _char_guest_hints:
         mario_prompt.GUEST_TYPE_HINTS = _char_guest_hints
         logger.info(f"[CHARACTER] Guest type hints loaded ({len(_char_guest_hints)} types)")
+
+    # Wire time/day flavor text from character YAML
+    _char_time_flavors = _character.get_time_flavors()
+    if _char_time_flavors:
+        _time = _char_time_flavors.get("time", {})
+        _day = _char_time_flavors.get("day", {})
+        if _time:
+            mario_prompt._TIME_FLAVORS = _time
+        if _day:
+            # Convert string keys to int keys for day-of-week (0=Mon, 6=Sun)
+            _day_int = {}
+            _DAY_NAME_MAP = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+                             "friday": 4, "saturday": 5, "sunday": 6}
+            for dk, dv in _day.items():
+                if isinstance(dk, int):
+                    _day_int[dk] = dv
+                elif isinstance(dk, str) and dk.lower() in _DAY_NAME_MAP:
+                    _day_int[_DAY_NAME_MAP[dk.lower()]] = dv
+            if _day_int:
+                mario_prompt._DAY_FLAVORS = _day_int
+        logger.info(f"[CHARACTER] Time flavors loaded ({len(_time)} time, {len(_day)} day)")
+    else:
+        # Clear Mario-specific time flavors for non-Mario characters
+        mario_prompt._TIME_FLAVORS = {}
+        mario_prompt._DAY_FLAVORS = {}
+        logger.info("[CHARACTER] Time flavors cleared (no character-specific flavors)")
 
     # Reinitialize idle behavior with character-specific pools
     global idle_behavior

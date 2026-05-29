@@ -86,6 +86,9 @@ class CharacterLoader:
             "accent": "#FFD700", "text": "#FFFFFF",
         })
         self.particle_colors: list = visuals.get("particle_colors", [])
+        bg_dir = visuals.get("backgrounds_dir", "backgrounds/")
+        self.backgrounds_dir: str = str(self._resolve_path(bg_dir))
+        self.default_background: str = visuals.get("default_background", "")
 
         # Parse speech
         speech = self._config.get("speech", {})
@@ -226,6 +229,15 @@ class CharacterLoader:
         Returns empty dict if no idle messages file exists.
         """
         return self._load_yaml_file("idle/messages.yaml", default={})
+
+    def get_extras_content(self) -> dict:
+        """Load extras content pools from character's content/extras.yaml.
+
+        Returns dict mapping pool names to lists/dicts of content:
+        {"easter_eggs": {...}, "secrets": [...], "dares": [...], etc.}
+        Returns empty dict if no extras file exists.
+        """
+        return self._load_yaml_file("content/extras.yaml", default={})
 
     def get_loneliness_greetings(self) -> dict:
         """Load loneliness greeting pools from character's idle/loneliness.yaml."""

@@ -23,7 +23,48 @@ def set_character(name: str, display_name: str):
     _CHARACTER_DISPLAY_NAME = display_name
 
 
-# TODO: Move character-specific command content into per-character YAML files.
+def set_character_content(extras: dict):
+    """Load character-specific content pools from extras dict (from content/extras.yaml).
+
+    If the character provides content for a pool, use it.
+    If a pool key is missing from the extras dict, default to EMPTY so no
+    Mario content leaks into non-Mario characters.
+    """
+    global EASTER_EGGS, SECRETS, DARES, NICKNAMES, FORTUNES, MOOD_RESPONSES
+    global TWISTERS, STORIES, PICKUP_LINES, BATHROOM_TIPS, RAPS, MOTIVATIONS
+    global CONFESSIONS, ROASTS, BATHROOM_FACTS, PARTY_SUGGESTIONS, PERSONALITY_MODES
+
+    EASTER_EGGS = extras.get("easter_eggs", {})
+    SECRETS = extras.get("secrets", [])
+    DARES = extras.get("dares", [])
+    NICKNAMES = extras.get("nicknames", [])
+    FORTUNES = extras.get("fortunes", [])
+    MOOD_RESPONSES = extras.get("mood_responses", {})
+    TWISTERS = extras.get("twisters", [])
+    STORIES = extras.get("stories", [])
+    PICKUP_LINES = extras.get("pickup_lines", [])
+    BATHROOM_TIPS = extras.get("bathroom_tips", [])
+    RAPS = extras.get("raps", [])
+    MOTIVATIONS = extras.get("motivations", [])
+    CONFESSIONS = extras.get("confessions", [])
+    ROASTS = extras.get("roasts", [])
+    BATHROOM_FACTS = extras.get("bathroom_facts", [])
+    PARTY_SUGGESTIONS = extras.get("party_suggestions", [])
+    if "personality_modes" in extras:
+        PERSONALITY_MODES = extras["personality_modes"]
+
+    import logging
+    _pool_counts = {k: len(v) for k, v in {
+        "easter_eggs": EASTER_EGGS, "secrets": SECRETS, "dares": DARES,
+        "nicknames": NICKNAMES, "fortunes": FORTUNES, "mood_responses": MOOD_RESPONSES,
+        "twisters": TWISTERS, "stories": STORIES, "pickup_lines": PICKUP_LINES,
+        "bathroom_tips": BATHROOM_TIPS, "raps": RAPS, "motivations": MOTIVATIONS,
+        "confessions": CONFESSIONS, "roasts": ROASTS, "bathroom_facts": BATHROOM_FACTS,
+        "party_suggestions": PARTY_SUGGESTIONS,
+    }.items()}
+    logging.getLogger(__name__).info(
+        f"[command_handlers] Character content loaded: {sum(_pool_counts.values())} total items across {sum(1 for c in _pool_counts.values() if c > 0)}/{len(_pool_counts)} pools"
+    )
 # ---------------------------------------------------------------------------
 # Inline content data
 # ---------------------------------------------------------------------------
@@ -477,7 +518,9 @@ def handle_special_commands(
     # Tell me a secret — only generic requests
     if _word_count <= 7 and (any(w in lower for w in ["tell me a secret"]) or re.search(r'\bsecret\b', lower) or re.search(r'\bwhisper\b', lower)):
         emotion_system.current = "mischievous"
-        return _format_character_text(random.choice(SECRETS))
+        if SECRETS:
+            return _format_character_text(random.choice(SECRETS))
+        return None  # fall through to LLM
 
     # Trivia fun facts — only for explicit fact requests, NOT "trivia" which starts the game
     if any(w in lower for w in ["tell me a fact", "fun fact", "did you know"]):
@@ -745,7 +788,7 @@ def handle_special_commands(
         name = state.get("speaker_name") or "friend"
         roast_list = ROASTS[:]
         if not roast_list:
-            return f"{_CHARACTER_DISPLAY_NAME} says: I got nothing to say about you!"
+            return None  # fall through to LLM
         base_roast = _format_character_text(random.choice(roast_list)).format(name=name)
 
         # Build contextual roast using guest's conversation history
@@ -991,7 +1034,9 @@ def handle_special_commands(
     if any(w in lower for w in ["give me a nickname", "nickname me", "what's my nickname", "call me something"]):
         emotion_system.current = "mischievous"
         name = state.get("speaker_name") or "friend"
-        return _format_character_text(random.choice(NICKNAMES)).format(name=name)
+        if NICKNAMES:
+            return _format_character_text(random.choice(NICKNAMES)).format(name=name)
+        return None
 
     # Rate the party / how good is the party
     if any(w in lower for w in ["rate the party", "party rating", "rate this party", "how good is the party"]):
@@ -1009,7 +1054,9 @@ def handle_special_commands(
     # Tell my fortune / fortune teller
     if any(w in lower for w in ["tell my fortune", "fortune", "predict", "future", "crystal ball", "psychic"]):
         emotion_system.current = "mischievous"
-        return _format_character_text(random.choice(FORTUNES))
+        if FORTUNES:
+            return _format_character_text(random.choice(FORTUNES))
+        return None
 
     # How are you feeling / mood — only direct mood questions, not complex "how do you feel about X"
     if _word_count <= 6 and any(w in lower for w in ["how are you feeling", "what's your mood", "how are you doing", "you okay", "how do you feel", "are you happy"]):
@@ -1023,7 +1070,9 @@ def handle_special_commands(
     # Tongue twister
     if any(w in lower for w in ["tongue twister", "say something hard", "twist my tongue"]):
         emotion_system.current = "mischievous"
-        return _format_character_text(random.choice(TWISTERS))
+        if TWISTERS:
+            return _format_character_text(random.choice(TWISTERS))
+        return None
 
     # Tell me a story / story time → starts Story Builder game
     if _word_count <= 7 and any(w in lower for w in ["tell me a story", "story time", "bedtime story", "once upon a time"]):
@@ -1032,17 +1081,23 @@ def handle_special_commands(
     # Pickup line
     if any(w in lower for w in ["pickup line", "flirt", "rizz", "pick up line", "smooth line"]):
         emotion_system.current = "loving"
-        return _format_character_text(random.choice(PICKUP_LINES))
+        if PICKUP_LINES:
+            return _format_character_text(random.choice(PICKUP_LINES))
+        return None
 
     # Bathroom tip / etiquette
     if any(w in lower for w in ["bathroom tip", "etiquette", "bathroom advice", "bathroom rule"]):
         emotion_system.current = "proud"
-        return _format_character_text(random.choice(BATHROOM_TIPS))
+        if BATHROOM_TIPS:
+            return _format_character_text(random.choice(BATHROOM_TIPS))
+        return None
 
     # Rap for me
     if any(w in lower for w in ["rap for me", "freestyle", "spit bars", "drop a beat", "rap battle"]):
         emotion_system.current = "excited"
-        return _format_character_text(random.choice(RAPS))
+        if RAPS:
+            return _format_character_text(random.choice(RAPS))
+        return None
 
     # Motivate me / encouragement
     _sad_triggers = ["motivate me", "motivation", "inspire me", "i need encouragement",
@@ -1056,12 +1111,16 @@ def handle_special_commands(
     _sad_regex = re.search(r"(?:feeling|i'?m)\s+(?:\w+\s+)?(?:down|sad|terrible|awful|bad|upset|depressed|low|miserable)", lower)
     if any(w in lower for w in _sad_triggers) or _sad_regex:
         emotion_system.current = "loving"
-        return _format_character_text(random.choice(MOTIVATIONS))
+        if MOTIVATIONS:
+            return _format_character_text(random.choice(MOTIVATIONS))
+        return None
 
     # Confession mode
     if any(w in lower for w in ["i have a confession", "confess", "i need to tell you something", "can i tell you a secret"]):
         emotion_system.current = "surprised"
-        return _format_character_text(random.choice(CONFESSIONS))
+        if CONFESSIONS:
+            return _format_character_text(random.choice(CONFESSIONS))
+        return None
 
     # Shock/surprise reaction — common when guests first see Mario
     if _word_count <= 5 and any(w in lower for w in ["what the fuck", "what the hell", "wtf", "holy shit",
@@ -1367,12 +1426,16 @@ def handle_special_commands(
     # Bathroom facts
     if any(w in lower for w in ["bathroom fact", "fun bathroom fact", "hygiene fact", "toilet fact"]):
         emotion_system.current = Emotion.EXCITED
-        return _format_character_text(random.choice(BATHROOM_FACTS))
+        if BATHROOM_FACTS:
+            return _format_character_text(random.choice(BATHROOM_FACTS))
+        return None
 
     # Party suggestions / what should I do
     if any(w in lower for w in ["what should i do", "i'm bored at the party", "suggest something", "party suggestion"]):
         emotion_system.current = Emotion.EXCITED
-        return _format_character_text(random.choice(PARTY_SUGGESTIONS))
+        if PARTY_SUGGESTIONS:
+            return _format_character_text(random.choice(PARTY_SUGGESTIONS))
+        return None
 
     # Bathroom emergencies — toilet paper
     tp_triggers = ["no toilet paper", "out of toilet paper", "no paper", "need toilet paper", "no tp"]
