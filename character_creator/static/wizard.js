@@ -1674,9 +1674,22 @@ class WizardUI {
         this.state.clear();
     }
     
-    startServer() {
-        // This would typically launch the server or redirect to it
-        showToast('Feature not yet implemented', 'info');
+    async startServer() {
+        const charName = this.state.get('char_name') || 
+            document.querySelector('#success-details code')?.textContent?.split(/[/\\]/).pop();
+        
+        if (!charName) {
+            showToast('Could not determine character name', 'error');
+            return;
+        }
+        
+        try {
+            showToast('Setting active character...', 'info');
+            await api('POST', '/api/config/models', { character: charName });
+            showToast(`✅ Config updated! "${charName}" is now the active character. Run start.bat to launch the game server.`, 'success');
+        } catch (e) {
+            showToast(`Error: ${e.message}`, 'error');
+        }
     }
     
     createAnother() {
