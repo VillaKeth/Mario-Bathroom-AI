@@ -2,12 +2,14 @@
 import os
 import yaml
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 
 # Import emotion/state sprites from sprite_generator
 from character_creator.sprite_generator import (
-    EMOTION_SPRITES, EMOTION_ALIASES, SPECIAL_EMOTIONS, STATE_SPRITES
+    EMOTION_SPRITES, EMOTION_ALIASES, SPECIAL_EMOTIONS, STATE_SPRITES,
+    POSE_PROMPTS, STATE_PROMPTS
 )
 
 
@@ -65,8 +67,200 @@ def build_character(config: dict, characters_dir: str) -> str:
     # Generate memories lore
     _write_yaml(char_dir, "memories/lore.yaml", {"facts": []})
     
+    # Auto-generate placeholder sprites so character is immediately usable
+    _generate_placeholder_sprites(char_dir, config)
+    
     logger.info(f"Character '{name}' created at {char_dir}")
     return char_dir
+
+
+def _generate_placeholder_sprites(char_dir: str, config: dict):
+    """Auto-generate placeholder sprites so the character works immediately.
+    
+    Uses Pillow to create simple expressive face sprites for every
+    emotion and state pose. No external API needed — instant results.
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        logger.warning("Pillow not installed — skipping placeholder sprite generation")
+        return
+    
+    sprites_dir = os.path.join(char_dir, "sprites")
+    
+    # Get theme colors for the character's placeholder faces
+    theme = config.get("theme_colors", {})
+    primary_hex = theme.get("primary", "#7B2FBE")
+    secondary_hex = theme.get("secondary", "#1E90FF")
+    accent_hex = theme.get("accent", "#FFD700")
+    
+    def hex_to_rgb(h):
+        h = h.lstrip("#")
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+    
+    primary_rgb = hex_to_rgb(primary_hex)
+    secondary_rgb = hex_to_rgb(secondary_hex)
+    accent_rgb = hex_to_rgb(accent_hex)
+    
+    # Category-to-color mapping using character theme
+    cat_colors = {
+        "positive": primary_rgb,
+        "negative": secondary_rgb,
+        "thinking": tuple((p + s) // 2 for p, s in zip(primary_rgb, secondary_rgb)),
+        "neutral": tuple(min(c + 40, 255) for c in primary_rgb),
+        "speech": tuple(min(c + 60, 255) for c in secondary_rgb),
+        "greeting": accent_rgb,
+        "reactions": primary_rgb,
+        "sleep": tuple(c // 2 for c in secondary_rgb),
+        "movement": tuple((p + a) // 2 for p, a in zip(primary_rgb, accent_rgb)),
+        "party": accent_rgb,
+        "memorial": tuple(c // 2 for c in primary_rgb),
+        "toast": accent_rgb,
+        "birthday": accent_rgb,
+        "states": secondary_rgb,
+    }
+    
+    # Expression map: (mouth, eyes, extras)
+    expressions = {
+        "happy": ("grin", "happy", None), "excited": ("open", "wide", "sparkles"),
+        "laughing": ("open", "happy", None), "love": ("smile", "happy", "hearts"),
+        "proud": ("smile", "normal", "star"), "sad": ("frown", "sad", "tear"),
+        "angry": ("frown", "angry", None), "annoyed": ("pout", "angry", None),
+        "nervous": ("neutral", "wide", "sweat"), "scared": ("gasp", "wide", "sweat"),
+        "embarrassed": ("neutral", "closed", "blush"), "disgusted": ("pout", "normal", None),
+        "grossed_out": ("gasp", "wide", None), "confused": ("neutral", "normal", "question"),
+        "thinking": ("neutral", "normal", "thought_bubble"), "curious": ("smile", "wide", None),
+        "determined": ("neutral", "angry", None), "mischievous": ("grin", "wink", None),
+        "shocked": ("gasp", "wide", "exclaim"), "idea": ("open", "wide", "lightbulb"),
+        "surprised": ("gasp", "wide", None), "mind_blown": ("gasp", "wide", "explosion"),
+        "sassy": ("grin", "wink", None), "cringe": ("pout", "closed", None),
+        "impressed": ("smile", "wide", "sparkles"), "sleepy": ("neutral", "closed", "zzz"),
+        "neutral": ("smile", "normal", None), "idle": ("smile", "normal", None),
+        "memorial": ("neutral", "closed", None), "toast": ("smile", "normal", None),
+        "party": ("grin", "happy", "confetti"), "birthday": ("grin", "happy", "confetti"),
+        "talking": ("open", "normal", None), "talking_excited": ("open", "happy", None),
+        "listening": ("smile", "normal", None), "wave": ("grin", "happy", None),
+        "sleeping": ("neutral", "closed", "zzz"), "dancing": ("grin", "happy", None),
+        "entering": ("grin", "happy", None), "farewell": ("smile", "sad", None),
+    }
+    
+    def _draw_sprite(pose_name: str, category: str, size=512) -> Image.Image:
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img, "RGBA")
+        color = cat_colors.get(category, primary_rgb)
+        cx, cy = size // 2, size // 2
+        radius = int(size * 0.35)
+        expr = expressions.get(pose_name, ("smile", "normal", None))
+        mouth_type, eye_type, extras = expr
+        
+        r, g, b = color
+        # Head with gradient
+        for i in range(radius, 0, -1):
+            factor = 0.6 + 0.4 * (i / radius)
+            c = (int(r * factor), int(g * factor), int(b * factor), 255)
+            draw.ellipse([cx - i, cy - i, cx + i, cy + i], fill=c)
+        
+        # Inner highlight
+        hr = int(radius * 0.85)
+        highlight = (min(r + 40, 255), min(g + 40, 255), min(b + 40, 255), 200)
+        draw.ellipse([cx - hr, cy - hr - 5, cx + hr, cy + hr - 5], fill=highlight)
+        
+        eye_y = cy - int(radius * 0.15)
+        eye_x_off = int(radius * 0.25)
+        eye_r = int(radius * 0.1)
+        
+        # Eyes
+        for ex in [cx - eye_x_off, cx + eye_x_off]:
+            if eye_type == "happy":
+                draw.arc([ex - eye_r, eye_y - eye_r, ex + eye_r, eye_y + eye_r],
+                         200, 340, fill=(60, 60, 80), width=3)
+            elif eye_type == "sad":
+                draw.arc([ex - eye_r, eye_y - eye_r, ex + eye_r, eye_y + eye_r],
+                         20, 160, fill=(60, 60, 80), width=3)
+            elif eye_type == "wide":
+                draw.ellipse([ex - eye_r, eye_y - eye_r - 2, ex + eye_r, eye_y + eye_r + 2],
+                             fill=(60, 60, 80))
+                draw.ellipse([ex - 3, eye_y - 3, ex + 3, eye_y + 3], fill=(255, 255, 255))
+            elif eye_type == "closed":
+                draw.line([ex - eye_r, eye_y, ex + eye_r, eye_y], fill=(60, 60, 80), width=3)
+            elif eye_type == "angry":
+                draw.ellipse([ex - eye_r + 1, eye_y - eye_r + 1, ex + eye_r - 1, eye_y + eye_r - 1],
+                             fill=(60, 60, 80))
+                if ex < cx:
+                    draw.line([ex - eye_r - 2, eye_y - eye_r - 4, ex + eye_r + 2, eye_y - eye_r],
+                              fill=(60, 60, 80), width=3)
+                else:
+                    draw.line([ex - eye_r - 2, eye_y - eye_r, ex + eye_r + 2, eye_y - eye_r - 4],
+                              fill=(60, 60, 80), width=3)
+            elif eye_type == "wink":
+                if ex < cx:
+                    draw.ellipse([ex - eye_r, eye_y - eye_r, ex + eye_r, eye_y + eye_r],
+                                 fill=(60, 60, 80))
+                else:
+                    draw.line([ex - eye_r, eye_y, ex + eye_r, eye_y], fill=(60, 60, 80), width=3)
+            else:
+                draw.ellipse([ex - eye_r, eye_y - eye_r, ex + eye_r, eye_y + eye_r],
+                             fill=(60, 60, 80))
+        
+        # Mouth
+        mouth_y = cy + int(radius * 0.25)
+        mouth_w = int(radius * 0.3)
+        if mouth_type == "grin":
+            draw.arc([cx - mouth_w, mouth_y - 10, cx + mouth_w, mouth_y + 15],
+                     0, 180, fill=(60, 60, 80), width=3)
+        elif mouth_type == "frown":
+            draw.arc([cx - mouth_w, mouth_y - 5, cx + mouth_w, mouth_y + 15],
+                     180, 360, fill=(60, 60, 80), width=3)
+        elif mouth_type == "open":
+            draw.ellipse([cx - mouth_w // 2, mouth_y - 5, cx + mouth_w // 2, mouth_y + 12],
+                         fill=(60, 60, 80))
+        elif mouth_type == "gasp":
+            draw.ellipse([cx - 8, mouth_y - 2, cx + 8, mouth_y + 14], fill=(60, 60, 80))
+        elif mouth_type == "pout":
+            draw.arc([cx - mouth_w // 2, mouth_y, cx + mouth_w // 2, mouth_y + 10],
+                     180, 360, fill=(60, 60, 80), width=2)
+        else:
+            draw.line([cx - mouth_w // 2, mouth_y + 5, cx + mouth_w // 2, mouth_y + 5],
+                      fill=(60, 60, 80), width=2)
+        
+        # Label
+        try:
+            font = ImageFont.truetype("arial.ttf", 16)
+        except OSError:
+            font = ImageFont.load_default()
+        label = pose_name.replace("_", " ").title()
+        bbox = draw.textbbox((0, 0), label, font=font)
+        tw = bbox[2] - bbox[0]
+        draw.text((cx - tw // 2, size - 40), label, fill=(80, 80, 100, 200), font=font)
+        
+        return img
+    
+    # Generate sprites for all emotion and state poses
+    generated = 0
+    all_poses = {}
+    
+    # Emotion sprites
+    for emotion, path in {**EMOTION_SPRITES, **SPECIAL_EMOTIONS}.items():
+        category = path.split("/")[0] if "/" in path else "neutral"
+        pose_name = path.split("/")[-1] if "/" in path else emotion
+        all_poses[path] = (pose_name, category)
+    
+    # State sprites
+    for state, paths in STATE_SPRITES.items():
+        for path in (paths if isinstance(paths, list) else [paths]):
+            category = path.split("/")[0] if "/" in path else "states"
+            pose_name = path.split("/")[-1] if "/" in path else state
+            all_poses[path] = (pose_name, category)
+    
+    for path, (pose_name, category) in all_poses.items():
+        out_path = os.path.join(sprites_dir, f"{path}.png")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        if not os.path.exists(out_path):
+            img = _draw_sprite(pose_name, category)
+            img.save(out_path, "PNG")
+            generated += 1
+    
+    logger.info(f"Generated {generated} placeholder sprites in {sprites_dir}")
 
 
 def _generate_character_yaml(config: dict) -> dict:
@@ -142,7 +336,7 @@ def _generate_character_yaml(config: dict) -> dict:
         },
         "visuals": {
             "sprite_dir": "sprites/",
-            "ai_poses_dir": "sprites/ai_poses/",
+            "ai_poses_dir": "sprites/",
             "ai_pose_size": [250, 250],
             "theme_colors": theme_colors,
             "particle_colors": particle_colors,

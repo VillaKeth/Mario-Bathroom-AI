@@ -58,6 +58,9 @@
 - [x] Pomni: 39 pools, 702+ items generated, ZERO Mario references
 - [x] Pomni: 41 placeholder sprites generated, all loading in pygame client
 - [x] Pomni: speaks in character, Edge TTS working, emotions correct
+- [x] Auto-generate placeholder sprites during character creation (no manual button click needed)
+- [x] Auto-start AI sprite generation in background when visual description provided
+- [x] Fixed ai_poses_dir default from "sprites/ai_poses/" to "sprites/" in character_builder.py
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
 - [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step

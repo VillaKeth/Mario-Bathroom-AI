@@ -365,7 +365,23 @@ async def create_character(body: dict):
         # Prepare voice artifacts
         voice_result = prepare_voice_artifacts(body, char_dir)
         
-        return {"success": True, "path": char_dir, "voice": voice_result}
+        # Auto-start AI sprite generation in background if visual description exists
+        sprite_task_id = None
+        visual_desc = body.get("visual_description", "")
+        if visual_desc:
+            from character_creator.sprite_generator import generate_all_poses, _generation_tasks
+            sprite_task_id = str(uuid.uuid4())[:8]
+            art_style = body.get("art_style", "3d_figurine")
+            sprite_output = os.path.join(char_dir, "sprites")
+            asyncio.create_task(generate_all_poses(
+                sprite_task_id, char_name_key, visual_desc, art_style, sprite_output
+            ))
+            logger.info(f"Auto-started AI sprite generation (task: {sprite_task_id})")
+        
+        return {
+            "success": True, "path": char_dir,
+            "voice": voice_result, "sprite_task_id": sprite_task_id
+        }
     except Exception as e:
         logger.error(f"Character creation failed: {e}")
         return {"success": False, "error": str(e)}

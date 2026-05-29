@@ -1422,11 +1422,19 @@ class WizardUI {
             const result = await api('POST', '/api/create-character', characterData);
             
             progressFill.style.width = '100%';
-            progressText.textContent = 'Character created! Moving to content generation...';
             
             // Store the created character path for content generation
             this.state.set('char_dir', result.path);
             this.state.set('creation_result', result);
+            
+            // Show sprite generation status if auto-started
+            if (result.sprite_task_id) {
+                progressText.textContent = 'Character created! AI sprites generating in background...';
+                this.state.set('sprite_task_id', result.sprite_task_id);
+                showToast('✨ AI sprites are generating automatically in the background!', 'success');
+            } else {
+                progressText.textContent = 'Character created! Moving to content generation...';
+            }
             
             // Navigate to Step 7 (content generation)
             setTimeout(() => {
