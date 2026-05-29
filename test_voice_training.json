@@ -1,0 +1,11 @@
+{
+  "name": "VoiceTrainTest",
+  "preferred_engine": "gpt_sovits",
+  "identity": {
+    "name": "Voice Train Test",
+    "personality_traits": ["testing", "voice-trained"],
+    "background": "Testing auto voice training in character creation pipeline"
+  },
+  "visual_description": "A shimmering holographic AI character with neural network patterns",
+  "art_style": "3d_figurine"
+}
