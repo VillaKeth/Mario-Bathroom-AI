@@ -111,6 +111,24 @@ async def set_config_models(body: dict):
     )
     return {"success": True}
 
+@app.post("/api/server/launch")
+async def launch_game_server():
+    """Launch the game server (start.bat) as a detached process."""
+    import subprocess
+    start_bat = os.path.join(PROJECT_ROOT, "start.bat")
+    if not os.path.exists(start_bat):
+        return {"success": False, "error": "start.bat not found"}
+    try:
+        subprocess.Popen(
+            [start_bat],
+            cwd=PROJECT_ROOT,
+            creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
+            shell=True
+        )
+        return {"success": True, "message": "Game server launching in new window..."}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 from character_creator import voice_finder
 from character_creator.sprite_generator import get_all_poses
 from character_creator.voice_trainer import detect_available_engines, prepare_voice_artifacts

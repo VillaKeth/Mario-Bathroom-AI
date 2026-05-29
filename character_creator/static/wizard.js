@@ -1684,9 +1684,44 @@ class WizardUI {
         }
         
         try {
-            showToast('Setting active character...', 'info');
+            // Step 1: Set character in config
             await api('POST', '/api/config/models', { character: charName });
-            showToast(`✅ Config updated! "${charName}" is now the active character. Run start.bat to launch the game server.`, 'success');
+            
+            // Step 2: Try to launch the server
+            const launchResp = await api('POST', '/api/server/launch', {});
+            
+            if (launchResp.success) {
+                showToast(`🚀 Launching ${charName}! A new window will open with the game server.`, 'success');
+                // Update the success screen with clear instructions
+                const details = document.getElementById('success-details');
+                if (details) {
+                    details.innerHTML += `
+                        <div class="success-card" style="margin-top: 1rem; border-color: #4ade80;">
+                            <p>🚀 <strong>Server is launching!</strong></p>
+                            <p>A new console window should appear. Once it says "Server started", your character is live!</p>
+                            <p>💡 <strong>Tip:</strong> Open the pygame client (run <code>python client/main.py</code>) to interact with ${charName}.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                // Fallback: give clear manual instructions
+                showToast('Could not auto-launch. See instructions below.', 'info');
+                const details = document.getElementById('success-details');
+                if (details) {
+                    details.innerHTML += `
+                        <div class="success-card" style="margin-top: 1rem; border-color: #fbbf24;">
+                            <p>⚡ <strong>Config updated!</strong> "${charName}" is now your active character.</p>
+                            <p>📋 <strong>To start:</strong></p>
+                            <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                                <li>Open a terminal in the project folder</li>
+                                <li>Run: <code>start.bat</code></li>
+                                <li>Wait for "Server started" message</li>
+                                <li>Run: <code>python client/main.py</code></li>
+                            </ol>
+                        </div>
+                    `;
+                }
+            }
         } catch (e) {
             showToast(`Error: ${e.message}`, 'error');
         }

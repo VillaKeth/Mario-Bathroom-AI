@@ -335,5 +335,30 @@ All TTS output (GPT-SoVITS and Edge+RVC paths) is peak-normalized to -3dB via `_
 ## Test Count
 **636 tests** across 17 test files (as of v3.11).
 
+## Character Creator Wizard — Design Principles
+
+The wizard at `http://localhost:8766` is the PRIMARY way users create characters. It must be:
+
+1. **Complete end-to-end** — When the wizard finishes, the character is 100% ready to run. No manual steps.
+2. **Sprites generated as part of the process** — NOT optional or separate. The wizard generates all sprites.
+3. **Content pools generated as part of the process** — Idle messages, game pools, extras are ALL generated. NOT skippable by default.
+4. **Start Server must work** — The button updates config.json AND tells the user exactly how to launch (or auto-launches).
+5. **Zero coding knowledge required** — A non-technical person should be able to clone the repo, run the wizard, and have a working AI character. No config files, no terminal commands, no code editing.
+6. **Think "local character.ai"** — Mix and match photos, voices, models, backgrounds. One-stop-shop.
+
+### The Flow
+```
+Clone repo → run setup.bat → wizard opens → fill in character details → 
+sprites generate → content pools generate → click Start → character is LIVE
+```
+
+### What Must Happen Before "Character Created" Screen
+- ✅ character.yaml written
+- ✅ System prompt + all prompts generated
+- ✅ Sprites generated (placeholder immediately, AI sprites in background)
+- ✅ Content pools generated (idle, games, extras) via Ollama/API
+- ✅ Voice configured and ready
+- ✅ config.json updated to point to new character
+
 ## Remaining Work
 See `TODO.md` for full task tracking.
