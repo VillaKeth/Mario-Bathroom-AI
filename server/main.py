@@ -2096,33 +2096,34 @@ async def admin_switch_character(request_body: dict = {}):
     Body: {"character": "sonic"} or {"character": "pomni"}
     Lists available characters if no character specified.
     """
-    global _character, _characters_dir
+    global _character
     
     api_key = GAME_CONFIG.get("admin_api_key", "")
     if api_key and request_body.get("api_key") != api_key:
         return {"status": "error", "message": "Invalid API key"}
     
+    characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "characters")
     char_name = request_body.get("character", "")
     
     # List available characters
     if not char_name:
         available = []
-        for d in os.listdir(_characters_dir):
+        for d in os.listdir(characters_dir):
             if d.startswith("_") or d.startswith("."):
                 continue
-            char_yaml = os.path.join(_characters_dir, d, "character.yaml")
+            char_yaml = os.path.join(characters_dir, d, "character.yaml")
             if os.path.exists(char_yaml):
                 available.append(d)
         return {"status": "ok", "available": sorted(available), "current": _character.name}
     
     # Validate character exists
-    char_dir = os.path.join(_characters_dir, char_name)
+    char_dir = os.path.join(characters_dir, char_name)
     if not os.path.exists(os.path.join(char_dir, "character.yaml")):
         return {"status": "error", "message": f"Character '{char_name}' not found"}
     
     try:
         old_name = _character.name
-        _character = CharacterLoader(_characters_dir, char_name)
+        _character = CharacterLoader(characters_dir, char_name)
         
         # Re-wire all modules
         tts.set_pronunciation(_character.pronunciation)
