@@ -317,6 +317,10 @@ class MarioDisplay:
         # Help overlay
         self._show_help = False
 
+        # Background picker overlay (Ctrl+F7)
+        self._bg_picker_active = False
+        self._bg_picker_selection = 0
+
         # Connection status overlay for error recovery
         self._connection_status = None
         self._camera_status = None  # None=no camera, "connected", "reconnecting"
@@ -468,11 +472,23 @@ class MarioDisplay:
         if CHARACTER_BACKGROUNDS_DIR:
             _load_from_dir(CHARACTER_BACKGROUNDS_DIR, label="[char] ")
 
-        # Set default background if configured
-        if DEFAULT_BACKGROUND and self._backgrounds:
+        # Set default background if configured (character yaml > config.json)
+        default_bg = DEFAULT_BACKGROUND
+        if not default_bg:
+            try:
+                import json
+                config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+                if os.path.isfile(config_path):
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                    default_bg = cfg.get("default_background", "")
+            except Exception:
+                pass
+
+        if default_bg and self._backgrounds:
             for i, bg in enumerate(self._backgrounds):
                 base = os.path.splitext(bg['name'].replace("[char] ", ""))[0]
-                if base == DEFAULT_BACKGROUND or bg['name'] == DEFAULT_BACKGROUND:
+                if base == default_bg or bg['name'] == default_bg:
                     self._current_bg_index = i
                     if DEBUG_DISPLAY:
                         logger.info(f"[DEBUG_DISPLAY] Default background set: {bg['name']}")
@@ -621,10 +637,18 @@ class MarioDisplay:
                             self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F7:
                         mods = pygame.key.get_mods()
-                        if mods & pygame.KMOD_SHIFT:
+                        if mods & pygame.KMOD_CTRL:
+                            self._bg_picker_active = not self._bg_picker_active
+                            if self._bg_picker_active:
+                                self._bg_picker_selection = max(0, self._current_bg_index)
+                        elif mods & pygame.KMOD_SHIFT:
                             self.prev_background()
                         else:
-                            self.next_background()
+                            if self._bg_picker_active:
+                                # In picker mode, F7 without mods selects
+                                self._select_bg_from_picker()
+                            else:
+                                self.next_background()
                     elif event.key == pygame.K_F8:
                         self._bg_auto_cycle = not self._bg_auto_cycle
                         logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
@@ -639,12 +663,24 @@ class MarioDisplay:
                     elif event.key == pygame.K_F12:
                         self._toggle_panic_mode()
                     elif event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT):
-                        # Konami-like sequence to toggle panic mode
-                        self._panic_sequence_buffer.append(event.key)
-                        self._panic_sequence_buffer = self._panic_sequence_buffer[-6:]
-                        if self._panic_sequence_buffer == self._PANIC_SEQUENCE:
-                            self._panic_sequence_buffer.clear()
-                            self._toggle_panic_mode()
+                        if self._bg_picker_active:
+                            # Navigate background picker
+                            total = len(self._backgrounds) + 1  # +1 for drawn bg
+                            if event.key in (pygame.K_UP, pygame.K_LEFT):
+                                self._bg_picker_selection = (self._bg_picker_selection - 1) % total
+                            elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
+                                self._bg_picker_selection = (self._bg_picker_selection + 1) % total
+                        else:
+                            # Konami-like sequence to toggle panic mode
+                            self._panic_sequence_buffer.append(event.key)
+                            self._panic_sequence_buffer = self._panic_sequence_buffer[-6:]
+                            if self._panic_sequence_buffer == self._PANIC_SEQUENCE:
+                                self._panic_sequence_buffer.clear()
+                                self._toggle_panic_mode()
+                    elif event.key == pygame.K_RETURN and self._bg_picker_active:
+                        self._select_bg_from_picker()
+                    elif event.key == pygame.K_ESCAPE and self._bg_picker_active:
+                        self._bg_picker_active = False
                     elif event.key == pygame.K_l and (pygame.key.get_mods() & pygame.KMOD_CTRL) and (pygame.key.get_mods() & pygame.KMOD_SHIFT):
                         # Ctrl+Shift+L: Skip memorial event
                         if self._memorial_active:
@@ -1413,7 +1449,7 @@ class MarioDisplay:
             ("F4", "Toggle server health panel"),
             ("F5", "Toggle party mode effects"),
             ("F6", "Toggle leaderboard"),
-            ("F7", "Next background (Shift: prev)"),
+            ("F7", "Next background (Shift: prev, Ctrl: picker)"),
             ("F8", "Toggle background auto-cycle"),
             ("F9", "Volume down"),
             ("F10", "Volume up"),
@@ -1547,6 +1583,91 @@ class MarioDisplay:
         x = (WINDOW_WIDTH - toast.get_width()) // 2
         y = WINDOW_HEIGHT - 50
         self._screen.blit(toast, (x, y))
+
+    def _select_bg_from_picker(self):
+        """Apply the background selected in the picker and save as default."""
+        if self._bg_picker_selection == 0:
+            self._current_bg_index = -1
+        else:
+            self._current_bg_index = self._bg_picker_selection - 1
+
+        self._bg_surface = None
+        self._bg_name_show_time = time.time()
+        self._bg_picker_active = False
+
+        # Save default to config.json
+        try:
+            import json
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+            if os.path.isfile(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            else:
+                config = {}
+
+            if self._current_bg_index == -1:
+                config["default_background"] = ""
+            else:
+                raw_name = self._backgrounds[self._current_bg_index]['name']
+                config["default_background"] = os.path.splitext(raw_name.replace("[char] ", ""))[0]
+
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            logger.info(f"[DISPLAY] Default background saved: {config.get('default_background', '(drawn)')}")
+        except Exception as e:
+            logger.warning(f"[DISPLAY] Failed to save default background: {e}")
+
+    def _draw_bg_picker(self):
+        """Draw background picker overlay (Ctrl+F7)."""
+        if not self._bg_picker_active:
+            return
+
+        font = self._font_small or pygame.font.SysFont("arial", 14)
+        title_font = self._font or pygame.font.SysFont("arial", 18)
+
+        # Build background list: [Drawn, bg1, bg2, ...]
+        items = ["Default (Drawn Bathroom)"]
+        for bg in self._backgrounds:
+            name = os.path.splitext(bg['name'].replace("[char] ", ""))[0].replace("_", " ").title()
+            items.append(name)
+
+        # Dimensions
+        item_h = 24
+        padding = 12
+        panel_w = 320
+        panel_h = padding * 2 + 30 + len(items) * item_h + 30
+        panel_x = (WINDOW_WIDTH - panel_w) // 2
+        panel_y = (WINDOW_HEIGHT - panel_h) // 2
+
+        # Draw panel background
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((20, 20, 50, 230))
+        pygame.draw.rect(panel, (100, 140, 255), (0, 0, panel_w, panel_h), 2, border_radius=8)
+
+        # Title
+        title_surf = title_font.render("Choose Background", True, (255, 255, 255))
+        panel.blit(title_surf, ((panel_w - title_surf.get_width()) // 2, padding))
+
+        # Items
+        for i, item_text in enumerate(items):
+            y = padding + 34 + i * item_h
+            is_selected = (i == self._bg_picker_selection)
+            is_current = (i == 0 and self._current_bg_index == -1) or (i > 0 and i - 1 == self._current_bg_index)
+
+            if is_selected:
+                pygame.draw.rect(panel, (60, 80, 180, 200), (8, y, panel_w - 16, item_h - 2), border_radius=4)
+
+            color = (100, 255, 100) if is_current else (255, 255, 255) if is_selected else (180, 180, 200)
+            prefix = ">" if is_selected else " "
+            suffix = " [current]" if is_current else ""
+            text_surf = font.render(f"{prefix} {item_text}{suffix}", True, color)
+            panel.blit(text_surf, (16, y + 3))
+
+        # Footer instructions
+        footer = font.render("Up/Down: navigate | Enter: select | Esc: cancel", True, (120, 120, 150))
+        panel.blit(footer, ((panel_w - footer.get_width()) // 2, panel_h - 24))
+
+        self._screen.blit(panel, (panel_x, panel_y))
 
     def _draw_panic_overlay(self):
         """Draw 'Technical Difficulties' full-screen overlay when panic mode is active."""
@@ -1850,6 +1971,9 @@ class MarioDisplay:
         # Help overlay (F1 toggle — on top of everything)
         if self._show_help:
             self._draw_help_overlay()
+
+        # Background picker overlay (Ctrl+F7)
+        self._draw_bg_picker()
 
         # Background name toast (shows for 3s after switching)
         self._draw_bg_name_toast()
