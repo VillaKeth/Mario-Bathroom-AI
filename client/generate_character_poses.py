@@ -502,6 +502,78 @@ _HSR_CHARACTERS = [
 ]
 for _c in _HSR_CHARACTERS:
     CHARACTER_POSES[_c] = _HSR_POSES
+
+# ── Pomni (The Amazing Digital Circus) ──
+CHARACTER_POSES["pomni"] = {
+    "neutral": [
+        ("idle", "{char} standing nervously with hands clasped, wide anxious eyes, jester outfit with red and blue, slight trembling"),
+        ("thinking", "{char} with finger to lip, worried thoughtful expression, looking off to the side nervously"),
+    ],
+    "positive": [
+        ("happy", "{char} with a small relieved smile, still nervous but genuinely pleased, hands together"),
+        ("excited", "{char} bouncing slightly with surprised joy, wide eyes, rare moment of genuine excitement"),
+        ("laughing", "{char} covering mouth while laughing nervously, eyes squinting with genuine amusement"),
+        ("love", "{char} with a soft warm expression, hands over heart, rare moment of peace and affection"),
+        ("proud", "{char} standing slightly taller, small confident smile, fists gently clenched in triumph"),
+    ],
+    "negative": [
+        ("sad", "{char} looking down with drooping jester hat bells, shoulders slumped, melancholy expression"),
+        ("angry", "{char} with fists clenched at sides, frustrated tears in eyes, rare moment of anger"),
+        ("annoyed", "{char} with deadpan expression, arms crossed, one eye twitching in irritation"),
+        ("nervous", "{char} fidgeting with hands, eyes darting around, classic anxious pose, sweat drops"),
+        ("scared", "{char} cowering with hands up defensively, wide terrified eyes, bells jingling"),
+        ("embarrassed", "{char} covering face with both hands, visible blush, jester hat drooping"),
+        ("disgusted", "{char} recoiling backwards, hands up in disgust, nose wrinkled"),
+        ("grossed_out", "{char} turning away gagging slightly, hand over mouth, revolted expression"),
+    ],
+    "thinking": [
+        ("confused", "{char} with head tilted, question marks floating around, genuinely puzzled expression"),
+        ("thinking", "{char} tapping chin nervously, eyes looking up, overthinking everything"),
+        ("curious", "{char} leaning forward cautiously, one eye squinting, suspicious but interested"),
+        ("determined", "{char} with unusually firm expression, fists clenched, rare brave moment"),
+        ("mischievous", "{char} with a sly nervous grin, fingers together, plotting something risky"),
+        ("shocked", "{char} jaw dropped, hands on cheeks, absolute shock and disbelief"),
+        ("idea", "{char} with finger raised, eyes wide with sudden realization, lightbulb moment"),
+        ("surprised", "{char} jumping back with hands up, startled wide eyes, bells jingling"),
+    ],
+    "speech": [
+        ("talking", "{char} gesturing nervously while speaking, one hand waving, stammering expression"),
+        ("talking_excited", "{char} talking faster than usual, animated hand gestures, rare enthusiastic moment"),
+        ("listening", "{char} leaning in attentively, hands clasped, focused listening with nervous energy"),
+    ],
+    "greeting": [
+        ("wave", "{char} giving a small nervous wave, hesitant smile, jester bells tinkling softly"),
+        ("farewell", "{char} waving goodbye with worried expression, hoping they will come back"),
+    ],
+    "reactions": [
+        ("mind_blown", "{char} with hands on sides of head, eyes like spirals, completely overwhelmed"),
+        ("sassy", "{char} with rare confident hand-on-hip pose, raised eyebrow, brief sass moment"),
+        ("cringe", "{char} cringing hard with both eyes squeezed shut, teeth gritted, full body cringe"),
+        ("impressed", "{char} with eyebrows raised high, small 'oh' mouth, genuinely impressed nod"),
+    ],
+    "sleep": [
+        ("yawning", "{char} mid-yawn with hand covering mouth, sleepy drooping eyes, hat bells hanging"),
+        ("sleepy", "{char} eyes half closed, swaying slightly, fighting to stay awake"),
+        ("sleeping", "{char} curled up peacefully sleeping, rare moment of complete calm, gentle expression"),
+    ],
+    "movement": [
+        ("dancing", "{char} doing an awkward but endearing little dance, self-conscious but trying"),
+        ("entering", "{char} peeking around a corner cautiously before stepping in, nervous entrance"),
+    ],
+    "party": [
+        ("celebrate", "{char} throwing hands up in rare celebration, genuine joy breaking through anxiety"),
+    ],
+    "birthday": [
+        ("birthday", "{char} holding a birthday cake nervously, worried about dropping it, sweet smile"),
+    ],
+    "toast": [
+        ("raising_glass", "{char} raising a glass with shaking hands, nervous but sincere toast"),
+    ],
+    "memorial": [
+        ("moment_of_silence", "{char} with head bowed solemnly, hands clasped, bells completely still"),
+    ],
+}
+
 def generate_pollinations(prompt, retries=8):
     """Generate an image using Pollinations.ai free API."""
     import urllib.parse

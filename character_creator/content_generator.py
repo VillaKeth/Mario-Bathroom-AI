@@ -157,9 +157,18 @@ def _extract_yaml(text: str) -> str:
     yaml_lines = []
     started = False
     for line in lines:
-        if not started and (line.startswith("- ") or line.startswith("  ") or line == "---"):
-            started = True
+        if not started:
+            # Detect list start OR dict key start (word followed by colon)
+            if (line.startswith("- ") or line.startswith("  ") or line == "---"
+                    or re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*:\s*$', line)
+                    or re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*:\s*\[', line)):
+                started = True
         if started:
+            # Stop if we hit a line that looks like trailing prose after YAML
+            if (yaml_lines and not line.startswith(" ") and not line.startswith("-")
+                    and not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*:', line)
+                    and line and not line.startswith("#")):
+                break
             yaml_lines.append(line)
     if yaml_lines:
         return "\n".join(yaml_lines)
@@ -170,6 +179,8 @@ def _extract_yaml(text: str) -> str:
 def _parse_yaml_safe(text: str) -> any:
     """Parse YAML from LLM output, handling common issues."""
     yaml_text = _extract_yaml(text)
+    # Fix asterisks in strings that YAML interprets as aliases
+    yaml_text = re.sub(r'\*([a-zA-Z]+)\*', r'(\1)', yaml_text)
     try:
         return yaml.safe_load(yaml_text)
     except yaml.YAMLError:
@@ -552,6 +563,7 @@ Requirements:
 - Stay completely in {name}'s character
 - Show genuine emotion — excited wins, gracious losses, playful ties
 - Each reaction is 1-2 sentences max
+- Do NOT use asterisks (*) in any text — use parentheses for actions instead, e.g. (jumps) not *jumps*
 """
 
 
