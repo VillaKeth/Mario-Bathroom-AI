@@ -51,11 +51,11 @@ def show_status():
         total_done += count
         total_expected += EXPECTED_SPRITES_PER_CHAR
         if count == 0:
-            status = "⬜ Not started"
+            status = "[ ] Not started"
         elif count >= EXPECTED_SPRITES_PER_CHAR - 2:
-            status = "✅ Complete"
+            status = "[x] Complete"
         else:
-            status = f"🔄 In progress"
+            status = f"[~] In progress"
         print(f"  {char_id:<14} {count:>3}/{EXPECTED_SPRITES_PER_CHAR:<6} {status}")
     print("-" * 45)
     print(f"  Total: {total_done}/{total_expected}")
@@ -89,7 +89,7 @@ def generate_character(char_id, char_index, total):
     print(f"  Sprites: {existing} -> {final_count}")
 
     if result.returncode != 0:
-        print(f"  ⚠️  Process exited with code {result.returncode}")
+        print(f"  [WARN] Process exited with code {result.returncode}")
         return False
 
     return True
@@ -104,9 +104,9 @@ def git_commit_progress(chars_done):
         subprocess.run(["git", "commit", "-m", msg,
                         "-m", f"Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"],
                        capture_output=True, timeout=30)
-        print(f"  📦 Committed progress for {len(chars_done)} characters")
+        print(f"  [OK] Committed progress for {len(chars_done)} characters")
     except Exception as e:
-        print(f"  ⚠️  Commit failed: {e}")
+        print(f"  [WARN] Commit failed: {e}")
 
 
 def main():
@@ -136,7 +136,7 @@ def main():
             print(f"Character '{args.start}' not found!")
             return
 
-    print(f"\n🎮 HSR Batch Generator")
+    print(f"\n[HSR] Batch Generator")
     print(f"   Characters to process: {len(chars)}")
     print(f"   Commit every: {args.commit_every} characters")
     print(f"   Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

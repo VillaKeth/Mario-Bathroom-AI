@@ -101,3 +101,8 @@ server/data/qdrant_faces/.lock
 server/data/qdrant_faces/.lock
 server/data/qdrant_voices/.lock
 screenshot_pygame_desktop2.png
+client_screenshot.png
+hsr_gen_log.txt
+hsr_gen_err.txt
+test_sprite.png
+_screenshot.py
