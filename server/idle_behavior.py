@@ -62,8 +62,10 @@ class IdleBehavior:
         # Load character-specific idle pools if available
         self._char_pools = {}
         self._char_name = "Mario"
+        self._is_mario = True  # Controls whether Mario-specific hardcoded fallbacks are used
         if character_loader is not None:
             self._char_name = character_loader.name
+            self._is_mario = (character_loader.name.lower() == "mario")
             self._char_pools = character_loader.get_idle_messages()
             if self._char_pools:
                 logger.info(f"[idle_behavior] Loaded {sum(len(v) for v in self._char_pools.values() if isinstance(v, list))} character idle messages for {self._char_name}")
@@ -410,7 +412,7 @@ class IdleBehavior:
             # Phase 1: Moment of silence
             self._memorial_delivered = True
             msg = (
-                f"*Mario removes his hat and holds it to his chest* "
+                f"*{self._char_name} pauses respectfully* "
                 f"Hey everyone, can I have your attention for just a moment? "
                 f"Tonight we're celebrating Jacob's birthday, but I want us to take a moment "
                 f"to remember someone very special, {memorial['person']}, {memorial['relationship']}. "
@@ -439,6 +441,27 @@ class IdleBehavior:
         """Get a comment about someone taking a long time."""
         if minutes < 3:
             return None
+        # Non-Mario characters: skip Mario-specific bathroom humor
+        if not self._is_mario:
+            if minutes < 5:
+                options = [
+                    "Taking your time, eh? No rush!",
+                    "Still here? Must be comfy!",
+                    "Enjoying the ambiance? I don't blame you!",
+                ]
+            elif minutes < 10:
+                options = [
+                    f"Wow, {int(minutes)} minutes! That's a new record!",
+                    f"{int(minutes)} minutes?! You must really like talking to me!",
+                    f"At {int(minutes)} minutes, you're practically a regular here!",
+                ]
+            else:
+                options = [
+                    f"Still going strong after {int(minutes)} minutes! You're a champion!",
+                    f"{int(minutes)} minutes! I think you live here now! Welcome home!",
+                    f"After {int(minutes)} minutes, I'm starting to think you forgot about the party!",
+                ]
+            return self._pick_unique(options)
         elif minutes < 5:
             options = [
                 "Taking your time, eh? No rush! Mario will-a wait!",
@@ -475,6 +498,9 @@ class IdleBehavior:
         Returns a context-aware idle phrase, or None if no good context available.
         Uses _global_recent dedup to avoid repeating messages.
         """
+        # Non-Mario characters: skip hardcoded Mario contextual messages
+        if not self._is_mario:
+            return None
         if not conversation_history or len(conversation_history) < 2:
             return None
         
@@ -567,6 +593,9 @@ class IdleBehavior:
 
     def get_time_observation(self):
         """Return a time-specific party observation or None."""
+        # Non-Mario characters: skip hardcoded Mario-themed time observations
+        if not self._is_mario:
+            return None
         hour = datetime.now().hour
         if 0 <= hour < 2:
             observations = [
@@ -635,6 +664,9 @@ class IdleBehavior:
 
     def get_party_stage(self, party_minutes: float) -> str:
         """Get a comment about the current party stage."""
+        # Non-Mario characters: skip hardcoded Mario party stage comments
+        if not self._is_mario:
+            return None
         if party_minutes < 30:
             return random.choice([
                 "The party just-a started! We're warming up!",
@@ -648,7 +680,7 @@ class IdleBehavior:
         elif party_minutes < 240:
             return random.choice([
                 "The party's been going strong for hours! Legendary!",
-                "Marathon party! Mario is-a impressed!",
+                "Marathon party! {name} is-a impressed!".format(name=self._char_name),
             ])
         else:
             return random.choice([
@@ -686,7 +718,7 @@ class IdleBehavior:
                 f"I've been thinking about what {guest_name} said... '{snippet}' Still processing that one!",
                 f"*whispers* {guest_name} told me something earlier... I probably shouldn't repeat it... but '{snippet}'",
                 f"Nobody's here so I can say it — {guest_name} really said '{snippet}' Ha!",
-                f"The things people tell Mario! {guest_name} goes '{snippet}' Mama mia!",
+                f"The things people tell {self._char_name}! {guest_name} goes '{snippet}' Mama mia!",
             ]
 
             choice = random.choice(templates)
@@ -701,7 +733,7 @@ class IdleBehavior:
     # Re-engagement questions — fun questions to ask when guest goes quiet
     # ------------------------------------------------------------------
 
-    RE_ENGAGEMENT_QUESTIONS = [
+    RE_ENGAGEMENT_QUESTIONS_MARIO = [
         "So what's-a your go-to karaoke song? Everyone has one!",
         "Quick — if you could have ONE Mario power-up in real life, which one?",
         "Okay serious question — pineapple on pizza, yes or NO?",
@@ -723,6 +755,34 @@ class IdleBehavior:
         "What's the boldest thing you've ever done? Impress me!",
         "If this party had a theme song, what would it be?",
     ]
+
+    # Generic re-engagement questions for non-Mario characters
+    RE_ENGAGEMENT_QUESTIONS_GENERIC = [
+        "So what's your go-to karaoke song? Everyone has one!",
+        "Okay serious question — pineapple on pizza, yes or NO?",
+        "If you had to be trapped in one video game forever, which one?",
+        "What's the most embarrassing thing you've done at a party? I won't tell! (I might tell.)",
+        "If you could swap lives with anyone for a day, who'd it be?",
+        "What's your unpopular opinion that makes people mad?",
+        "If you had to eat ONE food for the rest of your life, what is it?",
+        "What's the weirdest thing you've ever googled? Don't lie!",
+        "If you won a million dollars, what's the FIRST thing you'd buy?",
+        "What's your party trick? Everyone has one, even if it's bad!",
+        "If you could master any skill instantly, what would it be?",
+        "What's a movie everyone loves that you secretly think is overrated?",
+        "Quick — name your top 3 favorite snacks, GO!",
+        "What song gets you on the dance floor EVERY time?",
+        "If aliens landed tomorrow, what's the first thing you'd ask them?",
+        "What's the boldest thing you've ever done? Impress me!",
+        "If this party had a theme song, what would it be?",
+    ]
+
+    @property
+    def RE_ENGAGEMENT_QUESTIONS(self):
+        """Return appropriate re-engagement questions based on character."""
+        if self._is_mario:
+            return self.RE_ENGAGEMENT_QUESTIONS_MARIO
+        return self.RE_ENGAGEMENT_QUESTIONS_GENERIC
 
     _used_reengagement: set = set()
 
@@ -779,7 +839,7 @@ class IdleBehavior:
             "energetic": [
                 "You've got ENERGY! Let's play Rapid Fire Quiz! How fast can you go?",
                 "Okay okay okay — Simon Says! Right now! You ready?!",
-                "TRIVIA TIME! I bet you know your Mario facts! Let's go!",
+                "TRIVIA TIME! I bet you know your facts! Let's go!",
             ],
         }
 
