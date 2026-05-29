@@ -2164,13 +2164,13 @@ async def admin_switch_character(request_body: dict = {}):
         # Notify connected client
         if _active_ws:
             try:
-                await _active_ws.send(json.dumps({
+                await _active_ws.send_json({
                     "type": "character_switched",
                     "character": char_name,
                     "display_name": _character.display_name,
-                }))
-            except Exception:
-                pass
+                })
+            except Exception as e:
+                logger.warning(f"[ADMIN] Failed to notify client of character switch: {e}")
         
         logger.info(f"[ADMIN] Character switched: {old_name} -> {char_name} ({_character.display_name})")
         return {"status": "ok", "switched_from": old_name, "switched_to": char_name, "display_name": _character.display_name}

@@ -109,6 +109,7 @@ class MarioClient:
         self._last_play_end_time = 0  # Echo cancellation tracking
         self._memorial_active = False  # Suppresses idle text during memorial
         self._audio_wait_cancel = threading.Event()  # Cancel audio-wait thread
+        self._pending_character_switch = None  # Queued switch for main thread
 
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
@@ -176,6 +177,10 @@ class MarioClient:
         # Main display loop (must run on main thread for Pygame)
         try:
             while self._running:
+                # Process pending character switch on main thread (pygame-safe)
+                if self._pending_character_switch:
+                    self._apply_character_switch(self._pending_character_switch)
+                    self._pending_character_switch = None
                 # Keep reconnect info fresh for display
                 if not self.display.connected:
                     self.display._reconnect_info = self.ws.reconnect_info
@@ -396,18 +401,24 @@ class MarioClient:
         self.display.set_state(STATE_GREETING)
 
     def _on_character_switched(self, data: dict):
-        """Handle hot-swap character notification from server."""
+        """Handle hot-swap character notification from server.
+        
+        Queues the switch for the main thread (pygame ops must be on main thread).
+        """
+        self._pending_character_switch = data
+        logger.info(f"Character switch queued: {data.get('display_name')}")
+
+    def _apply_character_switch(self, data: dict):
+        """Apply character switch on main thread (pygame-safe)."""
         new_name = data.get("display_name", data.get("character", "Unknown"))
         char_key = data.get("character", "")
-        logger.info(f"Character switched to: {new_name}")
+        logger.info(f"Applying character switch to: {new_name}")
         self.display.set_mario_text(f"Switching to {new_name}...")
         try:
-            # Reload character config
             characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "characters")
             from shared.character_loader import CharacterLoader as CL
             new_char = CL(characters_dir, char_key)
             
-            # Update module-level sprite paths
             import mario_display as md
             if new_char.ai_poses_dir:
                 md.AI_POSES_DIR = new_char.ai_poses_dir
@@ -420,19 +431,18 @@ class MarioClient:
             if new_char.ai_pose_size:
                 md.AI_POSE_DISPLAY_SIZE = new_char.ai_pose_size
             
-            # Reload sprites
             self.display._sprites.clear()
             self.display._load_sprites()
             
-            # Update window title
             import pygame as _pg
-            title = new_name.split(" AI")[0] if " AI" in new_name else new_name
-            _pg.display.set_caption(title)
-            self.display._title_text = title
+            import mario_display as _md
+            _pg.display.set_caption(new_name)
+            _md.BANNER_TITLE = new_name
+            _md.WINDOW_TITLE = new_name
             
             logger.info(f"Character switch complete: {new_name} ({len(self.display._sprites)} sprites)")
         except Exception as e:
-            logger.warning(f"Failed to reload after character switch: {e}")
+            logger.warning(f"Failed to apply character switch: {e}")
 
     def _on_disconnected(self):
         logger.warning("Disconnected from server!")
