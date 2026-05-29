@@ -120,6 +120,7 @@ class MarioClient:
         self.ws.on_leaderboard_update = self._on_leaderboard_update
         self.ws.on_memorial_event = self._on_memorial_event
         self.ws.on_clear_audio = self._on_clear_audio
+        self.ws.on_character_switched = self._on_character_switched
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -393,6 +394,45 @@ class MarioClient:
         self.display.connected = True
         self.display._reconnect_info = None
         self.display.set_state(STATE_GREETING)
+
+    def _on_character_switched(self, data: dict):
+        """Handle hot-swap character notification from server."""
+        new_name = data.get("display_name", data.get("character", "Unknown"))
+        char_key = data.get("character", "")
+        logger.info(f"Character switched to: {new_name}")
+        self.display.set_mario_text(f"Switching to {new_name}...")
+        try:
+            # Reload character config
+            characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "characters")
+            from shared.character_loader import CharacterLoader as CL
+            new_char = CL(characters_dir, char_key)
+            
+            # Update module-level sprite paths
+            import mario_display as md
+            if new_char.ai_poses_dir:
+                md.AI_POSES_DIR = new_char.ai_poses_dir
+            if new_char.sprite_dir:
+                md.SPRITE_DIR = new_char.sprite_dir
+            if new_char.emotion_sprite_map:
+                md.EMOTION_SPRITE_MAP = new_char.emotion_sprite_map
+            if new_char.state_sprite_map:
+                md.STATE_SPRITE_MAP = new_char.state_sprite_map
+            if new_char.ai_pose_size:
+                md.AI_POSE_DISPLAY_SIZE = new_char.ai_pose_size
+            
+            # Reload sprites
+            self.display._sprites.clear()
+            self.display._load_sprites()
+            
+            # Update window title
+            import pygame as _pg
+            title = new_name.split(" AI")[0] if " AI" in new_name else new_name
+            _pg.display.set_caption(title)
+            self.display._title_text = title
+            
+            logger.info(f"Character switch complete: {new_name} ({len(self.display._sprites)} sprites)")
+        except Exception as e:
+            logger.warning(f"Failed to reload after character switch: {e}")
 
     def _on_disconnected(self):
         logger.warning("Disconnected from server!")

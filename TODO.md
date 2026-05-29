@@ -397,6 +397,8 @@
 - [x] Fix 'what time is it' handler to set happy emotion
 - [x] Add face recognition admin API (register_face, lookup_face, list faces)
 - [x] All 10/10 games tested and starting correctly
+- [x] Add /admin/switch_character endpoint for hot-swapping characters at runtime
+- [x] TTS Verification Auditor system (WER, truncation detection, batch audit, best-of-N)
 - [ ] Fix 13 client UI bugs from prior audit
 - [x] Add tests for _preclean_tts_text() (22 tests: ellipsis, quotes, dashes, asterisks, artifacts, edge cases)
 - [ ] Create release v3.12
