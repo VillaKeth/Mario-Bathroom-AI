@@ -529,7 +529,7 @@ class MarioDisplay:
         self._clock = pygame.time.Clock()
         self._font = pygame.font.Font(None, 28)
         self._font_small = pygame.font.Font(None, 22)
-        self._font_title = pygame.font.Font(None, 48)
+        self._font_title = pygame.font.Font(None, 32)
         self._font_input = pygame.font.Font(None, 32)
         self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
         self._chat_msg_font = pygame.font.SysFont("arial", 13)
@@ -1246,9 +1246,13 @@ class MarioDisplay:
 
     def _detect_bubble_style(self, text: str) -> str:
         """Detect speech bubble style from text content."""
+        if not text:
+            return BUBBLE_STYLE_NORMAL
         if text.endswith("?"):
             return BUBBLE_STYLE_QUESTION
-        elif text.endswith("!") or text.isupper():
+        elif text.isupper() and len(text) > 5:
+            return BUBBLE_STYLE_SHOUT
+        elif text.endswith("!!") or text.endswith("!!!"):
             return BUBBLE_STYLE_SHOUT
         elif text.startswith("(") or text.startswith("*"):
             return BUBBLE_STYLE_WHISPER

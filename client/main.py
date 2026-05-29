@@ -66,7 +66,7 @@ if _character.state_sprite_map:
 if _character.ai_pose_size:
     mario_display_module.AI_POSE_DISPLAY_SIZE = _character.ai_pose_size
 mario_display_module.WINDOW_TITLE = _character.display_name
-mario_display_module.BANNER_TITLE = _character.tagline or _character.display_name
+mario_display_module.BANNER_TITLE = _character.display_name
 
 # Now import from mario_display
 from mario_display import (MarioDisplay, STATE_IDLE, STATE_TALKING, STATE_LISTENING,
