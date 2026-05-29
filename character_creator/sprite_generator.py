@@ -150,33 +150,53 @@ def get_all_poses() -> dict:
 
 import asyncio
 import uuid
+import json
 import httpx
 from pathlib import Path
 
 # Track background generation tasks
 _generation_tasks = {}
 
+_SPRITE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "sprite_config.json")
+
+def load_sprite_config() -> dict:
+    try:
+        with open(_SPRITE_CONFIG_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"backend": "auto", "hf_token": "", "a1111_url": "http://localhost:7860", "comfyui_url": "http://localhost:8188"}
+
+def save_sprite_config(cfg: dict):
+    with open(_SPRITE_CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
+
 def _is_valid_image(data: bytes) -> bool:
-    """Check if bytes are a real image (PNG or JPEG magic bytes)."""
     return (data[:4] == b'\x89PNG' or data[:3] == b'\xff\xd8\xff' or
             data[:4] == b'RIFF' or data[:6] in (b'GIF87a', b'GIF89a'))
 
+def _try_remove_background(image_bytes: bytes, output_path: str):
+    """Try rembg background removal; on failure just write raw bytes."""
+    try:
+        from rembg import remove
+        from PIL import Image
+        import io
+        img = remove(Image.open(io.BytesIO(image_bytes)))
+        img.save(output_path)
+        return
+    except (ImportError, SystemExit):
+        pass
+    except Exception as e:
+        logger.warning(f"Background removal failed: {e}")
+    with open(output_path, "wb") as f:
+        f.write(image_bytes)
 
-async def generate_single_pose(char_name: str, visual_description: str, art_style: str,
-                                 pose_name: str, pose_prompt: str, output_dir: str) -> dict:
-    """Generate a single sprite pose using Pollinations.ai (free, no auth required).
 
-    Pollinations free tier: 1 concurrent request per IP, ~90s cooldown between requests.
-    Retries up to 8 times; waits 90s on rate-limit (402) or small-file responses.
-    """
+# ── Generation backends ───────────────────────────────────────────────────────
+
+async def _generate_pollinations(prompt: str) -> bytes | None:
+    """Cloud generation via Pollinations.ai. Free, no auth, ~90s/img, rate-limited."""
     import urllib.parse
-    style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
-    full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
-
-    output_path = os.path.join(output_dir, f"{pose_name}.png")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-    encoded = urllib.parse.quote(full_prompt)
+    encoded = urllib.parse.quote(prompt)
     url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=1024&nologo=true"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
@@ -184,53 +204,197 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
         try:
             async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
                 resp = await client.get(url, headers=headers)
-
                 if resp.status_code == 402:
-                    wait = 90
-                    logger.warning(f"Pose '{pose_name}' rate-limited (402), waiting {wait}s...")
-                    await asyncio.sleep(wait)
+                    logger.warning(f"Pollinations rate-limited (402), waiting 90s...")
+                    await asyncio.sleep(90)
                     continue
-
-                if resp.status_code != 200:
-                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: HTTP {resp.status_code}, waiting 20s")
-                    await asyncio.sleep(20)
-                    continue
-
-                if not _is_valid_image(resp.content):
-                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: not a valid image ({len(resp.content)} bytes), waiting 20s")
-                    await asyncio.sleep(20)
-                    continue
-
-                if len(resp.content) < 5000:
-                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: too small ({len(resp.content)} bytes), waiting 20s")
-                    await asyncio.sleep(20)
-                    continue
-
-                with open(output_path, "wb") as f:
-                    f.write(resp.content)
-
-                # Try background removal with rembg
-                try:
-                    from rembg import remove
-                    from PIL import Image
-                    import io
-                    input_img = Image.open(io.BytesIO(resp.content))
-                    output_img = remove(input_img)
-                    output_img.save(output_path)
-                except (ImportError, SystemExit):
-                    pass  # rembg not installed, keep raw image
-                except Exception as e:
-                    logger.warning(f"Background removal failed for {pose_name}: {e}")
-
-                logger.info(f"Pose '{pose_name}' done ({len(resp.content):,} bytes)")
-                return {"pose": pose_name, "status": "done", "path": output_path}
-
+                if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
+                    return resp.content
+                logger.warning(f"Pollinations attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
+                await asyncio.sleep(20)
         except Exception as e:
-            logger.warning(f"Pose '{pose_name}' attempt {attempt+1} error: {e}, waiting 20s")
+            logger.warning(f"Pollinations attempt {attempt+1} error: {e}")
             await asyncio.sleep(20)
+    return None
 
-    logger.error(f"Sprite generation failed for {pose_name} after 8 attempts")
-    return {"pose": pose_name, "status": "failed", "error": "All attempts failed"}
+
+async def _generate_huggingface(prompt: str, hf_token: str) -> bytes | None:
+    """Cloud generation via HuggingFace Inference API. Free with account, fast."""
+    # FLUX.1-schnell is fast and high quality; falls back to SDXL
+    models = [
+        "black-forest-labs/FLUX.1-schnell",
+        "stabilityai/stable-diffusion-xl-base-1.0",
+    ]
+    headers = {"Authorization": f"Bearer {hf_token}", "Content-Type": "application/json"}
+    payload = {"inputs": prompt, "parameters": {"width": 768, "height": 1024}}
+
+    for model in models:
+        url = f"https://api-inference.huggingface.co/models/{model}"
+        for attempt in range(4):
+            try:
+                async with httpx.AsyncClient(timeout=120) as client:
+                    resp = await client.post(url, json=payload, headers=headers)
+                    if resp.status_code == 503:
+                        # Model loading — wait and retry
+                        wait = resp.json().get("estimated_time", 30) if resp.headers.get("content-type","").startswith("application/json") else 30
+                        logger.info(f"HF model {model} loading, waiting {wait}s...")
+                        await asyncio.sleep(min(float(wait), 60))
+                        continue
+                    if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
+                        return resp.content
+                    logger.warning(f"HF {model} attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
+                    if resp.status_code in (401, 403):
+                        logger.error("HF token invalid or insufficient permissions")
+                        return None
+                    await asyncio.sleep(10)
+            except Exception as e:
+                logger.warning(f"HF {model} attempt {attempt+1} error: {e}")
+                await asyncio.sleep(10)
+    return None
+
+
+async def _generate_a1111(prompt: str, base_url: str) -> bytes | None:
+    """Local generation via AUTOMATIC1111 Stable Diffusion WebUI API."""
+    import base64
+    url = f"{base_url.rstrip('/')}/sdapi/v1/txt2img"
+    payload = {
+        "prompt": prompt,
+        "negative_prompt": "blurry, low quality, text, watermark, extra limbs",
+        "width": 512, "height": 768,
+        "steps": 20, "cfg_scale": 7,
+        "sampler_name": "DPM++ 2M Karras",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("images"):
+                    img_bytes = base64.b64decode(data["images"][0])
+                    if _is_valid_image(img_bytes) and len(img_bytes) > 5000:
+                        return img_bytes
+        logger.warning(f"A1111 response: {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"A1111 error: {e}")
+    return None
+
+
+async def _generate_comfyui(prompt: str, base_url: str) -> bytes | None:
+    """Local generation via ComfyUI API (basic txt2img workflow)."""
+    import base64, random
+    url = base_url.rstrip("/")
+    # Minimal SDXL workflow
+    workflow = {
+        "3": {"class_type": "KSampler", "inputs": {
+            "seed": random.randint(0, 2**32), "steps": 20, "cfg": 7,
+            "sampler_name": "euler", "scheduler": "normal", "denoise": 1,
+            "model": ["4", 0], "positive": ["6", 0], "negative": ["7", 0], "latent_image": ["5", 0],
+        }},
+        "4": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5-pruned-emaonly.safetensors"}},
+        "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 768, "batch_size": 1}},
+        "6": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["4", 1]}},
+        "7": {"class_type": "CLIPTextEncode", "inputs": {"text": "blurry, low quality, watermark, extra limbs", "clip": ["4", 1]}},
+        "8": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["4", 2]}},
+        "9": {"class_type": "SaveImage", "inputs": {"images": ["8", 0], "filename_prefix": "sprite"}},
+    }
+    try:
+        client_id = str(uuid.uuid4())
+        async with httpx.AsyncClient(timeout=180) as client:
+            r = await client.post(f"{url}/prompt", json={"prompt": workflow, "client_id": client_id})
+            if r.status_code != 200:
+                return None
+            prompt_id = r.json()["prompt_id"]
+            # Poll for result
+            for _ in range(60):
+                await asyncio.sleep(3)
+                hist = await client.get(f"{url}/history/{prompt_id}")
+                if hist.status_code == 200 and hist.json():
+                    outputs = hist.json().get(prompt_id, {}).get("outputs", {})
+                    for node_output in outputs.values():
+                        for img_info in node_output.get("images", []):
+                            img_r = await client.get(f"{url}/view", params={
+                                "filename": img_info["filename"], "subfolder": img_info.get("subfolder",""), "type": "output"
+                            })
+                            if img_r.status_code == 200 and _is_valid_image(img_r.content):
+                                return img_r.content
+    except Exception as e:
+        logger.warning(f"ComfyUI error: {e}")
+    return None
+
+
+async def detect_backends() -> dict:
+    """Auto-detect which image generation backends are available."""
+    cfg = load_sprite_config()
+    result = {
+        "huggingface": {"available": bool(cfg.get("hf_token")), "reason": "Token configured" if cfg.get("hf_token") else "No HF token — get one free at huggingface.co"},
+        "a1111":       {"available": False, "url": cfg.get("a1111_url", "http://localhost:7860")},
+        "comfyui":     {"available": False, "url": cfg.get("comfyui_url", "http://localhost:8188")},
+        "pollinations": {"available": True, "reason": "Free cloud, no auth needed (90s/image, rate-limited)"},
+        "current":     cfg.get("backend", "auto"),
+    }
+    # Probe local backends
+    for key, port, path in [("a1111", "7860", "/sdapi/v1/sd-models"), ("comfyui", "8188", "/object_info")]:
+        url = cfg.get(f"{key}_url", f"http://localhost:{port}")
+        try:
+            async with httpx.AsyncClient(timeout=3) as client:
+                r = await client.get(f"{url}{path}")
+                result[key]["available"] = r.status_code == 200
+                result[key]["reason"] = "Running locally ✅" if r.status_code == 200 else f"Not running (HTTP {r.status_code})"
+        except Exception:
+            result[key]["reason"] = f"Not found at {url}"
+    return result
+
+
+async def generate_single_pose(char_name: str, visual_description: str, art_style: str,
+                                 pose_name: str, pose_prompt: str, output_dir: str) -> dict:
+    """Generate a single sprite pose using the best available backend."""
+    cfg = load_sprite_config()
+    style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
+    full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
+
+    output_path = os.path.join(output_dir, f"{pose_name}.png")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    backend = cfg.get("backend", "auto")
+    hf_token = cfg.get("hf_token", "")
+    a1111_url = cfg.get("a1111_url", "http://localhost:7860")
+    comfyui_url = cfg.get("comfyui_url", "http://localhost:8188")
+
+    # Backend priority: explicit choice, or auto-detect best available
+    if backend == "auto":
+        order = []
+        if hf_token:          order.append("huggingface")
+        order.append("a1111")
+        order.append("comfyui")
+        order.append("pollinations")
+    else:
+        order = [backend, "pollinations"]  # always fall back to pollinations
+
+    image_bytes = None
+    used_backend = None
+
+    for b in order:
+        logger.info(f"Pose '{pose_name}': trying backend '{b}'")
+        if b == "huggingface" and hf_token:
+            image_bytes = await _generate_huggingface(full_prompt, hf_token)
+        elif b == "a1111":
+            image_bytes = await _generate_a1111(full_prompt, a1111_url)
+        elif b == "comfyui":
+            image_bytes = await _generate_comfyui(full_prompt, comfyui_url)
+        elif b == "pollinations":
+            image_bytes = await _generate_pollinations(full_prompt)
+
+        if image_bytes:
+            used_backend = b
+            break
+
+    if not image_bytes:
+        logger.error(f"Sprite generation failed for {pose_name} — all backends exhausted")
+        return {"pose": pose_name, "status": "failed", "error": "All backends failed"}
+
+    _try_remove_background(image_bytes, output_path)
+    logger.info(f"Pose '{pose_name}' done via {used_backend} ({len(image_bytes):,} bytes)")
+    return {"pose": pose_name, "status": "done", "path": output_path, "backend": used_backend}
 
 async def generate_all_poses(task_id: str, char_name: str, visual_description: str,
                                art_style: str, output_dir: str):

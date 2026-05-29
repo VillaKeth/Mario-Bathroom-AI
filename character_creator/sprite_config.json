@@ -1,0 +1,7 @@
+{
+  "backend": "auto",
+  "hf_token": "",
+  "a1111_url": "http://localhost:7860",
+  "comfyui_url": "http://localhost:8188",
+  "comfyui_workflow": null
+}

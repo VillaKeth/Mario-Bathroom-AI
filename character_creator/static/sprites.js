@@ -12,6 +12,119 @@ let previewOpen = {};     // char_id → bool
 const EXPECTED = 34;
 const POLL_MS  = 4000;
 
+// ── Settings Panel ────────────────────────────────────────────────────────────
+
+let settingsOpen = false;
+
+async function toggleSettings() {
+    settingsOpen = !settingsOpen;
+    document.getElementById('settings-panel').style.display = settingsOpen ? 'block' : 'none';
+    if (settingsOpen) await loadSettings();
+}
+
+async function loadSettings() {
+    try {
+        const [backends, cfg] = await Promise.all([
+            fetch('/api/sprites/backends').then(r => r.json()),
+            fetch('/api/sprites/config').then(r => r.json()),
+        ]);
+
+        // Set current backend select
+        document.getElementById('backend-select').value = cfg.backend || 'auto';
+
+        // Show token status
+        const hfInput = document.getElementById('hf-token-input');
+        hfInput.placeholder = cfg.hf_token_set ? `Current: ${cfg.hf_token}` : 'hf_xxxxxxxxxxxx — get free at huggingface.co';
+
+        // Render backend cards
+        const cards = [
+            {
+                id: 'huggingface',
+                icon: '🤗',
+                name: 'HuggingFace API',
+                desc: 'Best free option. Fast (30-60s/sprite), high quality FLUX model. Requires free HF account.',
+                status: backends.huggingface,
+                recommended: true,
+            },
+            {
+                id: 'a1111',
+                icon: '🖥️',
+                name: 'AUTOMATIC1111',
+                desc: 'Run Stable Diffusion locally. Needs 8GB+ VRAM GPU and SD WebUI installed.',
+                status: backends.a1111,
+            },
+            {
+                id: 'comfyui',
+                icon: '🖥️',
+                name: 'ComfyUI',
+                desc: 'Local generation via ComfyUI. Needs 8GB+ VRAM GPU and ComfyUI installed.',
+                status: backends.comfyui,
+            },
+            {
+                id: 'pollinations',
+                icon: '🌐',
+                name: 'Pollinations.ai',
+                desc: 'Free cloud, no account needed. Very slow (90s/sprite + rate limits). Use as fallback.',
+                status: backends.pollinations,
+            },
+        ];
+
+        document.getElementById('backend-cards').innerHTML = cards.map(card => {
+            const avail = card.status?.available;
+            const statusColor = avail ? 'var(--color-green)' : 'var(--color-orange)';
+            const statusIcon  = avail ? '✅' : '⚠️';
+            const border = card.recommended ? 'var(--color-purple)' : 'var(--border-color)';
+            return `
+                <div style="background:var(--bg-card);border:1px solid ${border};border-radius:var(--radius-md);padding:1rem">
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+                        <span style="font-size:1.3rem">${card.icon}</span>
+                        <strong style="font-size:0.9rem">${card.name}</strong>
+                        ${card.recommended ? '<span style="font-size:0.7rem;background:var(--color-purple);color:white;padding:0.1rem 0.4rem;border-radius:8px">Recommended</span>' : ''}
+                    </div>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem">${card.desc}</p>
+                    <div style="font-size:0.78rem;color:${statusColor}">${statusIcon} ${card.status?.reason || (avail ? 'Available' : 'Not available')}</div>
+                </div>`;
+        }).join('');
+
+    } catch (e) {
+        document.getElementById('settings-status').textContent = `Error loading settings: ${e.message}`;
+    }
+}
+
+async function saveSettings() {
+    const hfToken  = document.getElementById('hf-token-input').value.trim();
+    const backend  = document.getElementById('backend-select').value;
+    const statusEl = document.getElementById('settings-status');
+
+    statusEl.textContent = 'Saving…';
+    statusEl.style.color = 'var(--text-muted)';
+
+    try {
+        const body = { backend };
+        if (hfToken) body.hf_token = hfToken;
+
+        const r = await fetch('/api/sprites/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (data.success) {
+            statusEl.textContent = `✅ Saved! Backend: ${backend}${hfToken ? ' — HF token updated' : ''}`;
+            statusEl.style.color = 'var(--color-green)';
+            document.getElementById('hf-token-input').value = '';
+            await loadSettings(); // Refresh backend status
+        } else {
+            statusEl.textContent = `Error: ${data.error}`;
+            statusEl.style.color = 'var(--color-red)';
+        }
+    } catch (e) {
+        statusEl.textContent = `Error: ${e.message}`;
+        statusEl.style.color = 'var(--color-red)';
+    }
+}
+
+
 // ── Boot ─────────────────────────────────────────────────────────────────────
 
 async function loadCharacters() {

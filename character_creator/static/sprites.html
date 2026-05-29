@@ -303,9 +303,34 @@
         <div class="sm-toolbar">
             <div class="sm-stats" id="stats-label">Loading characters…</div>
             <div class="btn-group">
+                <button class="btn btn-secondary" id="btn-settings" onclick="toggleSettings()">⚙️ Image AI Settings</button>
                 <button class="btn btn-secondary" id="btn-refresh" onclick="loadCharacters()">↻ Refresh</button>
                 <button class="btn btn-primary" id="btn-gen-all" onclick="generateAllMissing()" disabled>⚡ Generate All Missing</button>
             </div>
+        </div>
+
+        <!-- Settings Panel (collapsible) -->
+        <div id="settings-panel" style="display:none;padding:1rem 2rem;background:var(--bg-secondary);border-bottom:1px solid var(--border-color)">
+            <h3 style="margin-bottom:1rem;font-size:1rem">🤖 Image Generation Backend</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:1rem" id="backend-cards"></div>
+            <div style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:1;min-width:240px">
+                    <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.3rem">HuggingFace Token (free at huggingface.co/settings/tokens)</label>
+                    <input type="password" id="hf-token-input" placeholder="hf_xxxxxxxxxxxx" style="width:100%;padding:0.5rem 0.75rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary);font-family:monospace;font-size:0.85rem">
+                </div>
+                <div style="flex:0 0 auto">
+                    <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.3rem">Backend</label>
+                    <select id="backend-select" style="padding:0.5rem 0.75rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary)">
+                        <option value="auto">Auto (best available)</option>
+                        <option value="huggingface">HuggingFace API</option>
+                        <option value="a1111">AUTOMATIC1111 (local)</option>
+                        <option value="comfyui">ComfyUI (local)</option>
+                        <option value="pollinations">Pollinations.ai (slow)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()" style="padding:0.5rem 1.25rem">💾 Save Settings</button>
+            </div>
+            <p id="settings-status" style="margin-top:0.75rem;font-size:0.82rem;color:var(--text-muted)"></p>
         </div>
 
         <!-- Filter bar -->

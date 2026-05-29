@@ -436,8 +436,41 @@ async def get_known_characters():
 
 # ─── Sprite Manager ───────────────────────────────────────────────────────────
 
-@app.get("/sprites")
-async def sprite_manager_page():
+@app.get("/api/sprites/backends")
+async def get_sprite_backends():
+    """Detect and return available image generation backends."""
+    from character_creator.sprite_generator import detect_backends
+    return await detect_backends()
+
+
+@app.get("/api/sprites/config")
+async def get_sprite_config():
+    from character_creator.sprite_generator import load_sprite_config
+    cfg = load_sprite_config()
+    # Mask token for security
+    masked = {**cfg}
+    if masked.get("hf_token"):
+        masked["hf_token"] = masked["hf_token"][:8] + "..." + masked["hf_token"][-4:]
+    masked["hf_token_set"] = bool(cfg.get("hf_token"))
+    return masked
+
+
+@app.post("/api/sprites/config")
+async def save_sprite_config_endpoint(body: dict):
+    from character_creator.sprite_generator import load_sprite_config, save_sprite_config
+    cfg = load_sprite_config()
+    # Only update allowed keys; never blank out an existing token unless explicitly set
+    allowed = {"backend", "hf_token", "a1111_url", "comfyui_url"}
+    for key in allowed:
+        if key in body and body[key] is not None:
+            if key == "hf_token" and body[key] == "":
+                continue  # empty string = keep existing
+            cfg[key] = body[key]
+    save_sprite_config(cfg)
+    return {"success": True, "config": {k: ("***" if k == "hf_token" and v else v) for k, v in cfg.items()}}
+
+
+
     return FileResponse(os.path.join(STATIC_DIR, "sprites.html"))
 
 
