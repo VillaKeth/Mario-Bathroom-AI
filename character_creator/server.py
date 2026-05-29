@@ -5,6 +5,7 @@ Run standalone: python -m character_creator.server
 """
 import os
 import sys
+import json
 import logging
 import httpx
 import edge_tts
@@ -244,6 +245,110 @@ async def sprite_generation_status(task_id: str):
     return get_task_status(task_id)
 
 from character_creator.character_builder import build_character
+from character_creator.content_generator import generate_all_content, get_llm_backend
+from fastapi.responses import StreamingResponse
+
+# ─── Content Generation (SSE) ─────────────────────────────────────────────────
+
+@app.get("/api/content/backend")
+async def content_backend_info():
+    """Return which LLM backend will be used for content generation."""
+    backend = get_llm_backend()
+    return {"type": backend["type"], "model": backend["model"]}
+
+
+@app.post("/api/content/generate")
+async def generate_content_sse(body: dict):
+    """Generate content pools via SSE streaming.
+    
+    Body: {
+        character_name: str,
+        description: str, 
+        personality: str,
+        char_dir: str,       # Path to character directory (returned by create-character)
+        categories: ["idle", "games", "extras"]  # Optional, defaults to all
+    }
+    """
+    char_name = body.get("character_name", "")
+    description = body.get("description", "")
+    personality = body.get("personality", "")
+    char_dir = body.get("char_dir", "")
+    categories = body.get("categories", None)
+    
+    if not char_dir or not os.path.isdir(char_dir):
+        return {"success": False, "error": "Invalid character directory"}
+    
+    async def event_stream():
+        async for event in generate_all_content(
+            name=char_name,
+            description=description,
+            personality=personality,
+            char_dir=char_dir,
+            categories=categories,
+        ):
+            yield f"data: {json.dumps(event)}\n\n"
+    
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.post("/api/content/regenerate-pool")
+async def regenerate_single_pool(body: dict):
+    """Regenerate a single content pool."""
+    from character_creator.content_generator import (
+        generate_pool, IDLE_POOL_SPECS, GAME_POOL_SPECS, EXTRAS_POOL_SPECS
+    )
+    
+    char_name = body.get("character_name", "")
+    description = body.get("description", "")
+    personality = body.get("personality", "")
+    char_dir = body.get("char_dir", "")
+    pool_name = body.get("pool_name", "")
+    category = body.get("category", "")
+    
+    # Find the spec
+    all_specs = {"idle": IDLE_POOL_SPECS, "games": GAME_POOL_SPECS, "extras": EXTRAS_POOL_SPECS}
+    spec = all_specs.get(category, {}).get(pool_name)
+    if not spec:
+        return {"success": False, "error": f"Unknown pool: {category}/{pool_name}"}
+    
+    backend = get_llm_backend()
+    data = await generate_pool(char_name, description, personality, pool_name, spec, backend)
+    
+    if data is None:
+        return {"success": False, "error": "Generation failed after retries"}
+    
+    # Write the file
+    if category == "idle":
+        # Read existing messages.yaml, update this pool
+        idle_path = os.path.join(char_dir, "idle", "messages.yaml")
+        existing = {}
+        if os.path.exists(idle_path):
+            with open(idle_path, "r", encoding="utf-8") as f:
+                existing = yaml.safe_load(f) or {}
+        existing[pool_name] = data
+        with open(idle_path, "w", encoding="utf-8") as f:
+            yaml.dump(existing, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    elif category == "games":
+        game_path = os.path.join(char_dir, "games", f"{pool_name}.yaml")
+        os.makedirs(os.path.dirname(game_path), exist_ok=True)
+        with open(game_path, "w", encoding="utf-8") as f:
+            yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    elif category == "extras":
+        extras_path = os.path.join(char_dir, "content", "extras.yaml")
+        existing = {}
+        if os.path.exists(extras_path):
+            with open(extras_path, "r", encoding="utf-8") as f:
+                existing = yaml.safe_load(f) or {}
+        existing[pool_name] = data
+        os.makedirs(os.path.dirname(extras_path), exist_ok=True)
+        with open(extras_path, "w", encoding="utf-8") as f:
+            yaml.dump(existing, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    
+    count = len(data) if isinstance(data, list) else sum(len(v) for v in data.values() if isinstance(v, list))
+    return {"success": True, "pool": pool_name, "count": count}
+
+
+# ─── Character Creation ────────────────────────────────────────────────────────
 
 @app.post("/api/create-character")
 async def create_character(body: dict):

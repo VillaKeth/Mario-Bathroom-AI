@@ -127,7 +127,7 @@ class WizardState {
 class WizardUI {
     constructor() {
         this.state = new WizardState();
-        this.totalSteps = 6;
+        this.totalSteps = 7;
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.modelConfigDirty = false;
@@ -313,7 +313,7 @@ class WizardUI {
         
         btnBack.style.display = n > 0 ? 'block' : 'none';
         
-        if (n === this.totalSteps - 1) {
+        if (n === this.totalSteps - 1 || n === 6) {
             wizardNav.style.display = 'none';
         } else {
             wizardNav.style.display = 'flex';
@@ -399,6 +399,9 @@ class WizardUI {
                 break;
             case 5:
                 this.initStep5();
+                break;
+            case 6:
+                this.initStep6();
                 break;
         }
     }
@@ -1419,12 +1422,16 @@ class WizardUI {
             const result = await api('POST', '/api/create-character', characterData);
             
             progressFill.style.width = '100%';
-            progressText.textContent = 'Character created successfully!';
+            progressText.textContent = 'Character created! Moving to content generation...';
             
-            // Show success screen
+            // Store the created character path for content generation
+            this.state.set('char_dir', result.path);
+            this.state.set('creation_result', result);
+            
+            // Navigate to Step 7 (content generation)
             setTimeout(() => {
-                this.showSuccessScreen(result);
-            }, 1000);
+                this.goToStep(6);
+            }, 800);
             
         } catch (error) {
             showToast(`Character creation failed: ${error.message}`, 'error');
@@ -1439,6 +1446,192 @@ class WizardUI {
                 this.createCharacter();
             }
         }
+    }
+
+    // ================================
+    // Step 7: Content Generation
+    // ================================
+
+    async initStep6() {
+        // Load backend info
+        try {
+            const backendInfo = await api('GET', '/api/content/backend');
+            const nameEl = document.getElementById('content-backend-name');
+            const noteEl = document.getElementById('content-backend-note');
+            
+            if (backendInfo.type === 'openai') {
+                nameEl.textContent = `OpenAI (${backendInfo.model})`;
+                noteEl.textContent = 'Using cloud API — fast generation, high quality.';
+            } else if (backendInfo.type === 'anthropic') {
+                nameEl.textContent = `Anthropic (${backendInfo.model})`;
+                noteEl.textContent = 'Using cloud API — fast generation, high quality.';
+            } else {
+                nameEl.textContent = `Ollama Local (${backendInfo.model})`;
+                noteEl.textContent = 'Using local AI model. Generation may take 5-10 minutes depending on hardware.';
+            }
+        } catch (e) {
+            document.getElementById('content-backend-name').textContent = 'Ollama (local)';
+        }
+    }
+
+    async startContentGeneration() {
+        const btn = document.getElementById('btn-start-generation');
+        const skipBtn = document.getElementById('btn-skip-generation');
+        const categories = document.getElementById('content-categories');
+        const progressDiv = document.getElementById('content-gen-progress');
+        
+        btn.disabled = true;
+        skipBtn.style.display = 'none';
+        categories.style.display = 'none';
+        progressDiv.style.display = 'block';
+        
+        // Gather selected categories
+        const selectedCategories = [];
+        if (document.getElementById('gen-idle').checked) selectedCategories.push('idle');
+        if (document.getElementById('gen-games').checked) selectedCategories.push('games');
+        if (document.getElementById('gen-extras').checked) selectedCategories.push('extras');
+        
+        if (selectedCategories.length === 0) {
+            showToast('Please select at least one category', 'warning');
+            btn.disabled = false;
+            skipBtn.style.display = 'inline-block';
+            categories.style.display = 'block';
+            progressDiv.style.display = 'none';
+            return;
+        }
+        
+        // Build personality string from description + tone
+        const tone = document.getElementById('content-tone').value.trim();
+        const description = this.state.get('description', '');
+        const personality = tone ? `${description}. Tone: ${tone}` : description;
+        
+        const body = {
+            character_name: this.state.get('char_name'),
+            description: description,
+            personality: personality,
+            char_dir: this.state.get('char_dir'),
+            categories: selectedCategories
+        };
+        
+        // Track per-category pool counts
+        const poolCounts = { idle: 14, games: 16, extras: 9 };
+        const poolDone = { idle: 0, games: 0, extras: 0 };
+        
+        try {
+            const response = await fetch('/api/content/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop(); // Keep incomplete chunk
+                
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const event = JSON.parse(line.slice(6));
+                        this._handleGenEvent(event, poolCounts, poolDone);
+                    } catch (e) {
+                        console.warn('SSE parse error:', e);
+                    }
+                }
+            }
+            
+            // Process any remaining buffer
+            if (buffer.startsWith('data: ')) {
+                try {
+                    const event = JSON.parse(buffer.slice(6));
+                    this._handleGenEvent(event, poolCounts, poolDone);
+                } catch (e) {}
+            }
+            
+        } catch (error) {
+            showToast(`Content generation error: ${error.message}`, 'error');
+            btn.disabled = false;
+            btn.textContent = '🔄 Retry Generation';
+            skipBtn.style.display = 'inline-block';
+        }
+    }
+
+    _handleGenEvent(event, poolCounts, poolDone) {
+        const overallEl = document.getElementById('gen-overall-status');
+        
+        if (event.type === 'start') {
+            overallEl.textContent = `Starting content generation (${event.backend} backend)...`;
+        }
+        else if (event.type === 'progress') {
+            const cat = event.data.current_category;
+            const pool = event.data.current_pool;
+            if (cat) {
+                document.getElementById(`gen-${cat}-status`).textContent = `Generating: ${pool}...`;
+            }
+            overallEl.textContent = `${event.data.completed_pools}/${event.data.total_pools} pools generated (${event.data.percent}%)`;
+        }
+        else if (event.type === 'pool_done') {
+            const cat = event.category;
+            poolDone[cat] = (poolDone[cat] || 0) + 1;
+            const pct = Math.round((poolDone[cat] / poolCounts[cat]) * 100);
+            document.getElementById(`gen-${cat}-fill`).style.width = `${pct}%`;
+            document.getElementById(`gen-${cat}-status`).textContent = `${poolDone[cat]}/${poolCounts[cat]} pools done`;
+            
+            overallEl.textContent = `${event.data.completed_pools}/${event.data.total_pools} pools generated (${event.data.percent}%)`;
+        }
+        else if (event.type === 'complete') {
+            this._showGenComplete(event.summary, event.data.errors);
+        }
+    }
+
+    _showGenComplete(summary, errors) {
+        document.getElementById('content-gen-progress').style.display = 'none';
+        document.getElementById('content-gen-actions').style.display = 'none';
+        
+        const completeDiv = document.getElementById('content-gen-complete');
+        const summaryDiv = document.getElementById('content-gen-summary');
+        
+        let html = `<p><strong>${summary.total_generated}</strong> content pools generated using <strong>${summary.backend_used}</strong>.</p>`;
+        
+        if (summary.items && summary.items.length > 0) {
+            const totalItems = summary.items.reduce((acc, i) => acc + i.count, 0);
+            html += `<p>Total items: <strong>${totalItems}</strong></p>`;
+            html += '<ul class="gen-summary-list">';
+            for (const item of summary.items) {
+                html += `<li>${item.category}/${item.pool}: ${item.count} items</li>`;
+            }
+            html += '</ul>';
+        }
+        
+        if (errors && errors.length > 0) {
+            html += `<p class="gen-errors">⚠️ ${errors.length} pool(s) failed to generate (character will use LLM fallback for those):</p>`;
+            html += '<ul class="gen-error-list">';
+            for (const err of errors) {
+                html += `<li>${err}</li>`;
+            }
+            html += '</ul>';
+        }
+        
+        summaryDiv.innerHTML = html;
+        completeDiv.style.display = 'block';
+        
+        showToast('Content generation complete!', 'success');
+    }
+
+    skipContentGeneration() {
+        showToast('Skipping content generation. Character will generate responses on-the-fly using AI.', 'info');
+        this.showSuccessScreen(this.state.get('creation_result'));
+    }
+
+    finishCreation() {
+        this.showSuccessScreen(this.state.get('creation_result'));
     }
     
     showSuccessScreen(result) {

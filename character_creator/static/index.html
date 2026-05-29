@@ -22,11 +22,11 @@
         <main id="main-content">
             <header class="wizard-header">
                 <h1>🎭 Character Creator</h1>
-                <p class="subtitle">Create your AI character in 6 easy steps</p>
+                <p class="subtitle">Create your AI character in 7 easy steps</p>
             </header>
 
             <!-- Progress Bar -->
-            <nav class="progress-bar" role="progressbar" aria-label="Wizard progress" aria-valuenow="1" aria-valuemin="1" aria-valuemax="6">
+            <nav class="progress-bar" role="progressbar" aria-label="Wizard progress" aria-valuenow="1" aria-valuemin="1" aria-valuemax="7">
                 <div class="progress-steps">
                     <button class="progress-step active" data-step="0" aria-label="Step 1: Identity">
                         <span class="step-number">1</span>
@@ -56,6 +56,11 @@
                     <button class="progress-step" data-step="5" aria-label="Step 6: Review">
                         <span class="step-number">6</span>
                         <span class="step-label">Review</span>
+                    </button>
+                    <div class="progress-connector"></div>
+                    <button class="progress-step" data-step="6" aria-label="Step 7: Content">
+                        <span class="step-number">7</span>
+                        <span class="step-label">Content</span>
                     </button>
                 </div>
             </nav>
@@ -387,6 +392,86 @@
                         <div class="progress-fill" id="create-progress-fill" style="width:0%"></div>
                     </div>
                     <p id="create-progress-text">Creating character...</p>
+                </div>
+            </section>
+
+            <!-- Step 7: Content Generation -->
+            <section id="step-6" class="wizard-step" role="tabpanel" aria-labelledby="step-6-heading" style="display:none">
+                <h2 id="step-6-heading" tabindex="-1">✨ Step 7: Generate Content</h2>
+                <p class="help-text">Your character needs things to say! We'll use AI to generate idle messages, game pools, and extras tailored to your character's personality.</p>
+
+                <!-- LLM Backend Info -->
+                <div class="content-gen-info" id="content-gen-info">
+                    <p>🧠 <strong>AI Backend:</strong> <span id="content-backend-name">Detecting...</span></p>
+                    <p class="help-text" id="content-backend-note"></p>
+                </div>
+
+                <!-- Category Selection (for custom characters) -->
+                <div class="content-categories" id="content-categories">
+                    <h3>Content Categories</h3>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-idle" checked>
+                        🗣️ Idle Messages <span class="pool-count">(14 pools — jokes, trivia, songs, etc.)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-games" checked>
+                        🎮 Game Pools <span class="pool-count">(16 pools — trivia, riddles, would-you-rather, etc.)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="gen-extras" checked>
+                        ✨ Extras <span class="pool-count">(9 pools — roasts, fortunes, easter eggs, etc.)</span>
+                    </label>
+
+                    <div class="form-group" style="margin-top: 1rem">
+                        <label for="content-tone">Tone/Vibe (optional)</label>
+                        <input type="text" id="content-tone" placeholder="e.g., sarcastic, wholesome, dark humor, playful" class="form-input">
+                        <p class="help-text">Leave blank to derive from personality description.</p>
+                    </div>
+                </div>
+
+                <!-- Generation Progress -->
+                <div class="content-generation-progress" id="content-gen-progress" style="display:none">
+                    <div class="gen-category" id="gen-cat-idle">
+                        <h4>🗣️ Idle Messages</h4>
+                        <div class="progress-bar-horizontal">
+                            <div class="progress-fill" id="gen-idle-fill" style="width:0%"></div>
+                        </div>
+                        <p class="gen-status" id="gen-idle-status">Waiting...</p>
+                    </div>
+                    <div class="gen-category" id="gen-cat-games">
+                        <h4>🎮 Game Pools</h4>
+                        <div class="progress-bar-horizontal">
+                            <div class="progress-fill" id="gen-games-fill" style="width:0%"></div>
+                        </div>
+                        <p class="gen-status" id="gen-games-status">Waiting...</p>
+                    </div>
+                    <div class="gen-category" id="gen-cat-extras">
+                        <h4>✨ Extras</h4>
+                        <div class="progress-bar-horizontal">
+                            <div class="progress-fill" id="gen-extras-fill" style="width:0%"></div>
+                        </div>
+                        <p class="gen-status" id="gen-extras-status">Waiting...</p>
+                    </div>
+                    <p class="gen-overall" id="gen-overall-status"></p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="content-gen-actions" id="content-gen-actions">
+                    <button class="btn btn-primary btn-lg" id="btn-start-generation" onclick="wizard.startContentGeneration()">
+                        🚀 Generate Content
+                    </button>
+                    <button class="btn btn-secondary" id="btn-skip-generation" onclick="wizard.skipContentGeneration()">
+                        ⏩ Skip (character will use LLM fallback)
+                    </button>
+                </div>
+
+                <!-- Completion -->
+                <div class="content-gen-complete" id="content-gen-complete" style="display:none">
+                    <h3>✅ Content Generated!</h3>
+                    <div id="content-gen-summary"></div>
+                    <button class="btn btn-primary btn-lg" onclick="wizard.finishCreation()">
+                        🎉 Finish &amp; Launch
+                    </button>
                 </div>
             </section>
 
