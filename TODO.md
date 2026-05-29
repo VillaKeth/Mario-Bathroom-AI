@@ -797,7 +797,8 @@
 - [x] Fixed DJ announcements leak: main.py now uses instance pool not module constant
 - [x] Fixed TTS precache: uses _idle_behavior_ref instance pools not module constants
 - [x] Mario verified: starts clean from YAML, 122 sprites, all content appropriate
-- [ ] Create full Ani game pools (15 YAML files: trivia, WYR, truth_or_dare, etc.)
+- [x] Create full Ani game pools (15 YAML files, 448 items, all 20 pools loaded)
+- [x] Ani verified: server + pygame client running, zero Mario text in pools
 - [ ] Clean up dead code in idle_behavior.py (module-level Mario constants, lines 43-782)
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)

@@ -3,6 +3,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 
 import pytest
 import time
@@ -10,19 +11,16 @@ import random
 from unittest.mock import patch, MagicMock
 from idle_behavior import (
     IdleBehavior,
-    IDLE_MUMBLES,
-    MARIO_JOKES,
-    MARIO_TRIVIA,
-    MARIO_SONGS,
-    NOISE_REACTIONS,
-    MARIO_CHALLENGES,
-    MARIO_COMPLIMENTS,
-    HAND_WASH_REMINDERS,
-    PLUMBING_FACTS,
-    LONELY_MILD,
-    LONELY_MEDIUM,
-    LONELY_DEEP,
 )
+from character_loader import CharacterLoader
+
+_CHARS_DIR = os.path.join(os.path.dirname(__file__), "..", "characters")
+
+
+def _make_mario_ib():
+    """Create an IdleBehavior loaded with Mario's YAML content."""
+    cl = CharacterLoader(_CHARS_DIR, "mario")
+    return IdleBehavior(character_loader=cl)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
@@ -68,7 +66,7 @@ class TestIdleActions:
     def test_returns_string_after_interval(self, mock_time):
         mock_time.time.return_value = 1000.0
         mock_time.localtime.return_value = time.localtime(1000.0)
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
 
         # Advance past the 15-second default interval
         mock_time.time.return_value = 1020.0
@@ -80,7 +78,7 @@ class TestIdleActions:
     def test_respects_phase_parameter(self, mock_time):
         mock_time.time.return_value = 1000.0
         mock_time.localtime.return_value = time.localtime(1000.0)
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
 
         # Test each phase value produces a string
         for phase in (1, 2, 3, 4):
@@ -92,7 +90,7 @@ class TestIdleActions:
     def test_action_count_increments(self, mock_time):
         mock_time.time.return_value = 1000.0
         mock_time.localtime.return_value = time.localtime(1000.0)
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
 
         for i in range(1, 4):
             mock_time.time.return_value += 200
@@ -103,7 +101,7 @@ class TestIdleActions:
     def test_idle_interval_grows(self, mock_time):
         mock_time.time.return_value = 1000.0
         mock_time.localtime.return_value = time.localtime(1000.0)
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
 
         intervals = []
         for _ in range(5):
@@ -130,46 +128,46 @@ class TestContentPools:
     """Each content getter should return a non-empty string."""
 
     def test_get_joke_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         joke = ib.get_joke()
         assert isinstance(joke, str) and len(joke) > 0
-        assert joke in MARIO_JOKES
+        assert joke in ib._jokes
 
     def test_get_trivia_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         trivia = ib.get_trivia()
         assert isinstance(trivia, str) and len(trivia) > 0
-        assert trivia in (MARIO_TRIVIA + PLUMBING_FACTS)
+        assert trivia in ib._trivia
 
     def test_get_song_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         song = ib.get_song()
         assert isinstance(song, str) and len(song) > 0
-        assert song in MARIO_SONGS
+        assert song in ib._songs
 
     def test_get_noise_reaction_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         reaction = ib.get_noise_reaction()
         assert isinstance(reaction, str) and len(reaction) > 0
-        assert reaction in NOISE_REACTIONS
+        assert reaction in ib._noise_reactions
 
     def test_get_challenge_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         challenge = ib.get_challenge()
         assert isinstance(challenge, str) and len(challenge) > 0
-        assert challenge in MARIO_CHALLENGES
+        assert challenge in ib._challenges
 
     def test_get_compliment_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         compliment = ib.get_compliment()
         assert isinstance(compliment, str) and len(compliment) > 0
-        assert compliment in MARIO_COMPLIMENTS
+        assert compliment in ib._compliments
 
     def test_get_hand_wash_reminder_returns_string(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         reminder = ib.get_hand_wash_reminder()
         assert isinstance(reminder, str) and len(reminder) > 0
-        assert reminder in HAND_WASH_REMINDERS
+        assert reminder in ib._handwash
 
 
 # ── TestUniqueSelection ──────────────────────────────────────────────────
@@ -319,8 +317,7 @@ class TestContextualBehavior:
     @patch("idle_behavior.time")
     def test_get_time_comment_returns_string(self, mock_time):
         mock_time.time.return_value = 1000.0
-        ib = IdleBehavior()
-        # Force cooldown to be satisfied
+        ib = _make_mario_ib()
         ib._last_time_comment_at = 0
         result = ib.get_time_comment()
         assert result is None or isinstance(result, str)
@@ -388,18 +385,18 @@ class TestEdgeCases:
     """Additional edge-case coverage."""
 
     def test_get_joke_cycles_deterministically(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         ib._joke_index = 0
         first = ib.get_joke()
         second = ib.get_joke()
-        assert first == MARIO_JOKES[0]
-        assert second == MARIO_JOKES[1]
+        assert first == ib._jokes[0]
+        assert second == ib._jokes[1]
 
     def test_get_song_cycles_deterministically(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         ib._song_index = 0
-        assert ib.get_song() == MARIO_SONGS[0]
-        assert ib.get_song() == MARIO_SONGS[1]
+        assert ib.get_song() == ib._songs[0]
+        assert ib.get_song() == ib._songs[1]
 
     def test_long_stay_boundary_at_3_minutes(self):
         ib = IdleBehavior()
@@ -416,8 +413,7 @@ class TestEdgeCases:
     def test_idle_interval_caps_at_90(self, mock_time):
         mock_time.time.return_value = 1000.0
         mock_time.localtime.return_value = time.localtime(1000.0)
-        ib = IdleBehavior()
-        # Fire enough actions to hit the cap
+        ib = _make_mario_ib()
         for _ in range(30):
             mock_time.time.return_value += 200
             ib.get_idle_action()
@@ -548,14 +544,16 @@ class TestLonelinessArc:
     # -- Pool existence / size --
 
     def test_lonely_pools_exist(self):
-        assert isinstance(LONELY_MILD, list) and len(LONELY_MILD) > 0
-        assert isinstance(LONELY_MEDIUM, list) and len(LONELY_MEDIUM) > 0
-        assert isinstance(LONELY_DEEP, list) and len(LONELY_DEEP) > 0
+        ib = _make_mario_ib()
+        assert isinstance(ib._lonely_mild, list) and len(ib._lonely_mild) > 0
+        assert isinstance(ib._lonely_medium, list) and len(ib._lonely_medium) > 0
+        assert isinstance(ib._lonely_deep, list) and len(ib._lonely_deep) > 0
 
     def test_lonely_pools_minimum_size(self):
-        assert len(LONELY_MILD) >= 6
-        assert len(LONELY_MEDIUM) >= 6
-        assert len(LONELY_DEEP) >= 6
+        ib = _make_mario_ib()
+        assert len(ib._lonely_mild) >= 6
+        assert len(ib._lonely_medium) >= 6
+        assert len(ib._lonely_deep) >= 6
 
     # -- get_lonely_action behaviour --
 
@@ -565,28 +563,28 @@ class TestLonelinessArc:
         assert ib.get_lonely_action() is None
 
     def test_get_lonely_action_mild(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         ib._alone_since = time.time() - 600  # 10 min ago
         ib._last_lonely_msg_time = 0
         result = ib.get_lonely_action()
         assert isinstance(result, str)
-        assert result in LONELY_MILD
+        assert result in ib._lonely_mild
 
     def test_get_lonely_action_medium(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         ib._alone_since = time.time() - 1200  # 20 min ago
         ib._last_lonely_msg_time = 0
         result = ib.get_lonely_action()
         assert isinstance(result, str)
-        assert result in LONELY_MEDIUM
+        assert result in ib._lonely_medium
 
     def test_get_lonely_action_deep(self):
-        ib = IdleBehavior()
+        ib = _make_mario_ib()
         ib._alone_since = time.time() - 2400  # 40 min ago
         ib._last_lonely_msg_time = 0
         result = ib.get_lonely_action()
         assert isinstance(result, str)
-        assert result in LONELY_DEEP
+        assert result in ib._lonely_deep
 
     # -- Cooldown --
 
