@@ -600,10 +600,12 @@ class WizardUI {
             this.state.set('edge_voice', data.edge_voice);
         }
         if (data.voice_rate !== undefined) {
-            this.state.set('voice_rate', data.voice_rate);
+            const rate = String(data.voice_rate).replace('%', '').replace('+', '');
+            this.state.set('voice_rate', parseInt(rate) || 0);
         }
         if (data.voice_pitch !== undefined) {
-            this.state.set('voice_pitch', data.voice_pitch);
+            const pitch = String(data.voice_pitch).replace('Hz', '').replace('+', '');
+            this.state.set('voice_pitch', parseInt(pitch) || 0);
         }
         if (data.pronunciation) {
             this.state.set('pronunciation', data.pronunciation);
@@ -1285,6 +1287,12 @@ class WizardUI {
         this.renderReviewCards();
     }
     
+    formatVoiceParam(value, suffix) {
+        const str = String(value);
+        if (str.endsWith(suffix)) return str;
+        return `${str}${suffix}`;
+    }
+
     renderReviewCards() {
         const container = document.getElementById('review-cards');
         
@@ -1313,8 +1321,8 @@ class WizardUI {
                 items: [
                     { label: 'Edge Voice', value: this.state.get('edge_voice') || 'Not selected' },
                     { label: 'Reference Audio', value: this.state.get('audio_path') ? 'Uploaded' : 'None' },
-                    { label: 'Voice Rate', value: `${this.state.get('voice_rate', 0)}%` },
-                    { label: 'Voice Pitch', value: `${this.state.get('voice_pitch', 0)}Hz` }
+                    { label: 'Voice Rate', value: this.formatVoiceParam(this.state.get('voice_rate', 0), '%') },
+                    { label: 'Voice Pitch', value: this.formatVoiceParam(this.state.get('voice_pitch', 0), 'Hz') }
                 ]
             },
             {
