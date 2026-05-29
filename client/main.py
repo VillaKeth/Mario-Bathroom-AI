@@ -26,7 +26,7 @@ if CLIENT_DIR not in sys.path:
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 _full_config = {}
 if os.path.exists(CONFIG_PATH):
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         _full_config = json.load(f)
     client_config = _full_config.get("client", {})
 else:

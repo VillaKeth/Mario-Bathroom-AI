@@ -25,6 +25,8 @@ def test_store_and_match_face():
         assert match["person_id"] == 1
         assert match["name"] == "TestUser"
         assert match["confidence"] > 0.99
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
 
 def test_no_match_for_unknown():
     """Unknown face should return None."""
@@ -37,6 +39,8 @@ def test_no_match_for_unknown():
         unknown = -np.ones(128, dtype=np.float64)
         match = fm.find_match(unknown, tolerance=0.4)
         assert match is None
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
 
 def test_multiple_faces():
     """Should match correct person among multiple stored faces."""
@@ -53,6 +57,8 @@ def test_multiple_faces():
         match = fm.find_match(noisy_a)
         assert match is not None
         assert match["name"] == "Alice"
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
 
 def test_get_all_faces():
     """Should return all stored face entries."""
@@ -64,6 +70,8 @@ def test_get_all_faces():
         fm.store_face(2, "B", np.ones(128))
         all_faces = fm.get_all_faces()
         assert len(all_faces) == 2
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
 
 def test_update_existing_face():
     """Storing same person_id again should update, not duplicate."""
@@ -77,3 +85,5 @@ def test_update_existing_face():
         fm.store_face(1, "User", enc2)
         all_faces = fm.get_all_faces()
         assert len(all_faces) == 1
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
