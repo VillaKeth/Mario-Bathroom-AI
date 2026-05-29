@@ -317,6 +317,13 @@ class MarioDisplay:
         # Help overlay
         self._show_help = False
 
+        # Background system
+        self._backgrounds = []
+        self._current_bg_index = -1
+        self._bg_auto_cycle = False
+        self._bg_last_cycle_time = time.time()
+        self._bg_name_show_time = 0
+
         # Background picker overlay (Ctrl+F7)
         self._bg_picker_active = False
         self._bg_picker_selection = 0

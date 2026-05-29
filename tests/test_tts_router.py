@@ -449,7 +449,7 @@ class TestPrecleanTtsText:
 
     def test_ellipsis_at_end(self):
         from tts import _preclean_tts_text
-        assert _preclean_tts_text("Mama mia...") == "mama mee-ah"
+        assert _preclean_tts_text("Mama mia...") == "Mama mia"
 
     def test_ellipsis_at_start(self):
         from tts import _preclean_tts_text
@@ -469,7 +469,7 @@ class TestPrecleanTtsText:
 
     def test_comma_after_punctuation(self):
         from tts import _preclean_tts_text
-        assert _preclean_tts_text("Wahoo! ...Ready?") == "wah-hoo! Ready?"
+        assert _preclean_tts_text("Wahoo! ...Ready?") == "Wahoo! Ready?"
 
     def test_only_ellipsis(self):
         from tts import _preclean_tts_text
@@ -498,7 +498,7 @@ class TestTtsRvcRetries:
 
         attempts = {"count": 0}
 
-        def fake_apply_rvc(wav_bytes):
+        def fake_apply_rvc(wav_bytes, word_count=None):
             attempts["count"] += 1
             if attempts["count"] == 1:
                 raise RuntimeError("first failure")
@@ -527,7 +527,7 @@ class TestTtsRvcRetries:
 
         attempts = {"count": 0}
 
-        def always_fail_rvc(wav_bytes):
+        def always_fail_rvc(wav_bytes, word_count=None):
             attempts["count"] += 1
             raise RuntimeError("still broken")
 

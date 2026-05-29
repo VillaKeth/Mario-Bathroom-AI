@@ -840,6 +840,11 @@ class EasterEggScheduler:
         slots = sorted(random.sample(range(num_slots), min(num_fires, num_slots)))
         base_time = time.time()
         self.firing_times = [base_time + s * slot_size + random.randint(0, slot_size - 1) for s in slots]
+        # Enforce minimum 30-min gap between consecutive fires
+        self.firing_times.sort()
+        for i in range(1, len(self.firing_times)):
+            if self.firing_times[i] - self.firing_times[i-1] < slot_size:
+                self.firing_times[i] = self.firing_times[i-1] + slot_size
         if DEBUG_IDLE:
             logger.info(f"[DEBUG_IDLE] EasterEggScheduler: {len(self.firing_times)} fires scheduled")
 

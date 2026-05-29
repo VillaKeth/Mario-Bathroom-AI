@@ -99,7 +99,9 @@ def test_number_keys_trigger_game_prompts_outside_keyboard_mode(display, monkeyp
     assert display.update() is True
 
     assert submitted == [prompt]
-    assert display._chat_history[-1] == {"role": "user", "text": prompt}
+    entry = display._chat_history[-1]
+    assert entry["role"] == "user"
+    assert entry["text"] == prompt
     assert display.subtitle_text == f"🎮 {prompt}"
 
 
@@ -220,12 +222,12 @@ def test_handle_admin_command_routes_requests_and_help(monkeypatch):
     post_calls = []
     get_calls = []
     health_calls = []
-    client._send_admin_post = post_calls.append
+    client._send_admin_post = lambda path, body=None: post_calls.append((path, body))
     client._send_admin_get = get_calls.append
     client._fetch_and_display_health = lambda: health_calls.append(True)
 
     module.MarioClient._handle_admin_command(client, "/announce Party time")
-    assert post_calls[-1] == "/admin/announce?text=Party time"
+    assert post_calls[-1] == ("/admin/announce", {"text": "Party time"})
     assert client.display.subtitle == "📢 Announced: Party time"
 
     module.MarioClient._handle_admin_command(client, "/pause")
@@ -264,7 +266,7 @@ def test_send_admin_post_uses_http_post(monkeypatch):
     assert captured == {
         "url": "http://localhost:8765/admin/reset",
         "method": "POST",
-        "data": b"",
+        "data": b"{}",
         "timeout": 5,
     }
 
@@ -296,11 +298,11 @@ def test_fetch_and_display_health_formats_overlay_text(monkeypatch):
     client = build_client(module)
     payload = {
         "status": "ok",
-        "uptime": "10m",
-        "tts_engine": "edge",
-        "llm_model": "llama",
+        "uptime_seconds": 600,
+        "tts": "edge",
+        "llm": "llama",
         "tts_cache_size": 12,
-        "memory_count": 34,
+        "memory_mb": 512,
     }
 
     import urllib.request
@@ -309,7 +311,7 @@ def test_fetch_and_display_health_formats_overlay_text(monkeypatch):
 
     module.MarioClient._fetch_and_display_health(client)
 
-    assert client.display.mario_text == "Status: ok | Uptime: 10m | TTS: edge | LLM: llama | Cache: 12 entries | Memory: 34 items"
+    assert client.display.mario_text == "Status: ok | Uptime: 600s | TTS: edge | LLM: llama | Cache: 12 entries | Memory: 512MB"
     assert client.display.subtitle == "📊 Server health"
 
 
@@ -343,5 +345,5 @@ def test_health_ping_loop_refreshes_display_health(monkeypatch):
     module.MarioClient._health_ping_loop(client)
 
     assert ping_calls == [True]
-    assert url_calls == [("http://localhost:8765/api/health", 5)]
+    assert url_calls == [("http://localhost:8765/health", 5)]
     assert client.display.health_updates == [payload]

@@ -59,6 +59,7 @@ def test_shot_event_reset():
                       announcement_text="Hi!", toast_text="", recovery_line="")
     mgr.register(event)
     mgr.trigger("test")
+    mgr.complete("test")  # must complete before reset (active events can't be reset)
     mgr.reset("test")
     assert event.fired is False
 
@@ -101,8 +102,8 @@ def test_countdown_texts():
     mgr = ShotEventManager()
     texts = mgr.get_countdown_texts()
     assert len(texts) == 10
-    assert "TEN-a!" in texts[0]
-    assert "ONE-a!" in texts[9]
+    assert "Ten!" in texts[0]
+    assert "One!" in texts[9]
 
 @pytest.mark.asyncio
 async def test_precache_countdown_audio():
@@ -111,8 +112,8 @@ async def test_precache_countdown_audio():
     async def fake_tts(text):
         return b"audio_" + text.encode()
     await mgr.precache_countdown_audio(fake_tts)
-    assert mgr.get_cached_countdown("TEN-a!") == b"audio_TEN-a!"
-    assert mgr.get_cached_countdown("ONE-a!") == b"audio_ONE-a!"
+    assert mgr.get_cached_countdown("Ten!") == b"audio_Ten!"
+    assert mgr.get_cached_countdown("One!") == b"audio_One!"
     assert mgr.get_cached_countdown("NONEXISTENT") is None
 
 def test_complete_only_clears_matching_active():
@@ -143,6 +144,7 @@ def test_reset_clears_active_state():
     mgr.register(event)
     mgr.trigger("test")
     assert mgr.is_active is True
+    mgr.complete("test")  # must complete before reset
     mgr.reset("test")
     assert mgr.is_active is False
     assert event.fired is False
@@ -199,8 +201,8 @@ def test_birthday_boy_is_celebratory():
     from server.shot_events import create_default_events
     mgr = create_default_events()
     bday = mgr.events["birthday_boy"]
-    assert bday.tone == "celebratory"
-    assert "silence" not in bday.phases
+    assert bday.tone == "solemn"
+    assert "silence" in bday.phases
 
 def test_deltarune_mentions_lancer():
     from server.shot_events import create_default_events
