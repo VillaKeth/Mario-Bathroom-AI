@@ -175,6 +175,14 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - Test files cover: command_handlers, game_handlers, idle_behavior, llm_router, memory_semantic, night_progression, party_gossip, party_modules, vip_knowledge, edge_cases, tts_router, watchdog, canary, hot_reload, face_memory, person_detector, fish_speech, and more
 - E2E browser test, 8-hour stress test, integration tests all verified
 
+### MANDATORY: Audio Verification During Live Testing
+**See `.claude/rules/testing.md` for full rules.**
+- ALWAYS verify audio playback when testing the running app — don't just read logs
+- Check `_play_wav: playing` AND `_play_wav: done` in client logs
+- Verify spoken text matches speech bubble content (check `mario says:` lines)
+- For non-Mario characters: confirm ZERO Mario references in both text AND audio
+- A test is NOT complete until audio has been confirmed playing and finishing
+
 ---
 
 ## Git Workflow
@@ -191,6 +199,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - **No ellipsis (`...`) in hardcoded strings** that go to TTS — use commas or periods
 - Any server module with user-visible text should expose `set_character(name, display_name)` plus `_CHARACTER_NAME`/`_CHARACTER_DISPLAY_NAME` fallbacks so startup can swap characters cleanly.
 - Generic/shared content must stay character-agnostic; deeply character-specific command flavor currently lives in `command_handlers.py` with runtime name substitution until it is moved into per-character YAML.
+- `server/game_handlers.py` content pools must default to empty and be populated only from character YAML so missing game files never leak Mario data into other characters.
 
 ## Pygame Client UI
 - **Two-strip header layout**: Zone 1 (Y=0-28) = title bar, Zone 2 (Y=28-50) = info strip
@@ -258,6 +267,29 @@ Add fixes in `server/gpt_sovits_server.py` → `clean_text_for_tts()`:
 "Goomba" → "bad mushroom"
 "Koopa" → "Cooper"
 "Hoppenstedt" → "Hoppenstead"
+
+## Character System & Sprites
+
+### Available Characters
+| Character | Style | Sprites |
+|-----------|-------|---------|
+| `mario` | Classic Mario 3D figurine | ✅ Full set |
+| `rudi` | Orange red panda, pink hoodie | ✅ 39/40 sprites |
+| `sonic` | Modern 3D blue hedgehog | 🔄 In progress |
+| `ani` | Pastel pink/lavender AI | ✅ Full set |
+| 34× HSR chars | Anime 3D style | ⬜ Not started |
+
+### Honkai Star Rail Characters (34 total)
+stelle, march7th, danheng, himeko, welt, kafka, silverwolf, seele, blade_hsr, jingyuan, bronya_hsr, clara, fuxuan, jingliu, topaz_hsr, ruanmei, drratio, blackswan, sparkle_hsr, acheron, aventurine, robin_hsr, firefly, sunday, theherta, luocha, argenti, huohuo, gallagher, boothill, yunli, feixiao, lingsha, jiaoqiu
+
+### Sprite Generation
+- **Script:** `client/generate_character_poses.py` — generates AI sprites via Pollinations.ai + rembg
+- **Batch:** `batch_generate_hsr.py` — automated batch generation with progress tracking
+- **Setup:** `setup_hsr_characters.py` — creates character directories + YAML configs
+- **API:** Pollinations.ai (free, rate-limited ~40-50 images before 402 errors)
+- **Rate limit recovery:** 8 retries with 20s×attempt exponential backoff
+- **Each sprite:** ~2-3 minutes with rate limiting, ~40 sprites per character
+- **`model=flux` parameter MUST NOT be used** — causes HTTP 402
 "Peach" → "Peech"
 "Princess" → "the princess"
 "Luigi" → "Looigi"
