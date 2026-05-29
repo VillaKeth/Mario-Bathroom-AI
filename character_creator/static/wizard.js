@@ -1488,6 +1488,15 @@ class WizardUI {
         } catch (e) {
             document.getElementById('content-backend-name').textContent = 'Ollama (local)';
         }
+        
+        // Auto-start content generation after 3 seconds
+        // Gives user time to see categories and optionally uncheck any
+        this._autoGenTimer = setTimeout(() => {
+            const btn = document.getElementById('btn-start-generation');
+            if (btn && !btn.disabled) {
+                this.startContentGeneration();
+            }
+        }, 3000);
     }
 
     async startContentGeneration() {
