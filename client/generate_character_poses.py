@@ -502,7 +502,7 @@ _HSR_CHARACTERS = [
 ]
 for _c in _HSR_CHARACTERS:
     CHARACTER_POSES[_c] = _HSR_POSES
-def generate_pollinations(prompt, retries=5):
+def generate_pollinations(prompt, retries=8):
     """Generate an image using Pollinations.ai free API."""
     import urllib.parse
     import random
@@ -525,7 +525,7 @@ def generate_pollinations(prompt, retries=5):
             if DEBUG_GEN:
                 print(f"    [DEBUG_GEN] Pollinations error: {e}")
         if attempt < retries - 1:
-            wait = 15 * (attempt + 1)
+            wait = 20 * (attempt + 1)
             if DEBUG_GEN:
                 print(f"    [DEBUG_GEN] Retrying in {wait}s...")
             time.sleep(wait)
@@ -715,7 +715,7 @@ def generate_character(character_name, category_filter=None, use_dalle=False, us
                 print(f"  [{i+1}/{len(cat_poses)}] {category}/{pose_id} — FAILED ({elapsed:.1f}s)")
                 total_fail += 1
 
-            time.sleep(15)
+            time.sleep(20)
 
     print(f"\n{'='*50}")
     print(f"  {character_name.upper()} COMPLETE")
