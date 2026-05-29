@@ -2,7 +2,7 @@
 
 ## Character Creator Wizard — COMPLETE ✅
 - [x] Build standalone FastAPI server for character creation wizard (port 8766)
-- [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 6-step UI skeleton
+- [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 7-step UI skeleton
 - [x] Create 6-step wizard UI: Identity → Personality → Voice → Appearance → Hardware → Review
 - [x] Build known_characters.json database with 25 popular characters
 - [x] Implement auto-fill for known characters (description, voice, theme colors)
@@ -39,6 +39,22 @@
 - [x] Generate proper AI sprites for Ani (replace Pillow placeholders) — 41/41 via Pollinations.ai
 - [x] Generate all Sonic character sprites — 38/38 complete
 - [x] Find reliable free image generation API (SubNP down, Pollinations rate-limited) — Pollinations works with 90-120s delay
+- [x] Step 7: Content Generation — auto-generates all YAML pools (idle, games, extras) via LLM
+- [x] content_generator.py: supports OpenAI/Anthropic/Ollama backends with auto-detection
+- [x] SSE streaming endpoint for real-time progress in wizard UI
+- [x] Verified: 14/14 idle pools generate successfully with Ollama (llama3)
+
+## Content Generation — In Progress
+- [x] Core engine (content_generator.py) — generates idle, game, extras pools
+- [x] Wizard Step 7 UI — category checkboxes, progress bars, skip option
+- [x] SSE endpoint /api/content/generate with progress streaming
+- [x] Single-pool regeneration endpoint /api/content/regenerate-pool
+- [ ] Test full end-to-end character creation through browser wizard
+- [ ] Test game pool generation (16 pools with structured formats)
+- [ ] Test extras pool generation (9 pools)
+- [ ] Add "Manage Content" post-creation page for regeneration
+- [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
+- [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)
