@@ -777,14 +777,22 @@
 - [x] 58 total poses loaded (up from 53)
 - [x] 158 core tests passing
 
-## Remaining Character De-Mario-ification
+## Remaining Character De-Mario-ification — DONE ✅
 - [x] command_handlers.py needs set_character() like game_handlers — DONE ✅
 - [x] command_handlers.py functional dialogue de-Mario-ified (100+ replacements) — DONE ✅
 - [x] Personality modes made character-generic — DONE ✅
 - [x] Dynamic greeting/love/compliment triggers use character name — DONE ✅
-- [ ] command_handlers.py data pools (Easter eggs, dares, fortunes, stories, raps, etc.) still Mario-themed as defaults — need character YAML overrides
-- [ ] idle_behavior.py loneliness greetings have Mario-isms (lines 856-869)
+- [x] command_handlers.py data pools moved to per-character YAML (extras.yaml) with dynamic loading via set_character_content()
+- [x] idle_behavior.py all 14 pool fallbacks changed from hardcoded Mario constants to empty lists
+- [x] mario_prompt.py PHASE_PROMPTS/GREETING_PROMPTS replaced with generic defaults, overridden from character YAML
+- [x] mario_prompt.py _get_time_flavor() fixed to handle empty TIME_FLAVORS/DAY_FLAVORS dicts
+- [x] idle_behavior.py get_hand_wash_reminder() fixed to use instance pool instead of module constant
+- [x] idle_behavior.py gossip recap cleaned of Italian accent markers
+- [x] Created extras.yaml for Mario (250 items), Ani (157), Sonic (157)
+- [x] Added empty-pool guards on all random.choice() calls to prevent crashes
+- [x] Full integration verified: Ani server starts clean, all 16/16 command pools + 14/14 idle pools loaded from YAML
 - [ ] Create rapid_fire structured Q&A for Rudi and Sonic (currently skipped by format validation)
+- [ ] game_handlers.py still falls back to hardcoded Mario trivia/riddles for characters without game pools
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
@@ -801,10 +809,10 @@
 - [x] Create character.yaml configs for all 34 HSR characters
 - [x] Create character directories (sprites, games, memories, voice, catchphrases)
 - [x] Create batch_generate_hsr.py automated generator script
-- [ ] Complete Sonic sprite generation (in progress)
-- [ ] Retry Rudi positive/charmed sprite (rate limited)
-- [ ] Generate sprites for Stelle
-- [ ] Generate sprites for March 7th
+- [x] Complete Sonic sprite generation (40/40 ✅)
+- [x] Retry Rudi positive/charmed sprite (40/40 ✅)
+- [x] Generate sprites for Stelle (40/40 ✅ — 57.9 min, 0 failures)
+- [ ] Generate sprites for March 7th (IN PROGRESS 🔄)
 - [ ] Generate sprites for Dan Heng
 - [ ] Generate sprites for Himeko
 - [ ] Generate sprites for Welt
