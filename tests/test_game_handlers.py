@@ -1,5 +1,6 @@
 """Comprehensive tests for server/game_handlers.py — game start, input, quit, rotation."""
 
+import importlib
 import os
 import sys
 import time
@@ -26,6 +27,52 @@ from game_handlers import (
 )
 
 
+def _seed_game_pools():
+    """Populate minimal game content so unit tests don't depend on character YAML."""
+    game_handlers.SIMON_ACTIONS = ["clap your hands"]
+    game_handlers.TWENTY_Q_THINGS = [
+        {"answer": "apple", "category": "object", "hints": ["fruit", "round", "red"]}
+    ]
+    game_handlers.RIDDLES = [
+        {"q": "What has keys but no locks?", "a": "keyboard", "hints": ["typing", "letters", "desk"]}
+    ]
+    game_handlers.STARTER_WORDS = ["mario"]
+    game_handlers.KARAOKE_SONGS = [
+        {"title": "Test Song", "lyrics": "La la la"}
+    ]
+    game_handlers.RAPID_FIRE_QUESTIONS = [
+        {"q": "Mario's color?", "a": "red"},
+        {"q": "Luigi's color?", "a": "green"},
+    ]
+    game_handlers.TRUTH_QUESTIONS = ["What's your favorite snack?"]
+    game_handlers.DARES = ["Do one jumping jack!"]
+    game_handlers.WOULD_YOU_RATHER = [
+        {"a": "Eat pizza", "b": "Eat pasta"},
+        {"a": "Play games", "b": "Watch movies"},
+    ]
+    game_handlers.RPS_WIN_REACTIONS = ["Mario wins!"]
+    game_handlers.RPS_LOSE_REACTIONS = ["You win!"]
+    game_handlers.RPS_TIE_REACTIONS = ["Tie game!"]
+    game_handlers.HANGMAN_WORDS = ["mario"]
+    game_handlers.HOT_TAKES = ["Pineapple belongs on pizza.", "Socks with sandals are elite."]
+    game_handlers.MARIO_TRIVIA_QUESTIONS = [
+        {"q": "Who is Mario's brother?", "a": ["luigi"], "accept": ["luigi"]}
+    ]
+    game_handlers.NAME_THAT_CHARACTER = [
+        {"desc": "He wears green and is taller than Mario.", "a": ["luigi"], "accept": ["luigi"]}
+    ]
+    game_handlers.BATHROOM_DARES = ["Sing one note loudly!"]
+    game_handlers.STORY_STARTERS = ["Once upon a time there was a brave plumber."]
+    game_handlers.WYR_EXTENDED = [
+        {"a": "Ride a kart", "b": "Ride Yoshi"},
+        {"a": "Visit space", "b": "Visit the beach"},
+    ]
+    game_handlers.NHIE_PROMPTS = [
+        "Never have I ever skipped breakfast.",
+        "Never have I ever stayed up too late gaming.",
+    ]
+
+
 def _make_config():
     """Return a complete config dict with all required game keys."""
     return {
@@ -50,6 +97,7 @@ def _make_config():
 
 def _make_state():
     """Return a fresh state dict with the keys games expect."""
+    _seed_game_pools()
     return {
         "_active_game": None,
         "_game_state": {},
@@ -710,6 +758,82 @@ class TestGameValidation(unittest.TestCase):
         state["_active_game"] = None
         result = check_game_timeout(state)
         self.assertIsNone(result)
+
+
+class _FakeCharacterLoader:
+    def __init__(self, pools):
+        self._pools = pools
+
+    def get_game_pools(self):
+        return self._pools
+
+
+class TestCharacterGamePools(unittest.TestCase):
+    def tearDown(self):
+        importlib.reload(game_handlers)
+
+    def test_module_defaults_to_empty_game_pools(self):
+        importlib.reload(game_handlers)
+        self.assertEqual(game_handlers.SIMON_ACTIONS, [])
+        self.assertEqual(game_handlers.MARIO_TRIVIA_QUESTIONS, [])
+        self.assertEqual(game_handlers.HOT_TAKES, [])
+
+    def test_load_character_pools_clears_all_pools_when_character_has_none(self):
+        _seed_game_pools()
+        game_handlers.load_character_pools(_FakeCharacterLoader({}))
+        self.assertEqual(game_handlers.SIMON_ACTIONS, [])
+        self.assertEqual(game_handlers.TWENTY_Q_THINGS, [])
+        self.assertEqual(game_handlers.STORY_STARTERS, [])
+
+    def test_load_character_pools_clears_missing_pools_before_loading_partial_character_data(self):
+        _seed_game_pools()
+        game_handlers.load_character_pools(_FakeCharacterLoader({
+            "simon": ["wave hello"],
+            "karaoke": [{"title": "Ani Anthem", "lyrics": "Hi there"}],
+        }))
+        self.assertEqual(game_handlers.SIMON_ACTIONS, ["wave hello"])
+        self.assertEqual(game_handlers.KARAOKE_SONGS[0]["title"], "Ani Anthem")
+        self.assertEqual(game_handlers.RIDDLES, [])
+        self.assertEqual(game_handlers.TWENTY_Q_THINGS, [])
+
+
+@patch("game_handlers.get_adaptive_rounds", side_effect=lambda name, base, state: base)
+class TestEmptyPoolGuards(unittest.TestCase):
+    def tearDown(self):
+        _seed_game_pools()
+
+    def test_simon_start_reports_unavailable_when_actions_missing(self, _mock_ar):
+        state, config, emo = _make_state(), _make_config(), EmotionSystem()
+        game_handlers.SIMON_ACTIONS = []
+        intro = start_game("simon_says", state, config, emo)
+        self.assertIn("Simon Says actions", intro)
+        self.assertIsNone(state["_active_game"])
+
+    def test_simon_midgame_reports_unavailable_when_actions_run_out(self, _mock_ar):
+        state, config, emo = _make_state(), _make_config(), EmotionSystem()
+        start_game("simon_says", state, config, emo)
+        game_handlers.SIMON_ACTIONS = []
+        state["_game_state"]["is_simon"] = True
+        resp, sfx = handle_game_input("yes", state, emo)
+        self.assertIn("Simon Says actions", resp)
+        self.assertEqual(sfx, "game_over")
+        self.assertIsNone(state["_active_game"])
+
+    def test_rps_reports_unavailable_when_tie_reactions_missing(self, _mock_ar):
+        state, config, emo = _make_state(), _make_config(), EmotionSystem()
+        start_game("rock_paper_scissors", state, config, emo)
+        game_handlers.RPS_TIE_REACTIONS = []
+
+        def _choice(seq):
+            if seq == ["rock", "paper", "scissors"]:
+                return "rock"
+            return seq[0]
+
+        with patch("game_handlers.random.choice", side_effect=_choice):
+            resp, sfx = handle_game_input("rock", state, emo)
+        self.assertIn("Rock Paper Scissors reactions", resp)
+        self.assertEqual(sfx, "game_over")
+        self.assertIsNone(state["_active_game"])
 
 
 if __name__ == "__main__":

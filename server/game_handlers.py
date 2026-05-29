@@ -25,11 +25,54 @@ def set_character(name: str, display_name: str):
     _CHARACTER_DISPLAY_NAME = display_name
 
 
+_GAME_POOL_NAMES = (
+    "SIMON_ACTIONS",
+    "TWENTY_Q_THINGS",
+    "RIDDLES",
+    "STARTER_WORDS",
+    "KARAOKE_SONGS",
+    "RAPID_FIRE_QUESTIONS",
+    "TRUTH_QUESTIONS",
+    "DARES",
+    "WOULD_YOU_RATHER",
+    "RPS_WIN_REACTIONS",
+    "RPS_LOSE_REACTIONS",
+    "RPS_TIE_REACTIONS",
+    "HANGMAN_WORDS",
+    "HOT_TAKES",
+    "MARIO_TRIVIA_QUESTIONS",
+    "NAME_THAT_CHARACTER",
+    "BATHROOM_DARES",
+    "STORY_STARTERS",
+    "WYR_EXTENDED",
+    "NHIE_PROMPTS",
+)
+
+
+def _clear_game_pools():
+    """Reset all character-loaded game pools so content never bleeds across characters."""
+    for pool_name in _GAME_POOL_NAMES:
+        globals()[pool_name].clear()
+
+
+def _empty_pool_message(pool_label: str) -> str:
+    """Return a generic unavailable-game message for empty character content pools."""
+    return f"{_CHARACTER_DISPLAY_NAME} doesn't have any {pool_label} right now! Let's play something else!"
+
+
+def _end_game_for_empty_pool(state: dict, emotion_sys, pool_label: str) -> tuple[str, str]:
+    """Clear the active game when required pool data is unavailable mid-game."""
+    state["_active_game"] = None
+    state["_game_state"] = {}
+    emotion_sys.current = Emotion.CONFUSED
+    return (_empty_pool_message(pool_label), "game_over")
+
+
 def load_character_pools(character_loader):
     """Load game content pools from a character's YAML files.
 
-    Replaces the hardcoded Mario game data with character-specific content.
-    Falls back to existing hardcoded data for any missing pools.
+    Missing YAML keeps pools empty so characters never inherit another
+    character's game content.
     """
     global SIMON_ACTIONS, TWENTY_Q_THINGS, RIDDLES, STARTER_WORDS, KARAOKE_SONGS
     global RAPID_FIRE_QUESTIONS, TRUTH_QUESTIONS, DARES, WOULD_YOU_RATHER
@@ -38,8 +81,9 @@ def load_character_pools(character_loader):
     global BATHROOM_DARES, STORY_STARTERS, WYR_EXTENDED, NHIE_PROMPTS
 
     pools = character_loader.get_game_pools()
+    _clear_game_pools()
     if not pools:
-        logger.info("[GAMES] No character game pools found, using defaults")
+        logger.info("[GAMES] No character game pools found; pools empty (no character game files)")
         return
 
     # Map YAML pool names to module-level variables
@@ -205,610 +249,73 @@ def _mix_jacob_trivia(mario_questions, count=5):
 # Game Content Data
 # ---------------------------------------------------------------------------
 
-SIMON_ACTIONS = [
-    "touch your nose",
-    "clap your hands",
-    "do a little jump",
-    "wave at the mirror",
-    "strike a pose",
-    "make a funny face",
-    "spin around",
-    "snap your fingers",
-    "pat your head",
-    "do a thumbs up",
-    "flex your muscles",
-    "blow a kiss to the mirror",
-    "do a little squat",
-    "wiggle your fingers",
-    "tap your feet really fast",
-    "do your best Mario fist-pump",
-    "pretend to throw a fireball",
-    "do the floss dance",
-    "moonwalk in place",
-    "air guitar for 3 seconds",
-    "put your hands on your hips like a superhero",
-    "do a royal wave like Princess Peach",
-    "stomp the ground like a Thwomp",
-    "pretend to eat a mushroom and grow big",
-    "do a slow-motion jump",
-    "salute yourself in the mirror",
-    "clap above your head",
-    "do jazz hands",
-    "shimmy your shoulders",
-    "pretend to pull a star out of the air",
-    "wag your finger like you're scolding a Goomba",
-]
+# Game content comes from character YAML files at startup.
+# Keep these module-level pools empty by default so characters never
+# inherit Mario-specific prompts when their own game YAML is missing.
+SIMON_ACTIONS = []
 
-TWENTY_Q_THINGS = [
-    {"answer": "mushroom", "category": "object", "hints": ["It grows in dark places", "Mario loves to eat these", "It makes you bigger"]},
-    {"answer": "star", "category": "object", "hints": ["It makes you invincible", "It shines bright in the sky", "You chase it in every world"]},
-    {"answer": "bowser", "category": "character", "hints": ["This one breathes fire", "Has a spiky shell", "Always kidnapping princesses"]},
-    {"answer": "toilet", "category": "object", "hints": ["You're probably near one right now", "It has a flush mechanism", "A plumber's best friend"]},
-    {"answer": "spaghetti", "category": "object", "hints": ["It's long and stringy", "Mario's favorite meal", "You twirl it on a fork"]},
-    {"answer": "green pipe", "category": "object", "hints": ["You can warp through these", "Piranha plants live inside", "It's a plumber's specialty"]},
-    {"answer": "yoshi", "category": "character", "hints": ["This one has a very long tongue", "Comes in many colors", "Mario rides on its back"]},
-    {"answer": "coin", "category": "object", "hints": ["You need 100 for something special", "Makes a 'bling' sound", "It's shiny and golden"]},
-    {"answer": "princess peach", "category": "character", "hints": ["She's always getting kidnapped", "Lives in a castle", "Mario's main love interest"]},
-    {"answer": "goomba", "category": "character", "hints": ["You jump on these little guys", "They walk back and forth", "They go squish when you stomp them"]},
-    {"answer": "lakitu", "category": "character", "hints": ["Rides in a cloud", "Chases you with spiky eggs", "Appears in sky levels"]},
-    {"answer": "donkey kong", "category": "character", "hints": ["A big ape", "Throws barrels", "Likes bananas"]},
-    {"answer": "fire flower", "category": "object", "hints": ["It's hot and glowy", "Let's you shoot projectiles", "Comes from question mark blocks"]},
-    {"answer": "koopa troopa", "category": "character", "hints": ["Has a hard shell", "Can be red or green", "You can flip it on its back"]},
-    {"answer": "question mark block", "category": "object", "hints": ["You hit it from below", "Contains power-ups or coins", "Makes a distinctive sound"]},
-    {"answer": "boss fight", "category": "place", "hints": ["Where you face the final challenge", "Usually at the end of a level", "Often against Bowser"]},
-    {"answer": "lava level", "category": "place", "hints": ["It's very hot", "You need to avoid falling in", "Often red and fiery"]},
-    {"answer": "toad", "category": "character", "hints": ["Has a red and white spotted cap", "Says 'It's-a me!' in a high voice", "Often a helper character"]},
-    {"answer": "warp zone", "category": "place", "hints": ["Lets you skip levels", "Hidden in certain spots", "Saves you time"]},
-    {"answer": "super mario", "category": "character", "hints": ["The hero of the story", "Wears red", "Says 'Wahoo!' a lot"]},
-    {"answer": "banana peel", "category": "object", "hints": ["Classic comedy prop", "You slip on this", "Comes off a yellow fruit"]},
-    {"answer": "red shell", "category": "object", "hints": ["It chases its target", "You throw it in racing", "Koopas wear these"]},
-    {"answer": "rainbow road", "category": "place", "hints": ["No guardrails here", "It's colorful and in space", "The hardest racing track"]},
-    {"answer": "thwomp", "category": "character", "hints": ["It's big and heavy", "Falls down to crush you", "Has an angry stone face"]},
-    {"answer": "piranha plant", "category": "character", "hints": ["Lives inside pipes", "Has sharp teeth", "It's a dangerous flower"]},
-    {"answer": "plunger", "category": "object", "hints": ["A plumber uses this", "It creates suction", "You use it in the bathroom"]},
-    {"answer": "bob-omb", "category": "character", "hints": ["Has a fuse on top", "Goes BOOM", "Walks around before exploding"]},
-    {"answer": "castle", "category": "place", "hints": ["A princess lives here", "It has towers and walls", "The end of every world"]},
-    {"answer": "kart", "category": "object", "hints": ["You race in this", "It goes vroom vroom", "Mario drives one"]},
-]
 
-RIDDLES = [
-    {"q": "I have keys but no locks, space but no room, and you can enter but can't go inside. What am I?", "a": "keyboard", "hints": ["You use it every day", "It has letters and numbers", "You type on it"]},
-    {"q": "I go through towns and over hills but never move. What am I?", "a": "road", "hints": ["Cars drive on me", "I can be paved or dirt", "I connect places"]},
-    {"q": "I can fly without wings, cry without eyes. Wherever I go, darkness follows. What am I?", "a": "cloud", "hints": ["I'm in the sky", "I bring rain", "I'm fluffy and white"]},
-    {"q": "I have a head and a tail but no body. What am I?", "a": "coin", "hints": ["Mario loves me", "I'm shiny", "Flip me to decide"]},
-    {"q": "The more you take, the more you leave behind. What am I?", "a": "footsteps", "hints": ["You make them when you walk", "They can be big or small", "They're on the ground"]},
-    {"q": "I speak without a mouth and hear without ears. I have no body but come alive with wind. What am I?", "a": "echo", "hints": ["Bathrooms are great for this", "I repeat what you say", "Mountains have me too"]},
-    {"q": "What has 88 keys but can't open a single door?", "a": "piano", "hints": ["It makes music", "It has black and white keys", "You play it sitting down"]},
-    {"q": "I'm tall when I'm young and short when I'm old. What am I?", "a": "candle", "hints": ["I give light", "I have a flame", "Birthday cakes have many of me"]},
-    {"q": "What gets wetter the more it dries?", "a": "towel", "hints": ["You use one after a shower", "It hangs in the bathroom", "It absorbs water"]},
-    {"q": "I have cities but no houses, mountains but no trees, water but no fish. What am I?", "a": "map", "hints": ["You use me to navigate", "I show locations", "I can be folded"]},
-    {"q": "What has a face and two hands but no arms or legs?", "a": "clock", "hints": ["It tells you something", "I tick and tock", "You wind me up or use batteries"]},
-    {"q": "I'm light as a feather but you can't hold me for more than a few minutes. What am I?", "a": "breath", "hints": ["You do it without thinking", "You need it to live", "You can see it in cold air"]},
-    {"q": "The more you have, the less you see. What am I?", "a": "darkness", "hints": ["I'm the opposite of light", "Night is full of me", "You see less with more of me"]},
-    {"q": "I have a neck but no head. What am I?", "a": "bottle", "hints": ["You drink from me", "I can be made of glass", "I hold liquids"]},
-    {"q": "What has three eyes but can't see?", "a": "traffic light", "hints": ["I'm on the street", "I'm red, yellow, and green", "I tell cars when to go"]},
-    {"q": "What comes once a year but twice a week?", "a": "e", "hints": ["It's a letter", "It appears in both words", "It's the most common letter"]},
-    {"q": "I run but never walk, I have a bed but never sleep. What am I?", "a": "river", "hints": ["I flow downhill", "Fish live in me", "I'm made of water"]},
-    {"q": "What has a spine but no bones?", "a": "book", "hints": ["I have pages", "You read me", "I can teach you things"]},
-    {"q": "I am always hungry, the more you feed me the bigger I grow, the more you starve me the smaller I become. What am I?", "a": "fire", "hints": ["I give warmth", "I consume fuel", "I produce light"]},
-    {"q": "What invention allows you to look right through walls?", "a": "window", "hints": ["I'm made of glass", "You can open me", "I let in light"]},
-    {"q": "What has ears but cannot hear?", "a": "corn", "hints": ["It grows in fields", "You eat it on the cob", "It's yellow and buttery"]},
-    {"q": "I have hands but cannot clap. What am I?", "a": "clock", "hints": ["I show you the time", "I tick and tock", "I hang on the wall"]},
-    {"q": "What begins with T, ends with T, and has T in it?", "a": "teapot", "hints": ["You brew something in me", "I have a spout and handle", "I whistle when I'm ready"]},
-    {"q": "I can be cracked, I can be made, I can be told, I can be played. What am I?", "a": "joke", "hints": ["I make people laugh", "Comedians tell me", "I have a punchline"]},
-    {"q": "What has a ring but no finger?", "a": "telephone", "hints": ["You answer me", "I help you talk to people", "I make a ringing sound"]},
-    {"q": "I go all around the world but never leave the corner. What am I?", "a": "stamp", "hints": ["I'm small and sticky", "I go on envelopes", "You buy me at a post office"]},
-    {"q": "What has a thumb and four fingers but is not alive?", "a": "glove", "hints": ["You wear me", "I keep your hands warm", "I come in pairs"]},
-    {"q": "What can you hold in your right hand but never in your left?", "a": "left hand", "hints": ["Everyone has one", "It's attached to you", "Think about your own body"]},
-    {"q": "I have legs but never walk. What am I?", "a": "table", "hints": ["You eat on me", "I'm a piece of furniture", "I usually have four of them"]},
-    {"q": "What building has the most stories?", "a": "library", "hints": ["It's full of books", "You can borrow from here", "Knowledge lives here"]},
-]
+TWENTY_Q_THINGS = []
 
-STARTER_WORDS = [
-    "mario", "party", "castle", "mushroom", "adventure", "bathroom", "princess", "galaxy",
-    "fireball", "plumber", "spaghetti", "koopa", "rainbow", "bowser", "wahoo", "goomba",
-    "toilet", "champion", "dragon", "treasure", "volcano", "pirate", "rocket", "crystal",
-    "carnival", "monster", "jungle", "wizard", "potion", "island",
-]
 
-KARAOKE_SONGS = [
-    {"title": "Jump Up, Super Star!", "lyrics": "Here we go, off the rails! Don't you know it's time to raise our sails? It's FREEDOM like you never knew!"},
-    {"title": "Do the Mario!", "lyrics": "Swing your arms from side to side! Come on, it's time to go, do the Mario! Take one step and then again!"},
-    {"title": "Bowser's Fury Rap", "lyrics": "I'm-a Mario, red hat hero! Stomping Goombas, coins from zero! Jumping high and running fast! Every level is a BLAST!"},
-    {"title": "Bathroom Ballad", "lyrics": "Oh this bathroom, it's-a so fine! Every tile perfectly aligned! The soap dispenser, what a treat! This party bathroom can't be beat!"},
-    {"title": "Plumber's Anthem", "lyrics": "We're the plumbers, here we go! Through the pipes from high to low! Fixing leaks and saving queens! Living out our plumber dreams!"},
-    {"title": "Rainbow Road Blues", "lyrics": "I'm driving on a rainbow, no guardrails in sight! One wrong turn and I'm falling through the night! But I keep on racing, that's the Mario way!"},
-    {"title": "Mushroom Kingdom Party", "lyrics": "Everybody gather 'round, it's a party night! Toads are dancing, stars are shining bright! From World One to World Eight, we celebrate!"},
-    {"title": "Koopa Beach Bop", "lyrics": "Sunshine on the sand, shells upon the shore! Koopa Troopas surfing, who could ask for more? Grab a coconut and dance the night away!"},
-    {"title": "Warp Pipe Serenade", "lyrics": "Down the pipe I go, where I end up no one knows! Could be underground, could be in the clouds! Every pipe's a new adventure!"},
-    {"title": "Luigi's Lament", "lyrics": "Always player two, always in the green! The tallest brother that you've ever seen! One day I'll be the star, just you wait and see!"},
-    {"title": "Star Power Shuffle", "lyrics": "I got the star, I'm invincible now! Nothing can stop me, nothing can slow me down! Flashing rainbow colors, feeling like a king!"},
-    {"title": "Toad's Party Rock", "lyrics": "Welcome to the Mushroom House, pick a chest! Will you get the star or just the rest? Left or right or center, take your chance tonight!"},
-    {"title": "Yoshi's Island Jam", "lyrics": "Flutter jump high, flutter jump low! Baby Mario on my back, here we go! Eggs for throwing, tongues for catching, Yoshi's on patrol!"},
-    {"title": "Chain Chomp Cha-Cha", "lyrics": "Bark bark bark, I'm chained to a stake! But when I break free, watch out for goodness sake! Chomping to the left and chomping to the right!"},
-    {"title": "Princess Power Ballad", "lyrics": "They say wait in the castle, wait to be saved! But I've got a frying pan and I am BRAVE! Peach is in the fight now, watch her take the crown!"},
-    {"title": "Bob-omb Battlefield Beat", "lyrics": "Tick tick tick, I'm about to blow! Three two one and away I go! Explosive personality, that's my claim to fame!"},
-    {"title": "Ghost House Groove", "lyrics": "Boo! Ha ha, did I scare you? Turn around, I'll disappear from view! Dancing in the darkness, floating through the walls!"},
-    {"title": "Underwater Theme Remix", "lyrics": "Blooper swimming left, Cheep Cheep swimming right! Deep beneath the ocean, everything's delight! Bubbles floating upward, coins are everywhere!"},
-    {"title": "Bowser's Castle Metal", "lyrics": "FIRE and LAVA, bridges falling down! I'm the KING of Koopas, wearing the crown! Mario thinks he's tough? HA! I'll show him who's the boss!"},
-    {"title": "Party All Night Long", "lyrics": "Ten turns, twenty turns, we're still going strong! Rolling dice and stealing stars, nothing can go wrong! Wait, who stole MY star?! This friendship might not last!"},
-    {"title": "Wario's Gold Rush", "lyrics": "Gold coins, gold rings, give me ALL the gold! I'm Wario number one, the greatest ever told! Garlic breath and purple pants, I'm the REAL superstar!"},
-    {"title": "Shy Guy's Secret", "lyrics": "Behind this mask is a mystery you'll never see! Who am I really? That's between my mask and me! Dancing in the shadows, grooving to the beat!"},
-    {"title": "Pipe Dream Lullaby", "lyrics": "Warp pipe take me home, to a world I call my own! Green and gleaming, always streaming, never quite alone! Down the pipe I drift and dream tonight!"},
-    {"title": "DK Rap Remix", "lyrics": "He's the leader of the bunch! You know him well! He's finally back — to kick some tail! HUH! DK! Donkey Kong!"},
-    {"title": "Rosalina's Observatory", "lyrics": "Among the stars I watch and wait, guiding Lumas to their fate! The cosmos spin, the galaxies glow, there's so much the universe wants to show!"},
-]
+RIDDLES = []
 
-RAPID_FIRE_QUESTIONS = [
-    {"q": "What color is Mario's hat?", "a": "red"},
-    {"q": "Who is Mario's brother?", "a": "luigi"},
-    {"q": "What's the princess's name?", "a": "peach"},
-    {"q": "What are the turtle enemies called?", "a": "koopa"},
-    {"q": "What gives Mario fire powers?", "a": "fire flower"},
-    {"q": "What's the dinosaur Mario rides?", "a": "yoshi"},
-    {"q": "How many coins for an extra life?", "a": "100"},
-    {"q": "What's the ghost enemy called?", "a": "boo"},
-    {"q": "What kingdom does Peach rule?", "a": "mushroom"},
-    {"q": "What's the star power-up do?", "a": "invincible"},
-    {"q": "Who kidnaps Princess Peach?", "a": "bowser"},
-    {"q": "What's the little mushroom guy's name?", "a": "toad"},
-    {"q": "What color is Luigi's hat?", "a": "green"},
-    {"q": "What do you hit from below?", "a": "block"},
-    {"q": "What planet is Galaxy set on?", "a": "space"},
-    {"q": "What's Mario's last name?", "a": "mario"},
-    {"q": "What's Bowser's kid's name?", "a": "bowser jr"},
-    {"q": "What enemy walks off ledges?", "a": "goomba"},
-    {"q": "What warp system does Mario use?", "a": "pipe"},
-    {"q": "What's the racing game called?", "a": "mario kart"},
-    {"q": "What does the Super Leaf give Mario?", "a": "raccoon tail"},
-    {"q": "What's Bowser's castle surrounded by?", "a": "lava"},
-    {"q": "What color are warp pipes?", "a": "green"},
-    {"q": "What item makes Mario giant?", "a": "mega mushroom"},
-    {"q": "Who is Mario's evil twin?", "a": "wario"},
-    {"q": "What does Mario throw in SMB2?", "a": "vegetables"},
-    {"q": "What's the name of Peach's steward?", "a": "toadsworth"},
-    {"q": "What world has the classic flagpole?", "a": "1-1"},
-    {"q": "What power-up makes Mario small?", "a": "poison mushroom"},
-    {"q": "How many players in co-op NSMB Wii?", "a": "4"},
-]
 
-TRUTH_QUESTIONS = [
-    "What's the most embarrassing thing that happened to you at a party?",
-    "What's your guilty pleasure song that you dance to alone?",
-    "Have you ever talked to yourself in the mirror? What did you say?",
-    "What's the longest you've spent in a bathroom and WHY?",
-    "Who at this party would you trade lives with for a day?",
-    "What's the weirdest thing in your phone's search history?",
-    "If you could only eat one food forever, what would it be?",
-    "What's a secret talent nobody here knows about?",
-    "Have you ever pretended to be on the phone to avoid someone?",
-    "What's the most Mario-like thing you've ever done?",
-    "What's the strangest thing you've ever done when nobody was watching?",
-    "Have you ever laughed so hard something came out of your nose?",
-    "What's the most ridiculous lie you've told that someone believed?",
-    "What's the worst text you've ever sent to the wrong person?",
-    "Have you ever used a fake name? What was it?",
-    "What's the most embarrassing thing in your camera roll right now?",
-    "Have you ever walked into a glass door in public?",
-    "What's the weirdest food combination you actually enjoy?",
-    "Have you ever blamed a fart on someone else? Who?",
-    "What's something you've done at a party that you'd never admit sober?",
-    "What song do you secretly know ALL the words to?",
-    "Have you ever pretended to know someone you definitely didn't recognize?",
-    "What's the pettiest reason you've ever stopped talking to someone?",
-    "If this bathroom could talk, what would it say about you right now?",
-    "What's your most irrational fear that you're embarrassed about?",
-    "What's the last thing you Googled that you wouldn't want anyone to see?",
-    "Have you ever accidentally liked a really old photo while stalking someone's social media?",
-    "What's the most childish thing you still do as an adult?",
-    "If you had to delete one app from your phone forever, which one?",
-    "What's a hill you'd die on that most people would find ridiculous?",
-]
+STARTER_WORDS = []
 
-DARES = [
-    "Do your best Mario impression RIGHT NOW! Let's-a hear it!",
-    "Sing the Mario theme song to the next person who walks by!",
-    "Take a selfie with me right now and show it to someone at the party!",
-    "Do 5 jumping jacks right here in the bathroom! Wahoo!",
-    "Talk in an Italian accent for the next 2 minutes!",
-    "Strike your best superhero pose in the mirror!",
-    "Make up a rap about this bathroom! I want to hear it!",
-    "Do your best Bowser roar! RAAAWR!",
-    "Compliment the next person you see at the party!",
-    "Do the Mario dance — swing your arms from side to side!",
-    "Do your best Luigi scared-face impression! Mamma mia!",
-    "Beatbox the underground theme for 10 seconds! Dun dun dun!",
-    "Tell the next person you see that MARIO sent you with a message!",
-    "Do your best Toad impression — make your voice REALLY high!",
-    "Act like you just got a star power-up — run in place and be INVINCIBLE!",
-    "Make a dramatic speech to the mirror about how awesome this party is!",
-    "Do your best victory dance like you just won a Mario Kart race!",
-    "Sing Happy Birthday but in Mario's voice! It's-a birthday time!",
-    "Walk out of this bathroom doing the Mario jump — fist in the air!",
-    "Tell someone at the party your name is Luigi and you're lost!",
-    "Do a dramatic slow-motion walk out of the bathroom like an action hero!",
-    "Tell the next person you see that you just defeated Bowser and you need a hug!",
-    "Pretend you're answering an important phone call from Princess Peach!",
-    "Hold an imaginary mushroom above your head and yell 'POWER UP!'",
-    "Do your best Yoshi tongue sound effect — MLEM MLEM!",
-    "Challenge the next person you see to a thumb war — for the Mushroom Kingdom!",
-]
 
-WOULD_YOU_RATHER = [
-    {"a": "Have unlimited mushrooms", "b": "Have unlimited fire flowers"},
-    {"a": "Live in the Mushroom Kingdom", "b": "Live in Bowser's Castle"},
-    {"a": "Be able to breathe underwater", "b": "Be able to fly with a cape"},
-    {"a": "Fight 100 Goombas at once", "b": "Fight 1 giant Bowser"},
-    {"a": "Only eat spaghetti forever", "b": "Only eat mushrooms forever"},
-    {"a": "Have Yoshi as a pet", "b": "Have a Chain Chomp as a guard dog"},
-    {"a": "Live in a world without pipes", "b": "Live in a world without power-ups"},
-    {"a": "Be best friends with Luigi", "b": "Be best friends with Toad"},
-    {"a": "Race on Rainbow Road forever", "b": "Never play Mario Kart again"},
-    {"a": "Have invincibility star power all day", "b": "Be able to ground pound anything"},
-    {"a": "Swim through all water levels", "b": "Run through all lava levels"},
-    {"a": "Have a Bullet Bill launcher", "b": "Have a Bob-omb factory"},
-    {"a": "Be a plumber in real life", "b": "Be a princess in the Mushroom Kingdom"},
-    {"a": "Talk like Mario forever", "b": "Jump like Mario but never talk"},
-    {"a": "Know every warp zone", "b": "Have max coins at all times"},
-    {"a": "Party with Waluigi", "b": "Adventure with Wario"},
-    {"a": "Ride a Bullet Bill to work", "b": "Take a Warp Pipe to school"},
-    {"a": "Have Lakitu follow you with a camera", "b": "Have a Boo follow you invisibly"},
-    {"a": "Live in World 1-1 forever", "b": "Explore a new world every day"},
-    {"a": "Be the best at Mario Kart", "b": "Be the best at Super Smash Bros"},
-    {"a": "Have a pet Goomba", "b": "Have a pet Cheep Cheep"},
-    {"a": "Only travel by warp pipe", "b": "Only travel by cannon launch"},
-    {"a": "Have Bowser's fire breath", "b": "Have Yoshi's flutter jump"},
-    {"a": "Be stuck in an ice level forever", "b": "Be stuck in a desert level forever"},
-    {"a": "Have a 1-UP mushroom but taste terrible", "b": "Have a poison mushroom but taste amazing"},
-    {"a": "Be the referee in Mario Party", "b": "Be the announcer in Mario Kart"},
-]
+KARAOKE_SONGS = []
 
-RPS_WIN_REACTIONS = [
-    "WAHOO! Mario WINS! My fist is-a stronger than your scissors! Ha ha!",
-    "YES! Victory for the plumber! You can't beat-a these hands!",
-    "Too easy! Mario is the CHAMPION of Rock Paper Scissors! Mama mia!",
-    "HA! I saw that coming from a MILE away! Better luck next time!",
-    "Another win for Mario! I must have a star power-up! Wahoo!",
-    "You thought you could beat-a ME? I'm-a SUPER Mario! Hee hee!",
-    "That's what happens when you challenge a plumber! We're-a TOUGH!",
-    "YES YES YES! Mario is-a on FIRE! Not even Bowser could beat me!",
-    "I crushed it! Like a Thwomp from above! BOOM! Ha ha!",
-    "Too slow! Mario's reflexes are-a LEGENDARY! Wahoo!",
-    "Mario STRIKES again! I could do this ALL night! Let's-a go!",
-    "HA HA! My plumber hands are-a UNBEATABLE! You never stood a chance!",
-    "It's like I had a Star Power-up for my BRAIN! Another WIN for Mario!",
-    "Did you see THAT?! Even Toad is cheering for me! WAHOO!",
-    "That's THREE stars for Mario! I'm-a on a ROLL tonight! Hee hee!",
-    "BOOM! Just like a Fire Flower, I'm-a UNSTOPPABLE! Mama mia!",
-    "You zigged when you shoulda zagged! Mario WINS! Let's-a GO!",
-    "That's plumber PRECISION right there! Nobody beats these hands!",
-    "I've been training with Toad for this EXACT moment! VICTORY!",
-    "Another trophy for the mantle! Mario is-a the GOAT of RPS! Wahoo!",
-]
 
-RPS_LOSE_REACTIONS = [
-    "MAMA MIA! You got me! But the game's not over yet!",
-    "Ooof! Lucky shot! Mario will come back-a STRONGER!",
-    "No no no! That was-a just a warm up! Watch out next round!",
-    "You win THIS round, but Mario NEVER gives up! Let's-a go!",
-    "Impossible! You must have a mushroom power-up or something!",
-    "GAH! Even Bowser doesn't beat me this badly! Rematch!",
-    "Okay okay, you got me! But can you do it AGAIN? I doubt it!",
-    "That was-a FLUKE! Mario demands a do-over! Mama mia!",
-    "You're tougher than a Dry Bones! I'll get you next time!",
-    "Fine, you win! But I'm-a just getting warmed up! Watch out!",
-    "WHAT?! Did someone give you a cheat code?! That's-a not fair!",
-    "You got LUCKY! Mario's hand slipped! That's my story and I'm-a sticking to it!",
-    "Okay, I admit it — that was GOOD! But don't let it go to your head!",
-    "Bowser would be LAUGHING at me right now! Quick, let's go again!",
-    "My fingers are-a cold from all this bathroom air! That's my excuse! Rematch!",
-    "I blinked! That's-a the ONLY reason you won! Quick, again!",
-    "You must be some kind of Rock Paper Scissors WIZARD! Mama mia!",
-    "The pipes must be leaking because my GAME is slipping! Rematch!",
-    "Okay that was impressive! But even Luigi beats me sometimes! REMATCH!",
-    "I was distracted by a Goomba! That definitely doesn't count! Again!",
-]
+RAPID_FIRE_QUESTIONS = []
 
-RPS_TIE_REACTIONS = [
-    "A TIE?! Great minds think-a alike! Or maybe we're BOTH confused!",
-    "Same move! Are you reading my mind?! That's-a spooky!",
-    "HA! We tied! It's like looking in a mirror! Mama mia!",
-    "A draw! You're-a as clever as Mario! Almost! He he!",
-    "SNAP! Same choice! This is-a getting INTENSE!",
-    "Tied up! We're like Mario and Luigi — always in sync! Wahoo!",
-    "No winner?! The universe couldn't decide! Let's-a go again!",
-    "A TIE! Even the stars don't know who's better! One more!",
-    "Same pick! You've got-a the Mario instinct! Impressive!",
-    "Draw! It's like we share the same brain! Creepy! Ha ha!",
-    "ANOTHER tie?! Are you copying me or am I copying YOU? Mama mia!",
-    "We MATCHED again! It's like we're controlled by the same player! Spooky!",
-    "Same thing! This is-a more dramatic than a Mario Party final turn!",
-    "A DRAW! We're-a perfectly matched! This calls for a TIEBREAKER!",
-    "Identical! We must be connected by a warp pipe or something! Ha ha!",
-    "AGAIN with the tie?! We're-a stuck in a time loop! Mama mia!",
-    "Same same SAME! It's like we're TWINS! This is getting ridiculous!",
-    "Another draw! At this rate we'll be here ALL NIGHT! Let's break it!",
-    "TWO great minds, ONE choice! The universe is testing us! Again!",
-    "We keep matching! Maybe WE should team up instead of fighting! Ha ha!",
-]
 
-HANGMAN_WORDS = [
-    "mushroom", "piranha", "bowser", "lakitu", "goomba",
-    "princess", "fireball", "starman", "yoshi", "koopa",
-    "toadstool", "wario", "waluigi", "thwomp", "bobomb",
-    "rosalina", "daisy", "bullet", "banzai", "blooper",
-    "kingdom", "odyssey", "galaxy", "castle", "spaghetti",
-    "plumber", "rainbow", "sunshine", "peach", "jumpman",
-]
+TRUTH_QUESTIONS = []
 
-HOT_TAKES = [
-    "Waluigi deserves his own game!",
-    "The water levels are the BEST levels!",
-    "Luigi is BETTER than Mario!",
-    "Bowser is actually a GOOD dad!",
-    "Toad is the REAL hero of the Mushroom Kingdom!",
-    "Mario Kart friendships don't EXIST — it's every racer for themselves!",
-    "The blue shell is the GREATEST item in Mario Kart!",
-    "Yoshi deserves an APOLOGY from Mario for all those sacrificial jumps!",
-    "Princess Peach LETS herself get kidnapped for the adventure!",
-    "Wario is more honest than Mario — at least he ADMITS he's greedy!",
-    "The original Super Mario Bros is STILL the best Mario game!",
-    "Mario's mustache is overrated — he'd look BETTER clean-shaven!",
-    "Bowser Jr is MORE intimidating than Bowser!",
-    "Rainbow Road is the most FUN track in Mario Kart!",
-    "Goombas are just MISUNDERSTOOD — they're not evil!",
-    "Chain Chomps would make AMAZING pets!",
-    "Mario should have stayed a CARPENTER, not become a plumber!",
-    "The Star power-up theme is the CATCHIEST song ever written!",
-    "Dry Bones is the COOLEST enemy in the whole series!",
-    "Lakitu should QUIT throwing Spinies and become a full-time cameraman!",
-    "Spaghetti is a BETTER power-up than any mushroom!",
-    "Boo is the most ADORABLE villain in gaming history!",
-    "Donkey Kong should be in MORE Mario games!",
-    "The cape feather is BETTER than the Tanooki suit!",
-    "Mario Party has RUINED more friendships than Monopoly!",
-    "Toadette is the most UNDERRATED character in the franchise!",
-    "Piranha Plants should be in EVERY fighting game!",
-    "The coin sound effect is the most SATISFYING sound in gaming!",
-    "Baby Mario games are BETTER than adult Mario games!",
-    "Mario would LOSE in a fair fight against Sonic!",
-    "Waluigi DESERVES his own game more than ANY other Nintendo character!",
-    "The underwater levels are actually the BEST levels in every Mario game!",
-    "Rosalina is a BETTER princess than Peach and it's NOT even close!",
-    "Mario Party mini-games are MORE competitive than actual esports!",
-    "The Tanooki suit should be Mario's DEFAULT outfit in every game!",
-    "Bowser is a BETTER dad than most video game characters!",
-    "Paper Mario: The Thousand-Year Door is the GREATEST RPG ever made!",
-    "Luigi's Mansion is SCARIER than most actual horror games!",
-    "Mario Kart Double Dash is the PEAK of the Mario Kart series!",
-    "Yoshi's Island has BETTER graphics than any modern indie game!",
-]
+
+DARES = []
+
+
+WOULD_YOU_RATHER = []
+
+
+RPS_WIN_REACTIONS = []
+
+
+RPS_LOSE_REACTIONS = []
+
+
+RPS_TIE_REACTIONS = []
+
+
+HANGMAN_WORDS = []
+
+
+HOT_TAKES = []
+
 
 # ---------------------------------------------------------------------------
 # NEW MINI-GAME CONTENT — Mario Trivia, Name That Character, Bathroom Dares,
 # Story Builder, enhanced Would-You-Rather
 # ---------------------------------------------------------------------------
 
-MARIO_TRIVIA_QUESTIONS = [
-    {"q": "In what year was the original Super Mario Bros. released?", "a": ["1985"], "accept": ["85", "1985", "nineteen eighty five"]},
-    {"q": "What is the name of Bowser's flying ship?", "a": ["airship"], "accept": ["airship", "koopa cruiser", "doomship"]},
-    {"q": "How many worlds are in Super Mario Bros.?", "a": ["8"], "accept": ["8", "eight"]},
-    {"q": "What power-up lets Mario fly in Super Mario World?", "a": ["cape feather"], "accept": ["cape", "feather", "cape feather"]},
-    {"q": "What is Princess Peach's original English name?", "a": ["toadstool"], "accept": ["toadstool", "princess toadstool"]},
-    {"q": "What is the name of Mario's dinosaur companion?", "a": ["yoshi"], "accept": ["yoshi"]},
-    {"q": "In Super Mario 64, how many Power Stars can you collect?", "a": ["120"], "accept": ["120", "one hundred twenty", "one hundred and twenty"]},
-    {"q": "What color is Waluigi's hat?", "a": ["purple"], "accept": ["purple", "violet"]},
-    {"q": "What is the name of the final boss in Super Mario Galaxy?", "a": ["bowser"], "accept": ["bowser", "king bowser"]},
-    {"q": "Which Mario game introduced the wall jump?", "a": ["super mario 64"], "accept": ["64", "mario 64", "super mario 64"]},
-    {"q": "What animal is Donkey Kong?", "a": ["gorilla"], "accept": ["gorilla", "ape", "monkey"]},
-    {"q": "In Mario Kart, what item targets the player in first place?", "a": ["blue shell"], "accept": ["blue shell", "spiny shell", "blue"]},
-    {"q": "What is the name of Bowser's son?", "a": ["bowser jr"], "accept": ["bowser jr", "bowser junior", "jr"]},
-    {"q": "How many Koopalings are there?", "a": ["7"], "accept": ["7", "seven"]},
-    {"q": "What is the name of the ghost king in Luigi's Mansion?", "a": ["king boo"], "accept": ["king boo", "boo"]},
-    {"q": "What shape is the power-up block in most Mario games?", "a": ["question mark block"], "accept": ["question", "question mark", "block", "cube", "square"]},
-    {"q": "What profession was Mario before plumbing?", "a": ["carpenter"], "accept": ["carpenter"]},
-    {"q": "What is the name of the star guardian in Super Mario Galaxy?", "a": ["rosalina"], "accept": ["rosalina"]},
-    {"q": "In Super Mario Odyssey, what is Mario's hat companion called?", "a": ["cappy"], "accept": ["cappy"]},
-    {"q": "What city has a festival in Super Mario Odyssey?", "a": ["new donk city"], "accept": ["new donk", "new donk city", "donk city"]},
-    {"q": "What game features the Isle Delfino setting?", "a": ["super mario sunshine"], "accept": ["sunshine", "mario sunshine", "super mario sunshine"]},
-    {"q": "What is Toad's full name?", "a": ["toad"], "accept": ["toad", "kinopio"]},
-    {"q": "Which princess rules Sarasaland?", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
-    {"q": "What enemy hides in pipes and bites Mario?", "a": ["piranha plant"], "accept": ["piranha", "piranha plant"]},
-    {"q": "What is the name of the chain enemy attached to a post?", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
-    # --- Mario Kart questions ---
-    {"q": "What is the name of the rainbow-colored track in Mario Kart?", "a": ["rainbow road"], "accept": ["rainbow road", "rainbow"]},
-    {"q": "What item gives you a speed boost in Mario Kart?", "a": ["mushroom"], "accept": ["mushroom", "boost mushroom", "super mushroom"]},
-    {"q": "Which Mario Kart game introduced anti-gravity racing?", "a": ["mario kart 8"], "accept": ["mario kart 8", "mk8", "8"]},
-    {"q": "What is the name of the Lakitu who holds the traffic light at the start of Mario Kart?", "a": ["lakitu"], "accept": ["lakitu"]},
-    {"q": "In Mario Kart, what does the lightning bolt item do?", "a": ["shrink"], "accept": ["shrink", "shrinks everyone", "makes everyone small", "shrinks"]},
-    # --- Paper Mario questions ---
-    {"q": "What is the name of Mario's first partner in Paper Mario 64?", "a": ["goombario"], "accept": ["goombario"]},
-    {"q": "In Paper Mario: The Thousand-Year Door, what city is the hub world?", "a": ["rogueport"], "accept": ["rogueport", "rogue port"]},
-    {"q": "What kind of attacks use flower points in Paper Mario?", "a": ["special"], "accept": ["special", "special attacks", "magic", "special moves"]},
-    # --- Mario Galaxy questions ---
-    {"q": "What are the small star-shaped collectibles called in Super Mario Galaxy?", "a": ["star bits"], "accept": ["star bits", "starbits"]},
-    {"q": "What is the name of the hub area in Super Mario Galaxy?", "a": ["comet observatory"], "accept": ["comet observatory", "observatory"]},
-    {"q": "Who are the small star creatures that Rosalina protects in Mario Galaxy?", "a": ["lumas"], "accept": ["lumas", "luma"]},
-    # --- Super Mario Odyssey questions ---
-    {"q": "What is the name of Mario's ship in Super Mario Odyssey?", "a": ["odyssey"], "accept": ["odyssey", "the odyssey"]},
-    {"q": "In Super Mario Odyssey, what ability does Cappy give Mario?", "a": ["capture"], "accept": ["capture", "possess", "capturing enemies", "possession"]},
-    {"q": "Which kingdom in Super Mario Odyssey features a realistic city with humans?", "a": ["metro kingdom"], "accept": ["metro kingdom", "metro", "new donk city"]},
-    # --- Mario Party questions ---
-    {"q": "How many playable characters were in the original Mario Party?", "a": ["6"], "accept": ["6", "six"]},
-    {"q": "What do you collect on the board in Mario Party to win?", "a": ["stars"], "accept": ["stars", "power stars", "star"]},
-    {"q": "In Mario Party, what item lets you steal a star from another player?", "a": ["boo"], "accept": ["boo", "boo bell"]},
-    # --- Donkey Kong arcade questions ---
-    {"q": "In the original Donkey Kong arcade game, what does Mario dodge?", "a": ["barrels"], "accept": ["barrels", "barrel"]},
-    {"q": "What was Mario originally called in the Donkey Kong arcade game?", "a": ["jumpman"], "accept": ["jumpman", "jump man"]},
-    {"q": "What year was the original Donkey Kong arcade game released?", "a": ["1981"], "accept": ["1981", "81"]},
-    # --- Yoshi's Island questions ---
-    {"q": "In Yoshi's Island, what does Yoshi turn enemies into when he eats them?", "a": ["eggs"], "accept": ["eggs", "egg"]},
-    {"q": "Who is Yoshi trying to reunite Baby Mario with in Yoshi's Island?", "a": ["baby luigi"], "accept": ["baby luigi", "luigi"]},
-    # --- Luigi's Mansion questions ---
-    {"q": "What device does Luigi use to capture ghosts in Luigi's Mansion?", "a": ["poltergust"], "accept": ["poltergust", "poltergust 3000", "vacuum"]},
-    {"q": "Who invented the Poltergust in Luigi's Mansion?", "a": ["professor e gadd"], "accept": ["professor e gadd", "e gadd", "e. gadd", "professor elvin gadd"]},
-    {"q": "How many portrait ghosts are there in the original Luigi's Mansion?", "a": ["23"], "accept": ["23", "twenty three", "twenty-three"]},
-]
+MARIO_TRIVIA_QUESTIONS = []
 
-NAME_THAT_CHARACTER = [
-    {"desc": "This-a guy is green, taller than me, and afraid of ghosts!", "a": ["luigi"], "accept": ["luigi"]},
-    {"desc": "She's-a got a pink dress, blonde hair, and keeps getting kidnapped by Bowser!", "a": ["peach"], "accept": ["peach", "princess peach", "toadstool"]},
-    {"desc": "This little mushroom head always says 'Thank you Mario!' but the princess is NEVER there!", "a": ["toad"], "accept": ["toad"]},
-    {"desc": "Big spiky turtle, breathes fire, has a SERIOUS princess obsession!", "a": ["bowser"], "accept": ["bowser", "king koopa"]},
-    {"desc": "Green dinosaur, long tongue, eats EVERYTHING, and I may have... dropped him into pits!", "a": ["yoshi"], "accept": ["yoshi"]},
-    {"desc": "This guy looks like me but EVIL, wears yellow and purple, and loves garlic!", "a": ["wario"], "accept": ["wario"]},
-    {"desc": "Tall, skinny, purple hat, goes 'WAH!' a LOT, and never gets invited to Smash Bros!", "a": ["waluigi"], "accept": ["waluigi"]},
-    {"desc": "Floats in a cloud, wears goggles, throws spiny eggs at you from above!", "a": ["lakitu"], "accept": ["lakitu"]},
-    {"desc": "Round, brown, angry face, just walks in one direction, gets stomped by EVERYONE!", "a": ["goomba"], "accept": ["goomba"]},
-    {"desc": "A ghost that covers its face when you look at it, but chases you when you turn around!", "a": ["boo"], "accept": ["boo", "king boo"]},
-    {"desc": "She lives in space, watches over the Lumas, and has a mysterious backstory!", "a": ["rosalina"], "accept": ["rosalina"]},
-    {"desc": "He's a star-shaped warrior from the legends, made of wood, shoots laser beams!", "a": ["geno"], "accept": ["geno"]},
-    {"desc": "A turtle with a red or green shell — kick the shell and it goes FLYING!", "a": ["koopa troopa"], "accept": ["koopa", "koopa troopa", "koopa trooper"]},
-    {"desc": "This big ape throws barrels and loves bananas more than ANYTHING!", "a": ["donkey kong"], "accept": ["donkey kong", "dk"]},
-    {"desc": "She's got an orange dress, is from Sarasaland, and says 'Hi I'm Daisy!' ALL the time!", "a": ["daisy"], "accept": ["daisy", "princess daisy"]},
-    {"desc": "A tiny mushroom person with a mining hat, always screaming and running around!", "a": ["toad"], "accept": ["toad", "captain toad"]},
-    {"desc": "A blue hedgehog who goes REALLY fast and collects golden rings!", "a": ["sonic"], "accept": ["sonic", "sonic the hedgehog"]},
-    {"desc": "Bowser's son with a magic paintbrush! Tried to frame me by painting graffiti everywhere!", "a": ["bowser jr"], "accept": ["bowser jr", "bowser junior", "junior"]},
-    {"desc": "A little cloud puff baby that lives in space and loves their mama Rosalina!", "a": ["luma"], "accept": ["luma"]},
-    {"desc": "My hat friend from Odyssey! He lets me capture and possess other creatures!", "a": ["cappy"], "accept": ["cappy"]},
-    {"desc": "A hammer-throwing turtle bro in a helmet! These guys are TOUGH to dodge!", "a": ["hammer bro"], "accept": ["hammer bro", "hammer brother", "hammer bros"]},
-    {"desc": "A chain ball monster that barks and lunges at you! Tied to a stake but WANTS to be free!", "a": ["chain chomp"], "accept": ["chain chomp", "chomp"]},
-    {"desc": "She's the mayor of New Donk City and she can SING! Jump Up, Super Star!", "a": ["pauline"], "accept": ["pauline"]},
-    {"desc": "A little star that pops out of blocks and makes you INVINCIBLE for a few seconds!", "a": ["super star"], "accept": ["star", "super star", "starman", "invincibility star"]},
-    {"desc": "A blue shell that flies to first place and EXPLODES! The most hated item in racing!", "a": ["blue shell"], "accept": ["blue shell", "spiny shell"]},
-]
 
-BATHROOM_DARES = [
-    "I DARE you to look in the mirror and say 'I am the greatest plumber in the Mushroom Kingdom' three times!",
-    "I DARE you to do 5 jumping jacks right now! Come on, WAHOO with each one!",
-    "I DARE you to strike your BEST superhero pose in the mirror and hold it for 5 seconds!",
-    "I DARE you to do your best Mario impression! Say 'It's-a me!' as loud as you can!",
-    "I DARE you to sing 'Happy Birthday' but replace every word with 'Wahoo'!",
-    "I DARE you to flex in the mirror and give yourself a compliment! You DESERVE it!",
-    "I DARE you to do a little dance right now! Show me your BEST moves!",
-    "I DARE you to make a funny face in the mirror and HOLD it for 10 seconds!",
-    "I DARE you to pat your head and rub your tummy at the SAME TIME! It's harder than it sounds!",
-    "I DARE you to do your best Bowser ROAR! RAAAWR! Scare those Goombas!",
-    "I DARE you to high-five yourself in the mirror! Both hands! SLAP!",
-    "I DARE you to do 3 squats while saying 'WAHOO' each time you come up!",
-    "I DARE you to wink at yourself in the mirror and say 'Looking GOOD, superstar!'",
-    "I DARE you to pretend you're swimming through the air like it's a water level!",
-    "I DARE you to snap your fingers 10 times as fast as you can! Speed run!",
-    "I DARE you to do a robot dance for 5 seconds! Beep boop beep!",
-    "I DARE you to give a thumbs up to the mirror with BOTH hands and say 'Let's-a go!'",
-    "I DARE you to pretend you just won a race and do a victory celebration!",
-    "I DARE you to try touching your nose with your tongue! Can you do it?!",
-    "I DARE you to tell the mirror a joke! Make YOURSELF laugh!",
-    "I DARE you to hold an invisible trophy above your head and thank the Mushroom Kingdom Academy!",
-    "I DARE you to do the wave — by yourself! Both arms, full commitment!",
-    "I DARE you to whisper 'wahoo' five times getting louder each time until you're YELLING!",
-    "I DARE you to moonwalk for three steps! Smooth like a Boo in reverse!",
-    "I DARE you to give yourself finger guns in the mirror and say 'Mama mia, looking good!'",
-]
+NAME_THAT_CHARACTER = []
 
-STORY_STARTERS = [
-    "Once upon a time, in the deepest pipe of the Mushroom Kingdom, Mario found a golden toilet that granted wishes!",
-    "It was a dark and stormy night in Bowser's Castle when suddenly, a Goomba showed up wearing a TOP HAT!",
-    "Luigi was minding his own business when a ghost popped out and said 'I need YOUR help to plan a PARTY!'",
-    "Deep in the jungle, Donkey Kong discovered a banana that could TALK, and it said...",
-    "Princess Peach was tired of being rescued, so she grabbed a fire flower and said 'MY TURN!'",
-    "Toad was running the Mushroom Kingdom's first-ever pizza shop when Bowser walked in and ordered...",
-    "Waluigi entered a talent show, and his secret talent was something NOBODY expected...",
-    "Mario was fixing a toilet when he accidentally opened a portal to a dimension made entirely of SPAGHETTI!",
-    "Yoshi ate a mystery mushroom and suddenly could speak perfect English, and the FIRST thing he said was...",
-    "Bowser decided to take a vacation from being evil, so he booked a trip to...",
-    "In a parallel universe, Mario was a VILLAIN and Bowser was the HERO! It all started when...",
-    "A Chain Chomp broke free from its post and decided to become a PUPPY at a pet store!",
-    "One day, all the Boos in the Ghost House decided to throw the SCARIEST party ever, but the DJ was...",
-    "Lakitu was filming Mario's adventure when his cloud ran out of gas RIGHT over a volcano!",
-    "The Toads discovered a hidden room in Peach's Castle with a machine that could turn ANYONE into...",
-    "Bowser Jr. snuck into Mario's house while he was sleeping and replaced all his power-ups with...",
-    "There was a rumor that World 9 existed, and the only way to get there was to flush a golden...",
-    "Mario and Luigi opened a restaurant, but their ONLY customer was someone very unexpected...",
-    "Wario found a magic mirror that showed his future, and in it he saw himself as the KING of...",
-    "The Piranha Plants organized a union and their number one demand was...",
-    "Someone left a mysterious package at Mario's door with a note that said 'DO NOT OPEN until the party!'",
-    "Kamek the Magikoopa accidentally cast a spell that turned Bowser's Castle into a BOUNCE HOUSE!",
-    "The bullet bills went on strike because they were tired of being shot at plumbers, so they started a...",
-    "Shy Guy took off his mask for the FIRST time ever, and everyone was shocked because underneath was...",
-    "At the annual Mushroom Kingdom bathroom awards, the winner for Best Plumber was NOT who everyone expected...",
-    "Toadette found a note in a bottle that washed ashore from another dimension, and it said...",
-    "A Blooper learned to walk on land, moved to New Donk City, and got a job as a...",
-    "The Koopa Troop hired a corporate consultant to improve morale, and their first suggestion was...",
-    "Mario woke up one morning and discovered he could only jump BACKWARDS, which was a problem because...",
-    "Peach decided to host a cooking competition in the castle, but the secret ingredient was...",
-]
 
-WYR_EXTENDED = [
-    {"a": "Fight 100 Goomba-sized Bowsers", "b": "Fight 1 Bowser-sized Goomba"},
-    {"a": "Have a Bullet Bill as your personal taxi", "b": "Have a Lakitu cloud as your bed"},
-    {"a": "Only speak in Mario's voice forever", "b": "Only walk by jumping everywhere"},
-    {"a": "Live inside a question mark block", "b": "Live inside a green pipe"},
-    {"a": "Be chased by an angry Chain Chomp for a day", "b": "Be stuck in a Ghost House overnight"},
-    {"a": "Eat nothing but mushrooms for a month", "b": "Eat nothing but fire flowers for a week"},
-    {"a": "Have Bowser as your roommate", "b": "Have Waluigi as your coworker"},
-    {"a": "Ride a Thwomp to school every day", "b": "Ride a Blooper through the ocean to work"},
-    {"a": "Have Bob-ombs as party poppers at your birthday", "b": "Have Boos as your hide-and-seek teammates"},
-    {"a": "Win a Mario Kart Grand Prix but no one believes you", "b": "Lose but everyone thinks you won"},
-    {"a": "Have the double cherry power-up forever (clone yourself)", "b": "Have the cat suit forever"},
-    {"a": "Be trapped in Rainbow Road with no guardrails", "b": "Be trapped in a water level with no air bubbles"},
-    {"a": "Have Toad narrate your entire life", "b": "Have Lakitu film your entire life"},
-    {"a": "Play Mario Party for 100 turns", "b": "Play a single Mario Kart race on Rainbow Road that never ends"},
-    {"a": "Have unlimited coins but can't spend them", "b": "Have only 1 coin but it buys anything"},
-    {"a": "Be stuck on a forever-looping escalator", "b": "Be stuck on a forever-spinning merry-go-round"},
-    {"a": "Have Bowser text you 'good morning' every day", "b": "Have Waluigi show up at every party you go to"},
-    {"a": "Swap bodies with Luigi for a week", "b": "Swap bodies with Yoshi for a day"},
-    {"a": "Only eat food that's been stomped on", "b": "Only drink from fountains in video game levels"},
-    {"a": "Have your life narrated by Mario's voice", "b": "Have every door you open make the Mario pipe sound"},
-    {"a": "Get a star power-up but it plays the music at full volume in public", "b": "Get a mushroom power-up but you literally double in size"},
-    {"a": "Have a Boo follow you around that only YOU can see", "b": "Have a Goomba that trips you once a day at random"},
-    {"a": "Be famous in the Mushroom Kingdom but unknown on Earth", "b": "Be famous on Earth but wanted in the Mushroom Kingdom"},
-    {"a": "Speak fluent Pianta for life", "b": "Understand what Bob-ombs say before they explode"},
-    {"a": "Always have the blue shell targeting you", "b": "Always start every race in last place"},
-]
+BATHROOM_DARES = []
 
-NHIE_PROMPTS = [
-    "Never have I ever... jumped on a Goomba in real life!",
-    "Never have I ever... tried to slide down a flagpole!",
-    "Never have I ever... blamed lag when I lost at Mario Kart!",
-    "Never have I ever... tried to talk like Mario in public!",
-    "Never have I ever... attempted a triple jump in real life!",
-    "Never have I ever... eaten a mushroom and expected to grow bigger!",
-    "Never have I ever... thrown a banana peel on the floor on purpose!",
-    "Never have I ever... punched a brick hoping coins would pop out!",
-    "Never have I ever... yelled 'WAHOO' while jumping off something!",
-    "Never have I ever... pretended a turtle shell was a weapon!",
-    "Never have I ever... worn a fake mustache to look like Mario!",
-    "Never have I ever... tried to ground-pound a couch cushion!",
-    "Never have I ever... talked to a toilet like it was a warp pipe!",
-    "Never have I ever... blamed my friend for throwing a blue shell at me... in LIFE!",
-    "Never have I ever... done the Mario dance at a party!",
-    "Never have I ever... tried to wall-jump between two walls!",
-    "Never have I ever... collected random coins or tokens just for fun!",
-    "Never have I ever... called someone 'Princess' sarcastically!",
-    "Never have I ever... hummed the Super Mario theme in the bathroom!",
-    "Never have I ever... pretended a cardboard box was a kart!",
-    "Never have I ever... eaten spaghetti and thought of Mario!",
-    "Never have I ever... wished I had a Yoshi to ride to work!",
-    "Never have I ever... screamed at a video game loud enough for neighbors to hear!",
-    "Never have I ever... tried to fit into a pipe or tube!",
-    "Never have I ever... used a plunger and felt like a real plumber!",
-    "Never have I ever... named a pet after a Mario character!",
-    "Never have I ever... stayed up past 3 AM playing a Mario game!",
-    "Never have I ever... done a victory lap after winning ANYTHING!",
-    "Never have I ever... tripped in public and said 'I lost a life'!",
-    "Never have I ever... looked at stars and thought of Star Power!",
-    "Never have I ever... picked a character in Mario Kart based on looks instead of stats!",
-    "Never have I ever... rage quit a Mario game and immediately restarted it!",
-    "Never have I ever... tried to do a spin jump off a diving board!",
-    "Never have I ever... argued with someone about which Mario game is the best!",
-    "Never have I ever... pretended to throw a red shell at a bad driver!",
-    "Never have I ever... made sound effects while jumping over puddles!",
-    "Never have I ever... called a short person a Toad or a Goomba!",
-    "Never have I ever... fantasized about living in the Mushroom Kingdom!",
-    "Never have I ever... used 'It's-a me!' as an introduction!",
-    "Never have I ever... blamed a loss on the game cheating instead of my own skill!",
-]
+
+STORY_STARTERS = []
+
+
+WYR_EXTENDED = []
+
+
+NHIE_PROMPTS = []
+
 
 
 # ---------------------------------------------------------------------------
@@ -928,6 +435,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return None
 
     if game_name == "simon_says":
+        if not SIMON_ACTIONS:
+            return _empty_pool_message("Simon Says actions")
         state["_active_game"] = "simon_says"
         max_r = get_adaptive_rounds("simon_says", config["simon_max_rounds"], state)
         state["_game_state"] = {"round": 1, "score": 0, "max_rounds": max_r}
@@ -940,6 +449,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return f"SIMON SAYS game! Round 1 of 5! {action.capitalize()}! Ha! Did you do it? Say 'yes' or 'no'!"
 
     if game_name == "twenty_questions":
+        if not TWENTY_Q_THINGS:
+            return _empty_pool_message("20 Questions prompts")
         thing = random.choice(TWENTY_Q_THINGS)
         state["_active_game"] = "twenty_questions"
         state["_game_state"] = {
@@ -962,7 +473,7 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     if game_name == "riddles":
         if not RIDDLES:
-            return "Mama mia! I ran out of riddles! Let's-a play something else!"
+            return _empty_pool_message("riddles")
         riddle = random.choice(RIDDLES)
         state["_active_game"] = "riddles"
         state["_game_state"] = {
@@ -976,6 +487,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return f"RIDDLE TIME! Here's-a your riddle: {riddle['q']} Say 'hint' for a clue or try to guess!"
 
     if game_name == "word_chain":
+        if not STARTER_WORDS:
+            return _empty_pool_message("Word Chain starter words")
         word = random.choice(STARTER_WORDS)
         state["_active_game"] = "word_chain"
         state["_game_state"] = {
@@ -988,6 +501,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return f"WORD CHAIN! I start with '{word.upper()}'! Now YOU say a word starting with the letter '{word[-1].upper()}'! We take turns!"
 
     if game_name == "karaoke":
+        if not KARAOKE_SONGS:
+            return _empty_pool_message("karaoke songs")
         song = random.choice(KARAOKE_SONGS)
         emotion_sys.current = Emotion.EXCITED
         return f"KARAOKE TIME! 🎤 Let's-a sing '{song['title']}'! Ready? ♪ {song['lyrics']} ♪ WAHOO! Your turn to sing something!"
@@ -1043,6 +558,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
         return "ROCK PAPER SCISSORS! Best of 3! Let's-a BATTLE! Say 'rock', 'paper', or 'scissors'! Let's-a GO!"
 
     if game_name == "hangman":
+        if not HANGMAN_WORDS:
+            return _empty_pool_message("Hangman words")
         word = random.choice(HANGMAN_WORDS)
         display = " ".join("_" for _ in word)
         state["_active_game"] = "hangman"
@@ -1154,6 +671,8 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 
     # --- Story Builder ---
     if game_name == "story_builder":
+        if not STORY_STARTERS:
+            return _empty_pool_message("story starters")
         starter = random.choice(STORY_STARTERS)
         state["_active_game"] = "story_builder"
         state["_game_state"] = {
@@ -1266,6 +785,8 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
                     return (f"{feedback} Game over! Score: {final_score}/{gs['max_rounds']}! Better luck next time!", "game_over")
 
             # Next round
+            if not SIMON_ACTIONS:
+                return _end_game_for_empty_pool(state, emotion_sys, "Simon Says actions")
             action = random.choice(SIMON_ACTIONS)
             gs["current_action"] = action
             gs["is_simon"] = random.random() > 0.3
@@ -1516,15 +1037,21 @@ def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] |
         rnd = gs["round"]
 
         if player_choice == mario_choice:
+            if not RPS_TIE_REACTIONS:
+                return _end_game_for_empty_pool(state, emotion_sys, "Rock Paper Scissors reactions")
             reaction = random.choice(RPS_TIE_REACTIONS)
             sfx = None
         elif (player_choice == "rock" and mario_choice == "scissors") or \
              (player_choice == "paper" and mario_choice == "rock") or \
              (player_choice == "scissors" and mario_choice == "paper"):
+            if not RPS_LOSE_REACTIONS:
+                return _end_game_for_empty_pool(state, emotion_sys, "Rock Paper Scissors reactions")
             gs["player_score"] += 1
             reaction = random.choice(RPS_LOSE_REACTIONS)
             sfx = "correct"
         else:
+            if not RPS_WIN_REACTIONS:
+                return _end_game_for_empty_pool(state, emotion_sys, "Rock Paper Scissors reactions")
             gs["mario_score"] += 1
             reaction = random.choice(RPS_WIN_REACTIONS)
             sfx = "wrong"
