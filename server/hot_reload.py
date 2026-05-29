@@ -57,7 +57,7 @@ class LiveConfig:
     def reload(self):
         """Re-read config from disk."""
         try:
-            with open(self._path, "r") as f:
+            with open(self._path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             with self._lock:
                 self._data = data
@@ -90,7 +90,7 @@ class LiveConfig:
     def _save(self):
         """Write current config to disk."""
         try:
-            with open(self._path, "w") as f:
+            with open(self._path, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2)
             self._last_mtime = os.path.getmtime(self._path)
         except Exception as e:

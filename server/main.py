@@ -103,7 +103,7 @@ TTS_CACHE_MAX = 2000
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 config = {}
 if os.path.exists(CONFIG_PATH):
-    with open(CONFIG_PATH) as f:
+    with open(CONFIG_PATH, encoding="utf-8") as f:
         config = json.load(f)
     logger.info(f"Loaded config from {CONFIG_PATH}")
 else:
@@ -1387,7 +1387,7 @@ async def reload_config():
     global server_config
     try:
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             full_config = json.load(f)
         server_config = full_config.get("server", {})
         GAME_CONFIG.update({
@@ -3886,7 +3886,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 "Start a countdown for no reason. When you hit zero, just say 'Cool.' and move on.",
                 "Act like you're receiving a phone call from Princess Peach. Have a brief one-sided conversation. Apologize for the interruption.",
                 "Suddenly become VERY concerned about whether they washed their hands. It's important to you.",
-                "Briefly speak in the third person. 'Mario thinks that's interesting. Mario agrees.' Then stop.",
+                "Briefly speak in the third person. '{name} thinks that\\'s interesting. {name} agrees.' Then stop.".format(name=_character.display_name if _character else "I"),
             ]
             ctx.append({"role": "system", "content": f"[CHAOS]: {random.choice(chaos_hints)}"})
 

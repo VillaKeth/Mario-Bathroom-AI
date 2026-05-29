@@ -47,7 +47,7 @@ _spk_config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "con
 if os.path.exists(_spk_config_path):
     try:
         import json as _json_mod
-        with open(_spk_config_path) as _f:
+        with open(_spk_config_path, encoding="utf-8") as _f:
             _spk_cfg = _json_mod.load(_f).get("server", {})
             SIMILARITY_THRESHOLD = _spk_cfg.get("speaker_similarity_threshold", SIMILARITY_THRESHOLD)
     except Exception:

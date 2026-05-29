@@ -50,7 +50,7 @@ def _load_debug_flag():
         _cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
         if os.path.exists(_cfg_path):
             import json as _json
-            with open(_cfg_path) as _f:
+            with open(_cfg_path, encoding="utf-8") as _f:
                 return _json.load(_f).get("server", {}).get("debug_tts", True)
     except Exception:
         pass
@@ -144,7 +144,7 @@ _tts_cfg = {}
 if os.path.exists(_tts_config_path):
     try:
         import json as _json
-        with open(_tts_config_path) as _f:
+        with open(_tts_config_path, encoding="utf-8") as _f:
             _tts_cfg = _json.load(_f).get("server", {})
             _tts_config_fast = _tts_cfg.get("tts_fast_mode", True)
             _tts_mode = _tts_cfg.get("tts_mode", "hybrid")

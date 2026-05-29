@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Load config
 _config_path = os.path.join(os.path.dirname(__file__), "..", "config.json")
 try:
-    with open(_config_path, "r") as f:
+    with open(_config_path, "r", encoding="utf-8") as f:
         _config = json.load(f).get("server", {})
 except Exception:
     _config = {}

@@ -203,7 +203,7 @@ def _load_jacob_trivia():
         return _jacob_trivia_cache
     try:
         trivia_path = os.path.join(os.path.dirname(__file__), "data", "jacob_trivia.json")
-        with open(trivia_path) as f:
+        with open(trivia_path, encoding="utf-8") as f:
             _jacob_trivia_cache = json.load(f)
         return _jacob_trivia_cache
     except Exception:

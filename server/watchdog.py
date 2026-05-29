@@ -91,7 +91,7 @@ def _load_config() -> dict:
     """Load config.json from project root."""
     config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
     if os.path.exists(config_path):
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
