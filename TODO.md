@@ -64,6 +64,8 @@
 - [x] Fixed idle_behavior.py hardcoded Mario text: added _is_mario guard to skip Mario-specific fallbacks for non-Mario characters
 - [x] Fixed red jagged SHOUT bubble Mario leak: contextual idle, time observation, party stage, re-engagement questions all now character-aware
 - [x] Fixed reload_config file corruption (missing json.load line)
+- [x] Fixed voice rate/pitch double-suffix display bug in wizard review step ("+20%%" → "+20%")
+- [x] Full wizard audit: all 7 steps verified working end-to-end (Goku character created from scratch)
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
 - [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step
