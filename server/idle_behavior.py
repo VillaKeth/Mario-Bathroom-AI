@@ -263,14 +263,17 @@ class IdleBehavior:
             options.extend(self._compliments)
 
         # Add time-appropriate comments
-        if 18 <= hour < 21:
-            options.extend(self._time_comments.get("early_evening", []))
-        elif 21 <= hour < 24:
-            options.extend(self._time_comments.get("peak_party", []))
-        elif 0 <= hour < 2:
-            options.extend(self._time_comments.get("late_night", []))
-        elif 2 <= hour < 6:
-            options.extend(self._time_comments.get("very_late", []) * 2)
+        if isinstance(self._time_comments, dict):
+            if 18 <= hour < 21:
+                options.extend(self._time_comments.get("early_evening", []))
+            elif 21 <= hour < 24:
+                options.extend(self._time_comments.get("peak_party", []))
+            elif 0 <= hour < 2:
+                options.extend(self._time_comments.get("late_night", []))
+            elif 2 <= hour < 6:
+                options.extend(self._time_comments.get("very_late", []) * 2)
+        elif isinstance(self._time_comments, list) and self._time_comments:
+            options.extend(self._time_comments)
 
         choice = self._pick_unique(options, pool_name=cat_name)
         if DEBUG_IDLE:
@@ -636,9 +639,16 @@ class IdleBehavior:
 
     def get_time_comment(self) -> str:
         """Get a comment based on the current time of day, with deduplication and cooldown."""
+        if not self._time_comments:
+            return None
         now = time.time()
         if now - self._last_time_comment_at < 90:
             return None
+        # If time_comments is a flat list (non-Mario characters), pick from it directly
+        if isinstance(self._time_comments, list):
+            result = self._pick_unique(self._time_comments, "time_comments")
+            self._last_time_comment_at = time.time()
+            return result
         hour = datetime.now().hour
         # Map hour ranges to time_comments keys
         if 0 <= hour < 4:
