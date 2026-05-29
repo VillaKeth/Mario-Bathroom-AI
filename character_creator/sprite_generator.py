@@ -184,8 +184,8 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
                     input_img = Image.open(output_path)
                     output_img = remove(input_img)
                     output_img.save(output_path)
-                except ImportError:
-                    logger.warning("rembg not installed, skipping background removal")
+                except (ImportError, SystemExit):
+                    logger.warning("rembg not available, skipping background removal")
                 except Exception as e:
                     logger.warning(f"Background removal failed for {pose_name}: {e}")
                 

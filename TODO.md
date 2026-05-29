@@ -66,9 +66,15 @@
 - [x] Fixed reload_config file corruption (missing json.load line)
 - [x] Fixed voice rate/pitch double-suffix display bug in wizard review step ("+20%%" → "+20%")
 - [x] Full wizard audit: all 7 steps verified working end-to-end (Goku character created from scratch)
+- [x] Created Reze (Chainsaw Man) character entirely through wizard UI — zero code
+- [x] Start Server button: now updates config.json AND launches start.bat in new console
+- [x] Added /api/server/launch endpoint (spawns game server as detached process)
+- [x] Content generation Skip button de-emphasized (ghost style, explains downside)
+- [ ] Make content generation auto-start (not require manual click) — wizard should feel seamless
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
 - [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step
+- [ ] Auto-start pygame client after server launches (full zero-interaction startup)
 
 ## TTS Verification System — DONE ✅
 - [x] Comparison engine (WER, truncation detection, normalization)

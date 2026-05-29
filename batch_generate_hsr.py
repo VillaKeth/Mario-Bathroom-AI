@@ -11,7 +11,12 @@ import sys
 import os
 import time
 import argparse
+import io
 from datetime import datetime
+
+# Force UTF-8 output on Windows
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 HSR_CHARACTERS = [
     "stelle", "march7th", "danheng", "himeko", "welt", "kafka", "silverwolf",
@@ -157,7 +162,7 @@ def main():
 
         # Brief pause between characters to help with rate limiting
         if i < len(chars):
-            print(f"\n  ⏳ Waiting 30s before next character...")
+            print(f"\n  [WAIT] Waiting 30s before next character...")
             time.sleep(30)
 
     # Final commit if needed
