@@ -2089,6 +2089,95 @@ async def admin_tts_best_of_n(request_body: dict = {}):
     return {"results": results}
 
 
+@app.post("/admin/switch_character")
+async def admin_switch_character(request_body: dict = {}):
+    """Hot-swap the active character without restarting the server.
+    
+    Body: {"character": "sonic"} or {"character": "pomni"}
+    Lists available characters if no character specified.
+    """
+    global _character, _characters_dir
+    
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    
+    char_name = request_body.get("character", "")
+    
+    # List available characters
+    if not char_name:
+        available = []
+        for d in os.listdir(_characters_dir):
+            if d.startswith("_") or d.startswith("."):
+                continue
+            char_yaml = os.path.join(_characters_dir, d, "character.yaml")
+            if os.path.exists(char_yaml):
+                available.append(d)
+        return {"status": "ok", "available": sorted(available), "current": _character.name}
+    
+    # Validate character exists
+    char_dir = os.path.join(_characters_dir, char_name)
+    if not os.path.exists(os.path.join(char_dir, "character.yaml")):
+        return {"status": "error", "message": f"Character '{char_name}' not found"}
+    
+    try:
+        old_name = _character.name
+        _character = CharacterLoader(_characters_dir, char_name)
+        
+        # Re-wire all modules
+        tts.set_pronunciation(_character.pronunciation)
+        llm.set_character(_character.name, _character.display_name)
+        safety_filter.set_character(_character.name, _character.display_name)
+        _game_handlers_mod.set_character(_character.name, _character.display_name)
+        _game_handlers_mod.load_character_pools(_character)
+        command_handlers.set_character(_character.name, _character.display_name)
+        
+        _extras = _character.get_extras_content()
+        if _extras:
+            command_handlers.set_character_content(_extras)
+        else:
+            command_handlers.set_character_content({})
+        
+        import party_report, party_stats as ps_mod, party_gossip as pg_mod
+        import catchphrase_mirror as cm_mod, emotions as emo_mod
+        import birthday_vip as bv_mod, night_progression as np_mod
+        for mod in (party_report, ps_mod, pg_mod, cm_mod, emo_mod, bv_mod, np_mod):
+            if hasattr(mod, "set_character"):
+                mod.set_character(_character.name, _character.display_name)
+        
+        _char_sys_prompt = _character.get_system_prompt()
+        if _char_sys_prompt:
+            mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
+        
+        # Update config.json for persistence across restarts
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            cfg["character"] = char_name
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"Failed to persist character switch to config.json: {e}")
+        
+        # Notify connected client
+        if _active_ws:
+            try:
+                await _active_ws.send(json.dumps({
+                    "type": "character_switched",
+                    "character": char_name,
+                    "display_name": _character.display_name,
+                }))
+            except Exception:
+                pass
+        
+        logger.info(f"[ADMIN] Character switched: {old_name} -> {char_name} ({_character.display_name})")
+        return {"status": "ok", "switched_from": old_name, "switched_to": char_name, "display_name": _character.display_name}
+    except Exception as e:
+        logger.error(f"[ADMIN] Character switch failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")

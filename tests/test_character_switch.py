@@ -61,3 +61,26 @@ def test_switch_back_to_mario():
     assert mario.name == "Mario"
     assert mario.display_name == "Mario AI 🍄"
     assert len(mario.emotion_sprite_map) == 37
+
+
+def test_list_available_characters():
+    """Characters directory contains expected characters."""
+    available = []
+    for d in os.listdir(CHARACTERS_DIR):
+        if d.startswith("_") or d.startswith("."):
+            continue
+        char_yaml = os.path.join(CHARACTERS_DIR, d, "character.yaml")
+        if os.path.exists(char_yaml):
+            available.append(d)
+    assert "mario" in available
+    assert "pomni" in available
+    assert "test_bot" in available
+    assert len(available) >= 3
+
+
+def test_switch_pomni():
+    """Pomni character loads with correct identity."""
+    c = CharacterLoader(CHARACTERS_DIR, "pomni")
+    assert c.name == "Pomni"
+    assert "Pomni" in c.display_name
+    assert c.voice_config is not None
