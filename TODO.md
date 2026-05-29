@@ -791,8 +791,14 @@
 - [x] Created extras.yaml for Mario (250 items), Ani (157), Sonic (157)
 - [x] Added empty-pool guards on all random.choice() calls to prevent crashes
 - [x] Full integration verified: Ani server starts clean, all 16/16 command pools + 14/14 idle pools loaded from YAML
-- [ ] Create rapid_fire structured Q&A for Rudi and Sonic (currently skipped by format validation)
-- [ ] game_handlers.py still falls back to hardcoded Mario trivia/riddles for characters without game pools
+- [x] Create rapid_fire structured Q&A for Ani and Sonic (fixed format validation skip)
+- [x] game_handlers.py all 20 pool defaults blanked to empty — no Mario fallbacks
+- [x] Created 80 regression tests for empty-pool guards in game_handlers.py
+- [x] Fixed DJ announcements leak: main.py now uses instance pool not module constant
+- [x] Fixed TTS precache: uses _idle_behavior_ref instance pools not module constants
+- [x] Mario verified: starts clean from YAML, 122 sprites, all content appropriate
+- [ ] Create full Ani game pools (15 YAML files: trivia, WYR, truth_or_dare, etc.)
+- [ ] Clean up dead code in idle_behavior.py (module-level Mario constants, lines 43-782)
 
 ## Expanded Pose Generation (~48 new poses across 7 categories)
 - [ ] Run generate_expanded_poses.py --category party (10 party poses)
@@ -846,6 +852,19 @@
 - [ ] Generate sprites for Lingsha
 - [ ] Generate sprites for Jiaoqiu
 - [ ] Review generated images and re-run any that look bad
+
+## Dynamic Background System — COMPLETE ✅
+- [x] Generate 8 default background images via Pollinations (7/8 succeeded, japanese_garden rate-limited)
+- [x] Add per-character backgrounds support (CHARACTER_BACKGROUNDS_DIR, backgrounds_dir in character.yaml)
+- [x] Add default_background config (visuals.default_background in character.yaml)
+- [x] Enhanced _load_backgrounds to load from shared + character-specific directories
+- [x] Add prev_background (Shift+F7) alongside existing next_background (F7)
+- [x] Add background name toast overlay (3s fade on switch)
+- [x] Update help overlay with Shift+F7 hint
+- [x] Update CharacterLoader with backgrounds_dir and default_background properties
+- [x] Wire character backgrounds config through main.py module-level overrides
+- [x] Verified: 7 backgrounds load successfully in Pygame client
+- [x] Verified: 24/24 character_loader tests pass, 306 unit tests pass
 - [ ] Verify transparent backgrounds look clean in mario_display
 - [ ] Test new EMOTION_SPRITE_MAP list-based random selection in live display
 
@@ -908,3 +927,6 @@
   - [x] All 18 tests passing
 - [x] Task 14: Documentation for Character Creator Wizard (completed - docs/creating-a-character.md, docs/character-format.md, README.md updated)
 - [] Move command_handlers character-specific easter eggs and fortunes into character YAML files
+
+- [] Audit remaining shared game dialog for character-neutral phrasing outside YAML content pools
+- [] Add regression coverage for multi-character game pool reloads across character switches

@@ -55,6 +55,10 @@ if _character.sprite_dir:
     mario_display_module.SPRITE_DIR = _character.sprite_dir
 if _character.ai_poses_dir:
     mario_display_module.AI_POSES_DIR = _character.ai_poses_dir
+if _character.backgrounds_dir:
+    mario_display_module.CHARACTER_BACKGROUNDS_DIR = _character.backgrounds_dir
+if _character.default_background:
+    mario_display_module.DEFAULT_BACKGROUND = _character.default_background
 if _character.emotion_sprite_map:
     mario_display_module.EMOTION_SPRITE_MAP = _character.emotion_sprite_map
 if _character.state_sprite_map:

@@ -58,6 +58,10 @@ SPRITE_DIR = os.path.join(os.path.dirname(__file__), "assets", "mario")
 AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                             "mario_3d_assets", "ai_poses_transparent")
 
+# Per-character backgrounds directory (set from character config)
+CHARACTER_BACKGROUNDS_DIR = ""
+DEFAULT_BACKGROUND = ""
+
 # Map emotions to AI pose paths (category/filename without .png)
 # Values can be a single string or a list for random selection.
 EMOTION_SPRITE_MAP = {
@@ -434,30 +438,46 @@ class MarioDisplay:
                     logger.warning(f"[DEBUG_DISPLAY] Failed to load {path}: {e}")
 
     def _load_backgrounds(self):
-        """Load all background images from client/assets/backgrounds/."""
-        backgrounds_dir = os.path.join(os.path.dirname(__file__), "assets", "backgrounds")
-        if not os.path.isdir(backgrounds_dir):
-            if DEBUG_DISPLAY:
-                logger.info("[DEBUG_DISPLAY] No backgrounds directory found")
-            return
-        
+        """Load background images from shared dir + character-specific dir."""
         supported_formats = ('.png', '.jpg', '.jpeg')
-        for filename in os.listdir(backgrounds_dir):
-            if filename.lower().endswith(supported_formats):
-                path = os.path.join(backgrounds_dir, filename)
-                try:
-                    img = pygame.image.load(path).convert()
-                    # Scale to window size
-                    img = pygame.transform.scale(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
-                    self._backgrounds.append({
-                        'name': filename,
-                        'image': img
-                    })
+
+        def _load_from_dir(directory, label=""):
+            if not directory or not os.path.isdir(directory):
+                return
+            for filename in sorted(os.listdir(directory)):
+                if filename.lower().endswith(supported_formats):
+                    path = os.path.join(directory, filename)
+                    try:
+                        img = pygame.image.load(path).convert()
+                        img = pygame.transform.scale(img, (WINDOW_WIDTH, WINDOW_HEIGHT))
+                        self._backgrounds.append({
+                            'name': f"{label}{filename}" if label else filename,
+                            'image': img,
+                            'path': path,
+                        })
+                        if DEBUG_DISPLAY:
+                            logger.info(f"[DEBUG_DISPLAY] Loaded background: {label}{filename}")
+                    except Exception as e:
+                        logger.warning(f"[DEBUG_DISPLAY] Failed to load background {filename}: {e}")
+
+        # Load shared backgrounds
+        shared_dir = os.path.join(os.path.dirname(__file__), "assets", "backgrounds")
+        _load_from_dir(shared_dir)
+
+        # Load character-specific backgrounds
+        if CHARACTER_BACKGROUNDS_DIR:
+            _load_from_dir(CHARACTER_BACKGROUNDS_DIR, label="[char] ")
+
+        # Set default background if configured
+        if DEFAULT_BACKGROUND and self._backgrounds:
+            for i, bg in enumerate(self._backgrounds):
+                base = os.path.splitext(bg['name'].replace("[char] ", ""))[0]
+                if base == DEFAULT_BACKGROUND or bg['name'] == DEFAULT_BACKGROUND:
+                    self._current_bg_index = i
                     if DEBUG_DISPLAY:
-                        logger.info(f"[DEBUG_DISPLAY] Loaded background: {filename}")
-                except Exception as e:
-                    logger.warning(f"[DEBUG_DISPLAY] Failed to load background {filename}: {e}")
-        
+                        logger.info(f"[DEBUG_DISPLAY] Default background set: {bg['name']}")
+                    break
+
         if DEBUG_DISPLAY:
             logger.info(f"[DEBUG_DISPLAY] Loaded {len(self._backgrounds)} background images")
 
@@ -532,6 +552,7 @@ class MarioDisplay:
         self._load_backgrounds()
         self._bg_auto_cycle = False
         self._bg_last_cycle_time = time.time()
+        self._bg_name_show_time = 0  # timestamp when bg name toast was triggered
         
         # Initialize closed captions
         self.captions = ClosedCaptions(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -599,7 +620,11 @@ class MarioDisplay:
                         if self._leaderboard_visible:
                             self._leaderboard_show_frame = self._frame
                     elif event.key == pygame.K_F7:
-                        self.next_background()
+                        mods = pygame.key.get_mods()
+                        if mods & pygame.KMOD_SHIFT:
+                            self.prev_background()
+                        else:
+                            self.next_background()
                     elif event.key == pygame.K_F8:
                         self._bg_auto_cycle = not self._bg_auto_cycle
                         logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
@@ -1388,7 +1413,7 @@ class MarioDisplay:
             ("F4", "Toggle server health panel"),
             ("F5", "Toggle party mode effects"),
             ("F6", "Toggle leaderboard"),
-            ("F7", "Cycle background image"),
+            ("F7", "Next background (Shift: prev)"),
             ("F8", "Toggle background auto-cycle"),
             ("F9", "Volume down"),
             ("F10", "Volume up"),
@@ -1460,12 +1485,11 @@ class MarioDisplay:
             return
         
         self._current_bg_index = (self._current_bg_index + 1) % (len(self._backgrounds) + 1)
-        # -1=drawn, 0=first bg, 1=second bg, etc.
         if self._current_bg_index == len(self._backgrounds):
-            self._current_bg_index = -1  # back to drawn background
+            self._current_bg_index = -1
         
-        # Invalidate cached background so it redraws
         self._bg_surface = None
+        self._bg_name_show_time = time.time()
         
         if self._current_bg_index == -1:
             bg_name = "drawn bathroom"
@@ -1474,6 +1498,55 @@ class MarioDisplay:
         
         if DEBUG_DISPLAY:
             logger.info(f"[DEBUG_DISPLAY] Switched to background: {bg_name}")
+
+    def prev_background(self):
+        """Cycle to the previous background."""
+        if not self._backgrounds:
+            return
+        
+        self._current_bg_index -= 1
+        if self._current_bg_index < -1:
+            self._current_bg_index = len(self._backgrounds) - 1
+        
+        self._bg_surface = None
+        self._bg_name_show_time = time.time()
+        
+        if self._current_bg_index == -1:
+            bg_name = "drawn bathroom"
+        else:
+            bg_name = self._backgrounds[self._current_bg_index]['name']
+        
+        if DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] Switched to background: {bg_name}")
+
+    def _draw_bg_name_toast(self):
+        """Show background name for 3 seconds after switching."""
+        if not self._bg_name_show_time:
+            return
+        elapsed = time.time() - self._bg_name_show_time
+        if elapsed > 3.0:
+            self._bg_name_show_time = 0
+            return
+
+        if self._current_bg_index == -1:
+            name = "Default (Drawn)"
+        else:
+            raw = self._backgrounds[self._current_bg_index]['name']
+            name = os.path.splitext(raw.replace("[char] ", ""))[0].replace("_", " ").title()
+
+        alpha = int(255 * max(0, 1.0 - elapsed / 3.0))
+        font = self._font_small or pygame.font.SysFont("arial", 14)
+        idx_text = f"BG {self._current_bg_index + 1}/{len(self._backgrounds)} — {name}"
+        text_surf = font.render(idx_text, True, (255, 255, 255))
+        tw, th = text_surf.get_size()
+
+        toast = pygame.Surface((tw + 16, th + 8), pygame.SRCALPHA)
+        toast.fill((0, 0, 0, min(alpha, 160)))
+        toast.blit(text_surf, (8, 4))
+        toast.set_alpha(alpha)
+        x = (WINDOW_WIDTH - toast.get_width()) // 2
+        y = WINDOW_HEIGHT - 50
+        self._screen.blit(toast, (x, y))
 
     def _draw_panic_overlay(self):
         """Draw 'Technical Difficulties' full-screen overlay when panic mode is active."""
@@ -1777,6 +1850,9 @@ class MarioDisplay:
         # Help overlay (F1 toggle — on top of everything)
         if self._show_help:
             self._draw_help_overlay()
+
+        # Background name toast (shows for 3s after switching)
+        self._draw_bg_name_toast()
 
         # Scale render buffer to real screen, centered with aspect ratio
         if needs_scaling:
