@@ -126,6 +126,7 @@ _precache_done = threading.Event()  # Set when precache completes
 _precache_active = False  # True while precache is synthesizing
 _user_tts_waiting = threading.Event()  # Set when a user TTS call is waiting for RVC lock
 _idle_precache_paused = threading.Event()  # Set to pause idle precache (e.g. during testing)
+_idle_behavior_ref = None  # Set by main.py to provide character-specific idle pools for precache
 
 # GPT-SoVITS venv python path
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
@@ -1047,11 +1048,13 @@ def precache_phrases():
 def _start_idle_precache():
     """Pre-cache idle behavior phrases in background so idle TTS is instant."""
     def _idle_cache_worker():
-        try:
-            from idle_behavior import IDLE_MUMBLES, DJ_ANNOUNCEMENTS
-            all_idle = list(IDLE_MUMBLES) + list(DJ_ANNOUNCEMENTS)
-        except ImportError:
-            logger.warning("[DEBUG_TTS] idle_precache: idle_behavior module not found")
+        # Use character-specific pools from the idle behavior instance
+        if _idle_behavior_ref is not None:
+            all_idle = list(getattr(_idle_behavior_ref, '_mumbles', [])) + list(getattr(_idle_behavior_ref, '_dj_announcements', []))
+        else:
+            all_idle = []
+        if not all_idle:
+            logger.info("[DEBUG_TTS] idle_precache: no idle phrases to cache (empty pools)")
             return
 
         # Wait a bit before starting (let user get first response without contention)

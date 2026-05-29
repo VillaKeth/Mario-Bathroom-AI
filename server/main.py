@@ -792,6 +792,8 @@ async def lifespan(app: FastAPI):
     # Reinitialize idle behavior with character-specific pools
     global idle_behavior
     idle_behavior = IdleBehavior(character_loader=_character)
+    # Give TTS precache access to character-specific idle pools
+    tts._idle_behavior_ref = idle_behavior
 
     # Initialize face memory with character-specific collection
     logger.info("Loading face memory...")
@@ -2722,9 +2724,8 @@ async def _idle_loop(ws: WebSocket):
         # DJ announcements when nobody is around (every 20+ minutes)
         async with _state_lock:
             last_dj = state_current.get("_last_dj_time", 0.0)
-        if time.time() - last_dj >= 20 * 60:
-            from idle_behavior import DJ_ANNOUNCEMENTS
-            dj_msg = random.choice(DJ_ANNOUNCEMENTS)
+        if time.time() - last_dj >= 20 * 60 and idle_behavior._dj_announcements:
+            dj_msg = random.choice(idle_behavior._dj_announcements)
             try:
                 analyzed = analyze_text(dj_msg)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
