@@ -43,6 +43,13 @@ CHARACTER_STYLES = {
         "and lavender hair, soft golden glowing accents, kind expressive eyes, "
         "modern ethereal aesthetic, gentle features with genuine warmth"
     ),
+    "pomni": (
+        "Pomni from The Amazing Digital Circus, 3D animated style, short female jester character "
+        "with a tall red and blue two-pointed jester hat with yellow bells, large expressive eyes "
+        "with different colored irises (one red, one blue), pale white skin, small round head, "
+        "wearing a red and blue checkered jester outfit with yellow buttons down the center, "
+        "white collar, simple stick-like limbs, cartoonish proportions, anxious nervous expression"
+    ),
     # ── Honkai: Star Rail Characters ──
     "stelle": (
         "Stelle from Honkai Star Rail, 3D anime style, young woman with short messy silver-white hair "
@@ -706,7 +713,7 @@ def remove_background(input_path, output_path):
         return False
 
 
-def generate_character(character_name, category_filter=None, use_dalle=False, use_pollinations=False):
+def generate_character(character_name, category_filter=None, use_dalle=False, use_pollinations=False, force=False, min_size=1000):
     """Generate all poses for a character."""
     if character_name not in CHARACTER_POSES:
         print(f"Error: Unknown character '{character_name}'. Available: {list(CHARACTER_POSES.keys())}")
@@ -742,12 +749,12 @@ def generate_character(character_name, category_filter=None, use_dalle=False, us
             out_path = os.path.join(cat_dir, f"{pose_id}.png")
             raw_path = os.path.join(raw_cat_dir, f"{pose_id}.png")
 
-            if os.path.exists(out_path) and os.path.getsize(out_path) > 1000:
+            if not force and os.path.exists(out_path) and os.path.getsize(out_path) > min_size:
                 print(f"  [{i+1}/{len(cat_poses)}] {category}/{pose_id} — SKIPPED (exists)")
                 total_skip += 1
                 continue
 
-            if os.path.exists(raw_path) and os.path.getsize(raw_path) > 1000:
+            if not force and os.path.exists(raw_path) and os.path.getsize(raw_path) > 1000:
                 print(f"  [{i+1}/{len(cat_poses)}] {category}/{pose_id} — Removing BG...")
                 if remove_background(raw_path, out_path):
                     total_gen += 1
@@ -816,13 +823,16 @@ def main():
     parser.add_argument("--dalle", action="store_true", help="Use DALL-E instead of SubNP")
     parser.add_argument("--pollinations", action="store_true", help="Use Pollinations.ai directly (skip SubNP)")
     parser.add_argument("--list", action="store_true", help="List pose categories")
+    parser.add_argument("--force", action="store_true", help="Regenerate all poses (ignore existing files)")
+    parser.add_argument("--min-size", type=int, default=1000, help="Min file size to consider 'existing' (default: 1000, use 15000 to skip placeholders)")
     args = parser.parse_args()
 
     if args.list:
         list_poses(args.character)
         return
 
-    generate_character(args.character, args.category, args.dalle, args.pollinations)
+    generate_character(args.character, args.category, args.dalle, args.pollinations, 
+                       force=args.force, min_size=args.min_size)
 
 
 if __name__ == "__main__":
