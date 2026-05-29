@@ -70,6 +70,14 @@
 - [x] Start Server button: now updates config.json AND launches start.bat in new console
 - [x] Added /api/server/launch endpoint (spawns game server as detached process)
 - [x] Content generation Skip button de-emphasized (ghost style, explains downside)
+- [x] Built Sprite Manager web UI at /sprites — shows all 45 characters with sprite counts, filters, live progress bars, preview thumbnails, lightbox
+- [x] Added GET /api/characters — scans all chars, returns sprite counts, valid/broken breakdown, generating status
+- [x] Added POST /api/sprites/generate/{char_name} — triggers Pollinations.ai generation for any existing character
+- [x] Added GET /api/sprites/preview/{char_name}/{pose} — serves sprite images for web preview
+- [x] Fixed sprite_generator.py: switched to Pollinations.ai (no model=flux, 90s cooldown, 8 retries, User-Agent, image validation)
+- [x] Fixed character_builder.py: now saves visual_description and art_style to character.yaml
+- [x] Added "🎨 Sprite Manager" nav link in wizard header
+- [x] Created gen_reze_sprites.py — standalone Reze sprite generator (proven Ani/Sonic pattern)
 - [ ] Make content generation auto-start (not require manual click) — wizard should feel seamless
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed

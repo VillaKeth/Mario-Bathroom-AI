@@ -338,6 +338,8 @@ def _generate_character_yaml(config: dict) -> dict:
             "sprite_dir": "sprites/",
             "ai_poses_dir": "sprites/",
             "ai_pose_size": [250, 250],
+            "visual_description": config.get("visual_description", ""),
+            "art_style": config.get("art_style", "3d_figurine"),
             "theme_colors": theme_colors,
             "particle_colors": particle_colors,
             "emotion_sprite_map": emotion_sprite_map,

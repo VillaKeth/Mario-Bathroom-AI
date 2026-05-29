@@ -433,6 +433,164 @@ async def get_known_characters():
     characters = kc_list()
     return {"characters": characters}
 
+
+# ─── Sprite Manager ───────────────────────────────────────────────────────────
+
+@app.get("/sprites")
+async def sprite_manager_page():
+    return FileResponse(os.path.join(STATIC_DIR, "sprites.html"))
+
+
+@app.get("/api/characters")
+async def list_all_characters():
+    """List every character in the characters/ directory with their sprite status."""
+    import yaml
+    chars_dir = os.path.join(PROJECT_ROOT, "characters")
+    result = []
+    EXPECTED_SPRITES = 34  # 25 emotions + 9 states in sprite_generator.py
+
+    for name in sorted(os.listdir(chars_dir)):
+        if name.startswith("_"):
+            continue
+        char_dir = os.path.join(chars_dir, name)
+        yaml_path = os.path.join(char_dir, "character.yaml")
+        if not os.path.isfile(yaml_path):
+            continue
+
+        try:
+            with open(yaml_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except Exception:
+            data = {}
+
+        visuals = data.get("visuals", {}) or {}
+        identity = data.get("identity", {}) or {}
+
+        # Count valid vs broken sprites
+        sprites_dir = os.path.join(char_dir, "sprites")
+        valid, broken = 0, 0
+        sprite_list = []
+        if os.path.isdir(sprites_dir):
+            for root, _, files in os.walk(sprites_dir):
+                for fn in files:
+                    if fn.lower().endswith((".png", ".jpg", ".jpeg")):
+                        fpath = os.path.join(root, fn)
+                        fsize = os.path.getsize(fpath)
+                        rel = os.path.relpath(fpath, sprites_dir).replace("\\", "/")
+                        sprite_key = rel.rsplit(".", 1)[0]
+                        if fsize > 5000:
+                            valid += 1
+                            sprite_list.append({"key": sprite_key, "valid": True, "size": fsize})
+                        else:
+                            broken += 1
+                            sprite_list.append({"key": sprite_key, "valid": False, "size": fsize})
+
+        # Check if currently generating
+        generating_task = None
+        from character_creator.sprite_generator import _generation_tasks
+        for tid, task in _generation_tasks.items():
+            if task.get("char_name") == name and task.get("status") == "running":
+                generating_task = {
+                    "task_id": tid,
+                    "completed": task.get("completed", 0),
+                    "total": task.get("total", EXPECTED_SPRITES),
+                    "current": task.get("current", ""),
+                }
+                break
+
+        result.append({
+            "id": name,
+            "name": identity.get("name", name),
+            "display_name": identity.get("display_name", name),
+            "tagline": identity.get("tagline", ""),
+            "visual_description": visuals.get("visual_description", ""),
+            "art_style": visuals.get("art_style", "3d_figurine"),
+            "sprite_count": valid,
+            "broken_count": broken,
+            "expected_sprites": EXPECTED_SPRITES,
+            "sprites": sprite_list,
+            "generating": generating_task,
+        })
+
+    return {"characters": result}
+
+
+@app.post("/api/sprites/generate/{char_name}")
+async def generate_sprites_for_character(char_name: str, body: dict = None):
+    """Start AI sprite generation for an existing character."""
+    import yaml
+    from character_creator.sprite_generator import generate_all_poses, _generation_tasks
+
+    chars_dir = os.path.join(PROJECT_ROOT, "characters")
+    char_dir = os.path.join(chars_dir, char_name)
+    yaml_path = os.path.join(char_dir, "character.yaml")
+
+    if not os.path.isfile(yaml_path):
+        return {"success": False, "error": f"Character '{char_name}' not found"}
+
+    with open(yaml_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    visuals = data.get("visuals", {}) or {}
+    identity = data.get("identity", {}) or {}
+
+    # Allow override from request body
+    if body:
+        visual_desc = body.get("visual_description") or visuals.get("visual_description", "")
+        art_style = body.get("art_style") or visuals.get("art_style", "3d_figurine")
+    else:
+        visual_desc = visuals.get("visual_description", "")
+        art_style = visuals.get("art_style", "3d_figurine")
+
+    if not visual_desc:
+        # Fall back to identity description (good enough for prompt generation)
+        identity_desc = (data.get("identity", {}) or {}).get("description", "")
+        display = identity.get("display_name", identity.get("name", char_name))
+        if identity_desc:
+            visual_desc = f"{display}, {identity_desc[:200]}"
+        else:
+            visual_desc = f"{display}, full body, anime art style"
+
+    # Check if already running
+    for tid, task in _generation_tasks.items():
+        if task.get("char_name") == char_name and task.get("status") == "running":
+            return {"success": False, "error": "Already generating", "task_id": tid}
+
+    task_id = str(uuid.uuid4())[:8]
+    sprites_dir = os.path.join(char_dir, "sprites")
+    os.makedirs(sprites_dir, exist_ok=True)
+
+    # Store char_name in task for /api/characters lookup
+    from character_creator.sprite_generator import _generation_tasks as tasks
+    tasks[task_id] = {
+        "status": "running", "total": 34, "completed": 0,
+        "current": "starting...", "results": [], "char_name": char_name,
+    }
+
+    asyncio.create_task(generate_all_poses(task_id, char_name, visual_desc, art_style, sprites_dir))
+    logger.info(f"Started sprite generation for '{char_name}' (task: {task_id})")
+
+    return {"success": True, "task_id": task_id, "char_name": char_name}
+
+
+@app.get("/api/sprites/preview/{char_name}/{pose:path}")
+async def serve_sprite_preview(char_name: str, pose: str):
+    """Serve a character sprite image for preview in the UI."""
+    from fastapi.responses import Response
+    chars_dir = os.path.join(PROJECT_ROOT, "characters")
+    sprites_dir = os.path.join(chars_dir, char_name, "sprites")
+
+    for ext in (".png", ".jpg", ".jpeg"):
+        fpath = os.path.join(sprites_dir, pose.replace("/", os.sep) + ext)
+        if os.path.isfile(fpath) and os.path.getsize(fpath) > 5000:
+            with open(fpath, "rb") as f:
+                data = f.read()
+            mime = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/png"
+            return Response(content=data, media_type=mime)
+
+    return Response(status_code=404)
+
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 if __name__ == "__main__":

@@ -156,45 +156,81 @@ from pathlib import Path
 # Track background generation tasks
 _generation_tasks = {}
 
+def _is_valid_image(data: bytes) -> bool:
+    """Check if bytes are a real image (PNG or JPEG magic bytes)."""
+    return (data[:4] == b'\x89PNG' or data[:3] == b'\xff\xd8\xff' or
+            data[:4] == b'RIFF' or data[:6] in (b'GIF87a', b'GIF89a'))
+
+
 async def generate_single_pose(char_name: str, visual_description: str, art_style: str,
                                  pose_name: str, pose_prompt: str, output_dir: str) -> dict:
-    """Generate a single sprite pose using SubNP API."""
+    """Generate a single sprite pose using Pollinations.ai (free, no auth required).
+
+    Pollinations free tier: 1 concurrent request per IP, ~90s cooldown between requests.
+    Retries up to 8 times; waits 90s on rate-limit (402) or small-file responses.
+    """
+    import urllib.parse
     style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
     full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
-    
+
     output_path = os.path.join(output_dir, f"{pose_name}.png")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.post(
-                "https://subnp.com/api/free/generate",
-                json={"prompt": full_prompt, "model": "magic"},
-                timeout=60,
-            )
-            if resp.status_code == 200:
+
+    encoded = urllib.parse.quote(full_prompt)
+    url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=1024&nologo=true"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+    for attempt in range(8):
+        try:
+            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+                resp = await client.get(url, headers=headers)
+
+                if resp.status_code == 402:
+                    wait = 90
+                    logger.warning(f"Pose '{pose_name}' rate-limited (402), waiting {wait}s...")
+                    await asyncio.sleep(wait)
+                    continue
+
+                if resp.status_code != 200:
+                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: HTTP {resp.status_code}, waiting 20s")
+                    await asyncio.sleep(20)
+                    continue
+
+                if not _is_valid_image(resp.content):
+                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: not a valid image ({len(resp.content)} bytes), waiting 20s")
+                    await asyncio.sleep(20)
+                    continue
+
+                if len(resp.content) < 5000:
+                    logger.warning(f"Pose '{pose_name}' attempt {attempt+1}: too small ({len(resp.content)} bytes), waiting 20s")
+                    await asyncio.sleep(20)
+                    continue
+
                 with open(output_path, "wb") as f:
                     f.write(resp.content)
-                
-                # Try background removal
+
+                # Try background removal with rembg
                 try:
                     from rembg import remove
                     from PIL import Image
                     import io
-                    input_img = Image.open(output_path)
+                    input_img = Image.open(io.BytesIO(resp.content))
                     output_img = remove(input_img)
                     output_img.save(output_path)
                 except (ImportError, SystemExit):
-                    logger.warning("rembg not available, skipping background removal")
+                    pass  # rembg not installed, keep raw image
                 except Exception as e:
                     logger.warning(f"Background removal failed for {pose_name}: {e}")
-                
+
+                logger.info(f"Pose '{pose_name}' done ({len(resp.content):,} bytes)")
                 return {"pose": pose_name, "status": "done", "path": output_path}
-            else:
-                return {"pose": pose_name, "status": "failed", "error": f"API returned {resp.status_code}"}
-    except Exception as e:
-        logger.error(f"Sprite generation failed for {pose_name}: {e}")
-        return {"pose": pose_name, "status": "failed", "error": str(e)}
+
+        except Exception as e:
+            logger.warning(f"Pose '{pose_name}' attempt {attempt+1} error: {e}, waiting 20s")
+            await asyncio.sleep(20)
+
+    logger.error(f"Sprite generation failed for {pose_name} after 8 attempts")
+    return {"pose": pose_name, "status": "failed", "error": "All attempts failed"}
 
 async def generate_all_poses(task_id: str, char_name: str, visual_description: str,
                                art_style: str, output_dir: str):
@@ -212,17 +248,21 @@ async def generate_all_poses(task_id: str, char_name: str, visual_description: s
     
     _generation_tasks[task_id] = {
         "status": "running", "total": total, "completed": 0,
-        "current": "", "results": results,
+        "current": "", "results": results, "char_name": char_name,
     }
     
-    for pose_name, info in all_poses.items():
+    for idx, (pose_name, info) in enumerate(all_poses.items()):
         _generation_tasks[task_id]["current"] = pose_name
-        pose_dir = os.path.join(output_dir, info["category"].split("/")[0] if "/" in info["category"] else "")
         result = await generate_single_pose(char_name, visual_description, art_style,
                                               pose_name, info["prompt"], output_dir)
         results.append(result)
         completed += 1
         _generation_tasks[task_id]["completed"] = completed
+
+        # Pollinations free tier requires ~90s between requests
+        if idx < total - 1:
+            logger.info(f"Sprite {completed}/{total} done, waiting 90s for rate limit...")
+            await asyncio.sleep(90)
     
     _generation_tasks[task_id]["status"] = "completed"
 
