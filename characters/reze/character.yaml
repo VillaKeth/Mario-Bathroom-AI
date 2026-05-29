@@ -16,6 +16,8 @@ voice:
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/
+  visual_description: Reze from Chainsaw Man, short dark hair, dark red eyes, a choker necklace with a grenade pin, a café worker aesthetic, young woman, anime art style, warm but dangerous presence.
+  art_style: anime
   ai_pose_size:
   - 250
   - 250

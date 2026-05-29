@@ -157,6 +157,15 @@ from pathlib import Path
 # Track background generation tasks
 _generation_tasks = {}
 
+# Global semaphore — Pollinations allows only 1 concurrent request per IP
+_pollinations_lock = None
+
+def _get_pollinations_lock():
+    global _pollinations_lock
+    if _pollinations_lock is None:
+        _pollinations_lock = asyncio.Semaphore(1)
+    return _pollinations_lock
+
 _SPRITE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "sprite_config.json")
 
 def load_sprite_config() -> dict:
@@ -194,27 +203,33 @@ def _try_remove_background(image_bytes: bytes, output_path: str):
 # ── Generation backends ───────────────────────────────────────────────────────
 
 async def _generate_pollinations(prompt: str) -> bytes | None:
-    """Cloud generation via Pollinations.ai. Free, no auth, ~90s/img, rate-limited."""
+    """Cloud generation via Pollinations.ai. Free, no auth, ~60-90s/img, rate-limited.
+    
+    Uses a module-level semaphore so only one request fires at a time — prevents
+    multiple character generation tasks from competing and all hitting 402.
+    """
     import urllib.parse
     encoded = urllib.parse.quote(prompt)
     url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=1024&nologo=true"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    for attempt in range(8):
-        try:
-            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
-                resp = await client.get(url, headers=headers)
-                if resp.status_code == 402:
-                    logger.warning(f"Pollinations rate-limited (402), waiting 90s...")
-                    await asyncio.sleep(90)
-                    continue
-                if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
-                    return resp.content
-                logger.warning(f"Pollinations attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
-                await asyncio.sleep(20)
-        except Exception as e:
-            logger.warning(f"Pollinations attempt {attempt+1} error: {e}")
-            await asyncio.sleep(20)
+    lock = _get_pollinations_lock()
+    async with lock:  # only ONE Pollinations request at a time, globally
+        for attempt in range(8):
+            try:
+                async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+                    resp = await client.get(url, headers=headers)
+                    if resp.status_code == 402:
+                        logger.warning(f"Pollinations rate-limited (402), waiting 30s…")
+                        await asyncio.sleep(30)
+                        continue
+                    if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
+                        return resp.content
+                    logger.warning(f"Pollinations attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
+                    await asyncio.sleep(10)
+            except Exception as e:
+                logger.warning(f"Pollinations attempt {attempt+1} error: {e}")
+                await asyncio.sleep(10)
     return None
 
 
@@ -423,10 +438,13 @@ async def generate_all_poses(task_id: str, char_name: str, visual_description: s
         completed += 1
         _generation_tasks[task_id]["completed"] = completed
 
-        # Pollinations free tier requires ~90s between requests
+        # For Pollinations (slow, rate-limited): wait between sprites to be polite.
+        # For fast backends (HF, A1111, ComfyUI): no wait needed.
         if idx < total - 1:
-            logger.info(f"Sprite {completed}/{total} done, waiting 90s for rate limit...")
-            await asyncio.sleep(90)
+            backend_used = result.get("backend", "pollinations")
+            if backend_used == "pollinations":
+                logger.info(f"Sprite {completed}/{total} done via Pollinations, waiting 5s...")
+                await asyncio.sleep(5)  # small gap; the semaphore handles the real rate limit
     
     _generation_tasks[task_id]["status"] = "completed"
 

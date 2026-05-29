@@ -470,7 +470,8 @@ async def save_sprite_config_endpoint(body: dict):
     return {"success": True, "config": {k: ("***" if k == "hf_token" and v else v) for k, v in cfg.items()}}
 
 
-
+@app.get("/sprites")
+async def sprites_page():
     return FileResponse(os.path.join(STATIC_DIR, "sprites.html"))
 
 

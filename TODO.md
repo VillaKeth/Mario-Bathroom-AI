@@ -258,6 +258,9 @@
 - [x] E2E batch test: 8 events (rick_roll, among_us, taylor_swift, waterfall, touchdown, shrek, mystery_shot, star_wars) — all completed, 0 errors, all flags cleared
 - [x] Stress test: 100/103 events fired sequentially, 0 errors, 100/100 flags cleared, 32 idle lines suppressed (client safety net)
 - [x] Edge case tests: re-trigger already-fired (correctly rejected), nonexistent event (not_found), concurrent triggers (second blocked)
+- [x] Add visual_description to Reze character.yaml
+- [x] Remove broken Reze sprite junk files
+- [ ] Smoke-test Reze sprite generation after cleanup
 - [x] Server stability: 0 errors, 0 idle errors after 100 events, memory stable at 943MB, GPU 54°C
 - [x] Regenerate ALL 122 Mario poses via Pollinations.ai — 122/122 succeeded, 0 failures
 - [x] Full overnight verification complete — ALL SYSTEMS PERFECT
@@ -994,3 +997,20 @@
 - [x] Fix config.json UTF-8 encoding across all server modules
 - [x] Fix Qdrant lock cleanup in face_memory tests (Windows PermissionError)
 - [x] Verified Pygame client: title bar, bubbles, idle messages all working
+
+## Power E2E Wizard Test — COMPLETE ✅
+- [x] Added Power and Reze to known_characters.json (27 total)
+- [x] Fixed orphaned /sprites route in server.py (missing decorator)
+- [x] Wizard auto-fill: Power typed → all fields auto-populated (name, tagline, voice, colors, personality)
+- [x] Wizard Step 1-5: Identity, Personality, Voice, Appearance, Hardware all verified
+- [x] Hardware: Quadro P1000 detected, llama3 selected (single model)
+- [x] Create Character: directory structure, character.yaml, prompts all generated
+- [x] Content Generation: 39/39 pools, 796 items via Ollama/llama3
+- [x] Sprite Generation: 17+ real AI sprites via Pollinations.ai (Power with horns, red hair, anime style)
+- [x] Server launched: Power loaded with 37 emotions, 20 game pools, 237 idle messages
+- [x] Conversation test: Power responds in-character ("That silly Denji...", "I deserve a Nobel Prize!")
+- [x] TTS working: JennyNeural voice with +10% rate, audio chunks received
+- [x] Responses are varied, long, and in-character (NOT short/canned)
+- [ ] Fix wizard UI rendering bugs (cosmetic): Step 2 tags, Step 3 sliders, Step 4 art style buttons
+- [ ] Address LLM short response complaints (investigate dual model fallback)
+- [ ] Fix Qdrant lock files blocking server restart (added manual cleanup workaround)
