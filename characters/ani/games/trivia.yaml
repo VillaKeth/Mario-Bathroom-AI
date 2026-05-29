@@ -1,0 +1,173 @@
+- q: "What planet is known as the Red Planet?"
+  a:
+    - "Mars"
+  accept:
+    - "mars"
+- q: "What is the largest animal on Earth?"
+  a:
+    - "Blue whale"
+  accept:
+    - "blue whale"
+    - "whale"
+- q: "What process do plants use to turn sunlight into food?"
+  a:
+    - "Photosynthesis"
+  accept:
+    - "photosynthesis"
+- q: "What do you call a group of stars that forms a picture in the sky?"
+  a:
+    - "Constellation"
+  accept:
+    - "constellation"
+    - "constellations"
+- q: "What sweet food do bees make?"
+  a:
+    - "Honey"
+  accept:
+    - "honey"
+- q: "What is the tallest type of grass in the world?"
+  a:
+    - "Bamboo"
+  accept:
+    - "bamboo"
+- q: "What animal is known for sleeping upside down?"
+  a:
+    - "Bat"
+  accept:
+    - "bat"
+    - "bats"
+- q: "How long does Earth take to go around the Sun?"
+  a:
+    - "One year"
+  accept:
+    - "one year"
+    - "a year"
+    - "1 year"
+- q: "What instrument has black and white keys?"
+  a:
+    - "Piano"
+  accept:
+    - "piano"
+- q: "Which vitamin is often called the sunshine vitamin?"
+  a:
+    - "Vitamin D"
+  accept:
+    - "vitamin d"
+    - "d"
+- q: "What do you call a baby frog?"
+  a:
+    - "Tadpole"
+  accept:
+    - "tadpole"
+    - "tadpoles"
+- q: "What do sunflowers have in the middle that people and birds often eat?"
+  a:
+    - "Seeds"
+  accept:
+    - "seeds"
+    - "sunflower seeds"
+- q: "What galaxy is Earth in?"
+  a:
+    - "Milky Way"
+  accept:
+    - "milky way"
+    - "the milky way"
+- q: "What animal is famous for building dams in rivers?"
+  a:
+    - "Beaver"
+  accept:
+    - "beaver"
+    - "beavers"
+- q: "What color do blue and yellow make when mixed together?"
+  a:
+    - "Green"
+  accept:
+    - "green"
+- q: "Which fruit is famous for being rich in potassium?"
+  a:
+    - "Banana"
+  accept:
+    - "banana"
+    - "bananas"
+- q: "What is the largest ocean on Earth?"
+  a:
+    - "Pacific Ocean"
+  accept:
+    - "pacific ocean"
+    - "pacific"
+- q: "How many legs does a spider have?"
+  a:
+    - "Eight"
+  accept:
+    - "eight"
+    - "8"
+- q: "What gas do plants take in from the air?"
+  a:
+    - "Carbon dioxide"
+  accept:
+    - "carbon dioxide"
+    - "co2"
+- q: "What does a caterpillar become?"
+  a:
+    - "Butterfly"
+  accept:
+    - "butterfly"
+    - "a butterfly"
+- q: "What are the colorful lights near Earth's poles often called?"
+  a:
+    - "Aurora borealis"
+  accept:
+    - "aurora borealis"
+    - "aurora"
+    - "northern lights"
+- q: "What is a group of wolves called?"
+  a:
+    - "Pack"
+  accept:
+    - "pack"
+- q: "What is the smallest planet in our solar system?"
+  a:
+    - "Mercury"
+  accept:
+    - "mercury"
+- q: "What is the art of folding paper into shapes called?"
+  a:
+    - "Origami"
+  accept:
+    - "origami"
+- q: "What calming activity uses poses and breathing?"
+  a:
+    - "Yoga"
+  accept:
+    - "yoga"
+- q: "What animal is known for its black and white stripes?"
+  a:
+    - "Zebra"
+  accept:
+    - "zebra"
+    - "zebras"
+- q: "What layer high in the sky helps protect Earth from too much ultraviolet light?"
+  a:
+    - "Ozone layer"
+  accept:
+    - "ozone layer"
+    - "ozone"
+- q: "What is it called when the Moon moves between Earth and the Sun?"
+  a:
+    - "Solar eclipse"
+  accept:
+    - "solar eclipse"
+    - "eclipse"
+- q: "What kind of tree grows acorns?"
+  a:
+    - "Oak tree"
+  accept:
+    - "oak"
+    - "oak tree"
+- q: "What are baby rabbits often called?"
+  a:
+    - "Kits"
+  accept:
+    - "kits"
+    - "kit"
+    - "baby rabbits"

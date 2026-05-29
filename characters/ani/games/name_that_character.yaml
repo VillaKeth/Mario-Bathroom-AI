@@ -1,0 +1,130 @@
+- desc: "I'm the tallest animal on Earth with a very long neck!"
+  a:
+    - "giraffe"
+  accept:
+    - "giraffe"
+- desc: "I'm a playful sea animal known for leaping and clicking!"
+  a:
+    - "dolphin"
+  accept:
+    - "dolphin"
+- desc: "I'm a nighttime bird with big eyes and a wise reputation!"
+  a:
+    - "owl"
+  accept:
+    - "owl"
+- desc: "I'm a bright yellow flower that turns toward the sun!"
+  a:
+    - "sunflower"
+  accept:
+    - "sunflower"
+- desc: "I glow softly in the night sky and change shape through the month!"
+  a:
+    - "moon"
+  accept:
+    - "moon"
+    - "the moon"
+- desc: "I'm a tiny red insect with black spots that gardeners love!"
+  a:
+    - "ladybug"
+  accept:
+    - "ladybug"
+    - "ladybird"
+- desc: "I'm a black-and-white bird that waddles on ice!"
+  a:
+    - "penguin"
+  accept:
+    - "penguin"
+- desc: "I appear in the sky after rain with many beautiful colors!"
+  a:
+    - "rainbow"
+  accept:
+    - "rainbow"
+- desc: "I have eight arms and love the ocean!"
+  a:
+    - "octopus"
+  accept:
+    - "octopus"
+- desc: "I streak across the night sky with a glowing tail!"
+  a:
+    - "comet"
+  accept:
+    - "comet"
+- desc: "I'm a small spiky animal that curls up when scared!"
+  a:
+    - "hedgehog"
+  accept:
+    - "hedgehog"
+- desc: "I build dams out of sticks in rivers and streams!"
+  a:
+    - "beaver"
+  accept:
+    - "beaver"
+- desc: "I'm a spring flower that grows from a bulb and comes in many colors!"
+  a:
+    - "tulip"
+  accept:
+    - "tulip"
+- desc: "I drift through the sea and look like a floating umbrella!"
+  a:
+    - "jellyfish"
+  accept:
+    - "jellyfish"
+- desc: "I'm quick, fluffy, and love collecting acorns!"
+  a:
+    - "squirrel"
+  accept:
+    - "squirrel"
+- desc: "I'm a plant that stores water and can live in the desert!"
+  a:
+    - "cactus"
+  accept:
+    - "cactus"
+- desc: "I'm a sleepy tree-loving animal from Australia!"
+  a:
+    - "koala"
+  accept:
+    - "koala"
+- desc: "I'm icy, delicate, and no two of us are exactly alike!"
+  a:
+    - "snowflake"
+  accept:
+    - "snowflake"
+- desc: "I'm clever, fluffy-tailed, and often seen in forests!"
+  a:
+    - "fox"
+  accept:
+    - "fox"
+- desc: "I'm a sea creature shaped like a star!"
+  a:
+    - "sea star"
+  accept:
+    - "sea star"
+    - "starfish"
+- desc: "I glow in the dark on warm summer nights!"
+  a:
+    - "firefly"
+  accept:
+    - "firefly"
+- desc: "I'm the ringed planet in our solar system!"
+  a:
+    - "saturn"
+  accept:
+    - "saturn"
+- desc: "I'm the biggest animal on Earth and I sing underwater songs!"
+  a:
+    - "whale"
+  accept:
+    - "whale"
+    - "blue whale"
+- desc: "I'm the little nut that oak trees grow!"
+  a:
+    - "acorn"
+  accept:
+    - "acorn"
+- desc: "I'm a soft-eared hopper that loves carrots!"
+  a:
+    - "rabbit"
+  accept:
+    - "rabbit"
+    - "bunny"
