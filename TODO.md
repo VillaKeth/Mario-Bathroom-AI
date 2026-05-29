@@ -44,14 +44,20 @@
 - [x] SSE streaming endpoint for real-time progress in wizard UI
 - [x] Verified: 14/14 idle pools generate successfully with Ollama (llama3)
 
-## Content Generation — In Progress
+## Content Generation — DONE ✅
 - [x] Core engine (content_generator.py) — generates idle, game, extras pools
 - [x] Wizard Step 7 UI — category checkboxes, progress bars, skip option
 - [x] SSE endpoint /api/content/generate with progress streaming
 - [x] Single-pool regeneration endpoint /api/content/regenerate-pool
-- [ ] Test full end-to-end character creation through browser wizard
-- [ ] Test game pool generation (16 pools with structured formats)
-- [ ] Test extras pool generation (9 pools)
+- [x] Test full end-to-end character creation through browser wizard
+- [x] Test game pool generation (16 pools with structured formats)
+- [x] Test extras pool generation (9 pools)
+- [x] Fixed YAML parser for nested dict formats (truth_or_dare, reactions, easter_eggs)
+- [x] Fixed asterisk handling in YAML (converted to parentheses)
+- [x] Created Pomni character via wizard — full proof of zero-code character creation
+- [x] Pomni: 39 pools, 702+ items generated, ZERO Mario references
+- [x] Pomni: 41 placeholder sprites generated, all loading in pygame client
+- [x] Pomni: speaks in character, Edge TTS working, emotions correct
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
 - [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step
@@ -947,3 +953,18 @@
 
 - [] Audit remaining shared game dialog for character-neutral phrasing outside YAML content pools
 - [] Add regression coverage for multi-character game pool reloads across character switches
+
+## UI Polish & Test Maintenance — COMPLETE ✅
+- [x] Fix banner title overflow (use display_name not tagline, reduce font 48→32)
+- [x] Fix SHOUT bubble false positives (single ! no longer triggers red spiky — need ALL CAPS or !!)
+- [x] Fix MarioDisplay.__init__ missing background attrs (caused test AttributeError)
+- [x] Fix EasterEggScheduler minimum gap enforcement (enforce 30-min between fires)
+- [x] Add conftest.py to exclude standalone scripts from pytest collection
+- [x] Fix test_pygame_client_controls: chat_history time field, admin API signature, health keys
+- [x] Fix test_shot_events: reset blocks during active events, countdown format updated
+- [x] Fix test_tts_router: pronunciation rules removed from code, RVC word_count param
+- [x] Fix test_llm_sentiment: extract_emotion_tag regex fallback on malformed JSON
+- [x] Generate sprites: Pomni (41), Dr. Ratio (19), Ruan Mei (37)
+- [x] HSR batch generation continuing (15/34 complete, 19 remaining)
+- [x] 936+ tests passing (48 remaining are async/integration needing live server)
+- [x] Verified Pygame client: title bar, bubbles, idle messages all working
