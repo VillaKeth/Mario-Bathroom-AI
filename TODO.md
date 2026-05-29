@@ -61,6 +61,9 @@
 - [x] Auto-generate placeholder sprites during character creation (no manual button click needed)
 - [x] Auto-start AI sprite generation in background when visual description provided
 - [x] Fixed ai_poses_dir default from "sprites/ai_poses/" to "sprites/" in character_builder.py
+- [x] Fixed idle_behavior.py hardcoded Mario text: added _is_mario guard to skip Mario-specific fallbacks for non-Mario characters
+- [x] Fixed red jagged SHOUT bubble Mario leak: contextual idle, time observation, party stage, re-engagement questions all now character-aware
+- [x] Fixed reload_config file corruption (missing json.load line)
 - [ ] Add "Manage Content" post-creation page for regeneration
 - [ ] Performance: batch small pools into fewer LLM calls for Ollama speed
 - [ ] Add OpenAI/Anthropic API key input field to wizard Hardware step
@@ -843,24 +846,24 @@
 - [x] Create batch_generate_hsr.py automated generator script
 - [x] Complete Sonic sprite generation (40/40 ✅)
 - [x] Retry Rudi positive/charmed sprite (40/40 ✅)
-- [x] Generate sprites for Stelle (40/40 ✅ — 57.9 min, 0 failures)
-- [ ] Generate sprites for March 7th (IN PROGRESS 🔄)
-- [ ] Generate sprites for Dan Heng
-- [ ] Generate sprites for Himeko
-- [ ] Generate sprites for Welt
-- [ ] Generate sprites for Kafka
-- [ ] Generate sprites for Silver Wolf
-- [ ] Generate sprites for Seele
-- [ ] Generate sprites for Blade
-- [ ] Generate sprites for Jing Yuan
-- [ ] Generate sprites for Bronya
-- [ ] Generate sprites for Clara
-- [ ] Generate sprites for Fu Xuan
-- [ ] Generate sprites for Jingliu
-- [ ] Generate sprites for Topaz
-- [ ] Generate sprites for Ruan Mei
-- [ ] Generate sprites for Dr. Ratio
-- [ ] Generate sprites for Black Swan
+- [x] Generate sprites for Stelle (40/40 ✅)
+- [x] Generate sprites for March 7th (39/39 ✅)
+- [x] Generate sprites for Dan Heng (39/39 ✅)
+- [x] Generate sprites for Himeko (39/39 ✅)
+- [x] Generate sprites for Welt (39/39 ✅)
+- [x] Generate sprites for Kafka (39/39 ✅)
+- [x] Generate sprites for Silver Wolf (39/39 ✅)
+- [x] Generate sprites for Seele (39/39 ✅)
+- [x] Generate sprites for Blade (39/39 ✅)
+- [x] Generate sprites for Jing Yuan (39/39 ✅)
+- [x] Generate sprites for Bronya (39/39 ✅)
+- [x] Generate sprites for Clara (39/39 ✅)
+- [x] Generate sprites for Fu Xuan (39/39 ✅)
+- [x] Generate sprites for Jingliu (39/39 ✅)
+- [x] Generate sprites for Topaz (39/39 ✅)
+- [x] Generate sprites for Ruan Mei (39/39 ✅)
+- [x] Generate sprites for Dr. Ratio (39/39 ✅)
+- [ ] Generate sprites for Black Swan (IN PROGRESS 🔄 — 7/39)
 - [ ] Generate sprites for Sparkle
 - [ ] Generate sprites for Acheron
 - [ ] Generate sprites for Aventurine
@@ -967,7 +970,9 @@
 - [x] Fix test_shot_events: reset blocks during active events, countdown format updated
 - [x] Fix test_tts_router: pronunciation rules removed from code, RVC word_count param
 - [x] Fix test_llm_sentiment: extract_emotion_tag regex fallback on malformed JSON
-- [x] Generate sprites: Pomni (41), Dr. Ratio (19), Ruan Mei (37)
-- [x] HSR batch generation continuing (15/34 complete, 19 remaining)
-- [x] 936+ tests passing (48 remaining are async/integration needing live server)
+- [x] Generate sprites: Pomni (41), Dr. Ratio (39), Ruan Mei (39)
+- [x] HSR batch generation: 22/34 characters complete (39 sprites each)
+- [x] 905 tests passing — ALL unit tests green (integration excluded via conftest)
+- [x] Fix config.json UTF-8 encoding across all server modules
+- [x] Fix Qdrant lock cleanup in face_memory tests (Windows PermissionError)
 - [x] Verified Pygame client: title bar, bubbles, idle messages all working
