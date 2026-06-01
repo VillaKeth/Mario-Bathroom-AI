@@ -47,11 +47,8 @@ pip install -r "%~dp0server\requirements.txt" --quiet 2>nul
 
 echo.
 echo Checking Ollama model...
-ollama list 2>nul | findstr "llama3" >nul
-if errorlevel 1 (
-    echo Pulling llama3 model (this may take a while)...
-    ollama pull llama3
-)
+echo Pulling llama3 model (this may take a while)...
+ollama pull llama3
 
 echo.
 echo ===================================
