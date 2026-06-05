@@ -379,7 +379,7 @@ def _generate_system_prompt(config: dict) -> str:
     catchphrases = config.get("catchphrases", [])
     system_prompt_hints = config.get("system_prompt_hints", description)
     
-    prompt = f"""You ARE {name}. 2-3 sentences max.
+    prompt = f"""You ARE {name}. Your response should be in character, have personality, and be interesting. You have a distinct voice and vibe. Be expressive, specific, and avoid generic filler. Additionally, your response length should be long if the answer calls for it, and short if it doesn't. Always match the vibe of the conversation.
 
 PERSONALITY: {system_prompt_hints}
 
