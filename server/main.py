@@ -863,22 +863,28 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("  ○ Catchphrase bank: no WAV files found (skipped)")
 
-    # Priority 1: Fish Speech (voice cloning)
+    # Priority 1 or 3: Fish Speech (voice cloning via persistent worker).
+    # Outranks the Edge/SoVITS pipeline only when the character prefers it.
     _ref_audio_path = _character.voice_config.get("reference_audio")
     if not _ref_audio_path or not os.path.isfile(_ref_audio_path):
         # Fallback to legacy Mario reference audio
         _ref_audio_path = os.path.join(os.path.dirname(__file__), "data", "mario_reference_sentences.wav")
-    fish_speech = FishSpeechTTS(reference_audio=_ref_audio_path)
+    fish_speech = FishSpeechTTS(
+        reference_audio=_ref_audio_path,
+        ref_text=_character.voice_config.get("prompt_text", ""),
+        params=_character.voice_config.get("fish_params") or {},
+    )
     if fish_speech.is_available():
+        _fish_priority = 1 if _character.voice_config.get("preferred_engine") == "fish_speech" else 3
         _tts_router.register(TTSEngine(
             name="fish_speech",
             synthesize_fn=fish_speech.synthesize_sync,
             is_available_fn=fish_speech.is_available,
-            priority=1,
+            priority=_fish_priority,
         ))
-        logger.info("  ✓ Fish Speech: loaded and available")
+        logger.info(f"  ✓ Fish Speech: available (worker on demand, priority={_fish_priority})")
     else:
-        logger.info("  ○ Fish Speech: not available (package not installed or model load failed)")
+        logger.info("  ○ Fish Speech: not available (env/checkpoints/reference missing)")
 
     # Priority 2: Edge TTS + RVC (existing pipeline)
     _tts_router.register(tts.register_as_engine())

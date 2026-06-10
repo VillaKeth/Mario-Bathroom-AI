@@ -1,189 +1,141 @@
-"""Fish Speech v0.1.0+ TTS engine wrapper.
+"""Fish Speech TTS engine wrapper — subprocess client.
 
-Provides character voice synthesis via Fish Speech's voice-cloning model.
-Gracefully degrades if fish-speech is not installed — is_available()
-returns False and synthesize() returns None.
+Fish Speech lives in its OWN venv (fish_speech_env/), not the server venv, so
+importing it here can never work. Instead this wrapper manages a persistent
+worker process (scripts/fish_server.py) that loads the model once and serves
+synthesis over local HTTP. Gracefully degrades: is_available() is False when
+the env/checkpoints/reference are missing, and synthesize() returns None on
+any failure so the TTS router falls through to the next engine.
 
 Usage:
-    tts = FishSpeechTTS(reference_audio="voice/reference_audio.wav")
+    tts = FishSpeechTTS(reference_audio="characters/x/voice/reference_audio.wav",
+                        ref_text="transcript of the reference",
+                        params={"temperature": 0.9})
     if tts.is_available():
-        audio_bytes = await tts.synthesize("Let's-a go!")
+        audio_bytes = tts.synthesize_sync("Hello there!")
 """
 
 import logging
 import os
-import asyncio
-import tempfile
+import subprocess
+import time
 
 logger = logging.getLogger(__name__)
 
-# Try importing fish_speech — package may not be installed
-_fish_speech_available = False
-_fish_speech_version = "unknown"
-try:
-    import fish_speech  # noqa: F401
-    _fish_speech_available = True
-    _fish_speech_version = getattr(fish_speech, "__version__", "unknown")
-    logger.debug(f"[fish_speech_tts] fish-speech package found (v{_fish_speech_version})")
-except ImportError:
-    logger.debug("[fish_speech_tts] fish-speech package not installed — engine will be unavailable")
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_FISH_PY = os.path.join(_BASE, "fish_speech_env", "Scripts", "python.exe")
+_FISH_SERVER = os.path.join(_BASE, "scripts", "fish_server.py")
+_FISH_CKPT = os.path.join(_BASE, "fish_speech_ckpts",
+                          "firefly-gan-vq-fsq-8x1024-21hz-generator.pth")
+_PORT = int(os.environ.get("FISH_PORT", "7861"))
+_STARTUP_TIMEOUT = 240  # first start includes full model load
 
 
 class FishSpeechTTS:
-    """Fish Speech v0.1.0+ voice-cloning TTS wrapper.
-
-    Uses a reference audio clip to clone voice characteristics.
-    Falls back gracefully if fish-speech is not installed or model fails to load.
-    Supports both old API (fish_speech.models.TTSModel) and new API
-    (fish_speech.inference_engine / fish_speech.inference).
-    """
+    """Voice-cloning TTS via a persistent Fish Speech worker subprocess."""
 
     engine_name = "fish_speech"
 
-    def __init__(self, reference_audio: str, device: str = "cuda"):
-        self._reference_audio = reference_audio
-        self._device = device
-        self._engine = None
-        self._available = False
-        self._api_version = None
+    def __init__(self, reference_audio: str, ref_text: str = "", params: dict = None,
+                 device: str = "cuda"):
+        # Prefer the longer "clean" reference if it exists next to the standard
+        # one — Fish handles long references well (unlike SoVITS's 3-10s limit).
+        ref = reference_audio or ""
+        if ref:
+            clean = os.path.join(os.path.dirname(ref), "reference_clean.wav")
+            if os.path.isfile(clean):
+                ref = clean
+        self._ref = os.path.abspath(ref) if ref else ""
+        self._ref_text = ref_text or self._load_ref_text(reference_audio)
+        self._params = params or {}
+        self._proc = None
 
-        if not _fish_speech_available:
-            logger.debug("[fish_speech_tts] __init__: skipping — package not installed")
-            return
-
-        if not os.path.isfile(reference_audio):
-            logger.debug(f"[fish_speech_tts] __init__: reference audio not found: {reference_audio}")
-            return
-
+    @staticmethod
+    def _load_ref_text(reference_audio: str) -> str:
+        if not reference_audio:
+            return ""
+        p = os.path.join(os.path.dirname(reference_audio), "reference_text.txt")
         try:
-            self._load_engine()
-        except Exception as e:
-            logger.debug(f"[fish_speech_tts] __init__: engine load failed: {e}")
-            self._engine = None
-            self._available = False
-
-    def _load_engine(self):
-        """Load Fish Speech engine, trying v0.1.0+ API first, then legacy."""
-        logger.debug(f"[fish_speech_tts] Loading engine on device={self._device}, ref={self._reference_audio}")
-
-        # Try v0.1.0+ API first: fish_speech.inference_engine
-        try:
-            from fish_speech.inference_engine import TTSInferenceEngine  # type: ignore
-            self._engine = TTSInferenceEngine(
-                reference_audio=self._reference_audio,
-                device=self._device,
-            )
-            self._available = True
-            self._api_version = "v0.1.0_inference_engine"
-            logger.debug("[fish_speech_tts] Loaded via inference_engine API (v0.1.0+)")
-            return
-        except (ImportError, AttributeError, TypeError):
-            logger.debug("[fish_speech_tts] inference_engine API not available, trying alternatives...")
-
-        # Try alternative v0.1.0 API: fish_speech.inference
-        try:
-            from fish_speech.inference import TTSInference  # type: ignore
-            self._engine = TTSInference(
-                reference_audio=self._reference_audio,
-                device=self._device,
-            )
-            self._available = True
-            self._api_version = "v0.1.0_inference"
-            logger.debug("[fish_speech_tts] Loaded via inference API (v0.1.0)")
-            return
-        except (ImportError, AttributeError, TypeError):
-            logger.debug("[fish_speech_tts] inference API not available, trying legacy...")
-
-        # Try legacy API: fish_speech.models.TTSModel
-        try:
-            from fish_speech.models import TTSModel  # type: ignore
-            self._engine = TTSModel.from_pretrained(
-                "fishaudio/fish-speech-1.5",
-                device=self._device,
-            )
-            self._engine.set_reference_audio(self._reference_audio)
-            self._available = True
-            self._api_version = "legacy"
-            logger.debug("[fish_speech_tts] Loaded via legacy TTSModel API")
-            return
-        except (ImportError, AttributeError, TypeError) as e:
-            logger.debug(f"[fish_speech_tts] Legacy API not compatible: {e}")
-
-        logger.warning("[fish_speech_tts] No compatible Fish Speech API found")
-        self._available = False
+            with open(p, encoding="utf-8") as f:
+                return f.read().strip()
+        except OSError:
+            return ""
 
     def is_available(self) -> bool:
-        """True if Fish Speech engine loaded successfully and is ready for synthesis."""
-        return self._available
+        return (os.path.isfile(_FISH_PY) and os.path.isfile(_FISH_SERVER)
+                and os.path.isfile(_FISH_CKPT)
+                and bool(self._ref) and os.path.isfile(self._ref))
+
+    # ── worker management ────────────────────────────────────────────────────
+    def _health(self, timeout=2.0) -> bool:
+        import httpx
+        try:
+            r = httpx.get(f"http://127.0.0.1:{_PORT}/health", timeout=timeout)
+            return r.status_code == 200
+        except Exception:
+            return False
+
+    def _ensure_server(self) -> bool:
+        if self._health():
+            return True
+        if self._proc is not None and self._proc.poll() is not None:
+            self._proc = None
+        if self._proc is None:
+            logger.info("[fish_speech_tts] starting fish_server worker...")
+            self._proc = subprocess.Popen(
+                [_FISH_PY, _FISH_SERVER, str(_PORT)],
+                cwd=_BASE,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        deadline = time.time() + _STARTUP_TIMEOUT
+        while time.time() < deadline:
+            if self._health():
+                logger.info("[fish_speech_tts] fish_server ready")
+                return True
+            if self._proc.poll() is not None:
+                logger.warning("[fish_speech_tts] fish_server died during startup")
+                self._proc = None
+                return False
+            time.sleep(3)
+        logger.warning("[fish_speech_tts] fish_server startup timed out")
+        return False
+
+    # ── synthesis ────────────────────────────────────────────────────────────
+    def synthesize_sync(self, text: str, rate: str = None, pitch: str = None,
+                        nocache: bool = False, **kwargs) -> bytes | None:
+        """Synchronous interface matching the TTSRouter engine contract."""
+        if not self.is_available() or not text or not text.strip():
+            return None
+        try:
+            if not self._ensure_server():
+                return None
+            import httpx
+            payload = {
+                "text": text, "ref": self._ref, "ref_text": self._ref_text,
+                "temperature": self._params.get("temperature", 0.9),
+                "top_p": self._params.get("top_p", 0.85),
+                "repetition_penalty": self._params.get("repetition_penalty", 1.4),
+            }
+            r = httpx.post(f"http://127.0.0.1:{_PORT}/synthesize",
+                           json=payload, timeout=120)
+            if r.status_code == 200 and len(r.content) > 1000:
+                return r.content
+            logger.warning(f"[fish_speech_tts] synthesize failed: HTTP {r.status_code}")
+        except Exception as e:
+            logger.warning(f"[fish_speech_tts] synthesize error: {e}")
+        return None
 
     async def synthesize(self, text: str, rate: str = None, pitch: str = None,
                          output_path: str = None, **kwargs) -> bytes | None:
-        """Synthesize text to WAV audio bytes using Fish Speech voice cloning.
+        import asyncio
+        data = await asyncio.to_thread(self.synthesize_sync, text)
+        if data and output_path:
+            with open(output_path, "wb") as f:
+                f.write(data)
+        return data
 
-        Args:
-            text: Text to synthesize.
-            rate: Speech rate (not all Fish Speech versions support this).
-            pitch: Pitch adjustment (not all Fish Speech versions support this).
-            output_path: Optional path to save WAV file to.
-
-        Returns:
-            WAV audio bytes, or None if synthesis fails or engine unavailable.
-        """
-        if not self._available or self._engine is None:
-            logger.debug("[fish_speech_tts] synthesize: engine unavailable, returning None")
-            return None
-
-        logger.debug(f"[fish_speech_tts] synthesize: text='{text[:60]}{'...' if len(text) > 60 else ''}' api={self._api_version}")
-        try:
-            loop = asyncio.get_running_loop()
-            audio_bytes = await loop.run_in_executor(
-                None, lambda: self._synthesize_sync(text, rate, pitch, output_path)
-            )
-            return audio_bytes
-        except Exception as e:
-            logger.debug(f"[fish_speech_tts] synthesize failed: {e}")
-            return None
-
-    def _synthesize_sync(self, text: str, rate: str = None, pitch: str = None,
-                         output_path: str = None) -> bytes | None:
-        """Synchronous synthesis — called from executor."""
-        try:
-            if self._api_version in ("v0.1.0_inference_engine", "v0.1.0_inference"):
-                # v0.1.0 API: synthesize returns file path or bytes
-                if output_path:
-                    result = self._engine.synthesize(text=text, output_path=output_path)
-                    with open(output_path, "rb") as f:
-                        return f.read()
-                else:
-                    tmp_path = tempfile.mktemp(suffix=".wav")
-                    try:
-                        result = self._engine.synthesize(text=text, output_path=tmp_path)
-                        if isinstance(result, bytes):
-                            return result
-                        if os.path.isfile(tmp_path):
-                            with open(tmp_path, "rb") as f:
-                                return f.read()
-                        return result
-                    finally:
-                        if os.path.isfile(tmp_path):
-                            os.unlink(tmp_path)
-            else:
-                # Legacy API
-                result = self._engine.synthesize(text)
-                if output_path:
-                    with open(output_path, "wb") as f:
-                        f.write(result)
-                return result
-        except Exception as e:
-            logger.debug(f"[fish_speech_tts] _synthesize_sync error: {e}")
-            return None
-
-    def synthesize_sync(self, text: str, rate: str = None, pitch: str = None,
-                        nocache: bool = False, **kwargs) -> bytes | None:
-        """Synchronous interface matching TTSRouter engine contract.
-
-        Returns WAV bytes or None.
-        """
-        if not self._available:
-            return None
-        return self._synthesize_sync(text, rate, pitch)
+    def shutdown(self):
+        if self._proc is not None and self._proc.poll() is None:
+            self._proc.terminate()
+            self._proc = None

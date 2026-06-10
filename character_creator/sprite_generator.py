@@ -217,57 +217,108 @@ def _load_pollinations_token() -> str:
         return ""
 
 
+# ── Pollinations cost control ────────────────────────────────────────────────
+# Free path: legacy host image.pollinations.ai + model `sana` (0 pollen), but it
+# enforces a 1-request-per-IP queue that is often permanently "full".
+# Paid path: gen.pollinations.ai + model `flux` (Flux Schnell, 0.00175 pollen per
+# image — the cheapest flat-priced image model, verified 2026-06). The paid path
+# is HARD-CAPPED by a budget (default 0 = never spend) and every successful
+# image is recorded in a local spend ledger.
+_POLLINATIONS_PAID_MODEL = "flux"
+_POLLINATIONS_PAID_COST = 0.00175
+_SPEND_LEDGER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             ".secrets", "pollinations_spend.json")
+
+
+def _pollinations_budget() -> float:
+    """Max pollen this app may spend, ever (ledger-tracked). 0 = free tier only."""
+    env = os.environ.get("POLLINATIONS_BUDGET", "").strip()
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            pass
+    try:
+        return float(load_sprite_config().get("pollinations_budget", 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _pollinations_spent() -> float:
+    try:
+        with open(_SPEND_LEDGER, encoding="utf-8") as f:
+            return float(json.load(f).get("spent", 0.0))
+    except Exception:
+        return 0.0
+
+
+def _record_pollinations_spend(amount: float):
+    os.makedirs(os.path.dirname(_SPEND_LEDGER), exist_ok=True)
+    data = {"spent": _pollinations_spent() + amount}
+    with open(_SPEND_LEDGER, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
 async def _generate_pollinations(prompt: str) -> bytes | None:
-    """Cloud generation via Pollinations.ai. Free, no auth, ~60-90s/img, rate-limited.
-    
-    Uses a module-level semaphore so only one request fires at a time — prevents
-    multiple character generation tasks from competing and all hitting 402.
+    """Cloud generation via Pollinations.ai, free tier first, budgeted paid fallback.
+
+    1. Legacy host + free `sana` model (0 pollen). Often queue-blocked per IP.
+    2. If a token is configured AND budget remains: gen.pollinations.ai + `flux`
+       (0.00175 pollen/img), spend recorded in the local ledger. With the default
+       budget of 0 this path never fires, so the account can't be drained.
     """
     import urllib.parse
     encoded = urllib.parse.quote(prompt)
-    # ── COST SAFETY ───────────────────────────────────────────────────────────
-    # ONLY the legacy host (image.pollinations.ai/prompt) with the FREE model
-    # `sana` is allowed. Pricing (verified 2026-06): sana = 0 pollen; every model
-    # on the newer gen.pollinations.ai host (flux/zimage/gptimage/...) COSTS
-    # pollen. We therefore NEVER call the paid host. `model=sana` is pinned so a
-    # changing server default can't silently bill the account. A token (header)
-    # is sent if present to lift the per-IP queue limit, but the model stays free.
     token = _load_pollinations_token()
-    FREE_MODEL = "sana"
-    url = (f"https://image.pollinations.ai/prompt/{encoded}"
-           f"?width=768&height=1024&nologo=true&model={FREE_MODEL}")
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    # Legacy free tier enforces a per-IP queue limit of 1 (HTTP 402 "Queue full").
-    # Keep retries SHORT so a blocked Pollinations never stalls a batch — local SD
-    # is the real workhorse. A 402 here costs nothing (no image generated).
-    max_attempts = 4 if token else 2
     lock = _get_pollinations_lock()
     async with lock:  # only ONE Pollinations request at a time, globally
-        for attempt in range(max_attempts):
+        # ---- free tier (sana, legacy host) — a 402 here costs nothing ----
+        free_url = (f"https://image.pollinations.ai/prompt/{encoded}"
+                    f"?width=768&height=1024&nologo=true&model=sana")
+        for attempt in range(2):
             try:
                 async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
-                    resp = await client.get(url, headers=headers)
-                    # The free tier sometimes returns the rendered image WITH a 402
-                    # status. Trust the body, not the code: if it's a real image, use it.
+                    resp = await client.get(free_url, headers=headers)
+                    # Free tier sometimes returns the image WITH a 402 status —
+                    # trust the body, not the code.
                     if _is_valid_image(resp.content) and len(resp.content) > 5000:
                         return resp.content
                     if resp.status_code == 402:
-                        # Queue full for this IP — the prior request is still
-                        # rendering server-side. Wait for it to drain, then retry.
-                        wait = min(15 * (attempt + 1), 60)
-                        logger.warning(f"Pollinations queue full (402), waiting {wait}s "
-                                       f"(attempt {attempt+1}/{max_attempts})" + (" [token set]" if token else
-                                       " — set POLLINATIONS_TOKEN for unlimited access"))
-                        await asyncio.sleep(wait)
+                        logger.warning(f"Pollinations free tier queue full (402), attempt {attempt+1}/2")
+                        await asyncio.sleep(15)
                         continue
-                    logger.warning(f"Pollinations attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
-                    await asyncio.sleep(10)
+                    logger.warning(f"Pollinations free attempt {attempt+1}: HTTP {resp.status_code}")
+                    await asyncio.sleep(5)
             except Exception as e:
-                logger.warning(f"Pollinations attempt {attempt+1} error: {e}")
-                await asyncio.sleep(10)
+                logger.warning(f"Pollinations free attempt {attempt+1} error: {e}")
+                await asyncio.sleep(5)
+
+        # ---- budgeted paid fallback (flux, new host) ----
+        if not token:
+            return None
+        budget, spent = _pollinations_budget(), _pollinations_spent()
+        if spent + _POLLINATIONS_PAID_COST > budget:
+            if budget > 0:
+                logger.warning(f"Pollinations budget exhausted ({spent:.4f}/{budget:.4f} pollen)")
+            return None
+        paid_url = (f"https://gen.pollinations.ai/image/{encoded}"
+                    f"?model={_POLLINATIONS_PAID_MODEL}&width=768&height=1024")
+        try:
+            async with httpx.AsyncClient(timeout=180, follow_redirects=True) as client:
+                resp = await client.get(paid_url, headers=headers)
+                if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
+                    _record_pollinations_spend(_POLLINATIONS_PAID_COST)
+                    logger.info(f"Pollinations paid ({_POLLINATIONS_PAID_MODEL}): "
+                                f"{_POLLINATIONS_PAID_COST} pollen, total spent "
+                                f"{_pollinations_spent():.4f}/{budget:.4f}")
+                    return resp.content
+                logger.warning(f"Pollinations paid: HTTP {resp.status_code}, {len(resp.content)} bytes")
+        except Exception as e:
+            logger.warning(f"Pollinations paid error: {e}")
     return None
 
 
@@ -384,7 +435,9 @@ async def detect_backends() -> dict:
         "huggingface": {"available": bool(cfg.get("hf_token")), "reason": "Token configured" if cfg.get("hf_token") else "No HF token — get one free at huggingface.co"},
         "a1111":       {"available": False, "url": cfg.get("a1111_url", "http://localhost:7860")},
         "comfyui":     {"available": False, "url": cfg.get("comfyui_url", "http://localhost:8188")},
-        "pollinations": {"available": True, "reason": "Free cloud (legacy host); per-IP queue limit of 1 — set POLLINATIONS_TOKEN (free at enter.pollinations.ai) for unlimited"},
+        "pollinations": {"available": True, "reason": (
+            f"Free sana first; paid flux fallback {_pollinations_spent():.4f}/"
+            f"{_pollinations_budget():.4f} pollen used (budget in sprite_config.json)")},
         "current":     cfg.get("backend", "auto"),
     }
     # Probe local backends

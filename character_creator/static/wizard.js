@@ -1489,12 +1489,24 @@ class WizardUI {
                 nameEl.textContent = `Ollama Local (${backendInfo.model})`;
                 noteEl.textContent = 'Using local AI model. Generation may take 5-10 minutes depending on hardware.';
             }
+            this._backendUnreachable = backendInfo.reachable === false;
+            if (backendInfo.reachable === false) {
+                nameEl.textContent += ' — NOT RUNNING!';
+                noteEl.textContent = '⚠️ Ollama is not reachable. Content generation will produce EMPTY pools. ' +
+                    'Start Ollama (run "ollama serve"), then click Generate Content.';
+                showToast('Ollama is not running — start it before generating content!', 'error');
+            }
         } catch (e) {
             document.getElementById('content-backend-name').textContent = 'Ollama (local)';
         }
         
         // Auto-start content generation after 3 seconds
-        // Gives user time to see categories and optionally uncheck any
+        // Gives user time to see categories and optionally uncheck any.
+        // Skipped when the LLM backend is down — generating would silently
+        // produce empty pools; the user is told to start Ollama instead.
+        if (this._backendUnreachable) {
+            return;
+        }
         this._autoGenTimer = setTimeout(() => {
             const btn = document.getElementById('btn-start-generation');
             if (btn && !btn.disabled) {

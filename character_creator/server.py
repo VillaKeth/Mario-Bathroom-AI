@@ -282,9 +282,22 @@ from fastapi.responses import StreamingResponse
 
 @app.get("/api/content/backend")
 async def content_backend_info():
-    """Return which LLM backend will be used for content generation."""
+    """Return which LLM backend will be used for content generation.
+
+    Includes a reachability probe: an unreachable Ollama silently yields EMPTY
+    content pools, so the wizard must warn the user up front.
+    """
     backend = get_llm_backend()
-    return {"type": backend["type"], "model": backend["model"]}
+    reachable = True
+    if backend["type"] == "ollama":
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=3) as client:
+                r = await client.get(f"{backend['url'].rstrip('/')}/api/tags")
+                reachable = r.status_code == 200
+        except Exception:
+            reachable = False
+    return {"type": backend["type"], "model": backend["model"], "reachable": reachable}
 
 
 @app.post("/api/content/generate")

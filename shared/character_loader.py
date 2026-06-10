@@ -71,6 +71,8 @@ class CharacterLoader:
             "prompt_text": voice.get("prompt_text", ""),
             "prompt_lang": voice.get("prompt_lang", "en"),
             "engines": voice.get("engines", []),
+            # Expressiveness knobs for Fish Speech (temperature/top_p/repetition_penalty)
+            "fish_params": voice.get("fish_params") or {},
             "edge_voice": voice.get("edge_voice", "en-US-GuyNeural"),
             "rate": voice.get("rate", "+0%"),
             "pitch": voice.get("pitch", "+0Hz"),

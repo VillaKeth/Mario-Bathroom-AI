@@ -7,6 +7,7 @@ pipeline runs with no cloud service and no LLM query. There is no per-character
 training step. Edge TTS is always kept as a character-matched fallback.
 """
 import os
+import shutil
 import logging
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,49 @@ def _patch_character_voice_yaml(char_dir: str, updates: dict):
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
 
+def _trim_reference(voice_dir: str) -> bool:
+    """Normalize the reference for the cloning engines' constraints.
+
+    GPT-SoVITS hard-fails on references outside 3-10s, and quiet/whispered
+    sections clone badly. If reference_audio.wav is longer than 10s:
+      - keep the original as reference_full.wav
+      - write reference_clean.wav (first 14s, mono 32k) for Fish Speech
+      - overwrite reference_audio.wav with the LOUDEST contiguous 8s window
+        (max-RMS scan), so the engines get clear, energetic speech.
+    Returns True if a trim happened.
+    """
+    import subprocess
+    ref = os.path.join(voice_dir, "reference_audio.wav")
+    try:
+        out = subprocess.run(
+            ["ffmpeg", "-i", ref, "-ac", "1", "-ar", "32000", "-f", "f32le", "-"],
+            capture_output=True, timeout=120)
+        import numpy as np
+        audio = np.frombuffer(out.stdout, dtype=np.float32)
+        sr = 32000
+        dur = len(audio) / sr
+        if dur <= 10.0 or len(audio) == 0:
+            return False
+        full = os.path.join(voice_dir, "reference_full.wav")
+        if not os.path.exists(full):
+            shutil.copy(ref, full)
+        subprocess.run(["ffmpeg", "-y", "-i", full, "-t", "14", "-ac", "1", "-ar", "32000",
+                        os.path.join(voice_dir, "reference_clean.wav")],
+                       capture_output=True, timeout=120)
+        # loudest contiguous 8s window via cumulative energy
+        win = min(8 * sr, len(audio) - 1)
+        sq = audio.astype(np.float64) ** 2
+        cum = np.concatenate(([0.0], np.cumsum(sq)))
+        energy = cum[win:] - cum[:-win]
+        start = int(np.argmax(energy)) / sr
+        subprocess.run(["ffmpeg", "-y", "-ss", f"{start:.2f}", "-t", "8", "-i", full,
+                        "-ac", "1", "-ar", "32000", ref], capture_output=True, timeout=120)
+        return True
+    except Exception as e:
+        logger.warning(f"reference trim failed (using original): {e}")
+        return False
+
+
 def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
     """Offline, LLM-free voice setup for a freshly built character.
 
@@ -164,6 +208,10 @@ def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
 
     result["reference_audio"] = rel_ref
 
+    # Enforce engine constraints (SoVITS needs 3-10s; whispers clone badly).
+    if _trim_reference(voice_dir):
+        result["reference_trimmed"] = True
+
     # Local Whisper transcription — the offline, independent piece.
     tr = voice_transcribe.transcribe_file(ref_audio)
     prompt_text = tr.get("text", "")
@@ -194,12 +242,13 @@ def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
 
     # Choose the active engine: honor request if available, else best clone, else edge
     want = _ENGINE_ALIAS.get(requested, requested)
-    if want in engines_ready:
+    if want in engines_ready and want != "edge":
         active = want
+    elif "fish_speech" in engines_ready:
+        # Fish Speech wins zero-shot A/B (cleaner, longer reference support)
+        active = "fish_speech"
     elif "sovits" in engines_ready:
         active = "sovits"
-    elif "fish_speech" in engines_ready:
-        active = "fish_speech"
     else:
         active = "edge"
     result["engine"] = active
