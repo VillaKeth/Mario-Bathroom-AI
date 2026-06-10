@@ -1,47 +1,62 @@
-- desc: A masked crusader with a penchant for gadgets
+- desc: A blue hedgehog known for incredible speed
+  answer: Sonic
+- desc: A hero with a red and black costume, fighting crime in Gotham City
   answer: Batman
-- desc: A skilled warrior with a mechanical arm and a troubled past
-  answer: Gears of War - Marcus Fenix
-- desc: A young girl who can turn into a wolf, with a sweet tooth
-  answer: Full Moon o Sagashite - Koharu
-- desc: A genius inventor with a penchant for explosives
-  answer: Mad Scientist - Doc Brown
-- desc: A vampire hunter with a stake and a crucifix
-  answer: Vampire Hunter D - D
-- desc: A blue-skinned alien warrior who can't feel pain
-  answer: Predator
-- desc: A demon lord from the underworld with a penchant for corruption
-  answer: Dante's Inferno - Lucifer
-- desc: A skilled assassin who uses her speed to take down targets
-  answer: Wolverine
-- desc: A cyborg pilot in a mech suit, fighting against an alien invasion
-  answer: Macross - Max Sterling
-- desc: A magical girl with the power of telekinesis and a cute cat sidekick
-  answer: Magical Project S - Kaito Momota
-- desc: A brilliant scientist who becomes trapped in his own experiment
-  answer: Frankenstein - Victor Frankenstein
-- desc: A former soldier turned mercenary, with an eye patch and a troubled past
-  answer: G.I. Joe - Snake Eyes
-- desc: A demon queen with the power to manipulate reality
-  answer: Lucifer - Charlotte Richards
-- desc: A hero with a magic cape and a love of justice
-  answer: Superman
-- desc: A skilled mercenary who takes on high-stakes missions for cash
-  answer: Mercenaries - Chris Taylor
-- desc: A ghostly assassin with the power to possess people's bodies
-  answer: Assassins Creed - Altaïr ibn-La'Ahad
-- desc: A demon king from ancient times, with incredible strength and a flair for
-    drama
-  answer: Beowulf - Grendel's mother
-- desc: A time-traveling agent who fights against the clock to prevent disasters
-  answer: Doctor Who - The Doctor
-- desc: A brilliant strategist who uses her wit to outmaneuver foes
-  answer: Wu Xun - Empress Dowager Cixi
-- desc: A half-human, half-demon hybrid with incredible strength and agility
-  answer: Chainsaw Man - Denji Kamado
-- desc: A cursed spirit who is bound to a human host, with the power of telepathy
-  answer: Fullmetal Alchemist - Homunculus Envy
-- desc: A detective with the power to read minds and solve supernatural cases
-  answer: Psychic Detective Yakumo - Shinra Bansho
-- desc: A skilled warrior from a distant planet, fighting against an alien invasion
-  answer: Star Wars - Luke Skywalker
+- desc: A boy wizard who defeated Voldemort, a dark lord
+  answer: Harry Potter
+- desc: An assassin known for her beauty and deadly skills
+  answer: Black Widow
+- desc: The main protagonist of the popular game series, with a green hat and sword
+  answer: Link
+- desc: A detective from ancient times, solving mysteries in London
+  answer: Sherlock Holmes
+- desc: A hero with a power suit, fighting against an alien invasion
+  answer: Max Payne
+- desc: The main character of the Japanese manga series about a devil hunter
+  answer: Denji Akiyama
+- desc: An iconic superhero from the Marvel Cinematic Universe
+  answer: Captain America
+- desc: A young girl who becomes one with a powerful bear and fights against an evil
+    corporation
+  answer: Kagome Higurashi
+- desc: The main protagonist of the popular anime series about a high school student
+    with extraordinary abilities
+  answer: Eren Yeager
+- desc: A character from Japanese folklore, known for her white skin and long hair
+  answer: Yuki-onna
+- desc: A scientist turned superhero, fighting against an evil organization in the
+    Marvel universe
+  answer: Professor X
+- desc: The main protagonist of the popular game series about a treasure hunter and
+    pirate
+  answer: Lara Croft
+- desc: An iconic character from Japanese literature, known for his bravery and wit
+  answer: Gintoki Sakata
+- desc: A young girl who becomes a powerful warrior after being trained by a mysterious
+    old man
+  answer: Naruto Uzumaki
+- desc: The main protagonist of the popular anime series about a high school student
+    with the power to see and manipulate memories
+  answer: Light Yagami
+- desc: An assassin from the popular game series, known for her agility and stealth
+  answer: Sam Fisher
+- desc: A character from Japanese folklore, known for his mischievous nature and love
+    of pranks
+  answer: Kitsune
+- desc: The main protagonist of the popular anime series about a group of high school
+    students with superpowers
+  answer: Izuku Midoriya
+- desc: A character from Japanese literature, known for his bravery and determination
+    to find his wife
+  answer: Masamune Date
+- desc: An assassin from the popular game series, known for her agility and deadly
+    skills
+  answer: Echidna Nash
+- desc: The main protagonist of the popular anime series about a group of high school
+    students with superpowers
+  answer: Saitama
+- desc: A character from Japanese literature, known for his kindness and generosity
+    to those in need
+  answer: Goku
+- desc: An assassin from the popular game series, known for her intelligence and cunning
+  answer: Lara Soprano

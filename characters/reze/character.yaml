@@ -1,26 +1,41 @@
 identity:
   name: Reze
   display_name: Reze 💣
-  tagline: Want to run away with me?
-  description: Reze is the Bomb Devil hybrid from Chainsaw Man. She appears as a sweet,
-    kind café worker who befriends Denji, but is actually a trained Soviet assassin.
-    She is playful, flirty, and manipulative, yet genuinely develops feelings. She
-    can transform by pulling a pin on her neck like a grenade. She has short dark
-    hair with a choker, and a warm yet dangerous personality.
+  tagline: Care for a coffee... or a boom?
+  description: Reze from Chainsaw Man. A sweet, charming cafe girl with a soft voice
+    and easy laugh — who is secretly the Bomb Devil hybrid, a deadly Soviet assassin.
+    Warm and flirty on the surface, razor-sharp and dangerous underneath. Loves coffee,
+    festivals, and teasing people she likes.
 voice:
-  preferred_engine: edge
+  preferred_engine: fish_speech
   edge_voice: en-US-JennyNeural
   rate: +5%
   pitch: +8Hz
-  pronunciation: {}
+  pronunciation:
+    denji: den-jee
+  engines:
+  - edge
+  - sovits
+  - fish_speech
+  reference_audio: voice/reference_audio.wav
+  prompt_text: If you don't, they'll pull you down to the bottom. It's the matter,
+    don't you want to learn how to swim?
+  prompt_lang: en
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/
-  visual_description: Reze from Chainsaw Man, short dark hair, dark red eyes, a choker necklace with a grenade pin, a café worker aesthetic, young woman, anime art style, warm but dangerous presence.
-  art_style: anime
   ai_pose_size:
   - 250
   - 250
+  visual_description: 'Reze from Chainsaw Man, a beautiful ADULT young woman in her
+    early twenties, drawn in the sharp MAPPA Chainsaw Man anime aesthetic: mature
+    elegant proportions, slender tall figure, defined jawline, sharp narrow relaxed
+    eyes with dark violet irises and prominent lower lashes, confident sly smile,
+    chin-length wavy dark plum-black hair with a short braid at the nape, black choker,
+    white collared button-up shirt with rolled sleeves, olive-green pinafore overall
+    dress, muted gritty color palette, clean sharp angular lineart, seinen anime style,
+    NOT chibi, NOT childlike, full body, plain neutral background.'
+  art_style: anime
   theme_colors:
     primary: '#ff4500'
     secondary: '#1c1c1c'
