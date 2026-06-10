@@ -1389,14 +1389,12 @@ class WizardUI {
                     const fastModel = document.getElementById('fast-model-select').value;
                     modelConfig = {
                         quality_model: qualityModel,
-                        fast_model: fastModel,
-                        character: selectedModel
+                        fast_model: fastModel
                     };
                 } else {
                     modelConfig = {
                         quality_model: selectedModel,
-                        fast_model: selectedModel,
-                        character: selectedModel
+                        fast_model: selectedModel
                     };
                 }
                 
