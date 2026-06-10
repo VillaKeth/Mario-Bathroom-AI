@@ -26,17 +26,20 @@ voice:
     temperature: 0.95
     top_p: 0.9
     repetition_penalty: 1.4
+  finetuned_model: GPT_SoVITS_Jax (s2=e8, s1=e4, picked by ear 2026-06-10)
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/
   ai_pose_size:
   - 250
   - 250
-  visual_description: A tall, lanky cartoon rabbit with bright purple and lavender
-    fur, long floppy ears with one slightly bent, large mischievous golden eyes, a
-    wide toothy gap-toothed smirk with big buck teeth, white gloved hands, and a smug,
-    confident slouching posture. Bright saturated colors, clean stylized 3D digital
-    cartoon look, full body, plain neutral background.
+  visual_description: 'Jax from The Amazing Digital Circus: a tall lanky anthropomorphic
+    periwinkle light-purple rabbit with thin rubberhose noodle limbs, an oval head
+    with long upright bunny ears (one tip slightly bent), mischievous half-lidded
+    yellow eyes, a huge smug grin showing big yellowish buck teeth, wearing dark pink
+    magenta overalls with one large pink front pocket and gold buttons, and yellow
+    gloves on his hands. Smug confident slouch, clean stylized 3D cartoon render,
+    full body, plain neutral background.'
   art_style: 3d_figurine
   theme_colors:
     primary: '#7B2FBE'

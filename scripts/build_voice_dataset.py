@@ -64,6 +64,41 @@ def slice_audio(in_wav, out_dir, speaker):
     return seg_paths
 
 
+def _median_f0(wav_path: str) -> tuple[float, float]:
+    """Return (median F0 in Hz, voiced fraction) of a wav via parselmouth/Praat."""
+    import parselmouth
+    import numpy as np
+    snd = parselmouth.Sound(wav_path)
+    pitch = snd.to_pitch(time_step=0.02, pitch_floor=70, pitch_ceiling=450)
+    f0 = pitch.selected_array["frequency"]
+    voiced = f0[f0 > 0]
+    if len(voiced) == 0:
+        return 0.0, 0.0
+    return float(np.median(voiced)), float(len(voiced) / len(f0))
+
+
+def filter_by_pitch(seg_paths: list[str], f0_min: float, f0_max: float,
+                    min_voiced: float = 0.25) -> list[str]:
+    """Keep only segments whose median F0 falls in [f0_min, f0_max].
+
+    Used to isolate a single speaker when sources mix voices of different sex
+    (e.g. Reze [female] vs Denji/Beam [male]): female anime dub F0 typically
+    sits 170-330 Hz, male 80-150 Hz. Low voiced-fraction segments (music/SFX/
+    explosions) are dropped too.
+    """
+    kept = []
+    for p in seg_paths:
+        f0, vf = _median_f0(p)
+        ok = f0_min <= f0 <= f0_max and vf >= min_voiced
+        print(f"[dataset]   {os.path.basename(p)}: F0={f0:.0f}Hz voiced={vf:.0%} "
+              f"{'KEEP' if ok else 'drop'}", flush=True)
+        if ok:
+            kept.append(p)
+        else:
+            os.remove(p)
+    return kept
+
+
 def main():
     char = sys.argv[1] if len(sys.argv) > 1 else "jax"
     ds = os.path.join(BASE, "characters", char, "voice", "dataset")
@@ -80,6 +115,15 @@ def main():
         segs = slice_audio(r, seg_dir, char)
         print(f"[dataset] sliced {os.path.basename(r)} -> {len(segs)} segments", flush=True)
         all_segs += segs
+
+    # Optional single-speaker isolation: --f0 MIN MAX (Hz). E.g. female anime
+    # dub voice vs male co-stars: --f0 170 330
+    if "--f0" in sys.argv:
+        i = sys.argv.index("--f0")
+        f0_min, f0_max = float(sys.argv[i + 1]), float(sys.argv[i + 2])
+        print(f"[dataset] pitch filter: keep {f0_min}-{f0_max} Hz", flush=True)
+        all_segs = filter_by_pitch(all_segs, f0_min, f0_max)
+        print(f"[dataset] {len(all_segs)} segments after pitch filter", flush=True)
 
     # Transcribe each segment locally
     from character_creator.voice_transcribe import transcribe_file
