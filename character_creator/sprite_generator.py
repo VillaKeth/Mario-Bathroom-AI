@@ -202,6 +202,21 @@ def _try_remove_background(image_bytes: bytes, output_path: str):
 
 # ── Generation backends ───────────────────────────────────────────────────────
 
+def _load_pollinations_token() -> str:
+    """Read the Pollinations token from env or the gitignored secrets file."""
+    import os
+    tok = os.environ.get("POLLINATIONS_TOKEN", "").strip()
+    if tok:
+        return tok
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    secret = os.path.join(here, ".secrets", "pollinations_token.txt")
+    try:
+        with open(secret, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 async def _generate_pollinations(prompt: str) -> bytes | None:
     """Cloud generation via Pollinations.ai. Free, no auth, ~60-90s/img, rate-limited.
     
@@ -210,21 +225,44 @@ async def _generate_pollinations(prompt: str) -> bytes | None:
     """
     import urllib.parse
     encoded = urllib.parse.quote(prompt)
-    url = f"https://image.pollinations.ai/prompt/{encoded}?width=768&height=1024&nologo=true"
+    # ── COST SAFETY ───────────────────────────────────────────────────────────
+    # ONLY the legacy host (image.pollinations.ai/prompt) with the FREE model
+    # `sana` is allowed. Pricing (verified 2026-06): sana = 0 pollen; every model
+    # on the newer gen.pollinations.ai host (flux/zimage/gptimage/...) COSTS
+    # pollen. We therefore NEVER call the paid host. `model=sana` is pinned so a
+    # changing server default can't silently bill the account. A token (header)
+    # is sent if present to lift the per-IP queue limit, but the model stays free.
+    token = _load_pollinations_token()
+    FREE_MODEL = "sana"
+    url = (f"https://image.pollinations.ai/prompt/{encoded}"
+           f"?width=768&height=1024&nologo=true&model={FREE_MODEL}")
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
 
+    # Legacy free tier enforces a per-IP queue limit of 1 (HTTP 402 "Queue full").
+    # Keep retries SHORT so a blocked Pollinations never stalls a batch — local SD
+    # is the real workhorse. A 402 here costs nothing (no image generated).
+    max_attempts = 4 if token else 2
     lock = _get_pollinations_lock()
     async with lock:  # only ONE Pollinations request at a time, globally
-        for attempt in range(8):
+        for attempt in range(max_attempts):
             try:
                 async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
                     resp = await client.get(url, headers=headers)
-                    if resp.status_code == 402:
-                        logger.warning(f"Pollinations rate-limited (402), waiting 30s…")
-                        await asyncio.sleep(30)
-                        continue
-                    if resp.status_code == 200 and _is_valid_image(resp.content) and len(resp.content) > 5000:
+                    # The free tier sometimes returns the rendered image WITH a 402
+                    # status. Trust the body, not the code: if it's a real image, use it.
+                    if _is_valid_image(resp.content) and len(resp.content) > 5000:
                         return resp.content
+                    if resp.status_code == 402:
+                        # Queue full for this IP — the prior request is still
+                        # rendering server-side. Wait for it to drain, then retry.
+                        wait = min(15 * (attempt + 1), 60)
+                        logger.warning(f"Pollinations queue full (402), waiting {wait}s "
+                                       f"(attempt {attempt+1}/{max_attempts})" + (" [token set]" if token else
+                                       " — set POLLINATIONS_TOKEN for unlimited access"))
+                        await asyncio.sleep(wait)
+                        continue
                     logger.warning(f"Pollinations attempt {attempt+1}: HTTP {resp.status_code}, {len(resp.content)} bytes")
                     await asyncio.sleep(10)
             except Exception as e:
@@ -276,11 +314,13 @@ async def _generate_a1111(prompt: str, base_url: str) -> bytes | None:
         "prompt": prompt,
         "negative_prompt": "blurry, low quality, text, watermark, extra limbs",
         "width": 512, "height": 768,
-        "steps": 20, "cfg_scale": 7,
+        "steps": 18, "cfg_scale": 7,
         "sampler_name": "DPM++ 2M Karras",
     }
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        # Generous timeout: a 4GB GPU can take a few minutes per image with
+        # memory slicing enabled. Too short → aborted render → false failure.
+        async with httpx.AsyncClient(timeout=360) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
@@ -344,7 +384,7 @@ async def detect_backends() -> dict:
         "huggingface": {"available": bool(cfg.get("hf_token")), "reason": "Token configured" if cfg.get("hf_token") else "No HF token — get one free at huggingface.co"},
         "a1111":       {"available": False, "url": cfg.get("a1111_url", "http://localhost:7860")},
         "comfyui":     {"available": False, "url": cfg.get("comfyui_url", "http://localhost:8188")},
-        "pollinations": {"available": True, "reason": "Free cloud, no auth needed (90s/image, rate-limited)"},
+        "pollinations": {"available": True, "reason": "Free cloud (legacy host); per-IP queue limit of 1 — set POLLINATIONS_TOKEN (free at enter.pollinations.ai) for unlimited"},
         "current":     cfg.get("backend", "auto"),
     }
     # Probe local backends
@@ -361,13 +401,15 @@ async def detect_backends() -> dict:
 
 
 async def generate_single_pose(char_name: str, visual_description: str, art_style: str,
-                                 pose_name: str, pose_prompt: str, output_dir: str) -> dict:
+                                 pose_name: str, pose_prompt: str, output_dir: str,
+                                 output_key: str | None = None) -> dict:
     """Generate a single sprite pose using the best available backend."""
     cfg = load_sprite_config()
     style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
     full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
 
-    output_path = os.path.join(output_dir, f"{pose_name}.png")
+    sprite_key = output_key or pose_name
+    output_path = os.path.join(output_dir, f"{sprite_key}.png")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     backend = cfg.get("backend", "auto")
@@ -411,42 +453,133 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
     logger.info(f"Pose '{pose_name}' done via {used_backend} ({len(image_bytes):,} bytes)")
     return {"pose": pose_name, "status": "done", "path": output_path, "backend": used_backend}
 
+def _generation_pose_plan() -> list[dict]:
+    """Return the canonical client-facing sprite paths to generate."""
+    plan = []
+    seen_paths = set()
+
+    for name, prompt in POSE_PROMPTS.items():
+        sprite_path = EMOTION_SPRITES.get(name, SPECIAL_EMOTIONS.get(name, name))
+        if sprite_path in seen_paths:
+            continue
+        seen_paths.add(sprite_path)
+        plan.append({
+            "pose_name": name,
+            "sprite_path": sprite_path,
+            "prompt": prompt,
+        })
+
+    for state, paths in STATE_SPRITES.items():
+        for sprite_path in paths:
+            if sprite_path in seen_paths:
+                continue
+            seen_paths.add(sprite_path)
+            prompt_key = sprite_path.split("/")[-1]
+            prompt = STATE_PROMPTS.get(prompt_key, STATE_PROMPTS.get(state, ""))
+            plan.append({
+                "pose_name": f"state_{prompt_key}",
+                "sprite_path": sprite_path,
+                "prompt": prompt,
+            })
+
+    return plan
+
+
+def expected_sprite_count() -> int:
+    return len(_generation_pose_plan())
+
+
+def _sprite_file_present(output_dir: str, sprite_path: str) -> bool:
+    """A planned sprite counts as present if its PNG exists and is non-trivial."""
+    p = os.path.join(output_dir, f"{sprite_path}.png")
+    try:
+        return os.path.exists(p) and os.path.getsize(p) > 2000
+    except OSError:
+        return False
+
+
+def find_missing_sprites(output_dir: str, plan: list[dict] | None = None) -> list[dict]:
+    """Return the subset of the canonical pose plan whose PNG is missing on disk."""
+    plan = plan or _generation_pose_plan()
+    return [info for info in plan if not _sprite_file_present(output_dir, info["sprite_path"])]
+
+
+# Max repair sweeps over still-missing sprites after the first pass.
+_MAX_REPAIR_SWEEPS = 3
+
+
+async def _generate_pose_list(task_id: str, char_name: str, visual_description: str,
+                              art_style: str, output_dir: str, poses: list[dict],
+                              results: list, base_completed: int, total: int):
+    """Generate a list of poses, updating task progress. Returns count newly done."""
+    newly_done = 0
+    for idx, info in enumerate(poses):
+        pose_name = info["pose_name"]
+        sprite_path = info["sprite_path"]
+        _generation_tasks[task_id]["current"] = pose_name
+        _generation_tasks[task_id]["current_pose"] = sprite_path
+        result = await generate_single_pose(char_name, visual_description, art_style,
+                                              pose_name, info["prompt"], output_dir,
+                                              output_key=sprite_path)
+        results.append(result)
+        if result.get("status") == "done":
+            newly_done += 1
+        _generation_tasks[task_id]["completed"] = base_completed + newly_done
+
+        if idx < len(poses) - 1 and result.get("backend") == "pollinations":
+            logger.info(f"Sprite {base_completed + newly_done}/{total} via Pollinations, waiting 5s...")
+            await asyncio.sleep(5)
+    return newly_done
+
+
 async def generate_all_poses(task_id: str, char_name: str, visual_description: str,
                                art_style: str, output_dir: str):
-    """Generate all sprite poses as a background task."""
-    all_poses = {}
-    for name, prompt in POSE_PROMPTS.items():
-        category = EMOTION_SPRITES.get(name, SPECIAL_EMOTIONS.get(name, name))
-        all_poses[name] = {"prompt": prompt, "category": category}
-    for name, prompt in STATE_PROMPTS.items():
-        all_poses[f"state_{name}"] = {"prompt": prompt, "category": f"states/{name}"}
-    
+    """Generate ALL sprite poses as a background task.
+
+    Guarantees full coverage: after the first pass, repeatedly sweeps over any
+    sprites still missing on disk (rate limits, transient failures) up to
+    _MAX_REPAIR_SWEEPS times before giving up. Final status is 'completed' only
+    when every planned sprite exists, else 'incomplete' with the missing list.
+    """
+    all_poses = _generation_pose_plan()
     total = len(all_poses)
-    completed = 0
     results = []
-    
+
     _generation_tasks[task_id] = {
         "status": "running", "total": total, "completed": 0,
         "current": "", "results": results, "char_name": char_name,
     }
-    
-    for idx, (pose_name, info) in enumerate(all_poses.items()):
-        _generation_tasks[task_id]["current"] = pose_name
-        result = await generate_single_pose(char_name, visual_description, art_style,
-                                              pose_name, info["prompt"], output_dir)
-        results.append(result)
-        completed += 1
-        _generation_tasks[task_id]["completed"] = completed
 
-        # For Pollinations (slow, rate-limited): wait between sprites to be polite.
-        # For fast backends (HF, A1111, ComfyUI): no wait needed.
-        if idx < total - 1:
-            backend_used = result.get("backend", "pollinations")
-            if backend_used == "pollinations":
-                logger.info(f"Sprite {completed}/{total} done via Pollinations, waiting 5s...")
-                await asyncio.sleep(5)  # small gap; the semaphore handles the real rate limit
-    
-    _generation_tasks[task_id]["status"] = "completed"
+    # First pass over everything.
+    done = await _generate_pose_list(task_id, char_name, visual_description, art_style,
+                                     output_dir, all_poses, results, 0, total)
+
+    # Repair sweeps: only re-generate sprites whose file is still missing.
+    sweep = 0
+    while sweep < _MAX_REPAIR_SWEEPS:
+        missing = find_missing_sprites(output_dir, all_poses)
+        if not missing:
+            break
+        sweep += 1
+        present = total - len(missing)
+        logger.warning(f"[sprites] {len(missing)}/{total} still missing — repair sweep "
+                       f"{sweep}/{_MAX_REPAIR_SWEEPS}: {[m['sprite_path'] for m in missing]}")
+        _generation_tasks[task_id]["status"] = f"repairing (sweep {sweep})"
+        await asyncio.sleep(15)  # let any rate limit cool down before retrying
+        await _generate_pose_list(task_id, char_name, visual_description, art_style,
+                                  output_dir, missing, results, present, total)
+
+    missing = find_missing_sprites(output_dir, all_poses)
+    _generation_tasks[task_id]["completed"] = total - len(missing)
+    if missing:
+        _generation_tasks[task_id]["status"] = "incomplete"
+        _generation_tasks[task_id]["missing"] = [m["sprite_path"] for m in missing]
+        logger.error(f"[sprites] generation INCOMPLETE: {len(missing)} missing after "
+                     f"{_MAX_REPAIR_SWEEPS} repair sweeps: {[m['sprite_path'] for m in missing]}")
+    else:
+        _generation_tasks[task_id]["status"] = "completed"
+        _generation_tasks[task_id]["missing"] = []
+        logger.info(f"[sprites] all {total} sprites generated for {char_name}")
 
 def get_task_status(task_id: str) -> dict:
     return _generation_tasks.get(task_id, {"status": "not_found"})
