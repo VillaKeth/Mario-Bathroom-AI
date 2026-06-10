@@ -842,9 +842,33 @@ class WizardUI {
     }
     
     async autoFindVoice() {
-        // Online clip finding is disabled — the voice pipeline is upload-only and
-        // fully offline. Kept as a no-op so any stale UI binding stays harmless.
-        showToast('Voice cloning is offline — upload or record a reference clip.', 'info');
+        const status = document.getElementById('voice-autofind-status');
+        const qbox = document.getElementById('voice-search-query');
+        const name = this.state.get('char_name') || '';
+        const query = (qbox && qbox.value.trim()) || (name ? `${name} voice lines` : '');
+        if (!query) {
+            showToast('Enter a character name first (Step 1) or type a search.', 'error');
+            return;
+        }
+        try {
+            if (status) status.textContent = `Searching YouTube for "${query}"…`;
+            const data = await api('POST', '/api/voice/search', { query, max_results: 6 });
+            if (!data.available) {
+                showToast('YouTube search unavailable (yt-dlp missing). Upload a clip instead.', 'error');
+                if (status) status.textContent = '';
+                return;
+            }
+            if (!data.results || !data.results.length) {
+                showToast('No clips found. Try a different search.', 'info');
+                if (status) status.textContent = 'No results.';
+                return;
+            }
+            if (status) status.textContent = `Found ${data.results.length} clips — pick one.`;
+            this.showVoiceSearchResults(data.results);
+        } catch (e) {
+            showToast(`Voice search failed: ${e.message}`, 'error');
+            if (status) status.textContent = '';
+        }
     }
     
     showVoiceSearchResults(results) {

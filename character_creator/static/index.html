@@ -194,9 +194,22 @@
                     </div>
                 </div>
 
+                <div class="card" id="voice-autofind-card">
+                    <h3>🔎 Auto-find Voice (Recommended)</h3>
+                    <p class="help-text">Pull a real clip of your character straight from YouTube &mdash; nothing to record. We download it, transcribe it locally with Whisper, and clone the voice with Fish Speech / GPT-SoVITS.</p>
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1">
+                            <label for="voice-search-query">Search</label>
+                            <input type="text" id="voice-search-query" placeholder="e.g. Jax Amazing Digital Circus voice lines">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="wizard.autoFindVoice()">🔎 Find Voice on YouTube</button>
+                    <p class="help-text" id="voice-autofind-status"></p>
+                </div>
+
                 <div class="card">
-                    <h3>Reference Audio</h3>
-                    <p class="help-text">Upload (or record) a clean 5&ndash;30s voice clip of your character. It's cloned 100% offline &mdash; we transcribe it locally with Whisper and clone the voice with GPT-SoVITS / Fish Speech. No internet, no cloud AI.</p>
+                    <h3>Reference Audio (or upload your own)</h3>
+                    <p class="help-text">Prefer your own clip? Upload (or record) a clean 5&ndash;30s voice clip. Either way it's transcribed locally with Whisper and cloned with GPT-SoVITS / Fish Speech.</p>
 
                     <div class="upload-zone" id="audio-upload-zone">
                         <div class="upload-icon">🎵</div>
