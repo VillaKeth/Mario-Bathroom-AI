@@ -62,6 +62,11 @@ def main():
         raise SystemExit(f"[ft] dataset list missing: {list_path} — run build_voice_dataset.py first")
     opt_dir = f"logs/{exp}"  # relative to REPO
     os.makedirs(os.path.join(REPO, opt_dir), exist_ok=True)
+    # The webui creates these checkpoint dirs before training; s2_train/s1_train
+    # save into them via shutil.move and crash if they don't exist.
+    for d in (f"logs/{exp}/logs_s2_{VERSION}", f"logs/{exp}/logs_s1",
+              f"logs/{exp}/logs_s1_{VERSION}", "SoVITS_weights_v2", "GPT_weights_v2", "TEMP"):
+        os.makedirs(os.path.join(REPO, d), exist_ok=True)
     base_env = {"is_half": IS_HALF}
 
     print(f"[ft] {char}: v2 fine-tune | half={IS_HALF} batch={BATCH} "
