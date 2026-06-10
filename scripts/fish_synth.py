@@ -24,6 +24,12 @@ def main():
     ap.add_argument("--ref-text", default="")
     ap.add_argument("--text", required=True)
     ap.add_argument("--out", required=True)
+    # Expressiveness knobs. Higher temperature/top_p = more pitch + prosody
+    # variance (less flat); repetition_penalty curbs droning. Defaults tuned for
+    # a livelier delivery than the stock 0.7/0.7.
+    ap.add_argument("--temperature", type=float, default=0.9)
+    ap.add_argument("--top-p", type=float, default=0.85)
+    ap.add_argument("--repetition-penalty", type=float, default=1.4)
     args = ap.parse_args()
 
     if not os.path.exists(DECODER):
@@ -54,7 +60,8 @@ def main():
         references=[ServeReferenceAudio(audio=ref_bytes, text=args.ref_text)],
         reference_id=None,
         max_new_tokens=1024, chunk_length=200,
-        top_p=0.7, repetition_penalty=1.5, temperature=0.7, format="wav",
+        top_p=args.top_p, repetition_penalty=args.repetition_penalty,
+        temperature=args.temperature, format="wav",
     )
 
     audio = None
