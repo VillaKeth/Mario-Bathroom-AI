@@ -129,25 +129,37 @@ async def launch_game_server():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-from character_creator import voice_finder
 from character_creator.sprite_generator import get_all_poses
 from character_creator.voice_trainer import detect_available_engines, prepare_voice_artifacts
 
 @app.post("/api/voice/search")
 async def voice_search(body: dict):
-    query = body.get("query", "")
-    available = voice_finder.is_available()
-    results = voice_finder.search(query) if available else []
-    return {"results": results, "available": available}
+    """Search YouTube for character voice clips (default, no coding needed)."""
+    from character_creator import voice_finder
+    query = body.get("query", "").strip()
+    if not query:
+        return {"results": [], "available": voice_finder.is_available(),
+                "reason": "Empty query"}
+    if not voice_finder.is_available():
+        return {"results": [], "available": False,
+                "reason": "yt-dlp not installed. Run setup.bat, or upload a clip instead."}
+    results = await asyncio.to_thread(voice_finder.search, query, body.get("max_results", 6))
+    return {"results": results, "available": True}
 
 @app.post("/api/voice/download")
 async def voice_download(body: dict):
-    url = body.get("url", "")
-    char_name = body.get("character_name", "temp")
-    output_dir = os.path.join(PROJECT_ROOT, "character_creator", "_drafts", char_name, "voice")
-    os.makedirs(output_dir, exist_ok=True)
-    path = voice_finder.download_clip(url, output_dir)
-    return {"success": path is not None, "path": path}
+    """Download a chosen YouTube clip as the character's reference audio."""
+    from character_creator import voice_finder
+    url = body.get("url", "").strip()
+    char_name = body.get("character_name", "").lower().replace(" ", "_")
+    if not url or not char_name:
+        return {"success": False, "error": "Missing url or character_name"}
+    draft_voice = os.path.join(os.path.dirname(__file__), "_drafts", char_name, "voice")
+    path = await asyncio.to_thread(voice_finder.download_clip, url, draft_voice,
+                                   body.get("max_duration", 25))
+    if not path:
+        return {"success": False, "error": "Download failed (clip unavailable or yt-dlp error)"}
+    return {"success": True, "path": path}
 
 @app.get("/api/sprites/poses")
 async def sprite_poses():
@@ -245,7 +257,7 @@ async def list_draft(name: str):
 
 @app.post("/api/sprites/generate")
 async def start_sprite_generation(body: dict):
-    from character_creator.sprite_generator import generate_all_poses, _generation_tasks
+    from character_creator.sprite_generator import generate_all_poses, expected_sprite_count
     task_id = str(uuid.uuid4())[:8]
     char_name = body.get("character_name", "unknown")
     visual_desc = body.get("visual_description", "")
@@ -255,7 +267,7 @@ async def start_sprite_generation(body: dict):
     
     asyncio.create_task(generate_all_poses(task_id, char_name, visual_desc, art_style, output_dir))
     
-    return {"task_id": task_id, "status": "started", "total_poses": 37}
+    return {"task_id": task_id, "status": "started", "total_poses": expected_sprite_count()}
 
 @app.get("/api/sprites/status/{task_id}")
 async def sprite_generation_status(task_id: str):
@@ -406,17 +418,22 @@ async def create_character(body: dict):
 
 def _move_staged_files(draft_dir: str, char_dir: str):
     import shutil
+
+    def merge_path(src: str, dst: str):
+        if os.path.isdir(src):
+            os.makedirs(dst, exist_ok=True)
+            for child in os.listdir(src):
+                merge_path(os.path.join(src, child), os.path.join(dst, child))
+            shutil.rmtree(src, ignore_errors=True)
+            return
+
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        os.replace(src, dst)
+
     for item in os.listdir(draft_dir):
         src = os.path.join(draft_dir, item)
         dst = os.path.join(char_dir, item)
-        if os.path.isdir(src):
-            if os.path.exists(dst):
-                for sub in os.listdir(src):
-                    shutil.move(os.path.join(src, sub), os.path.join(dst, sub))
-            else:
-                shutil.move(src, dst)
-        else:
-            shutil.move(src, dst)
+        merge_path(src, dst)
     shutil.rmtree(draft_dir, ignore_errors=True)
 
 @app.get("/api/known-character/{name}")
@@ -479,9 +496,10 @@ async def sprites_page():
 async def list_all_characters():
     """List every character in the characters/ directory with their sprite status."""
     import yaml
+    from character_creator.sprite_generator import expected_sprite_count
     chars_dir = os.path.join(PROJECT_ROOT, "characters")
     result = []
-    EXPECTED_SPRITES = 34  # 25 emotions + 9 states in sprite_generator.py
+    EXPECTED_SPRITES = expected_sprite_count()
 
     for name in sorted(os.listdir(chars_dir)):
         if name.startswith("_"):
@@ -553,7 +571,7 @@ async def list_all_characters():
 async def generate_sprites_for_character(char_name: str, body: dict = None):
     """Start AI sprite generation for an existing character."""
     import yaml
-    from character_creator.sprite_generator import generate_all_poses, _generation_tasks
+    from character_creator.sprite_generator import generate_all_poses, _generation_tasks, expected_sprite_count
 
     chars_dir = os.path.join(PROJECT_ROOT, "characters")
     char_dir = os.path.join(chars_dir, char_name)
@@ -597,7 +615,7 @@ async def generate_sprites_for_character(char_name: str, body: dict = None):
     # Store char_name in task for /api/characters lookup
     from character_creator.sprite_generator import _generation_tasks as tasks
     tasks[task_id] = {
-        "status": "running", "total": 34, "completed": 0,
+        "status": "running", "total": expected_sprite_count(), "completed": 0,
         "current": "starting...", "results": [], "char_name": char_name,
     }
 

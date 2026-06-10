@@ -196,8 +196,8 @@
 
                 <div class="card">
                     <h3>Reference Audio</h3>
-                    <p class="help-text">Upload a voice clip of your character (or record one). This enables voice cloning.</p>
-                    
+                    <p class="help-text">Upload (or record) a clean 5&ndash;30s voice clip of your character. It's cloned 100% offline &mdash; we transcribe it locally with Whisper and clone the voice with GPT-SoVITS / Fish Speech. No internet, no cloud AI.</p>
+
                     <div class="upload-zone" id="audio-upload-zone">
                         <div class="upload-icon">🎵</div>
                         <p>Drag &amp; drop audio file here</p>
@@ -213,9 +213,6 @@
                     <div class="btn-group">
                         <button class="btn btn-secondary" id="btn-record" onclick="wizard.toggleRecording()">
                             🎙️ Record
-                        </button>
-                        <button class="btn btn-secondary" id="btn-auto-find" onclick="wizard.autoFindVoice()">
-                            🔍 Auto-find Online
                         </button>
                     </div>
                 </div>
@@ -279,7 +276,7 @@
                         <label class="radio-card">
                             <input type="radio" name="sprite_source" value="generate" checked>
                             <span class="radio-label">🤖 AI Generate All</span>
-                            <span class="radio-desc">We'll generate ~37 poses automatically</span>
+                            <span class="radio-desc">We'll generate ~39 poses automatically</span>
                         </label>
                         <label class="radio-card">
                             <input type="radio" name="sprite_source" value="upload">

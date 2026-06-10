@@ -132,6 +132,44 @@ _idle_behavior_ref = None  # Set by main.py to provide character-specific idle p
 SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
 SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
 
+# --- Modular GPT-SoVITS (per-character zero-shot) ---
+# Characters with a fine-tuned model in mario_models_new/GPT_SoVITS_<Name>/ use it;
+# everyone else uses the shared v2 base weights + their own reference clip + transcript.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+SOVITS_V2_BASE_DIR = os.path.join(_PROJECT_ROOT, "gpt_sovits_repo", "GPT_SoVITS",
+                                  "pretrained_models", "gsv-v2final-pretrained")
+SOVITS_V2_GPT = os.path.join(SOVITS_V2_BASE_DIR, "s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt")
+SOVITS_V2_SOVITS = os.path.join(SOVITS_V2_BASE_DIR, "s2G2333k.pth")
+
+# Active character voice config (set by main.py via set_voice_config()).
+_voice_cfg = {}
+_voice_char_name = "mario"
+
+def set_voice_config(voice_config: dict, character_name: str = "mario"):
+    """Wire the active character's voice config into the TTS engine so GPT-SoVITS
+    clones THIS character (not Mario). Called once at character load."""
+    global _voice_cfg, _voice_char_name
+    _voice_cfg = voice_config or {}
+    _voice_char_name = (character_name or "mario").lower()
+    logger.info(
+        f"[TTS] voice config set for '{_voice_char_name}': "
+        f"engine={_voice_cfg.get('preferred_engine')} "
+        f"ref={'yes' if _voice_cfg.get('reference_audio') else 'no'} "
+        f"prompt={'yes' if _voice_cfg.get('prompt_text') else 'no'}"
+    )
+
+def _resolve_sovits_models(char_name: str):
+    """Return (gpt_path, sovits_path, is_finetune) for the active character.
+    A per-character fine-tune (e.g. Mario) wins; otherwise the v2 base weights."""
+    title = char_name.capitalize()
+    ft_dir = os.path.join(_PROJECT_ROOT, "mario_models_new", f"GPT_SoVITS_{title}")
+    if os.path.isdir(ft_dir):
+        ckpts = [f for f in os.listdir(ft_dir) if f.endswith(".ckpt")]
+        pths = [f for f in os.listdir(ft_dir) if f.endswith(".pth")]
+        if ckpts and pths:
+            return os.path.join(ft_dir, ckpts[0]), os.path.join(ft_dir, pths[0]), True
+    return SOVITS_V2_GPT, SOVITS_V2_SOVITS, False
+
 # --- Speed mode ---
 # "hybrid" = Edge+RVC for instant response, GPT-SoVITS regenerates in background (RECOMMENDED)
 # "sovits" = GPT-SoVITS only (best quality, ~3-10s latency)
@@ -645,6 +683,24 @@ def _start_sovits_subprocess():
     try:
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"  # Prevent output buffering on Windows
+        # Select per-character models + reference clip so the subprocess clones the
+        # ACTIVE character zero-shot. Falls back to Mario defaults if unset.
+        try:
+            gpt_path, sovits_path, is_ft = _resolve_sovits_models(_voice_char_name)
+            env["SOVITS_GPT_PATH"] = gpt_path
+            env["SOVITS_SOVITS_PATH"] = sovits_path
+            env["SOVITS_CHARACTER"] = _voice_char_name
+            ref = _voice_cfg.get("reference_audio")
+            if ref and os.path.exists(ref):
+                env["SOVITS_REF_AUDIO"] = ref
+            if _voice_cfg.get("prompt_text"):
+                env["SOVITS_PROMPT_TEXT"] = _voice_cfg["prompt_text"]
+            if _voice_cfg.get("prompt_lang"):
+                env["SOVITS_PROMPT_LANG"] = _voice_cfg["prompt_lang"]
+            logger.info(f"[DEBUG_TTS] sovits: models for '{_voice_char_name}' "
+                        f"({'fine-tune' if is_ft else 'v2-base zero-shot'})")
+        except Exception as _e:
+            logger.warning(f"[DEBUG_TTS] sovits: could not resolve per-character models: {_e}")
         _sovits_process = sp.Popen(
             [SOVITS_PYTHON, SOVITS_SERVER_SCRIPT],
             stdin=sp.PIPE,
@@ -774,7 +830,17 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
                 text = truncated.strip()
                 if DEBUG_TTS:
                     logger.info(f"[DEBUG_TTS] sovits: truncated to {len(text)} chars")
-            req = _json.dumps({"text": text, "speed": speed}) + "\n"
+            _req = {"text": text, "speed": speed}
+            # Carry the active character's reference clip + transcript so cloning
+            # targets THIS character even without a subprocess restart.
+            _ref = _voice_cfg.get("reference_audio")
+            if _ref and os.path.exists(_ref):
+                _req["ref_audio"] = _ref
+                if _voice_cfg.get("prompt_text"):
+                    _req["prompt_text"] = _voice_cfg["prompt_text"]
+                if _voice_cfg.get("prompt_lang"):
+                    _req["prompt_lang"] = _voice_cfg["prompt_lang"]
+            req = _json.dumps(_req) + "\n"
             _sovits_process.stdin.write(req)
             _sovits_process.stdin.flush()
             # Use a thread to read with timeout (prevent 87s+ blocking)

@@ -842,29 +842,9 @@ class WizardUI {
     }
     
     async autoFindVoice() {
-        const searchTerms = this.state.get('voice_search_terms');
-        const charName = this.state.get('char_name');
-        
-        if (!searchTerms && !charName) {
-            showToast('Enter a character name first', 'warning');
-            return;
-        }
-        
-        const query = searchTerms || `${charName} voice`;
-        
-        try {
-            showToast('Searching for voice clips...', 'info');
-            const data = await api('POST', '/api/voice/search', { query });
-            
-            if (data.available && data.results && data.results.length > 0) {
-                this.showVoiceSearchResults(data.results);
-            } else {
-                showToast('No voice clips found', 'warning');
-            }
-        } catch (error) {
-            showToast('Voice search failed', 'error');
-            console.error('Voice search error:', error);
-        }
+        // Online clip finding is disabled — the voice pipeline is upload-only and
+        // fully offline. Kept as a no-op so any stale UI binding stays harmless.
+        showToast('Voice cloning is offline — upload or record a reference clip.', 'info');
     }
     
     showVoiceSearchResults(results) {

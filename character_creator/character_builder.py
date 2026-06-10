@@ -277,9 +277,11 @@ def _generate_character_yaml(config: dict) -> dict:
     })
     
     # Map wizard engine names to CharacterLoader-compatible names
+    # Initial engine guess; prepare_voice_artifacts() later overrides this with the
+    # engine actually available + set up for this character (offline, post-build).
     wizard_engine = config.get("preferred_engine", "edge")
     engine_map = {
-        "fish_speech": "hybrid",
+        "fish_speech": "fish_speech",
         "gpt_sovits": "sovits",
         "edge_rvc": "hybrid",
         "edge": "edge",

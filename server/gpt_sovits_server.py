@@ -27,9 +27,16 @@ sys.path.insert(0, REPO_DIR)
 sys.path.insert(0, GPT_SOVITS_DIR)
 
 MODEL_DIR = os.path.join(BASE_DIR, "mario_models_new", "GPT_SoVITS_Mario")
-SOVITS_PATH = os.path.join(MODEL_DIR, "Mario_e15_s255.pth")
-GPT_PATH = os.path.join(MODEL_DIR, "Mario-e20.ckpt")
-DEFAULT_REF_AUDIO = os.path.join(MODEL_DIR, "mario_ref.wav")
+# Model weights + reference are env-overridable so this server is modular across
+# characters. server/tts.py sets SOVITS_GPT_PATH / SOVITS_SOVITS_PATH (v2 base for
+# non-fine-tuned characters) and SOVITS_REF_AUDIO / SOVITS_PROMPT_TEXT for the
+# active character's clip. Unset -> Mario defaults (backward compatible).
+SOVITS_PATH = os.environ.get("SOVITS_SOVITS_PATH") or os.path.join(MODEL_DIR, "Mario_e15_s255.pth")
+GPT_PATH = os.environ.get("SOVITS_GPT_PATH") or os.path.join(MODEL_DIR, "Mario-e20.ckpt")
+DEFAULT_REF_AUDIO = os.environ.get("SOVITS_REF_AUDIO") or os.path.join(MODEL_DIR, "mario_ref.wav")
+DEFAULT_PROMPT_TEXT = os.environ.get("SOVITS_PROMPT_TEXT") or "It's a me Mario"
+DEFAULT_PROMPT_LANG = os.environ.get("SOVITS_PROMPT_LANG") or "en"
+CHARACTER = (os.environ.get("SOVITS_CHARACTER") or "mario").lower()
 OUTPUT_DIR = os.path.join(BASE_DIR, "server", "tts_cache")
 
 
@@ -62,7 +69,8 @@ def init_pipeline():
     sys.stdout = sys.stderr
     from TTS_infer_pack.TTS import TTS, TTS_Config
 
-    config_path = os.path.join(MODEL_DIR, "tts_infer.yaml")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    config_path = os.path.join(OUTPUT_DIR, "tts_infer.yaml")
     config = {
         "custom": {
             "bert_base_path": os.path.join(GPT_SOVITS_DIR, "pretrained_models", "chinese-roberta-wwm-ext-large"),
@@ -120,30 +128,31 @@ def clean_text_for_tts(text):
     #   Koopa/Koopah fail → "Cooper" works
     #   Toad → "Todd" already close enough (model does this naturally)
     
-    # Character names — replace with words the model CAN actually say
-    # NOTE: "the bad guy" tested best in 220-round ralph loop, but user reports
-    # Bowser sounds close to correct now — try "Bowsir" (preserves name, fixes ending)
-    clean_text = _re.sub(r"\bBowser's\b", "Bowsir's", clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowser\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzur\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzer\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bBowzah\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bToad\b', 'Todd', clean_text)  # Case-sensitive: only proper noun
-    clean_text = _re.sub(r'\bGoombas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bGoomba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bGumbas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bGumba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bKoopas\b', 'Coopers', clean_text, flags=_re.IGNORECASE)
-    clean_text = _re.sub(r'\bKoopa\b', 'Cooper', clean_text, flags=_re.IGNORECASE)
-    # Additional Mario character fixes (untested variants — keep original if it works)
-    clean_text = _re.sub(r'\bPeach\b', 'Peech', clean_text)  # Prevent "Peach" → "Peesh"
-    clean_text = _re.sub(r'\bPrincess\b', 'the princess', clean_text)  # Simplify
-    clean_text = _re.sub(r'\bLuigi\b', 'Looigi', clean_text)  # Italian vowel stretch
-    clean_text = _re.sub(r'\bYoshi\b', 'Yoh shee', clean_text)  # Phonetic split
-    clean_text = _re.sub(r'\bDaisy\b', 'Dayzee', clean_text)  # Phonetic
-    
-    # Guest name pronunciation — "stedt" sounds like "stead" (as in steadfast)
-    clean_text = _re.sub(r'\bHoppenstedt\b', 'Hoppenstead', clean_text)
+    # Mario-specific name fixes — ONLY for Mario. Other characters must not have
+    # words like "Peach"/"Princess" silently rewritten.
+    if CHARACTER == "mario":
+        # NOTE: "the bad guy" tested best in 220-round ralph loop, but user reports
+        # Bowser sounds close to correct now — try "Bowsir" (preserves name, fixes ending)
+        clean_text = _re.sub(r"\bBowser's\b", "Bowsir's", clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bBowser\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bBowzur\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bBowzer\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bBowzah\b', 'Bowsir', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bToad\b', 'Todd', clean_text)  # Case-sensitive: only proper noun
+        clean_text = _re.sub(r'\bGoombas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bGoomba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bGumbas\b', 'bad mushrooms', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bGumba\b', 'bad mushroom', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bKoopas\b', 'Coopers', clean_text, flags=_re.IGNORECASE)
+        clean_text = _re.sub(r'\bKoopa\b', 'Cooper', clean_text, flags=_re.IGNORECASE)
+        # Additional Mario character fixes (untested variants — keep original if it works)
+        clean_text = _re.sub(r'\bPeach\b', 'Peech', clean_text)  # Prevent "Peach" → "Peesh"
+        clean_text = _re.sub(r'\bPrincess\b', 'the princess', clean_text)  # Simplify
+        clean_text = _re.sub(r'\bLuigi\b', 'Looigi', clean_text)  # Italian vowel stretch
+        clean_text = _re.sub(r'\bYoshi\b', 'Yoh shee', clean_text)  # Phonetic split
+        clean_text = _re.sub(r'\bDaisy\b', 'Dayzee', clean_text)  # Phonetic
+        # Guest name pronunciation — "stedt" sounds like "stead" (as in steadfast)
+        clean_text = _re.sub(r'\bHoppenstedt\b', 'Hoppenstead', clean_text)
     
     # Strip leading punctuation/whitespace left after word removal
     clean_text = _re.sub(r'^[\s,!?.;:\-]+', '', clean_text)
@@ -316,14 +325,18 @@ def clean_text_for_tts(text):
     return clean_text
 
 
-def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
+def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0, prompt_lang=None, text_lang=None):
     """Generate audio from text using GPT-SoVITS pipeline."""
     import soundfile as sf
 
     if ref_audio is None:
         ref_audio = DEFAULT_REF_AUDIO
     if prompt_text is None:
-        prompt_text = "It's a me Mario"
+        prompt_text = DEFAULT_PROMPT_TEXT
+    if prompt_lang is None:
+        prompt_lang = DEFAULT_PROMPT_LANG
+    if text_lang is None:
+        text_lang = "en"
 
     clean_text = clean_text_for_tts(text)
 
@@ -344,10 +357,10 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0):
 
     req = {
         "text": clean_text,
-        "text_lang": "en",
+        "text_lang": text_lang,
         "ref_audio_path": ref_audio,
         "prompt_text": prompt_text,
-        "prompt_lang": "en",
+        "prompt_lang": prompt_lang,
         "text_split_method": "cut5",
         "speed_factor": speed,
         # Moderately tight sampling — prevents elongation without clipping
@@ -468,6 +481,8 @@ def main():
                 ref_audio=req.get("ref_audio"),
                 prompt_text=req.get("prompt_text"),
                 speed=req.get("speed", 1.0),
+                prompt_lang=req.get("prompt_lang"),
+                text_lang=req.get("text_lang"),
             )
             elapsed = time.time() - t0
             print(json.dumps({

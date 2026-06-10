@@ -1,145 +1,214 @@
-"""Voice training orchestration — detects engines, triggers training, tracks progress."""
+"""Voice setup — fully offline, LLM-free.
+
+Zero-shot cloners (GPT-SoVITS v2 base, Fish Speech) clone a character's voice
+directly from an uploaded reference clip plus that clip's transcript. The
+transcript is produced locally by Whisper (see voice_transcribe.py), so the whole
+pipeline runs with no cloud service and no LLM query. There is no per-character
+training step. Edge TTS is always kept as a character-matched fallback.
+"""
 import os
-import sys
 import logging
-import subprocess
-import shutil
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
+# Filesystem locations that indicate an engine is installed on this machine.
+SOVITS_REPO = os.path.join(PROJECT_ROOT, "gpt_sovits_repo")
+SOVITS_ENV = os.path.join(PROJECT_ROOT, "gpt_sovits_env")
+SOVITS_V2_BASE = os.path.join(
+    SOVITS_REPO, "GPT_SoVITS", "pretrained_models", "gsv-v2final-pretrained", "s2G2333k.pth"
+)
+FISH_ENV = os.path.join(PROJECT_ROOT, "fish_speech_env")
+# Fish Speech v1.5.1 uses the non-gated fish-speech-1.5 checkpoint (firefly
+# decoder). Require the actual decoder weight so we never advertise Fish as ready
+# when only a README/partial download landed.
+FISH_CKPT_DIR = os.path.join(PROJECT_ROOT, "fish_speech_ckpts")
+FISH_CODEC = os.path.join(FISH_CKPT_DIR, "firefly-gan-vq-fsq-8x1024-21hz-generator.pth")
+
+
 def detect_available_engines() -> list[dict]:
+    """Report which voice engines are usable on this machine right now."""
     engines = []
-    
-    # Fish Speech (priority 1, ~4GB VRAM)
-    fish_available = False
-    try:
-        import fish_speech
-        fish_available = True
-    except ImportError:
-        pass
+
+    sovits_available = (
+        os.path.isdir(SOVITS_REPO)
+        and os.path.isdir(SOVITS_ENV)
+        and os.path.exists(SOVITS_V2_BASE)
+    )
     engines.append({
-        "name": "fish_speech", "display_name": "Fish Speech",
-        "priority": 1, "vram_required": 4,
-        "available": fish_available,
-        "needs_reference_audio": True,
-        "status": "ready" if fish_available else "needs_setup",
-        "description": "Best quality voice cloning. Needs reference audio."
-    })
-    
-    # GPT-SoVITS (priority 2, ~8GB VRAM)
-    sovits_path = os.path.join(PROJECT_ROOT, "gpt_sovits_repo")
-    sovits_env = os.path.join(PROJECT_ROOT, "gpt_sovits_env")
-    sovits_available = os.path.isdir(sovits_path) and os.path.isdir(sovits_env)
-    engines.append({
-        "name": "gpt_sovits", "display_name": "GPT-SoVITS",
-        "priority": 2, "vram_required": 8,
-        "available": sovits_available,
-        "needs_reference_audio": True,
+        "name": "sovits", "display_name": "GPT-SoVITS", "priority": 1,
+        "vram_required": 8, "available": sovits_available,
+        "needs_reference_audio": True, "zero_shot": True,
         "status": "ready" if sovits_available else "needs_setup",
-        "description": "Trainable voice cloning. Needs training audio."
+        "description": "Modular zero-shot voice cloning from a reference clip (v2 base).",
     })
-    
-    # Edge TTS + RVC (priority 3, ~2GB VRAM)
-    rvc_available = False
-    try:
-        rvc_model_dir = os.path.join(PROJECT_ROOT, "server", "data", "rvc_model")
-        rvc_available = os.path.isdir(rvc_model_dir)
-    except Exception:
-        pass
+
+    fish_available = os.path.isdir(FISH_ENV) and os.path.exists(FISH_CODEC)
     engines.append({
-        "name": "edge_rvc", "display_name": "Edge TTS + RVC",
-        "priority": 3, "vram_required": 2,
-        "available": rvc_available,
-        "needs_reference_audio": True,
-        "status": "ready" if rvc_available else "needs_setup",
-        "description": "Voice conversion on top of Edge TTS base voice."
+        "name": "fish_speech", "display_name": "Fish Speech", "priority": 2,
+        "vram_required": 4, "available": fish_available,
+        "needs_reference_audio": True, "zero_shot": True,
+        "status": "ready" if fish_available else "needs_setup",
+        "description": "Fast zero-shot voice cloning from a reference clip.",
     })
-    
-    # Edge TTS (priority 4, 0 VRAM — always available)
+
     engines.append({
-        "name": "edge", "display_name": "Edge TTS",
-        "priority": 4, "vram_required": 0,
-        "available": True,
-        "needs_reference_audio": False,
+        "name": "edge", "display_name": "Edge TTS", "priority": 3,
+        "vram_required": 0, "available": True,
+        "needs_reference_audio": False, "zero_shot": False,
         "status": "ready",
-        "description": "Free Microsoft voices. Always available fallback."
+        "description": "Microsoft neural voices — character-matched fallback.",
     })
-    
+
     return engines
 
+
 def get_engine_status(engine_name: str) -> dict:
-    engines = detect_available_engines()
-    for e in engines:
+    for e in detect_available_engines():
         if e["name"] == engine_name:
             return e
     return {"name": engine_name, "available": False, "status": "unknown"}
 
+
+# Map wizard/legacy engine names to the canonical runtime engine names.
+_ENGINE_ALIAS = {
+    "hybrid": "sovits",
+    "sovits": "sovits",
+    "gpt_sovits": "sovits",
+    "fish": "fish_speech",
+    "fish_speech": "fish_speech",
+    "edge_rvc": "edge",
+    "edge": "edge",
+}
+
+
+def _patch_character_voice_yaml(char_dir: str, updates: dict):
+    """Merge keys into the character.yaml 'voice' block (preserving edge_voice/rate/pitch)."""
+    import yaml
+    yaml_path = os.path.join(char_dir, "character.yaml")
+    if not os.path.exists(yaml_path):
+        logger.warning(f"[voice] character.yaml not found at {yaml_path}; cannot record voice config")
+        return
+    with open(yaml_path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    voice = data.get("voice") or {}
+    voice.update(updates)
+    data["voice"] = voice
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+
 def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
-    """Prepare voice artifacts for a character based on chosen engine and audio."""
-    engine = config.get("preferred_engine", "edge")
+    """Offline, LLM-free voice setup for a freshly built character.
+
+    If a reference clip is present, transcribe it locally and record modular
+    per-character voice config so BOTH GPT-SoVITS and Fish Speech can clone it
+    zero-shot (lets the user A/B them). Edge TTS stays as the fallback.
+    """
+    from character_creator import voice_transcribe
+
     voice_dir = os.path.join(char_dir, "voice")
     os.makedirs(voice_dir, exist_ok=True)
     ref_audio = os.path.join(voice_dir, "reference_audio.wav")
-    
-    result = {"engine": engine, "fallback_engine": "edge", "artifacts_ready": False,
-              "errors": [], "training_status": "not_needed"}
-    
-    if engine == "edge":
-        result["artifacts_ready"] = True
-        return result
-    
-    if not os.path.exists(ref_audio):
-        result["errors"].append(f"Reference audio required for {engine} but not found at {ref_audio}")
-        result["engine"] = "edge"
-        result["artifacts_ready"] = True
-        return result
-    
-    if engine == "fish_speech":
-        status = get_engine_status("fish_speech")
-        if status["available"]:
-            result["artifacts_ready"] = True
-            result["training_status"] = "not_needed_zero_shot"
-        else:
-            result["errors"].append("Fish Speech not installed, falling back to Edge TTS")
-            result["engine"] = "edge"
-            result["artifacts_ready"] = True
-    
-    elif engine == "gpt_sovits":
-        status = get_engine_status("gpt_sovits")
-        if status["available"]:
-            try:
-                _trigger_sovits_training(ref_audio, char_dir)
-                result["artifacts_ready"] = True
-                result["training_status"] = "training_started"
-            except Exception as e:
-                result["errors"].append(f"GPT-SoVITS training failed: {e}. Falling back to Edge TTS.")
-                result["engine"] = "edge"
-                result["artifacts_ready"] = True
-                result["training_status"] = "training_failed"
-        else:
-            result["errors"].append("GPT-SoVITS not installed, falling back to Edge TTS")
-            result["engine"] = "edge"
-            result["artifacts_ready"] = True
-    
-    elif engine == "edge_rvc":
-        status = get_engine_status("edge_rvc")
-        if status["available"]:
-            result["artifacts_ready"] = True
-            result["training_status"] = "not_needed_runtime_conversion"
-        else:
-            result["errors"].append("RVC not set up, falling back to Edge TTS")
-            result["engine"] = "edge"
-            result["artifacts_ready"] = True
-    
-    return result
+    rel_ref = "voice/reference_audio.wav"
 
-def _trigger_sovits_training(ref_audio: str, char_dir: str):
-    sovits_path = os.path.join(PROJECT_ROOT, "gpt_sovits_repo")
-    if not os.path.isdir(sovits_path):
-        raise FileNotFoundError("gpt_sovits_repo not found")
-    marker = os.path.join(char_dir, "voice", ".training_requested")
-    with open(marker, "w") as f:
-        f.write(f"engine=gpt_sovits\naudio={ref_audio}\nstatus=pending\n")
-    logger.info(f"GPT-SoVITS training requested for {char_dir}")
+    requested = config.get("preferred_engine", "edge")
+    result = {
+        "requested_engine": requested,
+        "engine": "edge",
+        "fallback_engine": "edge",
+        "engines_ready": ["edge"],
+        "reference_audio": None,
+        "prompt_text": None,
+        "transcription": "skipped",
+        "artifacts_ready": True,
+        "errors": [],
+    }
+
+    has_ref = os.path.exists(ref_audio) and os.path.getsize(ref_audio) > 1024
+
+    # Default behavior: if the user didn't upload a clip, automatically pull one
+    # from YouTube so a non-technical user gets a real character voice with zero
+    # extra steps. Set config["auto_voice"] = False to opt out.
+    if not has_ref and config.get("auto_voice", True):
+        try:
+            from character_creator import voice_finder
+            if voice_finder.is_available():
+                name = config.get("name", "").strip()
+                query = (config.get("voice_search_query")
+                         or (f"{name} voice lines" if name else "")).strip()
+                if query:
+                    hits = voice_finder.search(query, max_results=6)
+                    # Prefer a short-to-medium clip (5s..240s) for a clean reference.
+                    hits = sorted(
+                        [h for h in hits if 5 <= (h.get("duration") or 0) <= 240] or hits,
+                        key=lambda h: h.get("duration") or 9999,
+                    )
+                    for h in hits[:3]:
+                        if voice_finder.download_clip(h["url"], voice_dir, max_duration=25):
+                            result["voice_source"] = {
+                                "type": "youtube", "title": h.get("title"), "url": h.get("url")}
+                            break
+        except Exception as e:  # never block creation on auto-pull
+            result["errors"].append(f"Auto voice pull failed: {e}")
+        has_ref = os.path.exists(ref_audio) and os.path.getsize(ref_audio) > 1024
+
+    if not has_ref:
+        if _ENGINE_ALIAS.get(requested, requested) != "edge":
+            result["errors"].append(
+                f"No reference clip uploaded; '{requested}' needs one. Using Edge TTS fallback."
+            )
+        _patch_character_voice_yaml(char_dir, {"preferred_engine": "edge", "engines": ["edge"]})
+        return result
+
+    result["reference_audio"] = rel_ref
+
+    # Local Whisper transcription — the offline, independent piece.
+    tr = voice_transcribe.transcribe_file(ref_audio)
+    prompt_text = tr.get("text", "")
+    if prompt_text:
+        with open(os.path.join(voice_dir, "reference_text.txt"), "w", encoding="utf-8") as f:
+            f.write(prompt_text)
+        result["prompt_text"] = prompt_text
+        result["transcription"] = "ok"
+    else:
+        result["transcription"] = "failed"
+        result["errors"].append(
+            "Could not transcribe reference clip ("
+            + (tr.get("error") or "empty result")
+            + "). You can hand-edit voice/reference_text.txt to improve cloning."
+        )
+
+    # Which cloners are installed right now
+    engines_ready = ["edge"]
+    for name in ("sovits", "fish_speech"):
+        st = get_engine_status(name)
+        if st.get("available"):
+            engines_ready.append(name)
+        else:
+            result["errors"].append(
+                f"{st.get('display_name', name)} not installed yet — run its setup to enable it."
+            )
+    result["engines_ready"] = engines_ready
+
+    # Choose the active engine: honor request if available, else best clone, else edge
+    want = _ENGINE_ALIAS.get(requested, requested)
+    if want in engines_ready:
+        active = want
+    elif "sovits" in engines_ready:
+        active = "sovits"
+    elif "fish_speech" in engines_ready:
+        active = "fish_speech"
+    else:
+        active = "edge"
+    result["engine"] = active
+
+    _patch_character_voice_yaml(char_dir, {
+        "preferred_engine": active,
+        "engines": engines_ready,
+        "reference_audio": rel_ref,
+        "prompt_text": prompt_text,
+        "prompt_lang": tr.get("language") or "en",
+    })
+    return result

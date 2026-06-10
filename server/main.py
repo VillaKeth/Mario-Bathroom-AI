@@ -684,6 +684,10 @@ async def lifespan(app: FastAPI):
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
     tts.set_pronunciation(_character.pronunciation)
+    # Wire per-character voice (reference clip + transcript) so GPT-SoVITS clones
+    # THIS character zero-shot instead of always sounding like Mario.
+    if hasattr(tts, "set_voice_config"):
+        tts.set_voice_config(_character.voice_config, _character.name)
     llm.set_character(_character.name, _character.display_name)
     safety_filter.set_character(_character.name, _character.display_name)
     _game_handlers_mod.set_character(_character.name, _character.display_name)

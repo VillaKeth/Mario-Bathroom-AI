@@ -1,27 +1,36 @@
-"""Voice clip finder — searches YouTube via yt-dlp and downloads clips."""
+"""Voice clip finder — searches YouTube via yt-dlp and downloads clips.
+
+Invokes yt-dlp through the current interpreter (`python -m yt_dlp`) so it works
+without yt-dlp being on PATH — a non-technical user just needs the dependency
+installed (setup.bat does this), no shell/PATH setup required.
+"""
 import subprocess
 import json
 import os
+import sys
 import logging
-import tempfile
 
 logger = logging.getLogger(__name__)
 
+_YTDLP = [sys.executable, "-m", "yt_dlp"]
+
+
 def is_available() -> bool:
     try:
-        subprocess.run(["yt-dlp", "--version"], capture_output=True, timeout=5)
-        return True
+        r = subprocess.run(_YTDLP + ["--version"], capture_output=True, timeout=15)
+        return r.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
+
 
 def search(query: str, max_results: int = 5) -> list[dict]:
     if not is_available():
         return []
     try:
         result = subprocess.run(
-            ["yt-dlp", f"ytsearch{max_results}:{query}",
-             "--dump-json", "--no-download", "--flat-playlist"],
-            capture_output=True, text=True, timeout=30
+            _YTDLP + [f"ytsearch{max_results}:{query}",
+                      "--dump-json", "--no-download", "--flat-playlist"],
+            capture_output=True, text=True, timeout=60
         )
         clips = []
         for line in result.stdout.strip().split("\n"):
@@ -42,18 +51,25 @@ def search(query: str, max_results: int = 5) -> list[dict]:
         logger.error(f"Voice search failed: {e}")
         return []
 
+
 def download_clip(url: str, output_dir: str, max_duration: int = 30) -> str | None:
     if not is_available():
         return None
+    os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "reference_audio.wav")
     try:
-        subprocess.run([
-            "yt-dlp", url,
-            "-x", "--audio-format", "wav",
-            "--postprocessor-args", f"-t {max_duration}",
-            "-o", output_path,
-        ], capture_output=True, timeout=120, check=True)
-        if os.path.exists(output_path):
+        subprocess.run(
+            _YTDLP + [
+                url,
+                "-x", "--audio-format", "wav",
+                # Trim to the first max_duration seconds for a clean short reference.
+                "--postprocessor-args", f"ffmpeg:-t {max_duration}",
+                "-o", output_path,
+                "--force-overwrites", "--no-playlist",
+            ],
+            capture_output=True, timeout=180, check=True,
+        )
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 2000:
             return output_path
     except Exception as e:
         logger.error(f"Voice download failed: {e}")

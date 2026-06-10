@@ -88,7 +88,7 @@ def test_models_endpoint():
         assert m["compatibility"] in ("compatible", "slow", "incompatible")
 
 # Sprite Generator Tests
-from character_creator.sprite_generator import get_all_poses, EMOTION_SPRITES, SPECIAL_EMOTIONS, STATE_SPRITES
+from character_creator.sprite_generator import get_all_poses, EMOTION_SPRITES, SPECIAL_EMOTIONS, STATE_SPRITES, expected_sprite_count
 
 def test_sprite_poses_structure():
     data = get_all_poses()
@@ -181,6 +181,64 @@ def test_sprite_generation_start():
     data = resp.json()
     assert "task_id" in data
     assert data["status"] == "started"
+    assert data["total_poses"] == expected_sprite_count()
+
+def test_generate_all_poses_uses_client_sprite_paths(monkeypatch, tmp_path):
+    import asyncio
+    from character_creator import sprite_generator as sg
+
+    calls = []
+
+    async def fake_generate_single_pose(char_name, visual_description, art_style,
+                                        pose_name, pose_prompt, output_dir,
+                                        output_key=None):
+        calls.append((pose_name, output_key))
+        # Real generate_single_pose writes the PNG; emulate that so the
+        # coverage/repair-sweep logic sees the sprite as present on disk.
+        out_path = os.path.join(output_dir, f"{output_key}.png")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "wb") as f:
+            f.write(b"\x89PNG\r\n\x1a\n" + b"0" * 4096)
+        return {
+            "pose": pose_name,
+            "status": "done",
+            "path": out_path,
+            "backend": "test",
+        }
+
+    monkeypatch.setattr(sg, "generate_single_pose", fake_generate_single_pose)
+
+    asyncio.run(sg.generate_all_poses(
+        "test_task", "test_gen", "A friendly robot", "3d_figurine", str(tmp_path)
+    ))
+
+    output_keys = [output_key for _, output_key in calls]
+    assert "neutral/idle" in output_keys
+    assert "positive/happy" in output_keys
+    assert "speech/talking" in output_keys
+    assert "state_idle" not in output_keys
+    assert "happy" not in output_keys
+    assert len(output_keys) == len(set(output_keys))
+    assert sg.get_task_status("test_task")["status"] == "completed"
+
+def test_staged_sprite_merge_replaces_placeholders(tmp_path):
+    from character_creator.server import _move_staged_files
+
+    draft_dir = tmp_path / "_drafts" / "test_bot"
+    char_dir = tmp_path / "characters" / "test_bot"
+    draft_sprite = draft_dir / "sprites" / "positive" / "happy.png"
+    placeholder_sprite = char_dir / "sprites" / "positive" / "happy.png"
+
+    draft_sprite.parent.mkdir(parents=True)
+    placeholder_sprite.parent.mkdir(parents=True)
+    draft_sprite.write_bytes(b"generated")
+    placeholder_sprite.write_bytes(b"placeholder")
+
+    _move_staged_files(str(draft_dir), str(char_dir))
+
+    assert placeholder_sprite.read_bytes() == b"generated"
+    assert not (char_dir / "sprites" / "positive" / "positive").exists()
+    assert not draft_dir.exists()
 
 # Character Builder Tests
 import tempfile
@@ -295,3 +353,75 @@ def test_models_endpoint_handles_ollama_offline():
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data["models"], list)
+
+
+# ─── Offline voice pipeline ──────────────────────────────────────────────────
+
+def test_voice_search_youtube_default(monkeypatch):
+    """YouTube clip finding is the DEFAULT voice source (no coding required).
+
+    The endpoint delegates to voice_finder; we stub it so the test never hits
+    the network but still verifies wiring + response shape.
+    """
+    from character_creator import voice_finder
+    monkeypatch.setattr(voice_finder, "is_available", lambda: True)
+    monkeypatch.setattr(voice_finder, "search",
+                        lambda q, max_results=6: [{"id": "x", "title": "Clip", "duration": 12,
+                                                   "url": "https://youtu.be/x"}])
+    client = TestClient(app)
+    resp = client.post("/api/voice/search", json={"query": "Jax voice lines"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["available"] is True
+    assert len(data["results"]) == 1
+    assert data["results"][0]["url"] == "https://youtu.be/x"
+
+
+def test_prepare_voice_artifacts_offline(monkeypatch, tmp_path):
+    """prepare_voice_artifacts transcribes locally (no LLM/cloud) and records
+    modular per-character voice config in character.yaml."""
+    import yaml
+    from character_creator import voice_trainer, voice_transcribe
+
+    # Stub transcription so the test is fast and deterministic (no Whisper load,
+    # no network) — proves the pipeline path, not Whisper itself.
+    monkeypatch.setattr(voice_transcribe, "transcribe_file",
+                        lambda p, model_size="base": {"text": "hello it is me",
+                                                       "language": "en", "available": True, "error": None})
+
+    char_dir = tmp_path / "testchar"
+    (char_dir / "voice").mkdir(parents=True)
+    # A non-trivial fake reference clip (>1KB so it's treated as real).
+    (char_dir / "voice" / "reference_audio.wav").write_bytes(b"RIFF" + b"0" * 4096)
+    (char_dir / "character.yaml").write_text(
+        "identity:\n  name: TestChar\nvoice:\n  preferred_engine: sovits\n"
+        "  edge_voice: en-US-GuyNeural\n  rate: \"+0%\"\n  pitch: \"+0Hz\"\n",
+        encoding="utf-8")
+
+    result = voice_trainer.prepare_voice_artifacts({"preferred_engine": "sovits"}, str(char_dir))
+
+    assert result["transcription"] == "ok"
+    assert result["prompt_text"] == "hello it is me"
+    assert result["reference_audio"] == "voice/reference_audio.wav"
+    # reference transcript persisted for offline cloning
+    assert (char_dir / "voice" / "reference_text.txt").read_text(encoding="utf-8") == "hello it is me"
+    # yaml carries the modular voice config the runtime reads
+    data = yaml.safe_load((char_dir / "character.yaml").read_text(encoding="utf-8"))
+    assert data["voice"]["prompt_text"] == "hello it is me"
+    assert data["voice"]["prompt_lang"] == "en"
+    assert "edge" in data["voice"]["engines"]
+
+
+def test_find_missing_sprites_detects_gaps(tmp_path):
+    from character_creator import sprite_generator as sg
+    plan = sg._generation_pose_plan()
+    # Nothing on disk yet -> everything missing.
+    assert len(sg.find_missing_sprites(str(tmp_path), plan)) == len(plan)
+    # Create one valid sprite file -> it drops out of the missing list.
+    first = plan[0]["sprite_path"]
+    p = tmp_path / f"{first}.png"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 4096)
+    missing = sg.find_missing_sprites(str(tmp_path), plan)
+    assert first not in [m["sprite_path"] for m in missing]
+    assert len(missing) == len(plan) - 1

@@ -66,6 +66,11 @@ class CharacterLoader:
             "preferred_engine": preferred_engine,
             "rvc_model": str(self._resolve_path(voice["rvc_model"])) if voice.get("rvc_model") else None,
             "reference_audio": str(self._resolve_path(voice["reference_audio"])) if voice.get("reference_audio") else None,
+            # Transcript of the reference clip — zero-shot cloners (GPT-SoVITS,
+            # Fish Speech) need this. Produced offline by Whisper at creation time.
+            "prompt_text": voice.get("prompt_text", ""),
+            "prompt_lang": voice.get("prompt_lang", "en"),
+            "engines": voice.get("engines", []),
             "edge_voice": voice.get("edge_voice", "en-US-GuyNeural"),
             "rate": voice.get("rate", "+0%"),
             "pitch": voice.get("pitch", "+0Hz"),

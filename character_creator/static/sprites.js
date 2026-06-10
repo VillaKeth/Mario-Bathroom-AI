@@ -9,8 +9,12 @@ let currentFilter = 'all';
 let activeTasks = {};     // char_id → { task_id, intervalId }
 let previewOpen = {};     // char_id → bool
 
-const EXPECTED = 34;
+const DEFAULT_EXPECTED = 39;
 const POLL_MS  = 4000;
+
+function expectedFor(ch) {
+    return ch?.expected_sprites || DEFAULT_EXPECTED;
+}
 
 // ── Settings Panel ────────────────────────────────────────────────────────────
 
@@ -176,8 +180,9 @@ function renderAll() {
         visible = visible.filter(c => {
             const task = activeTasks[c.id];
             if (currentFilter === 'generating') return !!task;
-            if (currentFilter === 'complete')   return c.sprite_count >= EXPECTED;
-            if (currentFilter === 'partial')    return c.sprite_count > 0 && c.sprite_count < EXPECTED;
+            const expected = expectedFor(c);
+            if (currentFilter === 'complete')   return c.sprite_count >= expected;
+            if (currentFilter === 'partial')    return c.sprite_count > 0 && c.sprite_count < expected;
             if (currentFilter === 'missing')    return c.sprite_count === 0;
             return true;
         });
@@ -185,7 +190,7 @@ function renderAll() {
 
     // Stats
     const total    = allChars.length;
-    const complete = allChars.filter(c => c.sprite_count >= EXPECTED).length;
+    const complete = allChars.filter(c => c.sprite_count >= expectedFor(c)).length;
     const genCount = Object.keys(activeTasks).length;
     document.getElementById('stats-label').textContent =
         `${total} characters — ${complete} complete, ${genCount} generating`;
@@ -208,27 +213,28 @@ function renderAll() {
 function buildCard(ch) {
     const task     = activeTasks[ch.id];
     const isGen    = !!task;
-    const pct      = isGen ? Math.round((task.completed / (task.total || EXPECTED)) * 100) : 0;
+    const expected = expectedFor(ch);
+    const pct      = isGen ? Math.round((task.completed / (task.total || expected)) * 100) : 0;
     const count    = isGen ? task.completed : ch.sprite_count;
-    const total    = isGen ? (task.total || EXPECTED) : EXPECTED;
+    const total    = isGen ? (task.total || expected) : expected;
 
     const badgeClass =
         isGen                     ? 'badge-gen'      :
-        count >= EXPECTED         ? 'badge-complete'  :
+        count >= expected         ? 'badge-complete'  :
         count > 0                 ? 'badge-partial'   :
                                     'badge-empty';
     const badgeIcon =
         isGen                     ? '🔄'  :
-        count >= EXPECTED         ? '✅'  :
+        count >= expected         ? '✅'  :
         count > 0                 ? '⚠️' :
                                     '❌';
     const badgeText =
         isGen ? `${count}/${total} generating…` :
-                `${count}/${EXPECTED} sprites`;
+                `${count}/${expected} sprites`;
 
     const cardClass =
         isGen             ? 'generating' :
-        count >= EXPECTED ? 'complete'   : '';
+        count >= expected ? 'complete'   : '';
 
     // Avatar: try the first valid sprite
     const firstSprite = (ch.sprites || []).find(s => s.valid);
@@ -329,7 +335,7 @@ async function startGeneration(charId) {
 
 async function generateAllMissing() {
     const missing = allChars.filter(c =>
-        c.sprite_count < EXPECTED && !activeTasks[c.id]
+        c.sprite_count < expectedFor(c) && !activeTasks[c.id]
     );
 
     if (missing.length === 0) {
@@ -340,7 +346,7 @@ async function generateAllMissing() {
     const ok = confirm(
         `Start sprite generation for ${missing.length} characters with missing sprites?\n\n` +
         `Note: Pollinations.ai requires ~90s between each pose, so this will run in the background for a long time.\n\n` +
-        missing.map(c => `• ${c.display_name || c.name} (${c.sprite_count}/${EXPECTED})`).join('\n')
+        missing.map(c => `• ${c.display_name || c.name} (${c.sprite_count}/${expectedFor(c)})`).join('\n')
     );
     if (!ok) return;
 
@@ -375,7 +381,8 @@ function startPolling(charId, taskId) {
     if (activeTasks[charId]) clearInterval(activeTasks[charId].intervalId);
 
     const intervalId = setInterval(() => pollTask(charId, taskId), POLL_MS);
-    activeTasks[charId] = { task_id: taskId, intervalId, completed: 0, total: EXPECTED, current: '' };
+    const ch = allChars.find(c => c.id === charId);
+    activeTasks[charId] = { task_id: taskId, intervalId, completed: 0, total: expectedFor(ch), current: '' };
     pollTask(charId, taskId); // immediate first poll
 }
 
@@ -392,7 +399,7 @@ async function pollTask(charId, taskId) {
         const task = activeTasks[charId];
         if (task) {
             task.completed = data.completed || 0;
-            task.total     = data.total     || EXPECTED;
+            task.total     = data.total || data.total_poses || task.total || DEFAULT_EXPECTED;
             task.current   = data.current   || '';
         }
 
@@ -415,12 +422,12 @@ function updateCardInPlace(charId, taskData) {
     const label = document.getElementById(`pose-${charId}`);
     if (!fill) return;  // card not rendered right now (filtered out)
 
-    const pct = Math.round(((taskData.completed || 0) / (taskData.total || EXPECTED)) * 100);
+    const pct = Math.round(((taskData.completed || 0) / (taskData.total || DEFAULT_EXPECTED)) * 100);
     fill.style.width = `${pct}%`;
 
     const progLabels = fill.closest('.gen-progress')?.querySelectorAll('.progress-label span');
     if (progLabels) {
-        progLabels[0].textContent = `${taskData.completed} / ${taskData.total || EXPECTED} poses`;
+        progLabels[0].textContent = `${taskData.completed} / ${taskData.total || DEFAULT_EXPECTED} poses`;
         progLabels[1].textContent = `${pct}%`;
     }
 
