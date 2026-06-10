@@ -129,3 +129,4 @@ character_creator/_drafts/
 # Voice fine-tune datasets (regenerable via build_voice_dataset.py; large audio)
 characters/*/voice/dataset/
 mario_models_new/
+flux_drip.log
