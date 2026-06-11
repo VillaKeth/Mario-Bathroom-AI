@@ -101,6 +101,7 @@ visuals:
   fallback_sprites:
     emotion: neutral/idle
     state: neutral/idle
+  default_background: cozy_anime_coffee_shop_cafe_interior_war
 speech:
   accent_markers:
   - Speaks with a sweet, flirty tone and playful teasing
