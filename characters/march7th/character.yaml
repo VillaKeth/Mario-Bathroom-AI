@@ -17,6 +17,7 @@ voice:
   prompt_text: Hello. Welcome aboard the Astral Express. My name is March 7th. I'm
     one of the passengers.
   prompt_lang: en
+  finetuned_model: GPT_SoVITS_March7th (s2=e8, s1=e8, picked by ear 2026-06-11)
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/

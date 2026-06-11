@@ -23,6 +23,25 @@ def set_character(name: str, display_name: str):
     _CHARACTER_DISPLAY_NAME = display_name
 
 
+def _as_trigger_dict(value) -> dict:
+    """Normalize a trigger->response pool to a dict.
+
+    Wizard-generated extras.yaml stores easter_eggs as a LIST of
+    {trigger, response} rows; hand-written Mario content uses a flat dict.
+    Both shapes must work — the list shape crashed EASTER_EGGS.items()
+    ('list' object has no attribute 'items') on any easter-egg scan.
+    """
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        out = {}
+        for row in value:
+            if isinstance(row, dict) and row.get("trigger") and row.get("response"):
+                out[str(row["trigger"]).lower()] = str(row["response"])
+        return out
+    return {}
+
+
 def set_character_content(extras: dict):
     """Load character-specific content pools from extras dict (from content/extras.yaml).
 
@@ -34,12 +53,14 @@ def set_character_content(extras: dict):
     global TWISTERS, STORIES, PICKUP_LINES, BATHROOM_TIPS, RAPS, MOTIVATIONS
     global CONFESSIONS, ROASTS, BATHROOM_FACTS, PARTY_SUGGESTIONS, PERSONALITY_MODES
 
-    EASTER_EGGS = extras.get("easter_eggs", {})
+    EASTER_EGGS = _as_trigger_dict(extras.get("easter_eggs", {}))
     SECRETS = extras.get("secrets", [])
     DARES = extras.get("dares", [])
     NICKNAMES = extras.get("nicknames", [])
     FORTUNES = extras.get("fortunes", [])
-    MOOD_RESPONSES = extras.get("mood_responses", {})
+    MOOD_RESPONSES = extras.get("mood_responses") or {}
+    if not isinstance(MOOD_RESPONSES, dict):
+        MOOD_RESPONSES = {}
     TWISTERS = extras.get("twisters", [])
     STORIES = extras.get("stories", [])
     PICKUP_LINES = extras.get("pickup_lines", [])
@@ -50,7 +71,7 @@ def set_character_content(extras: dict):
     ROASTS = extras.get("roasts", [])
     BATHROOM_FACTS = extras.get("bathroom_facts", [])
     PARTY_SUGGESTIONS = extras.get("party_suggestions", [])
-    if "personality_modes" in extras:
+    if isinstance(extras.get("personality_modes"), dict):
         PERSONALITY_MODES = extras["personality_modes"]
 
     import logging
