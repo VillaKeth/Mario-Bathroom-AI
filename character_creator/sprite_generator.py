@@ -373,14 +373,47 @@ async def _generate_pollinations(prompt: str, width: int = 768, height: int = 10
 
 
 async def _generate_huggingface(prompt: str, hf_token: str) -> bytes | None:
-    """Cloud generation via HuggingFace Inference API. Free with account, fast."""
+    """Cloud generation via HuggingFace Inference Providers. Free monthly credits.
+
+    Prefers huggingface_hub.InferenceClient with provider auto-routing — that is
+    the ONLY path that reaches partner-served models like FLUX.1-dev (the raw
+    hf-inference REST endpoint serves schnell but 410s on dev). Falls back to
+    the REST endpoint if the hub client is unavailable.
+    """
     # Model try-order is configurable (sprite_config.json "hf_models") so
-    # different checkpoints can be A/B tested — FLUX.1-dev beats schnell on
-    # detail, Qwen/SD3.5 have different styles. Defaults: schnell then SDXL.
+    # different checkpoints can be A/B tested. FLUX.1-dev first: picked by ear
+    # in the 2026-06 Reze sprite A/B ("best we got"); schnell as free fallback.
     models = load_sprite_config().get("hf_models") or [
+        "black-forest-labs/FLUX.1-dev",
         "black-forest-labs/FLUX.1-schnell",
         "stabilityai/stable-diffusion-xl-base-1.0",
     ]
+
+    # Preferred path: hub client with provider auto-routing
+    try:
+        from huggingface_hub import InferenceClient
+        import io
+
+        def _hub_t2i(model):
+            client = InferenceClient(token=hf_token, provider="auto")
+            img = client.text_to_image(prompt, model=model, width=768, height=1024)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            return buf.getvalue()
+
+        for model in models:
+            try:
+                data = await asyncio.to_thread(_hub_t2i, model)
+                if _is_valid_image(data) and len(data) > 5000:
+                    return data
+            except Exception as e:
+                msg = str(e)
+                logger.warning(f"HF hub {model}: {msg[:120]}")
+                if "402" in msg or "Payment Required" in msg:
+                    return None  # credits exhausted — no point trying more models
+        return None
+    except ImportError:
+        pass
     headers = {"Authorization": f"Bearer {hf_token}", "Content-Type": "application/json"}
     payload = {"inputs": prompt, "parameters": {"width": 768, "height": 1024}}
 
