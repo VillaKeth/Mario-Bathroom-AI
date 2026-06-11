@@ -116,6 +116,13 @@ STATE_PROMPTS = {
     "farewell": "{char} waving goodbye, looking back with a smile",
 }
 
+# Appended to EVERY sprite prompt. Models frame the figure flush to the canvas
+# edge, clipping head/feet/arms; this forces head-to-toe framing with margin so
+# nothing runs off the edge (the #1 cause of "missing body parts" sprites).
+FRAMING_SUFFIX = (", entire character fully visible from head to toe, full body in frame, "
+                  "centered composition, generous empty margin around the character, "
+                  "wide shot, nothing cropped or cut off at the edges, standing in frame")
+
 ART_STYLE_SUFFIXES = {
     "3d_figurine": ", 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting",
     "anime": ", anime art style, cel-shaded, clean lines, vibrant colors, full body shot, studio background",
@@ -183,19 +190,52 @@ def _is_valid_image(data: bytes) -> bool:
     return (data[:4] == b'\x89PNG' or data[:3] == b'\xff\xd8\xff' or
             data[:4] == b'RIFF' or data[:6] in (b'GIF87a', b'GIF89a'))
 
+_REMBG_SESSION = None
+
+
+def _get_rembg_session():
+    """Cache an isnet-general-use session — better than the default u2net at
+    keeping thin/pale limbs (gloves, sleeves) that blend into the studio bg,
+    which u2net tended to erase, leaving holes mid-figure."""
+    global _REMBG_SESSION
+    if _REMBG_SESSION is None:
+        from rembg import new_session
+        _REMBG_SESSION = new_session(os.environ.get("REMBG_MODEL", "isnet-general-use"))
+    return _REMBG_SESSION
+
+
 def _try_remove_background(image_bytes: bytes, output_path: str):
-    """Try rembg background removal; on failure just write raw bytes."""
+    """Try rembg background removal; on failure just write raw bytes.
+
+    Uses isnet-general-use + alpha matting for cleaner edges and fewer holes.
+    """
     try:
         from rembg import remove
         from PIL import Image
         import io
-        img = remove(Image.open(io.BytesIO(image_bytes)))
+        img = remove(
+            Image.open(io.BytesIO(image_bytes)),
+            session=_get_rembg_session(),
+            alpha_matting=True,
+            alpha_matting_foreground_threshold=240,
+            alpha_matting_background_threshold=10,
+            alpha_matting_erode_size=10,
+        )
         img.save(output_path)
         return
     except (ImportError, SystemExit):
         pass
     except Exception as e:
         logger.warning(f"Background removal failed: {e}")
+        # Fall back to the default model (no matting) before giving up entirely.
+        try:
+            from rembg import remove
+            from PIL import Image
+            import io
+            remove(Image.open(io.BytesIO(image_bytes))).save(output_path)
+            return
+        except Exception:
+            pass
     with open(output_path, "wb") as f:
         f.write(image_bytes)
 
@@ -459,7 +499,7 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
     """Generate a single sprite pose using the best available backend."""
     cfg = load_sprite_config()
     style_suffix = ART_STYLE_SUFFIXES.get(art_style, ART_STYLE_SUFFIXES["3d_figurine"])
-    full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix
+    full_prompt = pose_prompt.replace("{char}", visual_description) + style_suffix + FRAMING_SUFFIX
 
     sprite_key = output_key or pose_name
     output_path = os.path.join(output_dir, f"{sprite_key}.png")

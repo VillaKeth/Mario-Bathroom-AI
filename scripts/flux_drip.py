@@ -93,9 +93,37 @@ def build_queue(state):
             key = f"{char}/{info['sprite_path']}"
             if key in done:
                 continue
-            prompt = info["prompt"].replace("{char}", desc) + style
+            prompt = info["prompt"].replace("{char}", desc) + style + sg.FRAMING_SUFFIX
             queue.append((char, info["sprite_path"], prompt, key))
     return queue
+
+
+def detect_cropped(char: str, threshold: float = 0.985) -> list[str]:
+    """Return sprite keys whose subject runs off the top OR bottom edge — the
+    'missing body part' sprites. Used to re-queue only the worst poses."""
+    from PIL import Image
+    import numpy as np
+    bad = []
+    sdir = os.path.join(BASE, "characters", char, "sprites")
+    if not os.path.isdir(sdir):
+        return bad
+    for info in sg._generation_pose_plan():
+        p = os.path.join(sdir, f"{info['sprite_path']}.png")
+        if not os.path.isfile(p):
+            continue
+        try:
+            im = Image.open(p)
+            if im.mode != "RGBA":
+                continue
+            a = np.array(im.split()[3])
+            h = a.shape[0]
+            top_cut = (a[0] > 10).mean() > 0.02      # opaque pixels on top row
+            bot_cut = (a[h - 1] > 10).mean() > 0.02  # opaque pixels on bottom row
+            if top_cut or bot_cut:
+                bad.append(f"{char}/{info['sprite_path']}")
+        except Exception:
+            continue
+    return bad
 
 
 async def gen_flux(prompt: str, token: str) -> bytes | None:
@@ -121,6 +149,8 @@ async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max", type=int, default=5, help="max images this run")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--redo-cropped", action="store_true",
+                    help="re-queue sprites whose subject runs off the top/bottom edge")
     args = ap.parse_args()
 
     token = sg._load_pollinations_token()
@@ -129,6 +159,19 @@ async def main():
         return
 
     state = load_state()
+
+    if args.redo_cropped:
+        cropped = []
+        for char in DRIP_CHARACTERS:
+            cropped += detect_cropped(char)
+        before = len(state.get("done", []))
+        state["done"] = [k for k in state.get("done", []) if k not in set(cropped)]
+        save_state(state)
+        log(f"redo-cropped: {len(cropped)} cropped sprite(s) re-queued "
+            f"(done {before} -> {len(state['done'])})")
+        for k in cropped:
+            log(f"  redo: {k}")
+
     queue = build_queue(state)
     log(f"drip start: queue={len(queue)} max={args.max} "
         f"ledger={sg._pollinations_spent():.4f}/{sg._pollinations_budget():.4f}")
