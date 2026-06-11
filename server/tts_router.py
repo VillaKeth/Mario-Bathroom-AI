@@ -142,6 +142,11 @@ class TTSRouter:
             self._user_priority_event.set()
 
         try:
+            # Mark the request itself as user-priority. Without this the engine
+            # sees the priority event set and yields to "the user request" —
+            # which IS this request — self-preempting every user line down to
+            # the Edge fallback.
+            kwargs["is_user"] = True
             return self.synthesize(text, rate=rate, pitch=pitch, nocache=nocache, **kwargs)
         finally:
             if self._user_priority_event is not None:

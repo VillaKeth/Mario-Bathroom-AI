@@ -1629,7 +1629,10 @@ def register_as_engine():
     # (tts.synthesize = _tts_router.synthesize) doesn't cause infinite recursion.
     _direct_synthesize = synthesize
     def _synth_for_router(text, rate=None, pitch=None, nocache=False, **kwargs):
-        return _direct_synthesize(text, rate=rate, pitch=pitch, nocache=nocache)
+        # Forward the router's user-priority flag so GPT-SoVITS does not yield
+        # to its own request (self-preempt -> unwanted Edge fallback).
+        return _direct_synthesize(text, rate=rate, pitch=pitch, nocache=nocache,
+                                  _is_user=kwargs.get("is_user", False))
 
     return TTSEngine(
         name="edge_rvc",
