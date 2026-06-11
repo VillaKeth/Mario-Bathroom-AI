@@ -21,6 +21,20 @@ _loaded_profiles: dict[str, dict] = {}
 _default_profile: dict | None = None
 
 
+def set_vip_dir(path: str):
+    """Point the VIP loader at the active character's profile folder.
+
+    Without this every character would load the shared server/data/vip_profiles
+    (Mario's guests). Each character keeps its own profiles in
+    characters/<char>/memories/vip_profiles/ so VIPs never leak across
+    characters. Falls back to the default dir if the path is missing.
+    """
+    global VIP_DIR
+    if path and os.path.isdir(path):
+        VIP_DIR = path
+        logger.info(f"[VIP] profile dir set to {path}")
+
+
 def _deterministic_vip_id(name: str) -> int:
     """Generate a deterministic negative person_id for VIP profiles.
 

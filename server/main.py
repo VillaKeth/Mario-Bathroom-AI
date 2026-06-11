@@ -1011,6 +1011,10 @@ async def lifespan(app: FastAPI):
             memory_semantic.set_collection_name(_character.collections["memories"])
             memory_semantic.init_semantic_memory()
             logger.info("Semantic memory (Qdrant) initialized")
+            # Load VIPs from THIS character's profile folder, not the shared one.
+            vip_dir = getattr(_character, "vip_profiles_dir", "")
+            if vip_dir:
+                vip_knowledge.set_vip_dir(vip_dir)
             vip_knowledge.load_all_vip_profiles()
             logger.info("VIP profiles loaded into semantic memory")
 
