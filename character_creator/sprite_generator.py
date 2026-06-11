@@ -374,8 +374,10 @@ async def _generate_pollinations(prompt: str, width: int = 768, height: int = 10
 
 async def _generate_huggingface(prompt: str, hf_token: str) -> bytes | None:
     """Cloud generation via HuggingFace Inference API. Free with account, fast."""
-    # FLUX.1-schnell is fast and high quality; falls back to SDXL
-    models = [
+    # Model try-order is configurable (sprite_config.json "hf_models") so
+    # different checkpoints can be A/B tested — FLUX.1-dev beats schnell on
+    # detail, Qwen/SD3.5 have different styles. Defaults: schnell then SDXL.
+    models = load_sprite_config().get("hf_models") or [
         "black-forest-labs/FLUX.1-schnell",
         "stabilityai/stable-diffusion-xl-base-1.0",
     ]
