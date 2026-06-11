@@ -1430,6 +1430,41 @@ class WizardUI {
     
     initStep5() {
         this.renderReviewCards();
+        this.loadEventConfig();
+    }
+
+    async loadEventConfig() {
+        try {
+            const cfg = await api('GET', '/api/event-config');
+            const t = document.getElementById('event-theme');
+            const l = document.getElementById('event-location');
+            const v = document.getElementById('event-vip');
+            if (t) t.value = cfg.party_theme || '';
+            if (l) l.value = cfg.party_location || '';
+            if (v) v.value = cfg.birthday_person_name || '';
+        } catch (e) {
+            console.warn('event-config load failed', e);
+        }
+    }
+
+    async saveEventConfig() {
+        const status = document.getElementById('event-config-status');
+        const body = {
+            party_theme: document.getElementById('event-theme')?.value.trim() || '',
+            party_location: document.getElementById('event-location')?.value.trim() || '',
+            birthday_person_name: document.getElementById('event-vip')?.value.trim() || '',
+        };
+        if (status) { status.textContent = 'Saving…'; status.style.color = 'var(--text-muted)'; }
+        try {
+            const r = await api('POST', '/api/event-config', body);
+            if (r.success) {
+                if (status) { status.textContent = '✅ Saved — restart the server to apply'; status.style.color = 'var(--color-green)'; }
+            } else {
+                throw new Error(r.error || 'save failed');
+            }
+        } catch (e) {
+            if (status) { status.textContent = `Error: ${e.message}`; status.style.color = 'var(--color-red)'; }
+        }
     }
     
     formatVoiceParam(value, suffix) {

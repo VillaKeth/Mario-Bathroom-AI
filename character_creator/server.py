@@ -220,6 +220,45 @@ async def voice_download_multi(body: dict):
             "errors": errors}
 
 
+@app.get("/api/event-config")
+async def get_event_config():
+    """Read the party/event metadata shown on the client banner."""
+    cfg_path = os.path.join(PROJECT_ROOT, "config.json")
+    try:
+        with open(cfg_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except Exception:
+        cfg = {}
+    server = cfg.get("server", {}) if isinstance(cfg.get("server"), dict) else {}
+    return {
+        "party_theme": server.get("party_theme", ""),
+        "party_location": server.get("party_location", ""),
+        "birthday_person_name": server.get("birthday_person_name", ""),
+    }
+
+
+@app.post("/api/event-config")
+async def set_event_config(body: dict):
+    """Update party/event metadata in config.json (banner text, location, VIP)."""
+    cfg_path = os.path.join(PROJECT_ROOT, "config.json")
+    try:
+        with open(cfg_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except Exception:
+        return {"success": False, "error": "config.json not found"}
+    server = cfg.get("server")
+    if not isinstance(server, dict):
+        server = {}
+    for key in ("party_theme", "party_location", "birthday_person_name"):
+        if key in body and body[key] is not None:
+            server[key] = str(body[key])
+    cfg["server"] = server
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    return {"success": True, "party": {k: server.get(k, "") for k in
+            ("party_theme", "party_location", "birthday_person_name")}}
+
+
 @app.get("/api/sprites/poses")
 async def sprite_poses():
     return get_all_poses()

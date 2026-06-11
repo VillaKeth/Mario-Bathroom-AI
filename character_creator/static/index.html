@@ -398,6 +398,19 @@
                     <!-- Populated by JS -->
                 </div>
 
+                <div class="form-group" style="border:1px solid var(--border-color);border-radius:var(--radius-md);padding:1rem;margin:1rem 0">
+                    <h3 style="margin:0 0 0.3rem;font-size:1rem">🎉 Event Settings</h3>
+                    <p class="help-text" style="margin-top:0">Shown on the party screen banner. Applies to whichever character you run — not just this one.</p>
+                    <label for="event-theme">Event name / banner text</label>
+                    <input type="text" id="event-theme" class="form-input" placeholder="e.g., Sarah's Graduation Bash, New Year's Eve 2027, Friday Game Night">
+                    <label for="event-location" style="margin-top:0.6rem">Location (optional)</label>
+                    <input type="text" id="event-location" class="form-input" placeholder="e.g., Main Bathroom, Living Room">
+                    <label for="event-vip" style="margin-top:0.6rem">Guest of honor / VIP name (optional)</label>
+                    <input type="text" id="event-vip" class="form-input" placeholder="e.g., Sarah — leave blank if none">
+                    <button class="btn btn-secondary" style="margin-top:0.6rem" onclick="wizard.saveEventConfig()">💾 Save Event Settings</button>
+                    <span id="event-config-status" style="margin-left:0.6rem;font-size:0.82rem;color:var(--text-muted)"></span>
+                </div>
+
                 <button class="btn btn-primary btn-lg" id="btn-create-character" onclick="wizard.createCharacter()">
                     🎉 Create Character
                 </button>
