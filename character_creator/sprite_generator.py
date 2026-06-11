@@ -259,7 +259,7 @@ def _record_pollinations_spend(amount: float):
         json.dump(data, f)
 
 
-async def _generate_pollinations(prompt: str) -> bytes | None:
+async def _generate_pollinations(prompt: str, width: int = 768, height: int = 1024) -> bytes | None:
     """Cloud generation via Pollinations.ai, free tier first, budgeted paid fallback.
 
     1. Legacy host + free `sana` model (0 pollen). Often queue-blocked per IP.
@@ -278,7 +278,7 @@ async def _generate_pollinations(prompt: str) -> bytes | None:
     async with lock:  # only ONE Pollinations request at a time, globally
         # ---- free tier (sana, legacy host) — a 402 here costs nothing ----
         free_url = (f"https://image.pollinations.ai/prompt/{encoded}"
-                    f"?width=768&height=1024&nologo=true&model=sana")
+                    f"?width={width}&height={height}&nologo=true&model=sana")
         for attempt in range(2):
             try:
                 async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
@@ -306,7 +306,7 @@ async def _generate_pollinations(prompt: str) -> bytes | None:
                 logger.warning(f"Pollinations budget exhausted ({spent:.4f}/{budget:.4f} pollen)")
             return None
         paid_url = (f"https://gen.pollinations.ai/image/{encoded}"
-                    f"?model={_POLLINATIONS_PAID_MODEL}&width=768&height=1024")
+                    f"?model={_POLLINATIONS_PAID_MODEL}&width={width}&height={height}")
         try:
             async with httpx.AsyncClient(timeout=180, follow_redirects=True) as client:
                 resp = await client.get(paid_url, headers=headers)
@@ -357,14 +357,14 @@ async def _generate_huggingface(prompt: str, hf_token: str) -> bytes | None:
     return None
 
 
-async def _generate_a1111(prompt: str, base_url: str) -> bytes | None:
+async def _generate_a1111(prompt: str, base_url: str, width: int = 512, height: int = 768) -> bytes | None:
     """Local generation via AUTOMATIC1111 Stable Diffusion WebUI API."""
     import base64
     url = f"{base_url.rstrip('/')}/sdapi/v1/txt2img"
     payload = {
         "prompt": prompt,
         "negative_prompt": "blurry, low quality, text, watermark, extra limbs",
-        "width": 512, "height": 768,
+        "width": width, "height": height,
         "steps": 18, "cfg_scale": 7,
         "sampler_name": "DPM++ 2M Karras",
     }
@@ -505,6 +505,67 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
     _try_remove_background(image_bytes, output_path)
     logger.info(f"Pose '{pose_name}' done via {used_backend} ({len(image_bytes):,} bytes)")
     return {"pose": pose_name, "status": "done", "path": output_path, "backend": used_backend}
+
+_BACKGROUND_STYLE_SUFFIX = (", scenic wide shot, no people, no characters, empty scene, "
+                            "detailed environment art, high quality")
+
+
+async def generate_background(char_name: str, prompt: str, filename: str = "") -> dict:
+    """Generate a landscape scene background for a character (NO rembg cutout).
+
+    Saves to characters/<char>/backgrounds/<filename>.png and returns
+    {status, filename, path, backend}.
+    """
+    import re
+    cfg = load_sprite_config()
+    full_prompt = prompt.strip() + _BACKGROUND_STYLE_SUFFIX
+
+    if not filename:
+        slug = re.sub(r"[^a-z0-9]+", "_", prompt.lower()).strip("_")[:40] or "background"
+        filename = f"{slug}.png"
+    if not filename.lower().endswith((".png", ".jpg", ".jpeg")):
+        filename += ".png"
+
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out_dir = os.path.join(base_dir, "characters", char_name, "backgrounds")
+    os.makedirs(out_dir, exist_ok=True)
+    output_path = os.path.join(out_dir, filename)
+
+    backend = cfg.get("backend", "auto")
+    hf_token = cfg.get("hf_token", "")
+    a1111_url = cfg.get("a1111_url", "http://localhost:7860")
+
+    if backend == "auto":
+        order = ["pollinations", "a1111"]
+        if hf_token:
+            order.insert(1, "huggingface")
+    else:
+        order = [backend, "pollinations"]
+
+    image_bytes = None
+    used_backend = None
+    for b in order:
+        logger.info(f"Background '{filename}' for {char_name}: trying backend '{b}'")
+        if b == "pollinations":
+            image_bytes = await _generate_pollinations(full_prompt, width=1280, height=720)
+        elif b == "huggingface" and hf_token:
+            image_bytes = await _generate_huggingface(full_prompt, hf_token)
+        elif b == "a1111":
+            image_bytes = await _generate_a1111(full_prompt, a1111_url, width=768, height=432)
+        elif b == "comfyui":
+            image_bytes = await _generate_comfyui(full_prompt, cfg.get("comfyui_url", "http://localhost:8188"))
+        if image_bytes:
+            used_backend = b
+            break
+
+    if not image_bytes:
+        return {"status": "failed", "error": "All backends failed", "filename": filename}
+
+    with open(output_path, "wb") as f:
+        f.write(image_bytes)
+    logger.info(f"Background '{filename}' done via {used_backend} ({len(image_bytes):,} bytes)")
+    return {"status": "done", "filename": filename, "path": output_path, "backend": used_backend}
+
 
 def _generation_pose_plan() -> list[dict]:
     """Return the canonical client-facing sprite paths to generate."""

@@ -161,6 +161,65 @@ async def voice_download(body: dict):
         return {"success": False, "error": "Download failed (clip unavailable or yt-dlp error)"}
     return {"success": True, "path": path}
 
+@app.post("/api/voice/download_multi")
+async def voice_download_multi(body: dict):
+    """Download multiple videos, each optionally cut into timestamp sections.
+
+    body: {character_name, videos: [{url, sections: [{start, end}]}]}
+    Sections (seconds) isolate the character's lines and exclude other speakers.
+    Cut pieces land in the draft voice dataset (raw/) for later fine-tuning;
+    a concatenated reference clip (max 25s) becomes reference_audio.wav.
+    """
+    from character_creator import voice_finder
+    char_name = body.get("character_name", "").lower().replace(" ", "_")
+    videos = body.get("videos") or []
+    if not char_name or not videos:
+        return {"success": False, "error": "Missing character_name or videos"}
+    if not voice_finder.is_available():
+        return {"success": False, "error": "yt-dlp not installed. Run setup.bat."}
+
+    draft_voice = os.path.join(os.path.dirname(__file__), "_drafts", char_name, "voice")
+    raw_dir = os.path.join(draft_voice, "dataset", "raw")
+    tmp_dir = os.path.join(draft_voice, "_full_tmp")
+    os.makedirs(raw_dir, exist_ok=True)
+
+    all_pieces = []
+    errors = []
+    for i, video in enumerate(videos):
+        url = (video.get("url") or "").strip()
+        if not url:
+            continue
+        sections = video.get("sections") or []
+        full = await asyncio.to_thread(
+            voice_finder.download_full, url, os.path.join(tmp_dir, f"vid{i:02d}.wav"))
+        if not full:
+            errors.append(f"video {i+1}: download failed")
+            continue
+        if sections:
+            pieces = await asyncio.to_thread(
+                voice_finder.cut_sections, full, sections, raw_dir, f"vid{i:02d}")
+            if not pieces:
+                errors.append(f"video {i+1}: no valid sections")
+            all_pieces += pieces
+        else:
+            # No sections = take the whole video into the dataset
+            dest = os.path.join(raw_dir, f"vid{i:02d}_full.wav")
+            shutil.copy(full, dest)
+            all_pieces.append(dest)
+
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    if not all_pieces:
+        return {"success": False, "error": "; ".join(errors) or "Nothing downloaded"}
+
+    ref = await asyncio.to_thread(
+        voice_finder.concat_wavs, all_pieces,
+        os.path.join(draft_voice, "reference_audio.wav"), 25.0)
+    if not ref:
+        return {"success": False, "error": "Reference assembly failed"}
+    return {"success": True, "path": ref, "segments": len(all_pieces),
+            "errors": errors}
+
+
 @app.get("/api/sprites/poses")
 async def sprite_poses():
     return get_all_poses()
@@ -636,6 +695,134 @@ async def generate_sprites_for_character(char_name: str, body: dict = None):
     logger.info(f"Started sprite generation for '{char_name}' (task: {task_id})")
 
     return {"success": True, "task_id": task_id, "char_name": char_name}
+
+
+# ─── Backgrounds ──────────────────────────────────────────────────────────────
+
+def _char_paths(char_name: str):
+    char_dir = os.path.join(PROJECT_ROOT, "characters", char_name)
+    return char_dir, os.path.join(char_dir, "character.yaml"), os.path.join(char_dir, "backgrounds")
+
+
+def _set_default_background(yaml_path: str, filename: str) -> bool:
+    """Write visuals.default_background into character.yaml ('' clears it)."""
+    import yaml
+    if not os.path.isfile(yaml_path):
+        return False
+    with open(yaml_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    visuals = data.setdefault("visuals", {})
+    if filename:
+        visuals["default_background"] = filename
+    else:
+        visuals.pop("default_background", None)
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+    return True
+
+
+@app.get("/api/backgrounds/{char_name}")
+async def list_backgrounds(char_name: str):
+    """List a character's background images + the current default."""
+    import yaml
+    char_dir, yaml_path, bg_dir = _char_paths(char_name)
+    if not os.path.isfile(yaml_path):
+        return {"success": False, "error": f"Character '{char_name}' not found"}
+    default = ""
+    try:
+        with open(yaml_path, encoding="utf-8") as f:
+            default = ((yaml.safe_load(f) or {}).get("visuals") or {}).get("default_background", "")
+    except Exception:
+        pass
+    files = []
+    if os.path.isdir(bg_dir):
+        for fn in sorted(os.listdir(bg_dir)):
+            if fn.lower().endswith((".png", ".jpg", ".jpeg")):
+                files.append({"filename": fn, "size": os.path.getsize(os.path.join(bg_dir, fn))})
+    return {"success": True, "backgrounds": files, "default": default}
+
+
+@app.post("/api/backgrounds/generate/{char_name}")
+async def generate_background_endpoint(char_name: str, body: dict):
+    """Generate an AI background for a character. body: {prompt, filename?, set_default?}"""
+    from character_creator.sprite_generator import generate_background
+    char_dir, yaml_path, _ = _char_paths(char_name)
+    if not os.path.isfile(yaml_path):
+        return {"success": False, "error": f"Character '{char_name}' not found"}
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        return {"success": False, "error": "prompt is required"}
+    result = await generate_background(char_name, prompt, body.get("filename") or "")
+    if result.get("status") != "done":
+        return {"success": False, "error": result.get("error", "generation failed")}
+    if body.get("set_default"):
+        _set_default_background(yaml_path, os.path.splitext(result["filename"])[0])
+    return {"success": True, **result}
+
+
+@app.post("/api/backgrounds/default/{char_name}")
+async def set_background_default(char_name: str, body: dict):
+    """Set (or clear with '') the default background. body: {filename}"""
+    _, yaml_path, bg_dir = _char_paths(char_name)
+    filename = (body.get("filename") or "").strip()
+    if filename and not os.path.isfile(os.path.join(bg_dir, filename)):
+        return {"success": False, "error": f"Background '{filename}' not found"}
+    # The client matches default_background against the basename without extension
+    if not _set_default_background(yaml_path, os.path.splitext(filename)[0] if filename else ""):
+        return {"success": False, "error": f"Character '{char_name}' not found"}
+    return {"success": True, "default": os.path.splitext(filename)[0] if filename else ""}
+
+
+@app.post("/api/backgrounds/delete/{char_name}")
+async def delete_background(char_name: str, body: dict):
+    """Delete a background image. body: {filename}"""
+    import yaml
+    _, yaml_path, bg_dir = _char_paths(char_name)
+    filename = (body.get("filename") or "").strip()
+    fpath = os.path.join(bg_dir, filename)
+    if not filename or not os.path.isfile(fpath):
+        return {"success": False, "error": f"Background '{filename}' not found"}
+    os.remove(fpath)
+    # Clear default if it pointed at the deleted file
+    try:
+        with open(yaml_path, encoding="utf-8") as f:
+            default = ((yaml.safe_load(f) or {}).get("visuals") or {}).get("default_background", "")
+        if default and default == os.path.splitext(filename)[0]:
+            _set_default_background(yaml_path, "")
+    except Exception:
+        pass
+    return {"success": True}
+
+
+@app.post("/api/upload/background")
+async def upload_background(file: UploadFile = File(...), character_name: str = Form(...)):
+    """Upload a background image for a character."""
+    _, yaml_path, bg_dir = _char_paths(character_name)
+    if not os.path.isfile(yaml_path):
+        return {"success": False, "error": f"Character '{character_name}' not found"}
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in (".png", ".jpg", ".jpeg"):
+        return {"success": False, "error": "Only .png/.jpg/.jpeg allowed"}
+    os.makedirs(bg_dir, exist_ok=True)
+    safe_name = os.path.basename(file.filename)
+    dest = os.path.join(bg_dir, safe_name)
+    with open(dest, "wb") as f:
+        f.write(await file.read())
+    return {"success": True, "filename": safe_name}
+
+
+@app.get("/api/backgrounds/preview/{char_name}/{filename}")
+async def serve_background_preview(char_name: str, filename: str):
+    """Serve a background image for UI preview."""
+    from fastapi.responses import Response
+    _, _, bg_dir = _char_paths(char_name)
+    fpath = os.path.join(bg_dir, os.path.basename(filename))
+    if os.path.isfile(fpath):
+        with open(fpath, "rb") as f:
+            data = f.read()
+        media = "image/png" if fpath.lower().endswith(".png") else "image/jpeg"
+        return Response(content=data, media_type=media)
+    return Response(status_code=404)
 
 
 @app.get("/api/sprites/preview/{char_name}/{pose:path}")

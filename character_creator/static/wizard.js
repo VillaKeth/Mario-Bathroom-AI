@@ -872,38 +872,179 @@ class WizardUI {
     }
     
     showVoiceSearchResults(results) {
+        this._voiceResults = results;
+        this.voiceSelection = this.voiceSelection || [];
         const html = `
             <div class="search-results-modal">
                 <h3>Found Voice Clips</h3>
+                <p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 0.5rem">
+                    "Use This" downloads one clip. Or "➕ Add" several videos, then mark the
+                    timestamp sections where ONLY your character speaks (cut out other voices).
+                </p>
                 <div class="results-list">
                     ${results.map((result, i) => `
                         <div class="result-item">
                             <div>
                                 <strong>${result.title}</strong>
-                                <p>${result.duration || 'Unknown duration'}</p>
+                                <p>${result.duration ? Math.round(result.duration) + 's' : 'Unknown duration'}
+                                   — <a href="${result.url}" target="_blank" style="font-size:0.78rem">watch ↗</a></p>
                             </div>
-                            <button class="btn btn-sm btn-primary" onclick="wizard.downloadVoiceClip('${result.url}')">
-                                Use This
-                            </button>
+                            <div style="display:flex;gap:0.4rem">
+                                <button class="btn btn-sm btn-secondary" id="add-clip-${i}" onclick="wizard.addVoiceToSelection(${i})">
+                                    ➕ Add
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="wizard.downloadVoiceClip('${result.url}')">
+                                    Use This
+                                </button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-secondary" onclick="this.parentElement.remove()">Close</button>
+                <div id="voice-selection-basket" style="margin-top:0.75rem"></div>
+                <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
+                    <button class="btn btn-primary" id="dl-selected-btn" style="display:none" onclick="wizard.downloadSelectedVoices()">
+                        ⬇ Download Selected
+                    </button>
+                    <button class="btn btn-secondary" onclick="this.closest('.search-results-modal').remove()">Close</button>
+                </div>
             </div>
         `;
-        
+
         const container = document.createElement('div');
         container.innerHTML = html;
         document.body.appendChild(container.firstElementChild);
+        this.renderVoiceSelection();
     }
-    
+
+    addVoiceToSelection(i) {
+        const r = (this._voiceResults || [])[i];
+        if (!r) return;
+        this.voiceSelection = this.voiceSelection || [];
+        if (this.voiceSelection.some(v => v.url === r.url)) {
+            showToast('Already added', 'info');
+            return;
+        }
+        this.voiceSelection.push({ url: r.url, title: r.title, sections: [] });
+        this.renderVoiceSelection();
+    }
+
+    removeVoiceFromSelection(vi) {
+        this.voiceSelection.splice(vi, 1);
+        this.renderVoiceSelection();
+    }
+
+    addVoiceSection(vi) {
+        this.voiceSelection[vi].sections.push({ start: '', end: '' });
+        this.renderVoiceSelection();
+    }
+
+    removeVoiceSection(vi, si) {
+        this.voiceSelection[vi].sections.splice(si, 1);
+        this.renderVoiceSelection();
+    }
+
+    setVoiceSection(vi, si, field, value) {
+        this.voiceSelection[vi].sections[si][field] = value;
+    }
+
+    renderVoiceSelection() {
+        const basket = document.getElementById('voice-selection-basket');
+        const dlBtn = document.getElementById('dl-selected-btn');
+        if (!basket) return;
+        const sel = this.voiceSelection || [];
+        if (dlBtn) dlBtn.style.display = sel.length ? '' : 'none';
+        if (!sel.length) {
+            basket.innerHTML = '';
+            return;
+        }
+        basket.innerHTML = `
+            <h4 style="margin:0 0 0.4rem;font-size:0.9rem">Selected clips (${sel.length})</h4>
+            ${sel.map((v, vi) => `
+                <div style="border:1px solid var(--border-color);border-radius:8px;padding:0.5rem 0.7rem;margin-bottom:0.5rem">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+                        <strong style="font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title}</strong>
+                        <button class="btn btn-danger btn-sm" onclick="wizard.removeVoiceFromSelection(${vi})">✕</button>
+                    </div>
+                    ${v.sections.map((s, si) => `
+                        <div style="display:flex;gap:0.4rem;align-items:center;margin-top:0.35rem">
+                            <span style="font-size:0.75rem;color:var(--text-muted)">section ${si + 1}</span>
+                            <input type="text" placeholder="start 0:11" value="${s.start}" style="width:80px"
+                                   oninput="wizard.setVoiceSection(${vi},${si},'start',this.value)">
+                            <span>→</span>
+                            <input type="text" placeholder="end 0:18" value="${s.end}" style="width:80px"
+                                   oninput="wizard.setVoiceSection(${vi},${si},'end',this.value)">
+                            <button class="btn btn-danger btn-sm" onclick="wizard.removeVoiceSection(${vi},${si})">✕</button>
+                        </div>
+                    `).join('')}
+                    <button class="btn btn-sm btn-secondary" style="margin-top:0.4rem" onclick="wizard.addVoiceSection(${vi})">
+                        ➕ Add section (mm:ss)
+                    </button>
+                    ${v.sections.length === 0 ? '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:0.5rem">no sections = use the whole video</span>' : ''}
+                </div>
+            `).join('')}
+        `;
+    }
+
+    _parseTimestamp(text) {
+        const t = String(text || '').trim();
+        if (!t) return NaN;
+        if (t.includes(':')) {
+            const parts = t.split(':').map(Number);
+            if (parts.some(isNaN)) return NaN;
+            return parts.reduce((acc, p) => acc * 60 + p, 0);
+        }
+        return Number(t);
+    }
+
+    async downloadSelectedVoices() {
+        const charName = this.state.get('char_name');
+        if (!charName) {
+            showToast('Enter a character name first (Step 1).', 'error');
+            return;
+        }
+        const videos = [];
+        for (const v of (this.voiceSelection || [])) {
+            const sections = [];
+            for (const s of v.sections) {
+                const start = this._parseTimestamp(s.start);
+                const end = this._parseTimestamp(s.end);
+                if (isNaN(start) || isNaN(end) || end <= start) {
+                    showToast(`Bad timestamps in "${v.title}" — use mm:ss, end after start.`, 'error');
+                    return;
+                }
+                sections.push({ start, end });
+            }
+            videos.push({ url: v.url, sections });
+        }
+        if (!videos.length) return;
+
+        const btn = document.getElementById('dl-selected-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '🔄 Downloading…'; }
+        try {
+            showToast(`Downloading ${videos.length} clip(s) + cutting sections…`, 'info');
+            const data = await api('POST', '/api/voice/download_multi',
+                                   { character_name: charName, videos });
+            if (data.success) {
+                this.state.set('audio_path', data.path);
+                showToast(`✅ ${data.segments} voice segment(s) ready${data.errors?.length ? ' (' + data.errors.join('; ') + ')' : ''}`, 'success');
+                this.voiceSelection = [];
+                document.querySelector('.search-results-modal')?.remove();
+            } else {
+                throw new Error(data.error || 'Download failed');
+            }
+        } catch (error) {
+            showToast(`Download failed: ${error.message}`, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = '⬇ Download Selected'; }
+        }
+    }
+
     async downloadVoiceClip(url) {
         const charName = this.state.get('char_name');
-        
+
         try {
             showToast('Downloading voice clip...', 'info');
             const data = await api('POST', '/api/voice/download', { url, character_name: charName });
-            
+
             if (data.success) {
                 this.state.set('audio_path', data.path);
                 showToast('Voice clip downloaded', 'success');

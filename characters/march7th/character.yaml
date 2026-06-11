@@ -5,12 +5,18 @@ identity:
   description: An energetic, cheerful girl of ice who loves photography and making
     friends
 voice:
-  preferred_engine: edge
+  preferred_engine: sovits
   reference_audio: voice/reference_audio.wav
   edge_voice: en-US-AriaNeural
   rate: +0%
   pitch: +0Hz
   pronunciation: {}
+  engines:
+  - sovits
+  - edge
+  prompt_text: Hello. Welcome aboard the Astral Express. My name is March 7th. I'm
+    one of the passengers.
+  prompt_lang: en
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/

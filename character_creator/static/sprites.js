@@ -8,6 +8,9 @@ let allChars = [];
 let currentFilter = 'all';
 let activeTasks = {};     // char_id → { task_id, intervalId }
 let previewOpen = {};     // char_id → bool
+let bgOpen = {};          // char_id → bool
+let bgData = {};          // char_id → { backgrounds, default }
+let bgGenerating = {};    // char_id → bool
 
 const DEFAULT_EXPECTED = 39;
 const POLL_MS  = 4000;
@@ -297,9 +300,16 @@ function buildCard(ch) {
                     onclick="togglePreview('${ch.id}')" id="view-btn-${ch.id}">
                     ${viewBtnLabel}
                 </button>
+                <button class="btn-gen btn-gen-view"
+                    onclick="toggleBackgrounds('${ch.id}')" id="bg-btn-${ch.id}">
+                    ${bgOpen[ch.id] ? '▲ BG' : '🏞 Backgrounds'}
+                </button>
             </div>
             <div class="sprite-strip ${previewOpen[ch.id] ? 'open' : ''}" id="strip-${ch.id}">
                 ${thumbsHTML || '<span style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem">No sprites yet. Generate to get started.</span>'}
+            </div>
+            <div class="bg-strip ${bgOpen[ch.id] ? 'open' : ''}" id="bgstrip-${ch.id}">
+                ${bgOpen[ch.id] ? buildBgStrip(ch.id) : ''}
             </div>
         </div>`;
 }
@@ -373,6 +383,154 @@ function togglePreview(charId) {
         const validSprites = (ch.sprites || []).filter(s => s.valid);
         btn.textContent = previewOpen[charId] ? '▲ Hide' : `🖼 Preview (${validSprites.length})`;
     }
+}
+
+// ── Backgrounds ───────────────────────────────────────────────────────────────
+
+async function toggleBackgrounds(charId) {
+    if (bgOpen[charId]) {
+        delete bgOpen[charId];
+        renderBgStrip(charId);
+        return;
+    }
+    bgOpen[charId] = true;
+    await loadBackgrounds(charId);
+}
+
+async function loadBackgrounds(charId) {
+    try {
+        const res  = await fetch(`/api/backgrounds/${charId}`);
+        const data = await res.json();
+        if (data.success) bgData[charId] = data;
+    } catch (e) {
+        console.warn(`Backgrounds load failed for ${charId}:`, e);
+    }
+    renderBgStrip(charId);
+}
+
+function buildBgStrip(charId) {
+    const data = bgData[charId] || { backgrounds: [], default: '' };
+    const generating = bgGenerating[charId];
+
+    const thumbs = (data.backgrounds || []).map(bg => {
+        const base = bg.filename.replace(/\.[^.]+$/, '');
+        const isDefault = data.default && data.default === base;
+        const src = `/api/backgrounds/preview/${charId}/${encodeURIComponent(bg.filename)}?t=${bg.size}`;
+        return `
+            <div class="bg-thumb ${isDefault ? 'default' : ''}" title="${bg.filename}">
+                <img src="${src}" alt="${bg.filename}" loading="lazy"
+                     onclick="openLightbox('${src}','${charId} — ${bg.filename}')">
+                <div class="bg-thumb-bar">
+                    ${isDefault
+                        ? '<span class="bg-default-star">★ default</span>'
+                        : `<button onclick="setDefaultBackground('${charId}','${bg.filename}')" title="Use as default">☆ set default</button>`}
+                    <button onclick="deleteBackground('${charId}','${bg.filename}')" title="Delete">✕</button>
+                </div>
+            </div>`;
+    }).join('');
+
+    return `
+        <div class="bg-gen-row">
+            <input type="text" id="bg-prompt-${charId}"
+                   placeholder="Describe a background scene, e.g. cozy coffee shop interior, warm lighting"
+                   onkeydown="if(event.key==='Enter')generateBackground('${charId}')">
+            <button class="btn-gen btn-gen-start" style="flex:0 0 auto" ${generating ? 'disabled' : ''}
+                    onclick="generateBackground('${charId}')">
+                ${generating ? '🔄 Generating…' : '✨ Generate'}
+            </button>
+            <label class="btn-gen btn-gen-view" style="flex:0 0 auto;display:flex;align-items:center;cursor:pointer">
+                📤 Upload
+                <input type="file" accept=".png,.jpg,.jpeg" style="display:none"
+                       onchange="uploadBackground('${charId}', this)">
+            </label>
+        </div>
+        <div class="bg-thumbs">
+            ${thumbs || '<span style="color:var(--text-muted);font-size:0.82rem">No backgrounds yet. Generate one or upload an image. The ★ default shows automatically in the party client.</span>'}
+        </div>`;
+}
+
+function renderBgStrip(charId) {
+    const strip = document.getElementById(`bgstrip-${charId}`);
+    const btn   = document.getElementById(`bg-btn-${charId}`);
+    if (!strip) return;
+    strip.classList.toggle('open', !!bgOpen[charId]);
+    strip.innerHTML = bgOpen[charId] ? buildBgStrip(charId) : '';
+    if (btn) btn.textContent = bgOpen[charId] ? '▲ BG' : '🏞 Backgrounds';
+}
+
+async function generateBackground(charId) {
+    if (bgGenerating[charId]) return;
+    const input  = document.getElementById(`bg-prompt-${charId}`);
+    const prompt = (input?.value || '').trim();
+    if (!prompt) { alert('Describe the background scene first!'); return; }
+
+    bgGenerating[charId] = true;
+    renderBgStrip(charId);
+    // Preserve typed prompt across the re-render
+    const newInput = document.getElementById(`bg-prompt-${charId}`);
+    if (newInput) newInput.value = prompt;
+
+    try {
+        const res  = await fetch(`/api/backgrounds/generate/${charId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+        if (!data.success) alert(`Background generation failed: ${data.error}`);
+    } catch (e) {
+        alert(`Error: ${e.message}`);
+    }
+    delete bgGenerating[charId];
+    await loadBackgrounds(charId);
+}
+
+async function setDefaultBackground(charId, filename) {
+    try {
+        const res  = await fetch(`/api/backgrounds/default/${charId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename }),
+        });
+        const data = await res.json();
+        if (!data.success) alert(`Could not set default: ${data.error}`);
+    } catch (e) {
+        alert(`Error: ${e.message}`);
+    }
+    await loadBackgrounds(charId);
+}
+
+async function deleteBackground(charId, filename) {
+    if (!confirm(`Delete background "${filename}"?`)) return;
+    try {
+        const res  = await fetch(`/api/backgrounds/delete/${charId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename }),
+        });
+        const data = await res.json();
+        if (!data.success) alert(`Could not delete: ${data.error}`);
+    } catch (e) {
+        alert(`Error: ${e.message}`);
+    }
+    await loadBackgrounds(charId);
+}
+
+async function uploadBackground(charId, fileInput) {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    form.append('character_name', charId);
+    try {
+        const res  = await fetch('/api/upload/background', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!data.success) alert(`Upload failed: ${data.error}`);
+    } catch (e) {
+        alert(`Error: ${e.message}`);
+    }
+    fileInput.value = '';
+    await loadBackgrounds(charId);
 }
 
 // ── Polling ───────────────────────────────────────────────────────────────────

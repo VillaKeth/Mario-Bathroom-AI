@@ -52,6 +52,83 @@ def search(query: str, max_results: int = 5) -> list[dict]:
         return []
 
 
+def download_full(url: str, out_path: str) -> str | None:
+    """Download a video's FULL audio track as wav (for timestamp-section cutting)."""
+    if not is_available():
+        return None
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    base, _ = os.path.splitext(out_path)
+    try:
+        subprocess.run(
+            _YTDLP + [
+                url,
+                "-x", "--audio-format", "wav",
+                "-o", base + ".%(ext)s",
+                "--force-overwrites", "--no-playlist",
+            ],
+            capture_output=True, timeout=600, check=True,
+        )
+        wav = base + ".wav"
+        if os.path.exists(wav) and os.path.getsize(wav) > 2000:
+            return wav
+    except Exception as e:
+        logger.error(f"Full audio download failed: {e}")
+    return None
+
+
+def cut_sections(in_wav: str, sections: list[dict], out_dir: str, base: str) -> list[str]:
+    """Cut [{start, end}] (seconds) out of a wav via ffmpeg. Returns piece paths."""
+    os.makedirs(out_dir, exist_ok=True)
+    pieces = []
+    for j, sec in enumerate(sections):
+        try:
+            start = float(sec.get("start", 0))
+            end = float(sec.get("end", 0))
+        except (TypeError, ValueError):
+            continue
+        if end <= start:
+            continue
+        out_path = os.path.join(out_dir, f"{base}_s{j:02d}.wav")
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", in_wav, "-ss", str(start), "-to", str(end),
+                 "-ac", "1", out_path],
+                capture_output=True, timeout=120, check=True,
+            )
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 2000:
+                pieces.append(out_path)
+        except Exception as e:
+            logger.error(f"Section cut {start}-{end} failed: {e}")
+    return pieces
+
+
+def concat_wavs(pieces: list[str], out_path: str, max_duration: float = 25.0) -> str | None:
+    """Concatenate wavs into one reference clip, capped at max_duration seconds."""
+    if not pieces:
+        return None
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    list_file = out_path + ".txt"
+    with open(list_file, "w", encoding="utf-8") as f:
+        for p in pieces:
+            f.write(f"file '{os.path.abspath(p)}'\n")
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file,
+             "-t", str(max_duration), "-ac", "1", out_path],
+            capture_output=True, timeout=120, check=True,
+        )
+        if os.path.exists(out_path) and os.path.getsize(out_path) > 2000:
+            return out_path
+    except Exception as e:
+        logger.error(f"Reference concat failed: {e}")
+    finally:
+        try:
+            os.remove(list_file)
+        except OSError:
+            pass
+    return None
+
+
 def download_clip(url: str, output_dir: str, max_duration: int = 30) -> str | None:
     if not is_available():
         return None
