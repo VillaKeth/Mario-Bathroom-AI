@@ -532,15 +532,19 @@ async def get_sprite_backends():
     return await detect_backends()
 
 
+_SECRET_CFG_KEYS = ("hf_token", "grok_key", "openai_key", "gemini_key")
+
+
 @app.get("/api/sprites/config")
 async def get_sprite_config():
     from character_creator.sprite_generator import load_sprite_config
     cfg = load_sprite_config()
-    # Mask token for security
+    # Mask all secrets for display
     masked = {**cfg}
-    if masked.get("hf_token"):
-        masked["hf_token"] = masked["hf_token"][:8] + "..." + masked["hf_token"][-4:]
-    masked["hf_token_set"] = bool(cfg.get("hf_token"))
+    for k in _SECRET_CFG_KEYS:
+        if masked.get(k):
+            masked[k] = masked[k][:6] + "..." + masked[k][-4:]
+        masked[f"{k}_set"] = bool(cfg.get(k))
     return masked
 
 
@@ -548,15 +552,23 @@ async def get_sprite_config():
 async def save_sprite_config_endpoint(body: dict):
     from character_creator.sprite_generator import load_sprite_config, save_sprite_config
     cfg = load_sprite_config()
-    # Only update allowed keys; never blank out an existing token unless explicitly set
-    allowed = {"backend", "hf_token", "a1111_url", "comfyui_url"}
+    # Only update allowed keys; never blank out an existing secret unless explicitly set
+    allowed = {"backend", "a1111_url", "comfyui_url", "router_policy",
+               "pollinations_budget", "grok_budget", "openai_budget", "gemini_budget",
+               *_SECRET_CFG_KEYS}
     for key in allowed:
         if key in body and body[key] is not None:
-            if key == "hf_token" and body[key] == "":
+            if key in _SECRET_CFG_KEYS and body[key] == "":
                 continue  # empty string = keep existing
+            if key.endswith("_budget"):
+                try:
+                    body[key] = float(body[key])
+                except (TypeError, ValueError):
+                    continue
             cfg[key] = body[key]
     save_sprite_config(cfg)
-    return {"success": True, "config": {k: ("***" if k == "hf_token" and v else v) for k, v in cfg.items()}}
+    return {"success": True, "config": {k: ("***" if k in _SECRET_CFG_KEYS and v else v)
+                                        for k, v in cfg.items()}}
 
 
 @app.get("/sprites")

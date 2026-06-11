@@ -38,13 +38,43 @@ async function loadSettings() {
 
         // Set current backend select
         document.getElementById('backend-select').value = cfg.backend || 'auto';
+        document.getElementById('policy-select').value  = cfg.router_policy || 'cheapest';
 
         // Show token status
         const hfInput = document.getElementById('hf-token-input');
         hfInput.placeholder = cfg.hf_token_set ? `Current: ${cfg.hf_token}` : 'hf_xxxxxxxxxxxx — get free at huggingface.co';
 
+        // Premium provider key placeholders + budgets
+        for (const p of ['grok', 'openai', 'gemini']) {
+            const keyInput = document.getElementById(`${p}-key-input`);
+            if (keyInput) keyInput.placeholder = cfg[`${p}_key_set`] ? `Current: ${cfg[`${p}_key`]}` : keyInput.placeholder;
+            const budInput = document.getElementById(`${p}-budget-input`);
+            if (budInput) budInput.value = cfg[`${p}_budget`] ?? '';
+        }
+
         // Render backend cards
         const cards = [
+            {
+                id: 'grok',
+                icon: '🚀',
+                name: 'Grok / xAI',
+                desc: 'Premium. Excellent character framing & anatomy (~$0.07/img). Budget-capped.',
+                status: backends.grok,
+            },
+            {
+                id: 'openai',
+                icon: '🧠',
+                name: 'OpenAI gpt-image-1',
+                desc: 'Premium. Best prompt adherence (~$0.06/img). Budget-capped.',
+                status: backends.openai,
+            },
+            {
+                id: 'gemini',
+                icon: '✨',
+                name: 'Google Gemini',
+                desc: 'Premium. Fast, strong stylization (~$0.04/img). Budget-capped.',
+                status: backends.gemini,
+            },
             {
                 id: 'huggingface',
                 icon: '🤗',
@@ -101,14 +131,21 @@ async function loadSettings() {
 async function saveSettings() {
     const hfToken  = document.getElementById('hf-token-input').value.trim();
     const backend  = document.getElementById('backend-select').value;
+    const policy   = document.getElementById('policy-select').value;
     const statusEl = document.getElementById('settings-status');
 
     statusEl.textContent = 'Saving…';
     statusEl.style.color = 'var(--text-muted)';
 
     try {
-        const body = { backend };
+        const body = { backend, router_policy: policy };
         if (hfToken) body.hf_token = hfToken;
+        for (const p of ['grok', 'openai', 'gemini']) {
+            const key = document.getElementById(`${p}-key-input`)?.value.trim();
+            if (key) body[`${p}_key`] = key;
+            const bud = document.getElementById(`${p}-budget-input`)?.value;
+            if (bud !== '' && bud != null) body[`${p}_budget`] = parseFloat(bud);
+        }
 
         const r = await fetch('/api/sprites/config', {
             method: 'POST',
@@ -117,9 +154,13 @@ async function saveSettings() {
         });
         const data = await r.json();
         if (data.success) {
-            statusEl.textContent = `✅ Saved! Backend: ${backend}${hfToken ? ' — HF token updated' : ''}`;
+            statusEl.textContent = `✅ Saved! Backend: ${backend}, policy: ${policy}${hfToken ? ' — HF token updated' : ''}`;
             statusEl.style.color = 'var(--color-green)';
             document.getElementById('hf-token-input').value = '';
+            for (const p of ['grok', 'openai', 'gemini']) {
+                const ki = document.getElementById(`${p}-key-input`);
+                if (ki) ki.value = '';
+            }
             await loadSettings(); // Refresh backend status
         } else {
             statusEl.textContent = `Error: ${data.error}`;

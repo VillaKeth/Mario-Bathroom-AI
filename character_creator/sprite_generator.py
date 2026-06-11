@@ -180,6 +180,16 @@ def load_sprite_config() -> dict:
         with open(_SPRITE_CONFIG_PATH, encoding="utf-8") as f:
             return json.load(f)
     except Exception:
+        pass
+    # Fresh clone: sprite_config.json is gitignored (it holds API keys) — seed
+    # it from the committed example so the wizard works with zero setup.
+    example = _SPRITE_CONFIG_PATH.replace(".json", ".example.json")
+    try:
+        with open(example, encoding="utf-8") as f:
+            cfg = json.load(f)
+        save_sprite_config(cfg)
+        return cfg
+    except Exception:
         return {"backend": "auto", "hf_token": "", "a1111_url": "http://localhost:7860", "comfyui_url": "http://localhost:8188"}
 
 def save_sprite_config(cfg: dict):
@@ -468,6 +478,225 @@ async def _generate_comfyui(prompt: str, base_url: str) -> bytes | None:
     return None
 
 
+# ── Premium cloud providers (Grok / OpenAI / Gemini) ─────────────────────────
+# One OFFICIAL key per provider, entered in the wizard settings. The router
+# rotates across DIFFERENT providers (never duplicate accounts of one service).
+# Every paid image is recorded in a per-provider USD ledger and hard-capped by
+# a per-provider budget (default 0 = that provider never spends).
+
+_IMAGE_SPEND_LEDGER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                   ".secrets", "image_spend.json")
+
+# Approx USD per image (verified 2026-06; treat as ceiling for budgeting).
+_PROVIDER_COSTS = {"openai": 0.063, "grok": 0.07, "gemini": 0.039}
+
+# Higher = tried first under the "quality" routing policy.
+_PROVIDER_QUALITY = {"openai": 9, "grok": 9, "gemini": 8, "huggingface": 7,
+                     "a1111": 6, "comfyui": 6, "pollinations": 5}
+
+_provider_cooldowns: dict[str, float] = {}   # provider -> unix ts it can retry
+_round_robin_idx = 0
+
+
+def _provider_spent(provider: str) -> float:
+    try:
+        with open(_IMAGE_SPEND_LEDGER, encoding="utf-8") as f:
+            return float(json.load(f).get(provider, 0.0))
+    except Exception:
+        return 0.0
+
+
+def _provider_budget(provider: str, cfg: dict | None = None) -> float:
+    cfg = cfg or load_sprite_config()
+    try:
+        return float(cfg.get(f"{provider}_budget", 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _record_provider_spend(provider: str, amount: float):
+    os.makedirs(os.path.dirname(_IMAGE_SPEND_LEDGER), exist_ok=True)
+    try:
+        with open(_IMAGE_SPEND_LEDGER, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+    data[provider] = round(float(data.get(provider, 0.0)) + amount, 6)
+    with open(_IMAGE_SPEND_LEDGER, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=1)
+
+
+def _provider_can_spend(provider: str, cfg: dict | None = None) -> bool:
+    return _provider_spent(provider) + _PROVIDER_COSTS.get(provider, 0.05) \
+        <= _provider_budget(provider, cfg)
+
+
+def _cooldown_active(provider: str) -> bool:
+    import time
+    return _provider_cooldowns.get(provider, 0) > time.time()
+
+
+def _set_cooldown(provider: str, seconds: float):
+    import time
+    _provider_cooldowns[provider] = time.time() + seconds
+    logger.warning(f"{provider}: rate-limited, cooling down {seconds:.0f}s")
+
+
+def _retry_after(resp) -> float:
+    try:
+        return min(float(resp.headers.get("retry-after", 60)), 600)
+    except (TypeError, ValueError):
+        return 60.0
+
+
+async def _generate_grok(prompt: str, key: str) -> bytes | None:
+    """xAI Grok image generation (grok-2-image). Excellent character framing."""
+    import base64
+    url = "https://api.x.ai/v1/images/generations"
+    payload = {"model": "grok-2-image", "prompt": prompt, "n": 1,
+               "response_format": "b64_json"}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+        if resp.status_code == 429:
+            _set_cooldown("grok", _retry_after(resp))
+            return None
+        if resp.status_code == 200:
+            data = resp.json().get("data") or []
+            if data and data[0].get("b64_json"):
+                img = base64.b64decode(data[0]["b64_json"])
+                if _is_valid_image(img) and len(img) > 5000:
+                    _record_provider_spend("grok", _PROVIDER_COSTS["grok"])
+                    return img
+        logger.warning(f"Grok image: HTTP {resp.status_code} {resp.text[:120]}")
+    except Exception as e:
+        logger.warning(f"Grok image error: {e}")
+    return None
+
+
+async def _generate_openai_image(prompt: str, key: str, portrait: bool = True) -> bytes | None:
+    """OpenAI gpt-image-1. Strong prompt adherence and full-body framing."""
+    import base64
+    url = "https://api.openai.com/v1/images/generations"
+    payload = {"model": "gpt-image-1", "prompt": prompt, "n": 1,
+               "size": "1024x1536" if portrait else "1536x1024",
+               "quality": "medium"}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=180) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+        if resp.status_code == 429:
+            _set_cooldown("openai", _retry_after(resp))
+            return None
+        if resp.status_code == 200:
+            data = resp.json().get("data") or []
+            if data and data[0].get("b64_json"):
+                img = base64.b64decode(data[0]["b64_json"])
+                if _is_valid_image(img) and len(img) > 5000:
+                    _record_provider_spend("openai", _PROVIDER_COSTS["openai"])
+                    return img
+        logger.warning(f"OpenAI image: HTTP {resp.status_code} {resp.text[:120]}")
+    except Exception as e:
+        logger.warning(f"OpenAI image error: {e}")
+    return None
+
+
+async def _generate_gemini_image(prompt: str, key: str) -> bytes | None:
+    """Google Gemini image output (gemini-2.5-flash-image)."""
+    import base64
+    url = ("https://generativelanguage.googleapis.com/v1beta/models/"
+           "gemini-2.5-flash-image:generateContent")
+    payload = {"contents": [{"parts": [{"text": prompt}]}],
+               "generationConfig": {"responseModalities": ["IMAGE"]}}
+    headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+        if resp.status_code == 429:
+            _set_cooldown("gemini", _retry_after(resp))
+            return None
+        if resp.status_code == 200:
+            for cand in resp.json().get("candidates", []):
+                for part in (cand.get("content") or {}).get("parts", []):
+                    inline = part.get("inlineData") or part.get("inline_data")
+                    if inline and inline.get("data"):
+                        img = base64.b64decode(inline["data"])
+                        if _is_valid_image(img) and len(img) > 5000:
+                            _record_provider_spend("gemini", _PROVIDER_COSTS["gemini"])
+                            return img
+        logger.warning(f"Gemini image: HTTP {resp.status_code} {resp.text[:120]}")
+    except Exception as e:
+        logger.warning(f"Gemini image error: {e}")
+    return None
+
+
+def _premium_providers(cfg: dict) -> list[str]:
+    """Premium providers that have a key, budget headroom, and no cooldown."""
+    out = []
+    for p in ("grok", "openai", "gemini"):
+        if cfg.get(f"{p}_key") and _provider_can_spend(p, cfg) and not _cooldown_active(p):
+            out.append(p)
+    return out
+
+
+def _backend_order(cfg: dict) -> list[str]:
+    """Compute the try-order for generation based on the routing policy.
+
+    - cheapest (default): free/local first, premium last — original behavior
+      until the user adds keys AND budgets.
+    - quality: highest-quality configured provider first.
+    - round_robin: rotate the lead premium provider per call to spread load
+      across providers; free/local appended as fallback.
+    An explicit `backend` choice (not "auto") pins that backend first.
+    """
+    global _round_robin_idx
+    backend = cfg.get("backend", "auto")
+    policy = cfg.get("router_policy", "cheapest")
+    premium = _premium_providers(cfg)
+    free_local = []
+    if cfg.get("hf_token"):
+        free_local.append("huggingface")
+    free_local += ["a1111", "comfyui", "pollinations"]
+
+    if backend != "auto":
+        rest = [b for b in premium + free_local if b != backend]
+        return [backend] + rest
+
+    if policy == "quality":
+        ranked = sorted(premium + free_local,
+                        key=lambda b: -_PROVIDER_QUALITY.get(b, 0))
+        return ranked
+    if policy == "round_robin" and premium:
+        lead = premium[_round_robin_idx % len(premium)]
+        _round_robin_idx += 1
+        rest = [p for p in premium if p != lead]
+        return [lead] + rest + free_local
+    # cheapest
+    return free_local + premium
+
+
+async def _run_backend(name: str, prompt: str, cfg: dict, portrait: bool = True) -> bytes | None:
+    """Dispatch one backend by name. Returns image bytes or None."""
+    if name == "grok":
+        return await _generate_grok(prompt, cfg.get("grok_key", ""))
+    if name == "openai":
+        return await _generate_openai_image(prompt, cfg.get("openai_key", ""), portrait)
+    if name == "gemini":
+        return await _generate_gemini_image(prompt, cfg.get("gemini_key", ""))
+    if name == "huggingface":
+        return await _generate_huggingface(prompt, cfg.get("hf_token", ""))
+    if name == "a1111":
+        w, h = (512, 768) if portrait else (768, 432)
+        return await _generate_a1111(prompt, cfg.get("a1111_url", "http://localhost:7860"), w, h)
+    if name == "comfyui":
+        return await _generate_comfyui(prompt, cfg.get("comfyui_url", "http://localhost:8188"))
+    if name == "pollinations":
+        w, h = (768, 1024) if portrait else (1280, 720)
+        return await _generate_pollinations(prompt, w, h)
+    return None
+
+
 async def detect_backends() -> dict:
     """Auto-detect which image generation backends are available."""
     cfg = load_sprite_config()
@@ -479,7 +708,23 @@ async def detect_backends() -> dict:
             f"Free sana first; paid flux fallback {_pollinations_spent():.4f}/"
             f"{_pollinations_budget():.4f} pollen used (budget in sprite_config.json)")},
         "current":     cfg.get("backend", "auto"),
+        "router_policy": cfg.get("router_policy", "cheapest"),
     }
+    # Premium providers: report key/budget/ledger state
+    for p in ("grok", "openai", "gemini"):
+        has_key = bool(cfg.get(f"{p}_key"))
+        budget = _provider_budget(p, cfg)
+        spent = _provider_spent(p)
+        if not has_key:
+            reason = "No API key set"
+        elif budget <= 0:
+            reason = "Key set — budget is 0, set a budget to enable"
+        elif not _provider_can_spend(p, cfg):
+            reason = f"Budget exhausted (${spent:.2f}/${budget:.2f})"
+        else:
+            reason = f"Ready — ${spent:.2f}/${budget:.2f} spent"
+        result[p] = {"available": has_key and _provider_can_spend(p, cfg),
+                     "reason": reason, "spent": spent, "budget": budget}
     # Probe local backends
     for key, port, path in [("a1111", "7860", "/sdapi/v1/sd-models"), ("comfyui", "8188", "/object_info")]:
         url = cfg.get(f"{key}_url", f"http://localhost:{port}")
@@ -505,35 +750,12 @@ async def generate_single_pose(char_name: str, visual_description: str, art_styl
     output_path = os.path.join(output_dir, f"{sprite_key}.png")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    backend = cfg.get("backend", "auto")
-    hf_token = cfg.get("hf_token", "")
-    a1111_url = cfg.get("a1111_url", "http://localhost:7860")
-    comfyui_url = cfg.get("comfyui_url", "http://localhost:8188")
-
-    # Backend priority: explicit choice, or auto-detect best available
-    if backend == "auto":
-        order = []
-        if hf_token:          order.append("huggingface")
-        order.append("a1111")
-        order.append("comfyui")
-        order.append("pollinations")
-    else:
-        order = [backend, "pollinations"]  # always fall back to pollinations
-
     image_bytes = None
     used_backend = None
 
-    for b in order:
+    for b in _backend_order(cfg):
         logger.info(f"Pose '{pose_name}': trying backend '{b}'")
-        if b == "huggingface" and hf_token:
-            image_bytes = await _generate_huggingface(full_prompt, hf_token)
-        elif b == "a1111":
-            image_bytes = await _generate_a1111(full_prompt, a1111_url)
-        elif b == "comfyui":
-            image_bytes = await _generate_comfyui(full_prompt, comfyui_url)
-        elif b == "pollinations":
-            image_bytes = await _generate_pollinations(full_prompt)
-
+        image_bytes = await _run_backend(b, full_prompt, cfg, portrait=True)
         if image_bytes:
             used_backend = b
             break
@@ -571,29 +793,11 @@ async def generate_background(char_name: str, prompt: str, filename: str = "") -
     os.makedirs(out_dir, exist_ok=True)
     output_path = os.path.join(out_dir, filename)
 
-    backend = cfg.get("backend", "auto")
-    hf_token = cfg.get("hf_token", "")
-    a1111_url = cfg.get("a1111_url", "http://localhost:7860")
-
-    if backend == "auto":
-        order = ["pollinations", "a1111"]
-        if hf_token:
-            order.insert(1, "huggingface")
-    else:
-        order = [backend, "pollinations"]
-
     image_bytes = None
     used_backend = None
-    for b in order:
+    for b in _backend_order(cfg):
         logger.info(f"Background '{filename}' for {char_name}: trying backend '{b}'")
-        if b == "pollinations":
-            image_bytes = await _generate_pollinations(full_prompt, width=1280, height=720)
-        elif b == "huggingface" and hf_token:
-            image_bytes = await _generate_huggingface(full_prompt, hf_token)
-        elif b == "a1111":
-            image_bytes = await _generate_a1111(full_prompt, a1111_url, width=768, height=432)
-        elif b == "comfyui":
-            image_bytes = await _generate_comfyui(full_prompt, cfg.get("comfyui_url", "http://localhost:8188"))
+        image_bytes = await _run_backend(b, full_prompt, cfg, portrait=False)
         if image_bytes:
             used_backend = b
             break

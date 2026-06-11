@@ -130,3 +130,6 @@ character_creator/_drafts/
 characters/*/voice/dataset/
 mario_models_new/
 flux_drip.log
+
+# Image-gen config holds API keys (grok/openai/gemini/hf) — local only
+character_creator/sprite_config.json
