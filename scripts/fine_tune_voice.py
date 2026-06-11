@@ -61,6 +61,14 @@ def main():
     if not os.path.exists(list_path):
         raise SystemExit(f"[ft] dataset list missing: {list_path} — run build_voice_dataset.py first")
     opt_dir = f"logs/{exp}"  # relative to REPO
+    # Wipe any prior training state for this character. s1_train auto-resumes
+    # from a leftover lightning checkpoint, which under PyTorch 2.6 fails the
+    # weights_only load (pickled WindowsPath) — so a RETRAIN crashes unless the
+    # old checkpoints are gone. Fresh dir = fresh train, every time. Set
+    # FT_KEEP_LOGS=1 to skip (e.g. to resume an interrupted run).
+    if os.environ.get("FT_KEEP_LOGS") != "1":
+        import shutil as _sh
+        _sh.rmtree(os.path.join(REPO, opt_dir), ignore_errors=True)
     os.makedirs(os.path.join(REPO, opt_dir), exist_ok=True)
     # The webui creates these checkpoint dirs before training; s2_train/s1_train
     # save into them via shutil.move and crash if they don't exist.
