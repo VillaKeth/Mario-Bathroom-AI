@@ -117,8 +117,11 @@ def detect_cropped(char: str, threshold: float = 0.985) -> list[str]:
                 continue
             a = np.array(im.split()[3])
             h = a.shape[0]
-            top_cut = (a[0] > 10).mean() > 0.02      # opaque pixels on top row
-            bot_cut = (a[h - 1] > 10).mean() > 0.02  # opaque pixels on bottom row
+            # Fraction of the edge row that is opaque. Thin extremities (ear tips,
+            # a strand of hair) graze ~2%; a real body crop spans much more, so
+            # 6% avoids false-flagging near-perfect sprites into an infinite redo.
+            top_cut = (a[0] > 10).mean() > 0.06      # opaque pixels on top row
+            bot_cut = (a[h - 1] > 10).mean() > 0.06  # opaque pixels on bottom row
             if top_cut or bot_cut:
                 bad.append(f"{char}/{info['sprite_path']}")
         except Exception:
