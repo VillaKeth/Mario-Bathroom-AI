@@ -385,7 +385,10 @@ async def _generate_huggingface(prompt: str, hf_token: str) -> bytes | None:
     payload = {"inputs": prompt, "parameters": {"width": 768, "height": 1024}}
 
     for model in models:
-        url = f"https://api-inference.huggingface.co/models/{model}"
+        # api-inference.huggingface.co was retired (DNS gone) — HF moved to
+        # Inference Providers at router.huggingface.co; hf-inference is the
+        # provider that serves classic serverless text-to-image.
+        url = f"https://router.huggingface.co/hf-inference/models/{model}"
         for attempt in range(4):
             try:
                 async with httpx.AsyncClient(timeout=120) as client:
