@@ -1258,10 +1258,16 @@ def synthesize_user(text: str, rate: str = None, pitch: str = None, nocache: boo
         _user_tts_waiting.clear()
 
 
-def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = False, _is_user: bool = False) -> bytes:
+def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = False,
+               _is_user: bool = False, force_fast: bool = False) -> bytes:
     """Convert text to Mario-voiced speech audio.
 
     Pipeline: Cache check → Base TTS (Edge or XTTS) → RVC voice conversion (Mario).
+
+    force_fast=True skips GPT-SoVITS and uses the instant Edge path regardless of
+    TTS_MODE — for thinking fillers, which must play immediately (slow sovits
+    fillers lose the race to the real LLM response and get cut, leaving a text
+    bubble with no speech).
     """
     # Guard: empty/whitespace text produces silence (prevents TTS engine errors)
     if not text or not text.strip():
@@ -1303,7 +1309,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     start = time.time()
 
     # GPT-SoVITS mode: direct synthesis, no RVC needed
-    if TTS_MODE == "sovits" and _sovits_available:
+    if TTS_MODE == "sovits" and _sovits_available and not force_fast:
         try:
             result = _normalize_audio(_sovits_synthesize(text, _is_user=_is_user))
             total = time.time() - start
@@ -1325,9 +1331,9 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
             logger.warning(f"[DEBUG_TTS] synthesize: GPT-SoVITS failed ({e}), falling back to Edge+RVC")
 
     # Step 1: Generate base speech (Edge TTS or XTTS)
-    if FAST_MODE:
+    if FAST_MODE or force_fast:
         if DEBUG_TTS:
-            logger.info("[DEBUG_TTS] synthesize: using Edge TTS (FAST_MODE=True)")
+            logger.info(f"[DEBUG_TTS] synthesize: using Edge TTS ({'force_fast' if force_fast else 'FAST_MODE'})")
         base_wav = _synthesize_edge(text, rate, pitch)
     elif not _xtts_available:
         if DEBUG_TTS:

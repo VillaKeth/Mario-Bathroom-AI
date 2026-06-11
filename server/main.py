@@ -185,9 +185,21 @@ GAME_CONFIG = {
     "conversation_history_limit": _PERF["conversation_history_limit"],
     "command_cooldown": server_config.get("command_cooldown_seconds", 1.0),
     "text_input_cooldown": server_config.get("text_input_cooldown_seconds", 2.0),
-    "llm_timeout": server_config.get("llm_timeout_seconds", 30),
+    # Hardware-aware: a low-tier GPU (e.g. P1000 4GB) runs llama3 + sovits much
+    # slower and a tight 30s cut answers off mid-stream ("took too long"). Give
+    # slow tiers headroom; fast party boxes (ultra) stay tight.
+    "llm_timeout": server_config.get(
+        "llm_timeout_seconds",
+        90 if hardware.get_tier() in ("low", "medium") else 45),
     "admin_api_key": server_config.get("admin_api_key", ""),
 }
+
+# Whole-response budget: LLM generation PLUS streaming every sentence through
+# GPT-SoVITS. Must exceed llm_timeout with room for TTS, or long answers get cut
+# mid-speech ("took too long"). Hardware-aware: slow GPUs need much more.
+_PIPELINE_TIMEOUT = server_config.get(
+    "pipeline_timeout_seconds",
+    GAME_CONFIG["llm_timeout"] + (90 if hardware.get_tier() in ("low", "medium") else 30))
 
 # Keyword → particle effect mapping for client-side visual reactions
 KEYWORD_PARTICLES = {
@@ -2283,7 +2295,8 @@ async def websocket_endpoint(ws: WebSocket):
             greeting_ctx = mario_prompt.build_context(event="startup", phase_modifier=_get_night_phase_modifier())
             _inject_birthday_always_on(greeting_ctx)
             greeting_ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
-            greeting_response = await asyncio.wait_for(llm.generate_response(greeting_ctx), timeout=30.0)
+            greeting_response = await asyncio.wait_for(
+                llm.generate_response(greeting_ctx), timeout=float(GAME_CONFIG["llm_timeout"]))
             greeting_text = greeting_response["text"]
             greeting_emotion = greeting_response["emotion"] 
             greeting_energy = greeting_response["energy"]
@@ -4151,7 +4164,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         async def _send_thinking_audio():
             try:
-                thinking_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(thinking_text))
+                # force_fast: thinking fillers MUST be instant (Edge), else the
+                # slow sovits filler loses the race to the real LLM response and
+                # gets cut — leaving a filler text bubble that is never spoken.
+                thinking_audio = await loop.run_in_executor(
+                    _tts_executor, lambda: tts.synthesize(thinking_text, force_fast=True))
                 if thinking_audio and len(thinking_audio) > 44:
                     await ws.send_json({
                         "type": "mario_response",
@@ -5346,11 +5363,11 @@ async def _text_input_task(ws: WebSocket, text: str):
     async with _state_lock:
         state_current["_user_request_active"] = True
     try:
-        await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
+        await asyncio.wait_for(_handle_text_input(ws, text), timeout=_PIPELINE_TIMEOUT)
     except asyncio.CancelledError:
         logger.info(f"[INTERRUPT] Response cancelled for: '{text[:50]}'")
     except asyncio.TimeoutError:
-        logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
+        logger.error(f"[TEXT_INPUT] Pipeline timed out after {_PIPELINE_TIMEOUT}s for: {text[:50]}")
         try:
             await send_response(ws, _generic_timeout_text(), None,
                                 sound="error", pose_hint="confused/sad")
@@ -5373,9 +5390,9 @@ async def _text_input_task(ws: WebSocket, text: str):
 async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
     """Wrapper with timeout for text input handling (supports cancellation)."""
     try:
-        await asyncio.wait_for(_handle_text_input(ws, text), timeout=45.0)
+        await asyncio.wait_for(_handle_text_input(ws, text), timeout=_PIPELINE_TIMEOUT)
     except asyncio.TimeoutError:
-        logger.error(f"[TEXT_INPUT] Pipeline timed out after 45s for: {text[:50]}")
+        logger.error(f"[TEXT_INPUT] Pipeline timed out after {_PIPELINE_TIMEOUT}s for: {text[:50]}")
         try:
             await send_response(ws, _generic_timeout_text(), None,
                                 sound="error", pose_hint="confused/sad")
