@@ -148,13 +148,27 @@ _voice_char_name = "mario"
 def set_voice_config(voice_config: dict, character_name: str = "mario"):
     """Wire the active character's voice config into the TTS engine so GPT-SoVITS
     clones THIS character (not Mario). Called once at character load."""
-    global _voice_cfg, _voice_char_name
+    global _voice_cfg, _voice_char_name, EDGE_VOICE, RATE, PITCH_OFFSET, USE_RVC
     _voice_cfg = voice_config or {}
     _voice_char_name = (character_name or "mario").lower()
+
+    # Point the Edge fast path at THIS character's voice. Without this, the
+    # Edge fallback + thinking fillers speak in Mario's default male voice
+    # (GuyNeural) — making non-Mario characters' fillers sound Mario-esque.
+    if _voice_cfg.get("edge_voice"):
+        EDGE_VOICE = _voice_cfg["edge_voice"]
+    if _voice_cfg.get("rate"):
+        RATE = _voice_cfg["rate"]
+    if _voice_cfg.get("pitch"):
+        PITCH_OFFSET = _voice_cfg["pitch"]
+    # RVC converts Edge audio to MARIO's timbre — only correct for Mario. Any
+    # other character must skip RVC or every Edge/filler line sounds like Mario.
+    USE_RVC = (_voice_char_name == "mario")
+
     logger.info(
         f"[TTS] voice config set for '{_voice_char_name}': "
-        f"engine={_voice_cfg.get('preferred_engine')} "
-        f"ref={'yes' if _voice_cfg.get('reference_audio') else 'no'} "
+        f"engine={_voice_cfg.get('preferred_engine')} edge_voice={EDGE_VOICE} "
+        f"rvc={USE_RVC} ref={'yes' if _voice_cfg.get('reference_audio') else 'no'} "
         f"prompt={'yes' if _voice_cfg.get('prompt_text') else 'no'}"
     )
 
