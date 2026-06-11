@@ -14,6 +14,16 @@ import os
 import re
 import sys
 
+# GPT-SoVITS prints normalized text (which can contain non-cp1252 chars) to
+# stdout during synthesis. Under a Windows console / redirect using cp1252 that
+# raises UnicodeEncodeError mid-run and aborts the synth, leaving silent 0.5s
+# wavs. Force UTF-8 so synthesis never dies on a print.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.join(BASE, "gpt_sovits_repo")
 OUT = os.path.join(BASE, "model_comparison")
