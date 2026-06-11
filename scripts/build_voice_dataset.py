@@ -19,6 +19,13 @@ sys.path.insert(0, BASE)
 sys.path.insert(0, os.path.join(BASE, "gpt_sovits_repo"))
 sys.path.insert(0, os.path.join(BASE, "gpt_sovits_repo", "tools"))
 
+import sys as _sys
+for _stream in (_sys.stdout, _sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 import numpy as np
 import soundfile as sf
 
@@ -77,6 +84,48 @@ def _median_f0(wav_path: str) -> tuple[float, float]:
     return float(np.median(voiced)), float(len(voiced) / len(f0))
 
 
+def _segment_rms(wav_path: str) -> float:
+    """Mean RMS loudness of voiced frames (proxy for speaking intensity)."""
+    import numpy as np
+    audio, sr = sf.read(wav_path)
+    if audio.ndim > 1:
+        audio = audio.mean(axis=1)
+    audio = audio.astype(np.float64)
+    if len(audio) == 0:
+        return 0.0
+    return float(np.sqrt(np.mean(audio ** 2)))
+
+
+def filter_by_energy(seg_paths: list[str], lo_pct: float = 20.0,
+                     hi_pct: float = 85.0) -> list[str]:
+    """Drop the quietest (whisper) and loudest (yell/shout) segments by RMS.
+
+    Keeps only segments whose loudness sits in the [lo_pct, hi_pct] percentile
+    band of the batch — i.e. normal speaking tone. Used to exclude whispered
+    and shouted lines so the fine-tune learns a steady conversational voice.
+    """
+    import numpy as np
+    if len(seg_paths) < 5:
+        return seg_paths
+    rms = {p: _segment_rms(p) for p in seg_paths}
+    vals = np.array(list(rms.values()))
+    lo, hi = np.percentile(vals, lo_pct), np.percentile(vals, hi_pct)
+    kept = []
+    for p in seg_paths:
+        r = rms[p]
+        ok = lo <= r <= hi
+        print(f"[dataset]   {os.path.basename(p)}: RMS={r:.4f} "
+              f"{'KEEP' if ok else 'drop (whisper/yell)'}", flush=True)
+        if ok:
+            kept.append(p)
+        else:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+    return kept
+
+
 def filter_by_pitch(seg_paths: list[str], f0_min: float, f0_max: float,
                     min_voiced: float = 0.25) -> list[str]:
     """Keep only segments whose median F0 falls in [f0_min, f0_max].
@@ -124,6 +173,15 @@ def main():
         print(f"[dataset] pitch filter: keep {f0_min}-{f0_max} Hz", flush=True)
         all_segs = filter_by_pitch(all_segs, f0_min, f0_max)
         print(f"[dataset] {len(all_segs)} segments after pitch filter", flush=True)
+
+    # Optional tone filter: drop whispered + shouted segments by RMS percentile.
+    # --energy LO HI (percentiles, e.g. --energy 20 85 keeps the normal-tone band)
+    if "--energy" in sys.argv:
+        i = sys.argv.index("--energy")
+        lo_pct, hi_pct = float(sys.argv[i + 1]), float(sys.argv[i + 2])
+        print(f"[dataset] energy filter: keep {lo_pct}-{hi_pct} percentile RMS", flush=True)
+        all_segs = filter_by_energy(all_segs, lo_pct, hi_pct)
+        print(f"[dataset] {len(all_segs)} segments after energy filter", flush=True)
 
     # Transcribe each segment locally
     from character_creator.voice_transcribe import transcribe_file
