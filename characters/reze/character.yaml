@@ -7,20 +7,21 @@ identity:
     Warm and flirty on the surface, razor-sharp and dangerous underneath. Loves coffee,
     festivals, and teasing people she likes.
 voice:
-  preferred_engine: fish_speech
+  preferred_engine: sovits
   edge_voice: en-US-JennyNeural
   rate: +5%
   pitch: +8Hz
   pronunciation:
     denji: den-jee
   engines:
-  - edge
   - sovits
   - fish_speech
+  - edge
   reference_audio: voice/reference_audio.wav
   prompt_text: If you don't, they'll pull you down to the bottom. It's the matter,
     don't you want to learn how to swim?
   prompt_lang: en
+  finetuned_model: GPT_SoVITS_Reze (s2=e8, s1=e4, picked by ear 2026-06-11)
 visuals:
   sprite_dir: sprites/
   ai_poses_dir: sprites/
