@@ -119,6 +119,10 @@ STATE_SPRITE_MAP = {
 
 # Target display size for AI poses (scaled from 1024x1024)
 AI_POSE_DISPLAY_SIZE = (250, 250)
+# Fraction of window HEIGHT a character sprite should occupy. Characters are
+# full humans, not tiny figurines — scale by height with aspect ratio preserved
+# (NOT a fixed square, which squished tall portraits).
+SPRITE_TARGET_HEIGHT_FRAC = 0.82
 
 # Speech bubble style based on text content
 BUBBLE_STYLE_NORMAL = "normal"
@@ -440,8 +444,12 @@ class MarioDisplay:
                 path = os.path.join(cat_dir, filename)
                 try:
                     img = pygame.image.load(path).convert_alpha()
-                    # Scale down from 1024x1024 to display size
-                    img = pygame.transform.smoothscale(img, AI_POSE_DISPLAY_SIZE)
+                    # Scale by HEIGHT preserving aspect ratio — sprites are tall
+                    # human portraits, not squares; forcing a square squished them.
+                    iw, ih = img.get_width(), img.get_height()
+                    target_h = int(WINDOW_HEIGHT * SPRITE_TARGET_HEIGHT_FRAC)
+                    target_w = max(1, int(iw * (target_h / ih)))
+                    img = pygame.transform.smoothscale(img, (target_w, target_h))
                     self._sprites[sprite_key] = img
                     if DEBUG_DISPLAY:
                         logger.info(f"[DEBUG_DISPLAY] Loaded AI pose: {sprite_key}")
