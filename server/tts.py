@@ -1248,11 +1248,18 @@ def _preclean_tts_text(text: str) -> str:
     t = t.replace('—', ', ').replace('–', ', ')
     # Asterisks (action markers like *laughs*)
     t = t.replace('*', '')
+    # Strip emoji / pictographs — TTS can't speak them, and removing them later
+    # leaves a stray space before punctuation (e.g. display name "Reze 💣!" was
+    # spoken as "Reze  !"). Remove here, then fix the spacing below.
+    t = _re_tts.sub(
+        r'[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF'
+        r'♀-♂←-⇿⌀-⏿️‍]', '', t)
     # Clean up resulting artifacts: leading commas, double commas, etc.
     t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
     t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
     t = _re_tts.sub(r'([.!?])\s*,', r'\1', t)     # Comma after sentence-end punctuation
     t = _re_tts.sub(r',\s*([!?])', r'\1', t)       # Comma before ! or ? (from "...!")
+    t = _re_tts.sub(r'\s+([!?.,;:])', r'\1', t)    # Space before punctuation (from stripped emoji)
     t = _re_tts.sub(r'[,\s]+$', '', t)             # Trailing commas/whitespace
     # Pronunciation rules — loaded from character YAML only (single source of truth)
     # Hardcoded rules were removed because they conflict with character-specific rules
