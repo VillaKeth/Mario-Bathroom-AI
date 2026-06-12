@@ -11,16 +11,26 @@ logger = logging.getLogger(__name__)
 
 
 class SoundEffects:
-    """Generates and plays Mario-style sound effects using synthesized audio."""
+    """Generates and plays synthesized sound effects.
+
+    The DEFAULT set is character-neutral. The iconic Mario jingles (coin, 1-up,
+    power-up, pipe, star, fireball, jump) are ONLY synthesized when the active
+    character is Mario — every other character gets neutral equivalents so a
+    non-Mario character never plays Mario's coin/1up jingle. Characters can
+    still ship their own WAVs in characters/<char>/sfx/ which override anything
+    here (see load_character_overrides)."""
 
     def __init__(self):
         self._sounds = {}
         self._initialized = False
+        self._character = "mario"
 
-    def init(self):
-        """Initialize pygame mixer and generate sound effects."""
+    def init(self, character: str = "mario"):
+        """Initialize pygame mixer and generate sound effects for ``character``."""
         if DEBUG_SFX:
-            logger.info("[DEBUG_SFX] SoundEffects.init: START")
+            logger.info(f"[DEBUG_SFX] SoundEffects.init: START (character={character})")
+
+        self._character = (character or "mario").lower()
 
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=1, buffer=512)
@@ -32,6 +42,10 @@ class SoundEffects:
         self._generate_sounds()
         if DEBUG_SFX:
             logger.info(f"[DEBUG_SFX] SoundEffects.init: generated {len(self._sounds)} sounds")
+
+    @property
+    def _is_mario(self) -> bool:
+        return self._character == "mario"
 
     def _make_tone(self, frequency: float, duration: float, volume: float = 0.3,
                    fade_out: bool = True, wave_type: str = "square") -> pygame.mixer.Sound:
@@ -74,9 +88,8 @@ class SoundEffects:
         full = (full * volume * 32767).astype(np.int16)
         return pygame.mixer.Sound(buffer=full.tobytes())
 
-    def _generate_sounds(self):
-        """Generate all Mario-style sound effects."""
-
+    def _generate_mario_iconic_sounds(self):
+        """Mario's signature jingles — coin, 1-up, power-up, pipe, jump, star, fireball."""
         # Coin sound — two quick high notes
         self._sounds["coin"] = self._make_multi_tone([
             (988, 0.08),   # B5
@@ -122,6 +135,51 @@ class SoundEffects:
         self._sounds["fireball"] = self._make_multi_tone([
             (800, 0.03), (600, 0.03), (400, 0.05), (200, 0.08),
         ], volume=0.15)
+
+    def _generate_neutral_iconic_sounds(self):
+        """Character-neutral equivalents of the Mario jingle names.
+
+        Same event names (coin, oneup, etc.) so the server's SFX hints keep
+        working, but the tones are generic blips/chimes — not Mario's jingles.
+        Characters that want richer SFX ship their own WAVs in <char>/sfx/."""
+        # "coin" -> a single soft chime (the excited/sparkle event uses this)
+        self._sounds["coin"] = self._make_tone(880, 0.18, volume=0.2,
+                                               wave_type="sine")
+        # "oneup" -> gentle two-note rise
+        self._sounds["oneup"] = self._make_multi_tone([
+            (523, 0.1), (784, 0.18),
+        ], volume=0.2)
+        # "powerup" -> short neutral rise
+        self._sounds["powerup"] = self._make_multi_tone([
+            (440, 0.07), (554, 0.07), (659, 0.14),
+        ], volume=0.18)
+        # "pipe" -> soft descending blip
+        self._sounds["pipe"] = self._make_multi_tone([
+            (494, 0.08), (392, 0.08), (330, 0.14),
+        ], volume=0.18)
+        # "jump" -> tiny neutral blip
+        self._sounds["jump"] = self._make_tone(420, 0.1, volume=0.12,
+                                               wave_type="sine")
+        # "star" -> light shimmer
+        self._sounds["star"] = self._make_multi_tone([
+            (784, 0.06), (988, 0.06), (1175, 0.06), (988, 0.1),
+        ], volume=0.16)
+        # "fireball" -> short neutral descending blip
+        self._sounds["fireball"] = self._make_multi_tone([
+            (660, 0.04), (440, 0.06), (330, 0.08),
+        ], volume=0.12)
+
+    def _generate_sounds(self):
+        """Generate synthesized sound effects for the active character.
+
+        Iconic Mario jingles are gated to Mario; other characters get neutral
+        tones under the same names so event-driven SFX (excited/sparkle -> coin)
+        never play Mario's signature jingle."""
+
+        if self._is_mario:
+            self._generate_mario_iconic_sounds()
+        else:
+            self._generate_neutral_iconic_sounds()
 
         # Death/sad sound — descending slow
         self._sounds["sad"] = self._make_multi_tone([

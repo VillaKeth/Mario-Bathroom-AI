@@ -145,6 +145,20 @@ SOVITS_V2_SOVITS = os.path.join(SOVITS_V2_BASE_DIR, "s2G2333k.pth")
 _voice_cfg = {}
 _voice_char_name = "mario"
 
+
+def _voice_cache_tag() -> str:
+    """Per-character timbre token for cache keys.
+
+    Two characters can share the SAME Edge voice (e.g. Mario and Jax both use
+    en-US-GuyNeural) yet have completely different final timbres because Mario
+    runs RVC voice conversion and the others do not. Keying the cache on
+    EDGE_VOICE alone makes them collide — a non-Mario character would replay
+    Mario's RVC'd disk-cached clip (e.g. the "Let me think" filler). Including
+    the character name guarantees each character only ever hits its own audio.
+    """
+    return _voice_char_name or "mario"
+
+
 def set_voice_config(voice_config: dict, character_name: str = "mario"):
     """Wire the active character's voice config into the TTS engine so GPT-SoVITS
     clones THIS character (not Mario). Called once at character load."""
@@ -393,17 +407,27 @@ def purge_stale_cache() -> int:
                 original_key = f.read().strip()
             if not original_key:
                 continue
-            # Parse cache key: {voice}:{text}:{rate}:{pitch}
-            # Rate and pitch are the last two colon-separated segments
+            # Parse cache key. Current format is
+            #   {char_tag}:{voice}:{text}:{rate}:{pitch}
+            # but legacy entries are {voice}:{text}:{rate}:{pitch}. Rate and
+            # pitch are always the last two segments; the prefix (everything
+            # before the text) is preserved verbatim so the rebuilt key keeps
+            # whatever tag/voice the original had — only the text is re-cleaned.
             parts = original_key.split(":")
             if len(parts) < 4:
                 continue
             pitch = parts[-1]   # e.g. "+0Hz"
             rate = parts[-2]    # e.g. "+0%"
-            voice = parts[0]    # e.g. "en-US-GuyNeural"
-            text = ":".join(parts[1:-2])  # Everything between voice and rate
+            # Detect a leading character tag: a 5+ part key whose 2nd segment
+            # looks like an Edge voice (contains a hyphen, e.g. en-US-GuyNeural).
+            if len(parts) >= 5 and "-" in parts[1]:
+                prefix = f"{parts[0]}:{parts[1]}"   # char_tag:voice
+                text = ":".join(parts[2:-2])
+            else:
+                prefix = parts[0]                   # legacy voice-only prefix
+                text = ":".join(parts[1:-2])
             cleaned_text = _preclean_tts_text(text)
-            rebuilt_key = f"{voice}:{cleaned_text}:{rate}:{pitch}"
+            rebuilt_key = f"{prefix}:{cleaned_text}:{rate}:{pitch}"
             if rebuilt_key != original_key:
                 if os.path.exists(wav_path):
                     os.remove(wav_path)
@@ -1109,7 +1133,7 @@ def precache_phrases():
         for phrase in priority_phrases:
             _rate = "+0%"
             _pitch = "+0Hz"
-            cache_key = f"{EDGE_VOICE}:{phrase.strip()}:{_rate}:{_pitch}"
+            cache_key = f"{_voice_cache_tag()}:{EDGE_VOICE}:{phrase.strip()}:{_rate}:{_pitch}"
             with _cache_lock:
                 if cache_key in _audio_cache and _is_disk_cached(cache_key):
                     continue
@@ -1165,7 +1189,7 @@ def _start_idle_precache():
 
             _rate = "+0%"
             _pitch = "+0Hz"
-            cache_key = f"{EDGE_VOICE}:{tts_text.strip()}:{_rate}:{_pitch}"
+            cache_key = f"{_voice_cache_tag()}:{EDGE_VOICE}:{tts_text.strip()}:{_rate}:{_pitch}"
             with _cache_lock:
                 if cache_key in _audio_cache:
                     skipped += 1
@@ -1199,7 +1223,7 @@ def get_cached(text: str, rate: str = None, pitch: str = None) -> bytes | None:
     """Fast cache-only lookup — no generation, no locks that block. Returns None on miss."""
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
-    cache_key = f"{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
+    cache_key = f"{_voice_cache_tag()}:{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
     return _audio_cache.get(cache_key)
 
 
@@ -1306,7 +1330,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # Check cache first for instant playback (key includes voice params)
     _rate = rate or "+0%"
     _pitch = pitch or "+0Hz"
-    cache_key = f"{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
+    cache_key = f"{_voice_cache_tag()}:{EDGE_VOICE}:{text.strip()}:{_rate}:{_pitch}"
     global _cache_hits, _cache_misses
     if not nocache:
         with _cache_lock:

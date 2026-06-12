@@ -144,7 +144,7 @@ class MarioClient:
         self.display.init()
         self.display.set_state(STATE_IDLE)
         self.display.set_mario_text("Connecting to server...")
-        self.sfx.init()
+        self.sfx.init(character=getattr(_character, "name", "mario"))
         # Per-character SFX overrides (characters/<char>/sfx/*.wav) replace the
         # generic synthesized sounds — so startup/greeting etc. are not Mario.
         try:

@@ -13,6 +13,37 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
 
 
+class TestVoiceCacheIsolation:
+    """Two characters sharing an Edge voice must not share cached audio.
+
+    Mario runs RVC; other characters do not. Keying the cache on EDGE_VOICE
+    alone let a non-Mario character (e.g. Jax, who also uses en-US-GuyNeural)
+    replay Mario's RVC'd disk-cached filler. The cache key now carries a
+    per-character tag to keep them isolated.
+    """
+
+    def test_same_edge_voice_different_character_distinct_keys(self):
+        import tts
+
+        shared_voice = {"edge_voice": "en-US-GuyNeural"}
+
+        tts.set_voice_config(shared_voice, "mario")
+        mario_tag = tts._voice_cache_tag()
+
+        tts.set_voice_config(shared_voice, "jax")
+        jax_tag = tts._voice_cache_tag()
+
+        assert mario_tag != jax_tag
+        # The full key built in get_cached must differ too.
+        tts.set_voice_config(shared_voice, "mario")
+        mario_key = f"{tts._voice_cache_tag()}:{tts.EDGE_VOICE}:Let me think.:+0%:+0Hz"
+        tts.set_voice_config(shared_voice, "jax")
+        jax_key = f"{tts._voice_cache_tag()}:{tts.EDGE_VOICE}:Let me think.:+0%:+0Hz"
+        assert mario_key != jax_key
+        # Restore default for other tests.
+        tts.set_voice_config({"edge_voice": "en-US-GuyNeural"}, "mario")
+
+
 class TestCatchphraseBank:
     """Catchphrase normalization and matching logic."""
 
