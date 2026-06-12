@@ -24,6 +24,14 @@ visuals:
   ai_pose_size:
   - 250
   - 250
+  art_style: anime
+  visual_description: 'March 7th from Honkai Star Rail, a cheerful young anime girl,
+    drawn in the polished Honkai Star Rail anime aesthetic: long pale pink hair in
+    a high side ponytail tied with a large blue and white bow, bright sky-blue eyes,
+    fair skin, sweet upbeat expression, white and pale-pink outfit with a fur-trimmed
+    collar and short pleated skirt, light blue ribbons and ice-crystal accents, holding
+    a pink instant camera, vibrant clean cel-shaded colors, crisp lineart, gacha game
+    splash-art style, full body, plain neutral background.'
   theme_colors:
     primary: '#FFB6C1'
     secondary: '#87CEEB'

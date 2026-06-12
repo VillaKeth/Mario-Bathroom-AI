@@ -38,7 +38,7 @@ LOG_PATH = os.path.join(BASE, "flux_drip.log")
 # Characters whose sprites get flux upgrades, in priority order.
 # Local-SD sprites are TEMPORARY placeholders only — flux output is the quality
 # source of record; the drip replaces every local-SD sprite, Jax first.
-DRIP_CHARACTERS = ["jax", "reze"]
+DRIP_CHARACTERS = ["jax", "reze", "march7th"]
 
 # Poses most visible at the party — upgraded first.
 HERO_POSES = [
