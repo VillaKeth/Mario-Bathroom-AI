@@ -119,10 +119,14 @@ STATE_SPRITE_MAP = {
 
 # Target display size for AI poses (scaled from 1024x1024)
 AI_POSE_DISPLAY_SIZE = (250, 250)
-# Fraction of window HEIGHT a character sprite should occupy. Characters are
-# full humans, not tiny figurines — scale by height with aspect ratio preserved
-# (NOT a fixed square, which squished tall portraits).
-SPRITE_TARGET_HEIGHT_FRAC = 0.82
+# The speech bubble can grow to ~38% of the screen height from the top. Reserve
+# the top 40% for it and keep the character entirely in the bottom 60%, anchored
+# to the floor — so the head is NEVER covered, even on long responses.
+BUBBLE_RESERVE_FRAC = 0.40        # top fraction kept clear for the speech bubble
+SPRITE_FLOOR_MARGIN = 14          # gap below feet to the window bottom
+# Character sprite height = aspect-preserved, filling the bottom zone under the
+# bubble (NOT a fixed square, which squished tall portraits).
+SPRITE_TARGET_HEIGHT_FRAC = (1.0 - BUBBLE_RESERVE_FRAC)
 
 # Speech bubble style based on text content
 BUBBLE_STYLE_NORMAL = "normal"
@@ -2288,7 +2292,9 @@ class MarioDisplay:
 
         display_sprite = apply_transforms(sprite, scale, rotation)
         cx = WINDOW_WIDTH // 2 - display_sprite.get_width() // 2 + offset_x
-        cy = WINDOW_HEIGHT // 2 - display_sprite.get_height() // 2 + 40 + offset_y
+        # Bottom-anchor: feet near the floor, so the head sits in the bottom zone
+        # BELOW the reserved speech-bubble area and is never covered.
+        cy = WINDOW_HEIGHT - display_sprite.get_height() - SPRITE_FLOOR_MARGIN + offset_y
 
         # --- Draw with crossfade and/or alpha ---
         if self._crossfade_from_surface is not None and crossfade_progress < 1.0:
@@ -2297,7 +2303,7 @@ class MarioDisplay:
             old_copy = old_spr.copy()
             old_copy.set_alpha(int(255 * (1.0 - crossfade_progress)))
             ocx = WINDOW_WIDTH // 2 - old_copy.get_width() // 2 + offset_x
-            ocy = WINDOW_HEIGHT // 2 - old_copy.get_height() // 2 + 40 + offset_y
+            ocy = WINDOW_HEIGHT - old_copy.get_height() - SPRITE_FLOOR_MARGIN + offset_y
             self._screen.blit(old_copy, (ocx, ocy))
             # New sprite fading in
             new_copy = display_sprite.copy()
