@@ -122,7 +122,9 @@ AI_POSE_DISPLAY_SIZE = (250, 250)
 # The speech bubble can grow to ~38% of the screen height from the top. Reserve
 # the top 40% for it and keep the character entirely in the bottom 60%, anchored
 # to the floor — so the head is NEVER covered, even on long responses.
-BUBBLE_RESERVE_FRAC = 0.40        # top fraction kept clear for the speech bubble
+BUBBLE_RESERVE_FRAC = 0.45        # top fraction kept clear for the speech bubble
+                                  # (bubble maxes ~0.38; extra gap absorbs the
+                                  #  talking-bounce so the head never touches it)
 SPRITE_FLOOR_MARGIN = 14          # gap below feet to the window bottom
 # Character sprite height = aspect-preserved, filling the bottom zone under the
 # bubble (NOT a fixed square, which squished tall portraits).
