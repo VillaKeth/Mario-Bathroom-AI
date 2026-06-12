@@ -31,13 +31,15 @@ visuals:
   - 250
   - 250
   visual_description: 'Reze from Chainsaw Man, a beautiful ADULT young woman in her
-    early twenties, drawn in the sharp MAPPA Chainsaw Man anime aesthetic: mature
-    elegant proportions, slender tall figure, defined jawline, sharp narrow relaxed
-    eyes with dark violet irises and prominent lower lashes, confident sly smile,
-    chin-length wavy dark plum-black hair with a short braid at the nape, black choker,
-    white collared button-up shirt with rolled sleeves, olive-green pinafore overall
-    dress, muted gritty color palette, clean sharp angular lineart, seinen anime style,
-    NOT chibi, NOT childlike, full body, plain neutral background.'
+    early twenties, drawn in the sharp MAPPA Chainsaw Man anime aesthetic: slender
+    elegant build, mature proportions, slanted emerald-green eyes, soft confident
+    expression, shoulder-length dark purple-black hair with a subtle purple hue,
+    partially tied up into a small bun at the back with a short braid and loose side
+    bangs. Her iconic original outfit: a SLEEVELESS white collared button-up blouse
+    (collared, NOT a tank top) with a small black ribbon tie at the collar, fitted
+    black short shorts with side slits, black thigh-high socks, and a wide black choker
+    around her neck. Muted gritty color palette, clean sharp angular lineart, seinen
+    anime style, NOT chibi, NOT childlike, full body, plain neutral background.'
   art_style: anime
   theme_colors:
     primary: '#ff4500'
