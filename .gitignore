@@ -133,3 +133,7 @@ flux_drip.log
 
 # Image-gen config holds API keys (grok/openai/gemini/hf) — local only
 character_creator/sprite_config.json
+
+# session temp + sprite import staging
+_voicetmp/
+characters/*/_incoming/
