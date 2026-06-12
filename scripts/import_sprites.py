@@ -38,6 +38,23 @@ def _pose_index():
     return idx
 
 
+def _autocrop(png_path, pad_frac=0.04):
+    """Crop a transparent-background PNG to the character's bounding box (+ small
+    margin) so the figure fills the sprite instead of floating tiny in a huge
+    landscape canvas. Keeps it RGBA."""
+    from PIL import Image
+    im = Image.open(png_path).convert("RGBA")
+    bbox = im.split()[3].getbbox()  # alpha bounding box
+    if not bbox:
+        return
+    w, h = im.size
+    pad = int(max(w, h) * pad_frac)
+    l, t, r, b = bbox
+    l = max(0, l - pad); t = max(0, t - pad)
+    r = min(w, r + pad); b = min(h, b + pad)
+    im.crop((l, t, r, b)).save(png_path)
+
+
 def _mark_done(char, pose):
     try:
         state = json.load(open(STATE_PATH, encoding="utf-8"))
@@ -75,6 +92,7 @@ def main():
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(src, "rb") as f:
             sg._try_remove_background(f.read(), out)  # transparent cutout
+        _autocrop(out)  # trim huge transparent margins so the figure fills the sprite
         _mark_done(char, pose)
         shutil.move(src, os.path.join(done_dir, fn))
         imported += 1
