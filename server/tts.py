@@ -188,14 +188,27 @@ def set_voice_config(voice_config: dict, character_name: str = "mario"):
 
 def _resolve_sovits_models(char_name: str):
     """Return (gpt_path, sovits_path, is_finetune) for the active character.
-    A per-character fine-tune (e.g. Mario) wins; otherwise the v2 base weights."""
+    A per-character fine-tune (e.g. Mario) wins; otherwise the v2 base weights.
+
+    Tries exact GPT_SoVITS_<Name> first, then a PREFIX match so an identity name
+    that differs from the model folder still resolves (e.g. identity 'March' ->
+    'GPT_SoVITS_March7th'). Without the prefix fallback a mismatch silently fell
+    back to the generic base voice instead of the trained one."""
+    models_root = os.path.join(_PROJECT_ROOT, "mario_models_new")
     title = char_name.capitalize()
-    ft_dir = os.path.join(_PROJECT_ROOT, "mario_models_new", f"GPT_SoVITS_{title}")
-    if os.path.isdir(ft_dir):
-        ckpts = [f for f in os.listdir(ft_dir) if f.endswith(".ckpt")]
-        pths = [f for f in os.listdir(ft_dir) if f.endswith(".pth")]
-        if ckpts and pths:
-            return os.path.join(ft_dir, ckpts[0]), os.path.join(ft_dir, pths[0]), True
+    candidates = [f"GPT_SoVITS_{title}"]
+    if os.path.isdir(models_root):
+        # Prefix match: GPT_SoVITS_March* catches GPT_SoVITS_March7th
+        for d in sorted(os.listdir(models_root)):
+            if d.lower().startswith(f"gpt_sovits_{char_name.lower()}") and d not in candidates:
+                candidates.append(d)
+    for name in candidates:
+        ft_dir = os.path.join(models_root, name)
+        if os.path.isdir(ft_dir):
+            ckpts = [f for f in os.listdir(ft_dir) if f.endswith(".ckpt")]
+            pths = [f for f in os.listdir(ft_dir) if f.endswith(".pth")]
+            if ckpts and pths:
+                return os.path.join(ft_dir, ckpts[0]), os.path.join(ft_dir, pths[0]), True
     return SOVITS_V2_GPT, SOVITS_V2_SOVITS, False
 
 # --- Speed mode ---
