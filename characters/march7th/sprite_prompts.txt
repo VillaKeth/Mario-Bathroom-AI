@@ -1,0 +1,127 @@
+# Sprite prompts for march7th
+# art_style: 3d_figurine
+# Paste any prompt below into a free image generator. Generate on a plain
+# white or transparent background; the app removes the background itself.
+# Save each result as characters/march7th/sprites/<path>.png
+
+## CHARACTER DESCRIPTION (reused in every prompt)
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends
+
+## PER-POSE PROMPTS
+
+### positive/happy
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with a warm genuine smile, arms open, welcoming happy pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### positive/excited
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends jumping with excitement, fist pumped, huge grin, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### positive/laughing
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends laughing hard, head thrown back, genuine amusement, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### positive/love
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with heart eyes, hands clasped near face, love-struck expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### positive/proud
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends standing tall, hands on hips, chin up, supremely confident proud pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/sad
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends looking down sadly, shoulders slumped, disappointed expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/angry
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with intense angry expression, fists clenched, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/annoyed
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with arms crossed, one eyebrow raised, clearly unimpressed look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/nervous
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends looking nervously to the side, hands fidgeting, uncertain expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/scared
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends jumping back with wide eyes, arms up in surprise, startled and scared, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/embarrassed
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends scratching back of head sheepishly, embarrassed half-smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/disgusted
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends leaning away with disgusted face, hand up in stop gesture, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### negative/grossed_out
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends holding nose in disgust, leaning away, revolted face, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/confused
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with head tilted, confused expression, one eyebrow raised high, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/thinking
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends looking upward thoughtfully, finger tapping chin, pondering, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/curious
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends leaning forward with curiosity, eyes bright, interested expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/determined
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with intense focused eyes, determined expression, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/mischievous
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with a mischievous grin, fingers steepled, plotting look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/shocked
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with mouth wide open in shock, eyes huge, absolutely stunned, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/idea
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with index finger raised, bright idea moment, excited eyes, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### thinking/surprised
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends doing a dramatic double take, wide eyes, surprised, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### reactions/mind_blown
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with hands on sides of head, amazed shocked expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### reactions/sassy
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with hand on hip, head tilted, finger wagging, sassy attitude, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### reactions/cringe
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends cringing hard, one eye closed, teeth gritted, looking away, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### reactions/impressed
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends nodding approvingly, arms crossed, raised eyebrow, genuine respect, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### sleep/sleepy
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends mid-yawn, hand covering mouth, half-closed eyes, sleepy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### neutral/idle
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends standing relaxed, casual confident stance, neutral expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### memorial/moment_of_silence
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with head bowed, one hand over heart, solemn respectful pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### toast/raising_glass
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends raising a glass high, confident smile, toasting, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### party/celebrate
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends raising both arms in celebration, huge grin, confetti around, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### birthday/birthday
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends holding a birthday cake with candles, warm smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### speech/talking
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### speech/talking_excited
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends gesturing enthusiastically with both hands, excited while talking, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### speech/listening
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends with head slightly tilted, attentive listening pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### greeting/wave
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends waving hello, big smile, welcoming gesture, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### sleep/sleeping
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends curled up sleeping, peaceful expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### movement/dancing
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### movement/entering
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends walking in confidently, dramatic entrance, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+### greeting/farewell
+March 7th 📷, An energetic, cheerful girl of ice who loves photography and making friends waving goodbye, looking back with a smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame

@@ -313,9 +313,22 @@ def extract_emotion_tag(response: str) -> dict:
 class EmotionSystem:
     """Tracks Mario's current emotional state and rolling sentiment."""
 
+    # Per-character resting state — set via set_baseline() at character load so a
+    # character defaults to its temperament (Reze: loving; Jax: mischievous)
+    # instead of everyone starting HAPPY.
+    baseline_emotion = Emotion.HAPPY
+    baseline_energy = 0.7
+
+    def set_baseline(self, emotion: str, energy: float = 0.7):
+        """Set the character's resting emotion + energy."""
+        self.baseline_emotion = emotion or Emotion.HAPPY
+        self.baseline_energy = energy
+        self.current = self.baseline_emotion
+        self.intensity = energy
+
     def __init__(self):
-        self.current = Emotion.HAPPY
-        self.intensity = 0.7  # 0.0-1.0
+        self.current = self.baseline_emotion
+        self.intensity = self.baseline_energy  # 0.0-1.0
         self._last_change = time.time()
         self._last_interaction = time.time()
         self._lock = threading.Lock()

@@ -729,6 +729,15 @@ async def lifespan(app: FastAPI):
         mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
         logger.info(f"[CHARACTER] System prompt loaded ({len(_char_sys_prompt)} chars)")
 
+    # Set the character's resting emotional state (baseline temperament) so it
+    # doesn't start every session as generic HAPPY.
+    try:
+        _base_emo, _base_energy = _character.baseline_emotion()
+        emotion_system.set_baseline(_base_emo, _base_energy)
+        logger.info(f"[CHARACTER] Baseline emotion: {_base_emo} (energy {_base_energy})")
+    except Exception as _e:
+        logger.debug(f"[CHARACTER] baseline emotion skipped: {_e}")
+
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
         # Map character phase keys to server enum names
@@ -3246,6 +3255,19 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             guest_context=guest_ctx,
         )
         _inject_birthday_always_on(ctx)
+        # Per-character temperament, scaled by how well it knows THIS guest
+        # (cold characters thaw with repeat visits). Injected before the
+        # transient emotion so personality is the base layer.
+        try:
+            _visits = 0
+            if state_current.get("speaker_id"):
+                _pinfo = memory.get_person_info(state_current["speaker_id"])
+                _visits = (_pinfo or {}).get("visit_count", 0)
+            _temperament = _character.get_temperament_prompt(_visits)
+            if _temperament:
+                ctx.append({"role": "system", "content": _temperament})
+        except Exception as _e:
+            logger.debug(f"[TEMPERAMENT] skipped: {_e}")
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
         # Add personality amplifier when emotion is intense
         personality_mod = emotion_system.get_personality_modifier()
@@ -4053,15 +4075,23 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # ── System message trimming ──
         # On low-tier hardware, trim excess system messages to keep context tight.
         # Keep the main prompt (idx 0), early context (phase, birthday, guest), and trim late hints.
-        _sys_indices = [i for i, m in enumerate(ctx) if m.get("role") == "system" and i > 0]
+        # Never trim personality/identity-critical hints — these define WHO the
+        # character is and HOW they feel, which must always reach the model.
+        _PROTECTED_TAGS = ("[TEMPERAMENT]", "[MOOD", "VIP", "SPOILER", "DENJI")
+
+        def _is_protected(msg):
+            return any(t in msg.get("content", "") for t in _PROTECTED_TAGS)
+
+        _sys_indices = [i for i, m in enumerate(ctx)
+                        if m.get("role") == "system" and i > 0 and not _is_protected(ctx[i])]
         _MAX_SYS_HINTS = 3  # Main prompt + 3 secondary system messages max (was 5)
         if len(_sys_indices) > _MAX_SYS_HINTS:
-            # Drop LATEST secondary system messages (reaction hints, gossip, chaos, etc.)
-            # Keep the EARLIEST ones (party phase, birthday, emotion, guest context)
+            # Drop LATEST trimmable system messages (reaction hints, gossip, chaos,
+            # stats). Protected hints (temperament, mood, VIP) are kept regardless.
             _drop = _sys_indices[_MAX_SYS_HINTS:]
             _dropped_content = [ctx[i].get("content", "")[:40] for i in _drop[:3]]
             ctx = [m for i, m in enumerate(ctx) if i not in _drop]
-            logger.info(f"[CTX_TRIM] Dropped {len(_drop)} low-priority hints (kept first {_MAX_SYS_HINTS}), e.g. {_dropped_content}")
+            logger.info(f"[CTX_TRIM] Dropped {len(_drop)} low-priority hints (kept first {_MAX_SYS_HINTS} + protected), e.g. {_dropped_content}")
 
         # Embed the user question directly into CTX 00 (main system prompt).
         # The 8B model ignores late-context instructions, so we must put the

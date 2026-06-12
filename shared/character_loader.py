@@ -102,6 +102,12 @@ class CharacterLoader:
         self.accent_markers: list = speech.get("accent_markers", [])
         self.catchphrase_dir: str = str(self._resolve_path(speech.get("catchphrase_dir", "catchphrases/")))
 
+        # Parse personality / temperament — drives the baseline emotional state
+        # and a familiarity-scaled temperament directive injected into the LLM
+        # prompt (e.g. Reze warm+flirty from the start; Jax cold to strangers,
+        # warming as someone becomes a regular).
+        self.personality: dict = self._config.get("personality", {}) or {}
+
         # Parse memory
         memory = self._config.get("memory", {})
         self.collections: dict = memory.get("collections", {
@@ -173,6 +179,55 @@ class CharacterLoader:
         if not path.is_file():
             return ""
         return path.read_text(encoding="utf-8")
+
+    def effective_warmth(self, visit_count: int = 0) -> float:
+        """Warmth toward a specific guest, 0=cold .. 1=warm.
+
+        Starts at the character's baseline warmth and grows with familiarity
+        (repeat visits) so a guarded character thaws as someone becomes a
+        regular. Strangers get the baseline.
+        """
+        p = self.personality
+        base = float(p.get("warmth", 0.6))
+        growth = float(p.get("warmth_growth_per_visit", 0.0))
+        extra = growth * max(0, int(visit_count or 0) - 1)
+        return max(0.0, min(1.0, base + extra))
+
+    def baseline_emotion(self) -> tuple[str, float]:
+        """(emotion, energy) the character rests at when nothing else applies."""
+        p = self.personality
+        return p.get("baseline_emotion", "happy"), float(p.get("baseline_energy", 0.7))
+
+    def get_temperament_prompt(self, visit_count: int = 0) -> str:
+        """A [TEMPERAMENT] system line tuned to how well the character knows this
+        guest. Returns '' if the character defines no personality block."""
+        p = self.personality
+        if not p:
+            return ""
+        warmth = self.effective_warmth(visit_count)
+        cold_until_familiar = bool(p.get("cold_until_familiar"))
+        warm_line = p.get("temperament", "")
+        cold_line = p.get("temperament_cold", "")
+        traits = p.get("traits", [])
+
+        parts = []
+        if cold_until_familiar and warmth < 0.5 and cold_line:
+            parts.append(cold_line.strip())
+            if visit_count and visit_count > 1:
+                parts.append(f"You've seen this guest {visit_count} times — you're "
+                             f"starting to thaw a little, but you're still guarded.")
+            else:
+                parts.append("You barely know this guest — keep your guard up.")
+        else:
+            if warm_line:
+                parts.append(warm_line.strip())
+            if cold_until_familiar and visit_count and visit_count > 1:
+                parts.append(f"This guest is a regular ({visit_count} visits) — "
+                             f"you've let them past your walls.")
+        if traits:
+            parts.append("Core traits: " + ", ".join(traits) + ".")
+        body = " ".join(s for s in parts if s)
+        return f"[TEMPERAMENT]: {body}" if body else ""
 
     def get_phase_prompts(self) -> dict:
         """Read phases.yaml — party phase modifier text."""
