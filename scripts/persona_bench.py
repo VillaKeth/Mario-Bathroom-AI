@@ -71,6 +71,19 @@ def server_up():
         return False
 
 
+def force_stop_game():
+    """Clear any active game so the NEXT prompt is a fresh response.
+
+    Once a prompt starts a game (e.g. the 'game' battery item), the game stays
+    active server-side and every later prompt is routed to the game's input
+    handler ('AGREE or DISAGREE?', etc.) instead of a normal in-character
+    reply. Resetting after each prompt keeps battery items independent."""
+    try:
+        post("/admin/force_stop_game", {}, timeout=10)
+    except Exception as e:
+        print(f"  [bench] force_stop_game failed (non-fatal): {e}", flush=True)
+
+
 def ensure_server():
     if server_up():
         print("[bench] server already running")
@@ -220,6 +233,9 @@ def run_char(char, live):
                      "audio": r.get("audio"), "error": r.get("error")})
         flag = r.get("error") or ("audio:OK" if r.get("audio") else f"emo={r.get('emotion','?')}")
         print(f"  [{cat}] {flag} | {prompt[:34]} -> {(r.get('text') or '')[:64]}", flush=True)
+        # Reset any game a prompt may have started so the next item is a fresh
+        # response (otherwise the game hijacks every subsequent prompt).
+        force_stop_game()
     return rows
 
 
