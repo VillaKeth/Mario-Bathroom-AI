@@ -1209,6 +1209,17 @@ class MarioDisplay:
                     return "greeting/wave_high"
                 return "greeting/farewell"
 
+        # Party mode (F5): cycle through dance/celebration poses while not
+        # actively speaking, so the whole party visibly dances.
+        if self.party_mode and self.state != STATE_TALKING:
+            dance_pool = [p for p in ("movement/dancing", "party/celebrate",
+                                      "toast/raising_glass", "positive/excited",
+                                      "positive/laughing")
+                          if p in self._sprites]
+            if dance_pool:
+                cycle = (self._frame // 20) % len(dance_pool)  # swap ~0.6s
+                return dance_pool[cycle]
+
         # State-based selection
         if self.state == STATE_TALKING:
             sprites = STATE_SPRITE_MAP[STATE_TALKING]
