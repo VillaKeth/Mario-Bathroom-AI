@@ -89,10 +89,14 @@ def build_queue(state):
         plan.sort(key=lambda i: (i["sprite_path"] not in HERO_POSES,
                                  HERO_POSES.index(i["sprite_path"]) if i["sprite_path"] in HERO_POSES else 0))
         # flux's text encoder overflows on very long prompts (Fireworks errors
-        # with a negative-tensor-dimension 400). Our detailed character
-        # descriptions are tuned for ChatGPT, not flux — cap the description and
-        # use a SHORT framing so the total stays well under the token limit.
-        short_desc = desc[:300].rsplit(" ", 1)[0] if len(desc) > 300 else desc
+        # with a negative-tensor-dimension 400). Our detailed visual_description
+        # is tuned for ChatGPT (long, style preamble first) — naively truncating
+        # it cuts off key appearance (e.g. March's pink hair sat past 300 chars
+        # -> brunettes). Prefer a concise appearance-first `drip_description`;
+        # else truncate visual_description.
+        visuals = (y.get("visuals") or {})
+        short_desc = visuals.get("drip_description") or (
+            desc[:300].rsplit(" ", 1)[0] if len(desc) > 300 else desc)
         short_frame = ", full body head to toe, centered, full figure visible, plain background, NOT chibi"
         for info in plan:
             key = f"{char}/{info['sprite_path']}"

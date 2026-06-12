@@ -48,7 +48,7 @@ def _deflavor(text: str) -> str:
     other character we remove "Wahoo"/"Mama mia"/"Mario's-a" and the "-a" accent,
     and substitute the active character's display name for any "Mario" mention.
     """
-    if not text or _CHARACTER_NAME == "mario":
+    if not text or (_CHARACTER_NAME or "").lower() == "mario":
         return text
     out = text
     out = _RE_MAMA_MIA.sub("", out)
