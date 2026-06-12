@@ -168,10 +168,18 @@ async def main():
         for char in DRIP_CHARACTERS:
             cropped += detect_cropped(char)
         before = len(state.get("done", []))
-        state["done"] = [k for k in state.get("done", []) if k not in set(cropped)]
-        save_state(state)
-        log(f"redo-cropped: {len(cropped)} cropped sprite(s) re-queued "
-            f"(done {before} -> {len(state['done'])})")
+        new_done = [k for k in state.get("done", []) if k not in set(cropped)]
+        # Dry-run is READ-ONLY: report what WOULD be re-queued, don't mutate
+        # state (a dry-run that silently dropped done entries caused an
+        # accidental mass re-render).
+        if args.dry_run:
+            log(f"redo-cropped (dry-run): {len(cropped)} cropped, would re-queue "
+                f"(done {before} -> {len(new_done)}) — NOT saved")
+        else:
+            state["done"] = new_done
+            save_state(state)
+            log(f"redo-cropped: {len(cropped)} cropped sprite(s) re-queued "
+                f"(done {before} -> {len(new_done)})")
         for k in cropped:
             log(f"  redo: {k}")
 
