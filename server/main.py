@@ -738,6 +738,13 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.debug(f"[CHARACTER] baseline emotion skipped: {_e}")
 
+    # Per-character sound effects (characters/<char>/sfx/ overrides shared set)
+    try:
+        _char_sfx = os.path.join(_character.character_dir, "sfx")
+        sound_events.set_character_sfx_dir(_char_sfx if os.path.isdir(_char_sfx) else None)
+    except Exception as _e:
+        logger.debug(f"[CHARACTER] sfx dir skipped: {_e}")
+
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
         # Map character phase keys to server enum names
@@ -5598,10 +5605,41 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                 logger.error(f"send_response failed after retry: {e}")
 
 
+def _free_port(port: int):
+    """Kill any process already bound to our port (a stale server from a prior
+    session) so a new start never collides or leaves duplicate instances."""
+    import subprocess
+    import sys
+    try:
+        if sys.platform == "win32":
+            out = subprocess.run(["netstat", "-ano", "-p", "TCP"],
+                                 capture_output=True, text=True, timeout=10).stdout
+            pids = set()
+            for line in out.splitlines():
+                if f":{port} " in line and "LISTENING" in line:
+                    pids.add(line.split()[-1])
+            for pid in pids:
+                if pid and pid != "0" and int(pid) != os.getpid():
+                    subprocess.run(["taskkill", "/F", "/PID", pid],
+                                   capture_output=True, timeout=10)
+                    logger.info(f"[STARTUP] Freed port {port} — killed stale PID {pid}")
+        else:
+            out = subprocess.run(["lsof", "-ti", f"tcp:{port}"],
+                                 capture_output=True, text=True, timeout=10).stdout
+            for pid in out.split():
+                if pid and int(pid) != os.getpid():
+                    subprocess.run(["kill", "-9", pid], capture_output=True, timeout=10)
+                    logger.info(f"[STARTUP] Freed port {port} — killed stale PID {pid}")
+    except Exception as e:
+        logger.warning(f"[STARTUP] Port cleanup skipped: {e}")
+
+
 if __name__ == "__main__":
     import uvicorn
+    _port = server_config.get("port", 8765)
+    _free_port(_port)
     uvicorn.run(
         app,
         host=server_config.get("host", "0.0.0.0"),
-        port=server_config.get("port", 8765),
+        port=_port,
     )

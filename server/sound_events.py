@@ -37,6 +37,7 @@ class SoundEventManager:
         self._sfx_dir = sfx_dir or os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "assets", "sfx"
         )
+        self._char_sfx_dir: str | None = None  # per-character override dir
         self._event_map = event_map or dict(DEFAULT_EVENT_MAP)
         self._mixer_ready = False
         self._available_files: dict[str, str] = {}  # event_name → full path
@@ -44,22 +45,36 @@ class SoundEventManager:
         self._scan_files()
         self._init_mixer()
 
+    def set_character_sfx_dir(self, char_sfx_dir: str | None):
+        """Point at a character's own SFX folder (characters/<char>/sfx/).
+        Per-event WAVs there OVERRIDE the shared generic set, so each character
+        can have its own non-Mario sounds. Missing files fall back to shared."""
+        self._char_sfx_dir = char_sfx_dir if (char_sfx_dir and os.path.isdir(char_sfx_dir)) else None
+        self._scan_files()
+
     def _scan_files(self):
-        """Scan sfx directory for available WAV files."""
+        """Scan sfx directories for available WAVs. Character dir wins over shared."""
         self._available_files = {}
-        if not os.path.isdir(self._sfx_dir):
+        search_note = self._sfx_dir
+        if not os.path.isdir(self._sfx_dir) and not self._char_sfx_dir:
             logger.info(f"SFX directory not found: {self._sfx_dir} — sound events disabled")
             return
 
         for event_name, filename in self._event_map.items():
-            full_path = os.path.join(self._sfx_dir, filename)
-            if os.path.isfile(full_path):
-                self._available_files[event_name] = full_path
+            # Character override first, then shared generic
+            for base in (self._char_sfx_dir, self._sfx_dir):
+                if not base:
+                    continue
+                full_path = os.path.join(base, filename)
+                if os.path.isfile(full_path):
+                    self._available_files[event_name] = full_path
+                    break
 
-        if self._available_files:
-            logger.info(f"Sound events: {len(self._available_files)}/{len(self._event_map)} WAVs loaded from {self._sfx_dir}")
-        else:
-            logger.info(f"No WAV files found in {self._sfx_dir} — sound events will be silent")
+        n_char = sum(1 for p in self._available_files.values()
+                     if self._char_sfx_dir and p.startswith(self._char_sfx_dir))
+        logger.info(f"Sound events: {len(self._available_files)}/{len(self._event_map)} WAVs "
+                    f"loaded ({n_char} character-specific from {self._char_sfx_dir or 'none'}, "
+                    f"rest from {search_note})")
 
     def _init_mixer(self):
         """Initialize pygame mixer if available and files exist."""

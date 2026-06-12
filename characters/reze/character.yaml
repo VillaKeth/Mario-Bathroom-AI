@@ -13,6 +13,8 @@ voice:
   pitch: +8Hz
   pronunciation:
     denji: den-jee
+    Reze: Rayzeh
+    reze: Rayzeh
   engines:
   - sovits
   - fish_speech

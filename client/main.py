@@ -145,6 +145,13 @@ class MarioClient:
         self.display.set_state(STATE_IDLE)
         self.display.set_mario_text("Connecting to server...")
         self.sfx.init()
+        # Per-character SFX overrides (characters/<char>/sfx/*.wav) replace the
+        # generic synthesized sounds — so startup/greeting etc. are not Mario.
+        try:
+            _csfx = os.path.join(_character.character_dir, "sfx")
+            self.sfx.load_character_overrides(_csfx)
+        except Exception as _e:
+            logger.debug(f"[SFX] character override skipped: {_e}")
 
         # Start audio
         if not self.audio_capture.start():

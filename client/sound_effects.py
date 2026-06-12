@@ -193,6 +193,29 @@ class SoundEffects:
             (698, 0.15), (659, 0.3),
         ], volume=0.25)
 
+    def load_character_overrides(self, sfx_dir: str):
+        """Load per-character WAVs that override the synthesized defaults.
+
+        Any characters/<char>/sfx/<name>.wav replaces the generic synthesized
+        sound of the same name (e.g. greeting.wav overrides the default startup
+        ding). Lets each character ship its own non-Mario sound set; anything
+        not provided keeps the generic synthesized tone.
+        """
+        if not self._initialized or not sfx_dir or not os.path.isdir(sfx_dir):
+            return
+        loaded = 0
+        for fn in os.listdir(sfx_dir):
+            if not fn.lower().endswith((".wav", ".ogg")):
+                continue
+            name = os.path.splitext(fn)[0]
+            try:
+                self._sounds[name] = pygame.mixer.Sound(os.path.join(sfx_dir, fn))
+                loaded += 1
+            except Exception as e:
+                logger.warning(f"[DEBUG_SFX] override load failed for {fn}: {e}")
+        if loaded:
+            logger.info(f"[DEBUG_SFX] loaded {loaded} character SFX overrides from {sfx_dir}")
+
     def play(self, sound_name: str):
         """Play a sound effect by name."""
         if not self._initialized:
