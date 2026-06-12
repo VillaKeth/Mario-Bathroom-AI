@@ -96,16 +96,27 @@ def _set_active_char(char):
 
 
 def _kill_app():
-    """Kill any running server + client so the next character starts clean."""
-    import subprocess
-    subprocess.run([PYEXE, "-c",
-        "import psutil,sys\n"
-        "for p in psutil.process_iter(['cmdline']):\n"
-        "  c=' '.join(p.info['cmdline'] or [])\n"
-        "  if ('server' in c and 'main.py' in c) or ('client' in c and 'main.py' in c) or 'gpt_sovits_server' in c:\n"
-        "    try: p.kill()\n"
-        "    except Exception: pass\n"],
-        capture_output=True)
+    """Kill any running server + client + sovits so the next character starts
+    clean. Match by working DIRECTORY (cmdline is just 'python main.py' with cwd
+    set, so a cmdline match finds nothing and leaves duplicates — which made an
+    old client talk to the new character's server)."""
+    import psutil
+    me = os.getpid()
+    for p in psutil.process_iter(["pid", "cmdline"]):
+        if p.info["pid"] == me:
+            continue
+        cmd = " ".join(p.info.get("cmdline") or [])
+        if "persona_bench" in cmd:
+            continue
+        try:
+            if "gpt_sovits_server" in cmd:
+                p.kill(); continue
+            if "main.py" in cmd:
+                cwd = p.cwd()
+                if cwd and (cwd.endswith(os.sep + "server") or cwd.endswith(os.sep + "client")):
+                    p.kill()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
 
 
 def restart_for(char):
