@@ -23,6 +23,12 @@ import sys
 import time
 import urllib.request
 
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BASE_URL = "http://localhost:8765"
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PYEXE = sys.executable
@@ -165,7 +171,7 @@ def run_char(char, live):
                      "speaker": speaker, "visits": visits,
                      "text": r.get("text", ""), "emotion": r.get("emotion"),
                      "audio": r.get("audio"), "error": r.get("error")})
-        flag = r.get("error") or ("audio✓" if r.get("audio") else f"emo={r.get('emotion','?')}")
+        flag = r.get("error") or ("audio:OK" if r.get("audio") else f"emo={r.get('emotion','?')}")
         print(f"  [{cat}] {flag} | {prompt[:34]} -> {(r.get('text') or '')[:64]}", flush=True)
     return rows
 
