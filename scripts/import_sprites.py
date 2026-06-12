@@ -38,6 +38,60 @@ def _pose_index():
     return idx
 
 
+def _remove_flat_bg(src_path, out_path, tol=42, feather=1):
+    """Remove a FLAT studio background by flood-filling from the borders.
+
+    Only pixels that are (a) close to the corner/background color AND (b)
+    connected to the image edge become transparent. Interior regions of the
+    same color (e.g. a white blouse, pale skin) are NEVER removed because they
+    are not connected to the border — unlike ML matting (rembg), which was
+    eating her clothes. Returns True on success.
+    """
+    import numpy as np
+    from PIL import Image, ImageFilter
+    from scipy import ndimage
+
+    im = Image.open(src_path).convert("RGB")
+    arr = np.asarray(im).astype(np.int16)
+    h, w, _ = arr.shape
+
+    # Background color = median of the four corners (robust to a noisy corner)
+    corners = np.array([arr[0, 0], arr[0, w - 1], arr[h - 1, 0], arr[h - 1, w - 1]])
+    bg = np.median(corners, axis=0)
+
+    dist = np.sqrt(((arr - bg) ** 2).sum(axis=2))
+    bg_like = dist < tol                      # pixels near the background color
+
+    # Keep only the bg-like region CONNECTED to the border. Seed a 1px border
+    # frame as background, label connected bg-like components, keep those that
+    # touch the frame.
+    seed = np.zeros((h, w), bool)
+    seed[0, :] = seed[-1, :] = seed[:, 0] = seed[:, -1] = True
+    labels, _ = ndimage.label(bg_like)
+    border_labels = set(labels[seed & bg_like].tolist())
+    border_labels.discard(0)
+    background = np.isin(labels, list(border_labels))
+
+    alpha = np.where(background, 0, 255).astype(np.uint8)
+    out = Image.fromarray(arr.astype(np.uint8), "RGB").convert("RGBA")
+    a_img = Image.fromarray(alpha, "L")
+    if feather:
+        a_img = a_img.filter(ImageFilter.GaussianBlur(feather))
+    out.putalpha(a_img)
+    final_alpha = np.asarray(out.split()[3])
+    kept = (final_alpha > 30).mean()
+    # Success only if: kept a sensible amount AND all 4 corners cleared. A
+    # leftover opaque corner means the background was a gradient (e.g. 3D studio
+    # render), not flat — bail to rembg instead of saving a half-keyed image.
+    ch, cw = final_alpha.shape
+    corners_clear = max(final_alpha[0, 0], final_alpha[0, cw - 1],
+                        final_alpha[ch - 1, 0], final_alpha[ch - 1, cw - 1]) < 30
+    if 0.04 < kept < 0.95 and corners_clear:
+        out.save(out_path)
+        return True
+    return False
+
+
 def _autocrop(png_path, pad_frac=0.04):
     """Crop a transparent-background PNG to the character's bounding box (+ small
     margin) so the figure fills the sprite instead of floating tiny in a huge
@@ -90,8 +144,11 @@ def main():
             continue
         out = os.path.join(BASE, "characters", char, "sprites", f"{pose}.png")
         os.makedirs(os.path.dirname(out), exist_ok=True)
-        with open(src, "rb") as f:
-            sg._try_remove_background(f.read(), out)  # transparent cutout
+        # Flat-bg flood fill first (never eats clothes); fall back to rembg only
+        # if the background is not flat enough for a clean key.
+        if not _remove_flat_bg(src, out):
+            with open(src, "rb") as f:
+                sg._try_remove_background(f.read(), out)
         _autocrop(out)  # trim huge transparent margins so the figure fills the sprite
         _mark_done(char, pose)
         shutil.move(src, os.path.join(done_dir, fn))
