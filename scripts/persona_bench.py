@@ -88,6 +88,38 @@ def ensure_server():
     raise SystemExit("[bench] server failed to start")
 
 
+def _set_active_char(char):
+    cfg_path = os.path.join(BASE, "config.json")
+    cfg = json.load(open(cfg_path, encoding="utf-8"))
+    cfg["character"] = char
+    json.dump(cfg, open(cfg_path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+
+
+def _kill_app():
+    """Kill any running server + client so the next character starts clean."""
+    import subprocess
+    subprocess.run([PYEXE, "-c",
+        "import psutil,sys\n"
+        "for p in psutil.process_iter(['cmdline']):\n"
+        "  c=' '.join(p.info['cmdline'] or [])\n"
+        "  if ('server' in c and 'main.py' in c) or ('client' in c and 'main.py' in c) or 'gpt_sovits_server' in c:\n"
+        "    try: p.kill()\n"
+        "    except Exception: pass\n"],
+        capture_output=True)
+
+
+def restart_for(char):
+    """Full restart so the character's VOICE model loads (a hot-swap leaves the
+    sovits subprocess on the previous character — sprite changes but voice does
+    not). Sets config, kills app, relaunches server + client."""
+    print(f"[bench] restarting app for {char}…")
+    _set_active_char(char)
+    _kill_app()
+    time.sleep(3)
+    ensure_server()
+    ensure_client()
+
+
 def ensure_client():
     print("[bench] launching pygame client (the app window)…")
     os.makedirs(os.path.dirname(CLIENT_LOG), exist_ok=True)
@@ -146,11 +178,14 @@ def drive_live(prompt, body, settle=70):
 
 def run_char(char, live):
     print(f"=== {char} ===", flush=True)
-    try:
-        post("/admin/switch_character", {"character": char})
-    except Exception as e:
-        print(f"  switch failed: {e}")
-        return None
+    if live:
+        restart_for(char)          # full restart so the VOICE model loads
+    else:
+        try:
+            post("/admin/switch_character", {"character": char})
+        except Exception as e:
+            print(f"  switch failed: {e}")
+            return None
     time.sleep(2)
     rows = []
     for cat, prompt, speaker, visits, expect in BATTERY:
@@ -185,9 +220,10 @@ def main():
         i = args.index("--host"); BASE_URL = args[i + 1]; del args[i:i + 2]
     chars = args or DEFAULT_CHARS
 
-    ensure_server()
-    if live:
-        ensure_client()
+    # In live mode each character does its own full restart (for its voice);
+    # backend mode just needs the server once.
+    if not live:
+        ensure_server()
 
     results = {}
     for c in chars:
