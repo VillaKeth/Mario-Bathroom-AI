@@ -96,27 +96,28 @@ def _set_active_char(char):
 
 
 def _kill_app():
-    """Kill any running server + client + sovits so the next character starts
-    clean. Match by working DIRECTORY (cmdline is just 'python main.py' with cwd
-    set, so a cmdline match finds nothing and leaves duplicates — which made an
-    old client talk to the new character's server)."""
+    """Kill every running server + client + sovits so the next character starts
+    as a single clean instance. Matches the app's 'python main.py' (only this
+    project uses that here) and the sovits subprocess — by cmdline, no cwd()
+    (cwd access is unreliable on Windows and left duplicates running)."""
     import psutil
     me = os.getpid()
+    killed = 0
     for p in psutil.process_iter(["pid", "cmdline"]):
         if p.info["pid"] == me:
             continue
         cmd = " ".join(p.info.get("cmdline") or [])
         if "persona_bench" in cmd:
             continue
-        try:
-            if "gpt_sovits_server" in cmd:
-                p.kill(); continue
-            if "main.py" in cmd:
-                cwd = p.cwd()
-                if cwd and (cwd.endswith(os.sep + "server") or cwd.endswith(os.sep + "client")):
-                    p.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
+        if "main.py" in cmd or "gpt_sovits_server" in cmd:
+            try:
+                p.kill()
+                killed += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    if killed:
+        print(f"[bench] killed {killed} stale app process(es)", flush=True)
+    time.sleep(2)  # let ports/devices release
 
 
 def restart_for(char):
