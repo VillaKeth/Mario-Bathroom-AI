@@ -964,32 +964,5 @@ def main_with_recovery():
             continue
 
 
-def _enforce_single_client():
-    """Singleton: kill any other running client so only ONE client exists at a
-    time (a leftover client keeps its old character's sprites but talks to the
-    current server — cross-character mismatch). Server has the same guard via
-    its port. Matched by working directory since the cmdline is just
-    'python main.py'."""
-    try:
-        import psutil
-    except ImportError:
-        return
-    me = os.getpid()
-    here = os.path.dirname(os.path.abspath(__file__))
-    for p in psutil.process_iter(["pid", "cmdline"]):
-        if p.info["pid"] == me:
-            continue
-        cmd = " ".join(p.info.get("cmdline") or [])
-        if "main.py" not in cmd:
-            continue
-        try:
-            if p.cwd() == here:
-                logger.info(f"[STARTUP] Killing stale client PID {p.info['pid']} (singleton)")
-                p.kill()
-        except Exception:
-            pass
-
-
 if __name__ == "__main__":
-    _enforce_single_client()
     main_with_recovery()
