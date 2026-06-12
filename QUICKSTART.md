@@ -1,133 +1,33 @@
-# 🍄 Mario AI Party Bot — Quick Start Guide
+# ⚡ Quick Start — the shortest path
 
-> Get Mario running on a Threadripper setup in 10 minutes.
+Three double-clicks. No coding.
+
+```
+1.  setup.bat              ← install everything (run once)
+2.  create_character.bat   ← make your character in the browser wizard
+3.  start.bat              ← your character appears on screen — talk to it
+```
+
+(Mac/Linux: use `./setup.sh`, `./create_character.sh`, `./start.sh`.)
 
 ---
 
-## What You Need
+### Before step 1
+Install **Python 3.10+** from [python.org](https://www.python.org/downloads/) and
+**tick "Add Python to PATH"** during install. That's the only manual step.
 
-The server auto-detects your hardware via `server/hardware.py` and picks optimal settings:
+Optional for smarter replies: install **[Ollama](https://ollama.ai)** (the local AI
+brain). `setup` will pull a model for you if Ollama is present.
 
-| Tier | GPU VRAM | RAM | CPU Cores | LLM Model |
-|------|----------|-----|-----------|-----------|
-| **Ultra** (Threadripper) | ≥20 GB | ≥128 GB | ≥32 | gemma3:27b + llama3.1:8b |
-| High | ≥10 GB | ≥32 GB | ≥8 | llama3 (single) |
-| Medium | ≥6 GB | ≥16 GB | any | llama3 (single) |
-| Low | <6 GB | <16 GB | any | llama3 (single) |
+### In the wizard (step 2)
+Fill the boxes: name, personality, **🔎 Auto-find Voice** (pulls a real voice from
+YouTube), appearance (it draws the sprites), then **Create** + **Generate Content**.
+Set your **Event name** on the Review step. When it says done, the character is ready.
 
-Your Threadripper Pro (256GB RAM, 64+ cores) will auto-select **Ultra** tier.
+### Playing (step 3)
+- **Type** in the window, or **talk** if you have a mic.
+- **1–8** = instant games/jokes. **F1** = help. **F5** = party mode.
 
----
-
-## Step 1: Clone & Install (Server Machine)
-
-```bash
-git clone https://github.com/VillaKeth/Mario-Bathroom-AI.git
-cd Mario-Bathroom-AI
-
-# Install Python dependencies
-pip install -r server/requirements.txt
-
-# Install Ollama (https://ollama.ai)
-# Then pull the models:
-ollama pull gemma3:27b       # Quality model (~16GB download, fits 24GB VRAM)
-ollama pull llama3.1:8b      # Fast model (~4.7GB download)
-```
-
-## Step 2: Configure
-
-Edit `config.json`:
-```json
-{
-  "server": {
-    "birthday_person_name": "Jacob",
-    "party_location": "Main Bathroom",
-    "party_theme": "Jacob's Birthday Celebration",
-    "expected_guest_count": 15
-  }
-}
-```
-
-Everything else is `"auto"` — hardware.py handles it.
-
-## Step 3: Start the Server
-
-```bash
-# Windows
-start_server.bat
-
-# Linux/Mac
-./start_server.sh
-```
-
-You'll see:
-```
-[HARDWARE] Detected: 64 cores, 256GB RAM, 24GB VRAM (NVIDIA RTX ...) → tier=ultra
-✅ Mario AI Server running on 0.0.0.0:8765
-```
-
-## Step 4: Start the Client (Bathroom Laptop)
-
-```bash
-# Windows
-start_client.bat
-
-# Linux/Mac
-./start_client.sh
-```
-
-Press **F11** for fullscreen. Mario is live! 🎉
-
----
-
-## Key Controls
-
-| Key | Action |
-|-----|--------|
-| **F11** | Toggle fullscreen |
-| **F12** | PANIC MODE (mute everything) |
-| **F3** | Chat history sidebar |
-| **ESC** | Quit |
-
-## Dashboard (Monitor from Phone)
-
-```
-http://SERVER_IP:8765/dashboard
-```
-
-Shows health status, guest count, current party phase, GPU stats.
-
-## Hot Reload (No Restart)
-
-Edit `config_live.json` to adjust voice speed, idle timing, etc:
-```bash
-curl -X POST http://localhost:8765/api/reload
-```
-
----
-
-## What's Built In
-
-- **624 automated tests** — everything is verified
-- **Dual LLM** — 70B for quality + Mixtral for speed (auto-routed)
-- **4-phase night progression** — energy builds over 8 hours
-- **10 party games** — trivia, karaoke, RPS, truth/dare, riddles, etc.
-- **VIP birthday system** — Jacob gets special treatment + knowledge
-- **Lisa Webb memorial** — triggers at 45 min (moment of silence + toast)
-- **Gossip system** — tracks rivalries, alliances, trending topics across guests
-- **Memory** — SQLite + Qdrant vector DB, remembers every guest
-- **TTS fallback chain** — GPT-SoVITS → Fish Speech → Edge TTS → silence
-- **16 Nintendo SFX** — coin, powerup, victory, etc.
-- **Auto-recovery** — watchdog, circuit breakers, reconnection
-
-## Pre-Party Checklist
-
-```bash
-# Run smoke test
-python server/canary.py
-
-# Or via API
-curl http://localhost:8765/api/canary
-```
-
-All green = ready to party! 🎂
+### Stuck?
+Close the windows, run `start.bat` again (it cleans up old copies). Small GPU?
+Close Chrome/Teams to free memory. Full help: **[README.md](README.md)**.

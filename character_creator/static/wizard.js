@@ -1896,27 +1896,23 @@ class WizardUI {
                 if (details) {
                     details.innerHTML += `
                         <div class="success-card" style="margin-top: 1rem; border-color: #4ade80;">
-                            <p>🚀 <strong>Server is launching!</strong></p>
-                            <p>A new console window should appear. Once it says "Server started", your character is live!</p>
-                            <p>💡 <strong>Tip:</strong> Open the pygame client (run <code>python client/main.py</code>) to interact with ${charName}.</p>
+                            <p>🚀 <strong>${charName} is launching!</strong></p>
+                            <p>A window will open with your character on screen. Type or talk to them — that's it!</p>
+                            <p>💡 Next time, just double-click <code>start.bat</code> to play.</p>
                         </div>
                     `;
                 }
             } else {
-                // Fallback: give clear manual instructions
-                showToast('Could not auto-launch. See instructions below.', 'info');
+                // Fallback: dead-simple manual instructions (one double-click)
+                showToast('Almost there — one double-click to play. See below.', 'info');
                 const details = document.getElementById('success-details');
                 if (details) {
                     details.innerHTML += `
                         <div class="success-card" style="margin-top: 1rem; border-color: #fbbf24;">
-                            <p>⚡ <strong>Config updated!</strong> "${charName}" is now your active character.</p>
-                            <p>📋 <strong>To start:</strong></p>
-                            <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                                <li>Open a terminal in the project folder</li>
-                                <li>Run: <code>start.bat</code></li>
-                                <li>Wait for "Server started" message</li>
-                                <li>Run: <code>python client/main.py</code></li>
-                            </ol>
+                            <p>✅ <strong>${charName} is ready and set as your active character.</strong></p>
+                            <p>▶ <strong>To play:</strong> double-click <code>start.bat</code>
+                               (Windows) or run <code>./start.sh</code> (Mac/Linux) in the project folder.
+                               A window opens with ${charName} — type or talk to them.</p>
                         </div>
                     `;
                 }

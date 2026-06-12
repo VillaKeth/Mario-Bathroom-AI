@@ -1,6 +1,6 @@
 # 🎨 Creating a Character — Beginner's Guide
 
-Welcome! This guide will walk you through creating your own custom character for the Mario AI party bot using the **Character Creator Wizard**.
+Welcome! This guide walks you through creating your own custom AI party character using the **Character Creator Wizard** — no coding required.
 
 ---
 
@@ -231,22 +231,21 @@ See `docs/character-format.md` for detailed info on editing these files directly
 
 ## 🎮 Start Using Your Character
 
-1. **Start the main server:**
-   ```bash
-   start_server.bat          # Windows
-   ./start_server.sh         # Mac/Linux
-   ```
+**The easy way — one double-click:**
+```bash
+start.bat                 # Windows
+./start.sh                # Mac/Linux
+```
+This starts the server AND opens the character window for you. A window appears
+with your character on screen.
 
-2. **Start the client (in a second terminal):**
-   ```bash
-   start_client.bat          # Windows
-   ./start_client.sh         # Mac/Linux
-   ```
+**Interact with them:**
+- Type and press Enter (or speak, if a mic is connected)
+- Press 1–8 to start a game, F1 for help, F5 for party mode
+- They respond out loud in their own voice and personality!
 
-3. **Interact with your character:**
-   - Speak to them (or press TAB to type)
-   - Press 1-8 to start a game
-   - Your character will respond in their unique voice and personality!
+> Advanced: `start_server.bat` (brain only) and `start_client.bat` (window only)
+> exist if you ever want to run them separately. Most people never need to.
 
 ---
 
