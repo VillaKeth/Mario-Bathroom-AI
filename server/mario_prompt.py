@@ -338,36 +338,39 @@ def maybe_inject_catchphrase(response: str) -> str:
 # --- Question-Back System ---
 # Makes Mario ask follow-up questions ~25% of the time for more natural conversation flow
 
+# Character-AGNOSTIC follow-up questions. Must NOT contain Mario's accent or
+# self-reference — these get appended to EVERY character's responses, so any
+# Mario flavor here leaks into Reze, Jax, etc.
 QUESTION_TEMPLATES = {
     "food": [
-        "What's-a your favorite food?",
-        "You like-a spicy or mild?",
-        "Ever tried-a real Italian pasta?",
+        "What's your favorite food?",
+        "Do you like it spicy or mild?",
+        "What's the best thing you've eaten lately?",
     ],
     "hobby": [
-        "How long have you been-a doing that?",
-        "What's the most-a fun part?",
-        "Can you teach-a Mario sometime?",
+        "How long have you been doing that?",
+        "What's the most fun part?",
+        "What got you into it?",
     ],
     "people": [
-        "How do you-a know them?",
-        "Do they-a like video games?",
-        "Sounds like a good-a friend!",
+        "How do you know them?",
+        "Are they into the same stuff as you?",
+        "Sounds like a good friend!",
     ],
     "emotion": [
-        "What happened-a today?",
-        "Want to talk-a about it?",
-        "Mario's-a here for you!",
+        "What happened today?",
+        "Want to talk about it?",
+        "I'm here for you, you know.",
     ],
     "work": [
-        "Is that-a fun?",
-        "Do you like-a your job?",
-        "Sounds busy! You need-a vacation!",
+        "Is that fun?",
+        "Do you like your job?",
+        "Sounds busy! You need a vacation!",
     ],
     "games": [
-        "What's-a your favorite game?",
-        "Have you played-a any Mario games?",
-        "Are you-a good at it?",
+        "What's your favorite game?",
+        "What have you been playing lately?",
+        "Are you any good at it?",
     ],
 }
 

@@ -2696,6 +2696,12 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    # A response may still be generating/streaming (slow LLM + sovits can take
+    # 30s+ on a low-tier GPU). Idle must NOT slip in during that window, or the
+    # bot interrupts itself mid-conversation with a "talking to myself" line.
+    if _current_response_task is not None and not _current_response_task.done():
+        logger.debug("[IDLE] Suppressed idle send — response in progress")
+        return False
     async with _state_lock:
         if state_current.get("_user_request_active"):
             logger.debug("[IDLE] Suppressed idle send — user request active")
@@ -2703,13 +2709,14 @@ async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kw
         if state_current.get("memorial_active"):
             logger.debug("[IDLE] Suppressed idle send — memorial active")
             return False
-        # Final safety: suppress if user responded/typed recently
+        # Final safety: suppress if user responded/typed recently. Widened to
+        # 25s post-input so natural conversational pauses don't trigger idle.
         _resp_t = state_current.get("_response_completed_time", 0.0)
         _msg_t = state_current.get("_last_user_msg_time", 0.0)
-        if _resp_t and time.time() - _resp_t < 10.0:
+        if _resp_t and time.time() - _resp_t < 15.0:
             logger.debug("[IDLE] Suppressed idle send — post-response cooldown")
             return False
-        if _msg_t and time.time() - _msg_t < 5.0:
+        if _msg_t and time.time() - _msg_t < 25.0:
             logger.debug("[IDLE] Suppressed idle send — post-input cooldown")
             return False
     await send_response(ws, text, audio, **kwargs)
