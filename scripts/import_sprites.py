@@ -38,7 +38,7 @@ def _pose_index():
     return idx
 
 
-def _remove_flat_bg(src_path, out_path, tol=42, feather=1):
+def _remove_flat_bg(src_path, out_path, tol=46, feather=0):
     """Remove a FLAT studio background by flood-filling from the borders.
 
     Only pixels that are (a) close to the corner/background color AND (b)
