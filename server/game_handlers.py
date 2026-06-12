@@ -25,6 +25,54 @@ def set_character(name: str, display_name: str):
     _CHARACTER_DISPLAY_NAME = display_name
 
 
+# Mario-only verbal flavor that must NEVER leak into other characters.
+# These are stripped (or neutralized) from hardcoded game UI strings whenever
+# the active character is not Mario. Character-specific flavor for everyone
+# else comes from their own game YAML content pools, not from this module.
+import re as _re
+
+# Order matters: longer / accented forms first so they win before bare words.
+_RE_MAMA_MIA = _re.compile(r"\bMama mia!?\s*", _re.IGNORECASE)
+_RE_WAHOO = _re.compile(r"\bWAHOO!?\s*", _re.IGNORECASE)
+_RE_MARIOS_A = _re.compile(r"\bMario's-a\b", _re.IGNORECASE)
+# Strip the "-a" Italian-plumber accent: "Let's-a" -> "Let's", "I'm-a" -> "I'm".
+_RE_ACCENT_A = _re.compile(r"(\w)'?-a\b", _re.IGNORECASE)
+_RE_MARIO_WORD = _re.compile(r"\bMario word\b", _re.IGNORECASE)
+_RE_MARIO = _re.compile(r"\bMario\b")
+
+
+def _deflavor(text: str) -> str:
+    """Strip Mario-only verbal flavor from a game string for non-Mario characters.
+
+    For Mario this is a no-op (he keeps his accent and catchphrases). For every
+    other character we remove "Wahoo"/"Mama mia"/"Mario's-a" and the "-a" accent,
+    and substitute the active character's display name for any "Mario" mention.
+    """
+    if not text or _CHARACTER_NAME == "mario":
+        return text
+    out = text
+    out = _RE_MAMA_MIA.sub("", out)
+    out = _RE_WAHOO.sub("", out)
+    out = _RE_MARIOS_A.sub(_CHARACTER_DISPLAY_NAME, out)
+    out = _RE_ACCENT_A.sub(r"\1", out)
+    out = _RE_MARIO_WORD.sub("word", out)
+    # Any remaining bare "Mario" -> display name.
+    out = _RE_MARIO.sub(_CHARACTER_DISPLAY_NAME, out)
+    # Tidy whitespace artifacts from removals.
+    out = _re.sub(r"\s{2,}", " ", out).strip()
+    return out
+
+
+def _deflavor_result(result):
+    """Apply _deflavor to a game return value (str, or (text, hint) tuple, or None)."""
+    if result is None:
+        return None
+    if isinstance(result, tuple):
+        text, *rest = result
+        return (_deflavor(text), *rest)
+    return _deflavor(result)
+
+
 _GAME_POOL_NAMES = (
     "SIMON_ACTIONS",
     "TWENTY_Q_THINGS",
@@ -413,6 +461,11 @@ def reset_game_rotation():
 # ---------------------------------------------------------------------------
 
 def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | None:
+    """Public entry: start a game, then strip Mario-only flavor for non-Mario chars."""
+    return _deflavor_result(_start_game_impl(game_name, state, config, emotion_sys))
+
+
+def _start_game_impl(game_name: str, state: dict, config: dict, emotion_sys) -> str | None:
     """Set up game state and return the intro text.
 
     Args:
@@ -710,6 +763,11 @@ def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | 
 # ---------------------------------------------------------------------------
 
 def handle_game_input(lower: str, state: dict, emotion_sys) -> tuple[str, str] | None:
+    """Public entry: handle game input, then strip Mario-only flavor for non-Mario chars."""
+    return _deflavor_result(_handle_game_input_impl(lower, state, emotion_sys))
+
+
+def _handle_game_input_impl(lower: str, state: dict, emotion_sys) -> tuple[str, str] | None:
     """Handle input while a game mode is active. Returns (response, sound_hint) or None."""
     game = state.get("_active_game")
     if not game:

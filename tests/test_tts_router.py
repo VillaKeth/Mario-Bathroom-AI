@@ -72,13 +72,44 @@ class TestCatchphraseBank:
         assert isinstance(result, bytes)
         assert len(result) > 44  # WAV header + some data
 
-    def test_catchphrase_list_has_expected_entries(self):
+    def test_matching_is_driven_by_loaded_wavs_not_hardcoded_list(self, tmp_path):
+        """The bank must NOT carry a hardcoded Mario phrase list.
+
+        Matching is derived solely from the WAV files present in the character's
+        catchphrase directory, so a character with no clips matches nothing and
+        Mario phrases can never leak into another character.
+        """
         from catchphrase_bank import CatchphraseBank
 
-        bank = CatchphraseBank()
-        expected = ["wahoo", "mama mia", "lets-a go", "its-a me mario", "yahoo", "okie dokie", "here we go"]
-        for phrase in expected:
-            assert phrase in bank.CATCHPHRASES
+        # No hardcoded list attribute should exist anymore.
+        assert not hasattr(CatchphraseBank, "CATCHPHRASES")
+
+        # Empty dir → nothing matches, not even classic Mario phrases.
+        bank = CatchphraseBank(assets_dir=str(tmp_path))
+        assert bank.is_available() is False
+        for phrase in ("Wahoo!", "Mama mia!", "Let's-a go!", "It's-a me Mario!"):
+            assert bank.match(phrase) is None
+
+    def test_match_uses_only_this_characters_clips(self, tmp_path):
+        """A character only ever matches phrases it ships a WAV for."""
+        import wave
+        import struct
+
+        from catchphrase_bank import CatchphraseBank
+
+        # This "character" only ships a single, non-Mario clip.
+        wav_path = tmp_path / "let_me_carve_you_up.wav"
+        with wave.open(str(wav_path), "w") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(22050)
+            wf.writeframes(struct.pack("<h", 0) * 100)
+
+        bank = CatchphraseBank(assets_dir=str(tmp_path))
+        assert bank.match("let me carve you up") is not None
+        # Mario phrases never match because no Mario WAV was loaded.
+        assert bank.match("Wahoo!") is None
+        assert bank.match("Mama mia!") is None
 
 
 class TestTTSRouter:

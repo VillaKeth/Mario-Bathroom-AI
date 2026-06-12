@@ -8,6 +8,25 @@ from datetime import datetime
 import os
 import json as _json
 
+# Active character. Mario-only verbal flavor (catchphrases, "-a" accent, Mario
+# trivia, opener interjections) is gated so it NEVER leaks into other characters.
+_CHARACTER_NAME = "mario"
+_CHARACTER_DISPLAY_NAME = "Mario"
+
+
+def set_character(name: str, display_name: str):
+    """Set the active character so Mario-only flavor stays gated to Mario."""
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+    if name:
+        _CHARACTER_NAME = name
+    if display_name:
+        _CHARACTER_DISPLAY_NAME = display_name
+
+
+def _is_mario() -> bool:
+    return (_CHARACTER_NAME or "").lower() == "mario"
+
+
 _VIP_PROFILES_DIR = os.path.join(os.path.dirname(__file__), "data", "vip_profiles")
 _vip_cache = {}
 
@@ -326,6 +345,9 @@ CATCHPHRASES = [
 
 def maybe_inject_catchphrase(response: str) -> str:
     """15% chance to prepend a Mario catchphrase if response doesn't already start with one."""
+    # Mario-only flavor — other characters get their catchphrases from their own files.
+    if not _is_mario():
+        return response
     if random.random() > 0.15:
         return response
     lower_start = response[:20].lower()
@@ -480,11 +502,17 @@ def check_opener_variety(response: str) -> str:
     global _recent_openers
     opener = response.split('.')[0].split('!')[0].split('?')[0][:30].strip().lower()
     if opener in _recent_openers:
-        # Add a variety prefix to break the pattern
-        variety_prefixes = [
-            "Well well well!", "Oh oh oh!", "Ay ay ay!",
-            "Mama mia!", "Wahoo!", "Hmm!",
-        ]
+        # Add a variety prefix to break the pattern. The Mario-accented prefixes
+        # are gated to Mario; everyone else gets character-agnostic ones.
+        if _is_mario():
+            variety_prefixes = [
+                "Well well well!", "Oh oh oh!", "Ay ay ay!",
+                "Mama mia!", "Wahoo!", "Hmm!",
+            ]
+        else:
+            variety_prefixes = [
+                "Well well well!", "Oh!", "Hmm!", "Huh!", "Okay!", "Right!",
+            ]
         prefix = random.choice(variety_prefixes)
         response = prefix + " " + response
     _recent_openers.append(opener)
@@ -513,6 +541,9 @@ MARIO_TRIVIA = [
 
 def maybe_add_trivia(response: str, exchange_count: int) -> str:
     """~8% chance to drop a Mario fun fact after 5+ exchanges."""
+    # Hardcoded facts are Mario-specific; never inject them into other characters.
+    if not _is_mario():
+        return response
     if exchange_count < 5:
         return response
     if random.random() > 0.08:

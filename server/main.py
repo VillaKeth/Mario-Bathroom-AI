@@ -702,6 +702,7 @@ async def lifespan(app: FastAPI):
         tts.set_voice_config(_character.voice_config, _character.name)
     llm.set_character(_character.name, _character.display_name)
     safety_filter.set_character(_character.name, _character.display_name)
+    mario_prompt.set_character(_character.name, _character.display_name)
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
     command_handlers.set_character(_character.name, _character.display_name)
@@ -2234,10 +2235,11 @@ async def admin_switch_character(request_body: dict = {}):
         tts.set_pronunciation(_character.pronunciation)
         llm.set_character(_character.name, _character.display_name)
         safety_filter.set_character(_character.name, _character.display_name)
+        mario_prompt.set_character(_character.name, _character.display_name)
         _game_handlers_mod.set_character(_character.name, _character.display_name)
         _game_handlers_mod.load_character_pools(_character)
         command_handlers.set_character(_character.name, _character.display_name)
-        
+
         _extras = _character.get_extras_content()
         if _extras:
             command_handlers.set_character_content(_extras)

@@ -16,21 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 class CatchphraseBank:
-    """Maps Mario catchphrases to pre-recorded WAV files.
+    """Maps a character's catchphrases to pre-recorded WAV files.
 
     Attempts to load WAV files from assets_dir, keyed by normalized phrase.
     Files should be named like: wahoo.wav, mama_mia.wav, lets-a_go.wav, etc.
-    """
 
-    CATCHPHRASES = [
-        "wahoo",
-        "mama mia",
-        "lets-a go",
-        "its-a me mario",
-        "yahoo",
-        "okie dokie",
-        "here we go",
-    ]
+    The set of matchable phrases is derived ENTIRELY from the WAV files that
+    actually exist in ``assets_dir`` — there is no hardcoded phrase list. This
+    guarantees a non-Mario character can only ever play its OWN catchphrase
+    clips, and never Mario's. If a character ships no catchphrase WAVs, the bank
+    matches nothing.
+    """
 
     def __init__(self, assets_dir: str = "assets/catchphrases"):
         self._assets_dir = assets_dir
@@ -74,21 +70,16 @@ class CatchphraseBank:
         return text
 
     def match(self, text: str) -> bytes | None:
-        """Return WAV bytes if text is an exact catchphrase match, else None.
+        """Return WAV bytes if text exactly matches a loaded catchphrase clip, else None.
 
-        Normalizes input text before matching against known catchphrases.
-        Returns cached WAV bytes or None.
+        Matching is driven solely by the WAV files loaded from this character's
+        catchphrase directory. No hardcoded phrase list is consulted, so a
+        character can only ever return its own clips.
         """
         normalized = self.normalize(text)
-        if normalized not in self.CATCHPHRASES:
-            return None
-
         if normalized in self._cache:
             logger.debug(f"[catchphrase_bank] Catchphrase HIT: '{normalized}'")
             return self._cache[normalized]
-
-        # Catchphrase recognized but no WAV file available
-        logger.debug(f"[catchphrase_bank] Catchphrase recognized but no WAV file: '{normalized}'")
         return None
 
     def is_available(self) -> bool:
