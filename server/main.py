@@ -1736,6 +1736,69 @@ async def admin_announce(request_body: dict = {}):
     return {"status": "ok", "message": f"Announcement queued: {text[:50]}..."}
 
 
+@app.post("/admin/probe")
+async def admin_probe(request_body: dict = {}):
+    """Test-bench probe: run the full LLM response pipeline for a prompt and
+    RETURN the response directly (no TTS, no WebSocket, no client needed).
+
+    body: {text, speaker_name?, visit_count?}
+    Returns: {text, emotion, energy, was_fallback, model, temperament, char}
+    Used by scripts/persona_bench.py to evaluate persona consistency.
+    """
+    text = (request_body.get("text") or "").strip()
+    if not text:
+        return {"error": "text required"}
+    speaker_name = request_body.get("speaker_name")
+    visit_count = int(request_body.get("visit_count", 0) or 0)
+
+    # Build context the same way the live pipeline does
+    memories = []
+    vip_facts = []
+    if _HAS_SEMANTIC and speaker_name:
+        try:
+            vip_facts = vip_knowledge.get_vip_facts_for_prompt(speaker_name)
+        except Exception:
+            vip_facts = []
+    ctx = mario_prompt.build_context(
+        speaker_name=speaker_name,
+        memories=memories,
+        phase_modifier=_get_night_phase_modifier(),
+    )
+    _inject_birthday_always_on(ctx)
+    temperament = ""
+    try:
+        temperament = _character.get_temperament_prompt(visit_count)
+        if temperament:
+            ctx.append({"role": "system", "content": temperament})
+    except Exception:
+        pass
+    ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
+    if vip_facts:
+        ctx.append({"role": "system", "content": "VIP KNOWLEDGE:\n" + "\n".join(vip_facts)})
+
+    try:
+        _routing = llm_router.classify(text, response_type=_infer_response_type(text, state_current))
+        _model = llm_router.get_model(_routing)
+        llm_response = await asyncio.wait_for(
+            llm.generate_response(ctx, text, model=_model),
+            timeout=float(GAME_CONFIG["llm_timeout"]))
+        return {
+            "text": llm_response.get("text", ""),
+            "emotion": llm_response.get("emotion"),
+            "energy": llm_response.get("energy"),
+            "was_fallback": llm_response.get("was_fallback", False),
+            "model": _model,
+            "temperament": temperament,
+            "char": _character.name,
+            "speaker_name": speaker_name,
+            "visit_count": visit_count,
+        }
+    except asyncio.TimeoutError:
+        return {"error": "llm_timeout", "char": _character.name, "text": ""}
+    except Exception as e:
+        return {"error": str(e), "char": _character.name, "text": ""}
+
+
 @app.post("/admin/simulate_text")
 async def admin_simulate_text(request_body: dict = {}):
     """Admin: Simulate text input as if a user typed it (uses active WS connection)."""
