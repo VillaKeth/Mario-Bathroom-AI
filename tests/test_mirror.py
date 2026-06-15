@@ -181,3 +181,20 @@ def test_sender_active_stores_latest_frame_and_queues_audio():
     assert s._latest == (b"\x04\x05\x06", (1, 1))
     s.send_audio(b"RIFFdata")
     assert s._audio_q.get_nowait() == b"RIFFdata"
+
+
+# ---------------------------------------------------------------------------
+# Task 6: ws_client routes mirror_request -> on_mirror_request
+# ---------------------------------------------------------------------------
+
+import json as _json
+from ws_client import MarioWSClient  # client dir already on sys.path
+
+def test_ws_client_routes_mirror_request():
+    c = MarioWSClient("ws://localhost:8765/ws")
+    got = {}
+    c.on_mirror_request = lambda active: got.update(active=active)
+    c._on_message(None, _json.dumps({"type": "mirror_request", "active": True}))
+    assert got == {"active": True}
+    c._on_message(None, _json.dumps({"type": "mirror_request", "active": False}))
+    assert got == {"active": False}
