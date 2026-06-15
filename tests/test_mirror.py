@@ -1,3 +1,4 @@
+import asyncio
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
 import mirror
@@ -94,3 +95,37 @@ async def test_broadcast_sends_to_all_and_drops_dead():
     await mirror.broadcast(b"\x01frame")
     assert good.sent_bytes == [b"\x01frame"]
     assert mirror.viewer_count() == 1
+
+
+@pytest.mark.asyncio
+async def test_no_duplicate_or_spurious_capture_signals():
+    station = FakeWS()
+    mirror.set_active_ws_getter(lambda: station)
+    v1, v2 = FakeWS(), FakeWS()
+    await mirror.add_viewer(v1)      # start (1)
+    await mirror.add_viewer(v2)      # no signal (already active)
+    await mirror.remove_viewer(v2)   # still 1 viewer -> no stop
+    await mirror.remove_viewer(v2)   # phantom (already gone) -> no signal
+    await mirror.remove_viewer(v1)   # last out -> stop (1)
+    starts = [m for m in station.sent_json if m.get("type") == "mirror_request" and m.get("active")]
+    stops = [m for m in station.sent_json if m.get("type") == "mirror_request" and not m.get("active")]
+    assert len(starts) == 1
+    assert len(stops) == 1
+
+
+@pytest.mark.asyncio
+async def test_broadcast_drops_hanging_viewer_without_blocking_others(monkeypatch):
+    monkeypatch.setattr(mirror, "_SEND_TIMEOUT", 0.05)
+    mirror.set_active_ws_getter(lambda: None)
+
+    class HangingWS(FakeWS):
+        async def send_bytes(self, data):
+            await asyncio.sleep(5)   # never completes within the timeout
+
+    good = FakeWS()
+    slow = HangingWS()
+    await mirror.add_viewer(good)
+    await mirror.add_viewer(slow)
+    await mirror.broadcast(b"\x01frame")
+    assert good.sent_bytes == [b"\x01frame"]   # good viewer got it despite slow one
+    assert mirror.viewer_count() == 1           # hanging viewer was dropped

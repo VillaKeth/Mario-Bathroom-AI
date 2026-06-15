@@ -48,13 +48,16 @@ def authorize_friend_input(token: str, pin: str, mcfg: dict, control_mode: str):
 
 _viewers: set = set()
 _active_ws_getter = None  # callable returning the pygame client's WebSocket or None
+_capture_active = False        # last capture state we signaled to the pygame client
+_SEND_TIMEOUT = 2.0            # per-viewer send timeout (seconds); module-level so tests can override
 
 
 def reset_state():
     """Test helper: clear all module state."""
-    global _viewers, _active_ws_getter
+    global _viewers, _active_ws_getter, _capture_active
     _viewers = set()
     _active_ws_getter = None
+    _capture_active = False
 
 
 def set_active_ws_getter(fn):
@@ -77,28 +80,45 @@ async def _signal_capture(active: bool):
             print(f"[mirror] _signal_capture failed (ignored): {e}")
 
 
+async def _sync_capture_state():
+    """Signal the pygame client only when the desired capture state changes.
+    desired = (there is at least one viewer). Idempotent: no change -> no signal."""
+    global _capture_active
+    desired = len(_viewers) > 0
+    if desired != _capture_active:
+        _capture_active = desired
+        await _signal_capture(desired)
+
+
 async def add_viewer(ws):
-    first = len(_viewers) == 0
     _viewers.add(ws)
-    if first:
-        await _signal_capture(True)
+    await _sync_capture_state()
 
 
 async def remove_viewer(ws):
+    existed = ws in _viewers
     _viewers.discard(ws)
-    if len(_viewers) == 0:
-        await _signal_capture(False)
+    if existed:
+        await _sync_capture_state()
 
 
 async def broadcast(data: bytes):
-    """Fan out one tagged binary message to all viewers; drop dead sockets."""
-    dead = []
-    for ws in list(_viewers):
+    """Fan out one tagged binary message to all viewers concurrently.
+    Drop sockets that error or exceed _SEND_TIMEOUT; never let one slow
+    viewer block the others."""
+    if not _viewers:
+        return
+
+    async def _safe_send(ws):
         try:
-            await ws.send_bytes(data)
+            await asyncio.wait_for(ws.send_bytes(data), timeout=_SEND_TIMEOUT)
+            return None
         except Exception:
-            dead.append(ws)
+            return ws
+
+    results = await asyncio.gather(*[_safe_send(ws) for ws in list(_viewers)])
+    dead = [ws for ws in results if ws is not None]
     for ws in dead:
         _viewers.discard(ws)
-    if dead and len(_viewers) == 0:
-        await _signal_capture(False)
+    if dead:
+        await _sync_capture_state()
