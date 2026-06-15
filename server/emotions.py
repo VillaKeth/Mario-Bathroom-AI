@@ -137,8 +137,10 @@ def _infer_emotion_from_text(text: str) -> tuple[str, float]:
     # High-energy positive
     if any(w in lower for w in ["wahoo", "woohoo", "yahoo", "yippee", "magnifico", "bellissimo"]):
         return Emotion.EXCITED, 0.9
-    if any(w in lower for w in ["love", "grazie", "thank", "amore", "bellissim"]):
-        return Emotion.LOVING, 0.8
+    if any(w in lower for w in ["i love you", "love you", "adore you", "soulmate", "marry me", "crush on you"]):
+        return Emotion.LOVING, 0.85
+    if any(w in lower for w in ["thank", "grazie", "appreciate", "so kind"]):
+        return Emotion.HAPPY, 0.8
     if any(w in lower for w in ["ha ha", "haha", "ahaha", "hilarious", "funny", "lmao"]):
         return Emotion.LAUGHING, 0.85
     if any(w in lower for w in ["proud", "champion", "hero", "amazing", "incredible"]):
@@ -398,8 +400,11 @@ class EmotionSystem:
             self._last_interaction = now
             lower = transcript.lower()
 
-            if any(w in lower for w in ["love", "awesome", "amazing", "great", "best", "beautiful", "wonderful"]):
+            if any(w in lower for w in ["i love you", "love you", "adore you", "soulmate", "marry me", "crush on you"]):
                 self.current = Emotion.LOVING
+                self.intensity = 0.85
+            elif any(w in lower for w in ["love it", "love this", "i love", "awesome", "amazing", "great", "best", "beautiful", "wonderful"]):
+                self.current = Emotion.EXCITED
                 self.intensity = 0.9
             elif any(w in lower for w in ["what", "huh", "confused", "don't understand", "makes no sense"]):
                 self.current = Emotion.CONFUSED

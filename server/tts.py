@@ -58,6 +58,59 @@ def _load_debug_flag():
 
 DEBUG_TTS = _load_debug_flag()
 
+
+def _split_text_for_tts(text: str, max_chars: int = 120) -> list:
+    """Split text into <=max_chars segments WITHOUT dropping any content.
+    Prefers sentence boundaries, then clause, then word, then hard cut."""
+    text = (text or "").strip()
+    if len(text) <= max_chars:
+        return [text] if text else []
+    segments = []
+    remaining = text
+    while len(remaining) > max_chars:
+        window = remaining[:max_chars]
+        cut = -1
+        for sep in ['. ', '! ', '? ', '; ', ', ', ' ']:
+            idx = window.rfind(sep)
+            if idx > 0:
+                cut = idx + len(sep)
+                break
+        if cut <= 0:
+            cut = max_chars  # no boundary found -> hard cut, still keeps everything
+        segments.append(remaining[:cut].strip())
+        remaining = remaining[cut:].strip()
+    if remaining:
+        segments.append(remaining)
+    return [s for s in segments if s]
+
+
+def _concat_wav_bytes(wav_list: list) -> bytes:
+    """Concatenate multiple WAV byte-strings (same format) into one WAV."""
+    wav_list = [w for w in wav_list if w]
+    if not wav_list:
+        return b""
+    if len(wav_list) == 1:
+        return wav_list[0]
+    out_io = io.BytesIO()
+    writer = None
+    try:
+        for w in wav_list:
+            with wave.open(io.BytesIO(w), 'rb') as r:
+                if writer is None:
+                    writer = wave.open(out_io, 'wb')
+                    writer.setnchannels(r.getnchannels())
+                    writer.setsampwidth(r.getsampwidth())
+                    writer.setframerate(r.getframerate())
+                writer.writeframes(r.readframes(r.getnframes()))
+    except Exception:
+        # If any WAV is malformed, fall back to the first segment rather than crash.
+        return wav_list[0]
+    finally:
+        if writer is not None:
+            writer.close()
+    return out_io.getvalue()
+
+
 # --- Monkey-patches (MUST run before importing TTS) ---
 if _TORCH_AVAILABLE:
     _original_torch_load = torch.load
@@ -868,53 +921,59 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
             # Double-check process is still alive inside the lock
             if _sovits_process.poll() is not None:
                 raise RuntimeError("GPT-SoVITS subprocess died before request")
-            # Truncate long text to prevent extremely slow synthesis (87s+ for long strings)
+
             MAX_SOVITS_CHARS = 120
-            if len(text) > MAX_SOVITS_CHARS:
-                # Cut at last sentence boundary within limit
-                truncated = text[:MAX_SOVITS_CHARS]
-                for sep in ['. ', '! ', '? ', ', ']:
-                    idx = truncated.rfind(sep)
-                    if idx > 30:
-                        truncated = truncated[:idx + 1]
-                        break
-                text = truncated.strip()
-                if DEBUG_TTS:
-                    logger.info(f"[DEBUG_TTS] sovits: truncated to {len(text)} chars")
-            _req = {"text": text, "speed": speed}
-            # Carry the active character's reference clip + transcript so cloning
-            # targets THIS character even without a subprocess restart.
+
+            # Build reference audio config once (shared across all segments)
             _ref = _voice_cfg.get("reference_audio")
-            if _ref and os.path.exists(_ref):
-                _req["ref_audio"] = _ref
-                if _voice_cfg.get("prompt_text"):
-                    _req["prompt_text"] = _voice_cfg["prompt_text"]
-                if _voice_cfg.get("prompt_lang"):
-                    _req["prompt_lang"] = _voice_cfg["prompt_lang"]
-            req = _json.dumps(_req) + "\n"
-            _sovits_process.stdin.write(req)
-            _sovits_process.stdin.flush()
-            # Use a thread to read with timeout (prevent 87s+ blocking)
+            _ref_exists = _ref and os.path.exists(_ref)
+
             import concurrent.futures
-            def _read_line():
-                return _sovits_process.stdout.readline().strip()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(_read_line)
-                line = future.result(timeout=30)  # 30s max per synthesis
-            if not line:
-                raise RuntimeError("GPT-SoVITS subprocess returned empty response")
-            resp = _json.loads(line)
-            if resp.get("status") != "ok":
-                raise RuntimeError(f"GPT-SoVITS error: {resp.get('error', 'unknown')}")
-            audio_path = resp["audio_path"]
-            if DEBUG_TTS:
-                logger.info(f"[DEBUG_TTS] sovits: generated {resp['duration']:.1f}s audio in {resp['elapsed']:.1f}s")
-            with open(audio_path, "rb") as f:
-                wav_bytes = f.read()
-            try:
-                os.unlink(audio_path)
-            except OSError:
-                pass
+
+            def _one(seg_text):
+                """Synthesize one <=120-char segment; returns wav bytes."""
+                _req = {"text": seg_text, "speed": speed}
+                # Carry the active character's reference clip + transcript so cloning
+                # targets THIS character even without a subprocess restart.
+                if _ref_exists:
+                    _req["ref_audio"] = _ref
+                    if _voice_cfg.get("prompt_text"):
+                        _req["prompt_text"] = _voice_cfg["prompt_text"]
+                    if _voice_cfg.get("prompt_lang"):
+                        _req["prompt_lang"] = _voice_cfg["prompt_lang"]
+                req = _json.dumps(_req) + "\n"
+                _sovits_process.stdin.write(req)
+                _sovits_process.stdin.flush()
+                # Use a thread to read with timeout (prevent 87s+ blocking)
+                def _read_line():
+                    return _sovits_process.stdout.readline().strip()
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(_read_line)
+                    line = future.result(timeout=30)  # 30s max per synthesis
+                if not line:
+                    raise RuntimeError("GPT-SoVITS subprocess returned empty response")
+                resp = _json.loads(line)
+                if resp.get("status") != "ok":
+                    raise RuntimeError(f"GPT-SoVITS error: {resp.get('error', 'unknown')}")
+                audio_path = resp["audio_path"]
+                if DEBUG_TTS:
+                    logger.info(f"[DEBUG_TTS] sovits: generated {resp['duration']:.1f}s audio in {resp['elapsed']:.1f}s")
+                with open(audio_path, "rb") as f:
+                    _wav = f.read()
+                try:
+                    os.unlink(audio_path)
+                except OSError:
+                    pass
+                return _wav
+
+            # Split into <=120-char segments so ALL text is synthesized (never dropped)
+            segments = _split_text_for_tts(text, MAX_SOVITS_CHARS)
+            if not segments:
+                segments = [text]
+            if DEBUG_TTS and len(segments) > 1:
+                logger.info(f"[DEBUG_TTS] sovits: splitting {len(text)} chars into {len(segments)} segments (no drop)")
+            wavs = [_one(seg) for seg in segments]
+            wav_bytes = _concat_wav_bytes(wavs)
             # Reset restart counter on success
             _sovits_restart_count = 0
             return wav_bytes
