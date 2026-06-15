@@ -78,6 +78,7 @@ from watchdog import DegradationTier
 from birthday_vip import BirthdayVIP
 from sound_events import SoundEventManager
 from catchphrase_mirror import CatchphraseMirror
+import mirror as mirror_relay
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -1153,6 +1154,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Mario AI Server", lifespan=lifespan)
+mirror_relay.set_active_ws_getter(lambda: _active_ws)
+_MIRROR_CFG = mirror_relay.get_mirror_config(config)
+mirror_relay.set_control_mode(_MIRROR_CFG.get("control_mode", "station"))
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8765", "http://127.0.0.1:8765", "http://localhost:3000", "http://127.0.0.1:3000"], allow_methods=["*"], allow_headers=["*"])
 
 # Mount dashboard routes
@@ -2552,6 +2556,37 @@ async def websocket_endpoint(ws: WebSocket):
         except asyncio.CancelledError:
             pass
         _active_ws = None
+
+
+@app.websocket("/mirror_ingest")
+async def mirror_ingest_endpoint(ws: WebSocket):
+    """The pygame client pushes tagged binary (frames + audio) here; we relay verbatim."""
+    await ws.accept()
+    try:
+        while True:
+            msg = await ws.receive()
+            data = msg.get("bytes")
+            if data is None:
+                if msg.get("type") == "websocket.disconnect":
+                    break
+                continue
+            await mirror_relay.broadcast(data)
+    except Exception as e:
+        print(f"[mirror] ingest closed: {e}")
+
+
+@app.websocket("/mirror")
+async def mirror_viewer_endpoint(ws: WebSocket):
+    """A browser viewer. Receives relayed frames + audio. Never drives the bot."""
+    await ws.accept()
+    await mirror_relay.add_viewer(ws)
+    try:
+        while True:
+            await ws.receive_text()
+    except Exception:
+        pass
+    finally:
+        await mirror_relay.remove_viewer(ws)
 
 
 async def _heartbeat_loop(ws: WebSocket):

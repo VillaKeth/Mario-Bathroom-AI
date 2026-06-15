@@ -50,14 +50,25 @@ _viewers: set = set()
 _active_ws_getter = None  # callable returning the pygame client's WebSocket or None
 _capture_active = False        # last capture state we signaled to the pygame client
 _SEND_TIMEOUT = 2.0            # per-viewer send timeout (seconds); module-level so tests can override
+_control_mode = "station"
+
+
+def set_control_mode(mode: str):
+    global _control_mode
+    _control_mode = "remote" if mode == "remote" else "station"
+
+
+def get_control_mode() -> str:
+    return _control_mode
 
 
 def reset_state():
     """Test helper: clear all module state."""
-    global _viewers, _active_ws_getter, _capture_active
+    global _viewers, _active_ws_getter, _capture_active, _control_mode
     _viewers = set()
     _active_ws_getter = None
     _capture_active = False
+    _control_mode = "station"
 
 
 def set_active_ws_getter(fn):

@@ -198,3 +198,13 @@ def test_ws_client_routes_mirror_request():
     assert got == {"active": True}
     c._on_message(None, _json.dumps({"type": "mirror_request", "active": False}))
     assert got == {"active": False}
+
+
+@pytest.mark.asyncio
+async def test_ingest_relay_is_verbatim():
+    mirror.set_active_ws_getter(lambda: None)
+    v = FakeWS()
+    await mirror.add_viewer(v)
+    await mirror.broadcast(b"\x02RIFFwav")
+    await mirror.broadcast(b"\x01\xff\xd8jpg")
+    assert v.sent_bytes == [b"\x02RIFFwav", b"\x01\xff\xd8jpg"]
