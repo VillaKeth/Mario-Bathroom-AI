@@ -24,5 +24,9 @@ GENERATED_IMAGE_MARKERS = ("/backend-api/", "oaiusercontent.com")
 LOGIN_URL_FRAGMENT = "/auth/login"
 # Cloudflare / challenge interstitials commonly show this in body text.
 CHALLENGE_TEXT_MARKERS = ("Verify you are human", "Just a moment", "Checking your browser")
-# Usage-limit banner text marker.
-USAGE_LIMIT_MARKERS = ("You've reached", "usage limit", "limit reached")
+# Usage-limit / throttle text markers — generation halts (not retries) on these.
+USAGE_LIMIT_MARKERS = (
+    "You've reached", "usage limit", "limit reached",
+    "too many requests", "try again later", "rate limit",
+    "you can create", "come back later",
+)
