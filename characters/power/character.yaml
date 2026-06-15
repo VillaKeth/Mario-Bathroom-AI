@@ -66,7 +66,7 @@ visuals:
     worried: negative/nervous
     solemn: memorial/moment_of_silence
     celebratory: party/celebrate
-    bored: sleep/yawning
+    bored: sleep/sleepy
     sleepy: sleep/sleepy
     neutral: neutral/idle
     memorial: memorial/moment_of_silence

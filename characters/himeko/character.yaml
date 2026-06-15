@@ -30,31 +30,31 @@ visuals:
   emotion_sprite_map:
     happy: positive/happy
     excited: positive/excited
-    surprised: reactions/shocked
+    surprised: thinking/shocked
     confused: thinking/confused
     annoyed: negative/annoyed
-    sleepy: sleep/yawning
-    mischievous: thinking/scheming
+    sleepy: sleep/sleepy
+    mischievous: thinking/mischievous
     laughing: positive/laughing
     sad: negative/sad
     angry: negative/angry
     nervous: negative/nervous
-    scared: negative/startled
-    love: positive/charmed
-    loving: positive/charmed
-    proud: positive/confident
+    scared: negative/scared
+    love: positive/love
+    loving: positive/love
+    proud: positive/proud
     embarrassed: negative/embarrassed
     disgusted: negative/disgusted
-    determined: thinking/focused
-    bored: sleep/yawning
+    determined: thinking/determined
+    bored: sleep/sleepy
     worried: negative/nervous
     curious: thinking/curious
-    thinking: thinking/pondering
-    shocked: reactions/shocked
+    thinking: thinking/thinking
+    shocked: thinking/shocked
     idea: thinking/idea
     frustrated: negative/annoyed
     neutral: neutral/idle
-    memorial: memorial/respectful
+    memorial: memorial/moment_of_silence
     toast: toast/raising_glass
     party: party/celebrate
     mind_blown: reactions/mind_blown
@@ -62,20 +62,20 @@ visuals:
     cringe: reactions/cringe
     impressed: reactions/impressed
     celebratory: party/celebrate
-    solemn: memorial/respectful
-    birthday: party/birthday
+    solemn: memorial/moment_of_silence
+    birthday: birthday/birthday
     sarcastic: reactions/sassy
   state_sprite_map:
     idle: neutral/idle
     talking:
     - speech/talking
-    - speech/explaining
+    - speech/talking_excited
     listening: speech/listening
     greeting: greeting/wave
-    thinking: thinking/pondering
+    thinking: thinking/thinking
     sleeping: sleep/sleeping
     dancing:
-    - movement/action
+    - movement/dancing
     - party/celebrate
     entering: movement/entering
     exiting: greeting/farewell
