@@ -11,10 +11,14 @@ def _err(msg: str) -> dict:
 
 
 @mcp.tool()
-async def chatgpt_new_thread(prompt: str) -> dict:
-    """Start a new ChatGPT conversation. Returns {thread_id, response:{text,images,timed_out}}."""
+async def chatgpt_new_thread(prompt: str, account: str = "default") -> dict:
+    """Start a new ChatGPT conversation. Returns {thread_id, response:{text,images,timed_out}}.
+
+    `account` selects which logged-in profile to use (e.g. "default", "work").
+    Each account must be logged in once via `python -m mcp_chatgpt._login_oneshot <account>`.
+    """
     try:
-        return await get_session().new_thread(prompt)
+        return await get_session().new_thread(prompt, account=account)
     except NotLoggedIn as e:
         return _err(str(e))
     except Challenge as e:
@@ -22,10 +26,14 @@ async def chatgpt_new_thread(prompt: str) -> dict:
 
 
 @mcp.tool()
-async def chatgpt_send(thread_id: str, prompt: str) -> dict:
-    """Send a follow-up in an existing thread. Returns {response:{text,images,timed_out}}."""
+async def chatgpt_send(thread_id: str, prompt: str, account: str = "default") -> dict:
+    """Send a follow-up in an existing thread. Returns {response:{text,images,timed_out}}.
+
+    `account` must match the account the thread was created under (used only when
+    the tab needs reopening by URL).
+    """
     try:
-        return await get_session().send(thread_id, prompt)
+        return await get_session().send(thread_id, prompt, account=account)
     except NotLoggedIn as e:
         return _err(str(e))
     except Challenge as e:

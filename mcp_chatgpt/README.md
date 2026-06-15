@@ -40,9 +40,23 @@ Restart Claude Code to pick it up.
 
 ## Tools
 
-- `chatgpt_new_thread(prompt)` → `{thread_id, response:{text, images[], timed_out}}`
-- `chatgpt_send(thread_id, prompt)` → `{response:{...}}`
+- `chatgpt_new_thread(prompt, account="default")` → `{thread_id, response:{text, images[], timed_out}}`
+- `chatgpt_send(thread_id, prompt, account="default")` → `{response:{...}}`
 - `chatgpt_close_thread(thread_id)` → `{ok}`
+
+## Multiple accounts
+
+Each account gets its own logged-in browser profile. Pass `account="..."` to the
+tools to pick which one; one browser window runs per account.
+
+```bash
+# Log a second account in once (own profile under profile/_accounts/work/):
+mcp_chatgpt/venv/Scripts/python.exe -m mcp_chatgpt._login_oneshot work
+```
+
+Then call `chatgpt_new_thread(prompt, account="work")`. The "default" account
+reuses the base `profile/` dir, so existing logins keep working. Handy for
+falling back to a second account when one hits a usage limit.
 
 Generated images are saved under `mcp_chatgpt/output/` and their paths returned.
 

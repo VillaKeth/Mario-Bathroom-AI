@@ -10,12 +10,26 @@ from mcp_chatgpt.parsing import parse_thread_id, classify_page_state
 from mcp_chatgpt.stability import ProbeResult, WaitOutcome, wait_for_response
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-PROFILE_DIR = os.path.join(_DIR, "profile")
+PROFILE_DIR = os.path.join(_DIR, "profile")   # base; the default account lives here
 OUTPUT_DIR = os.path.join(_DIR, "output")
+
+DEFAULT_ACCOUNT = "default"
 
 # Image generation is slow; give it far more polls than plain text.
 TEXT_MAX_POLLS = 240        # ~120s at 0.5s
 IMAGE_MAX_POLLS = 600       # ~300s at 0.5s
+
+
+def profile_dir(account: str = DEFAULT_ACCOUNT) -> str:
+    """Browser-profile directory for an account.
+
+    The default account reuses the base `profile/` dir so the original
+    single-account login keeps working; named accounts get an isolated subdir
+    under `profile/_accounts/<name>`.
+    """
+    if account == DEFAULT_ACCOUNT:
+        return PROFILE_DIR
+    return os.path.join(PROFILE_DIR, "_accounts", account)
 
 
 class NotLoggedIn(RuntimeError):
@@ -29,32 +43,34 @@ class Challenge(RuntimeError):
 class ChatGPTSession:
     def __init__(self) -> None:
         self._pw = None
-        self._ctx = None
-        self._threads: dict[str, Page] = {}
+        self._contexts: dict = {}            # account -> BrowserContext
+        self._threads: dict[str, Page] = {}  # thread_id -> Page (uuid is globally unique)
         self._lock = asyncio.Lock()
 
-    async def start(self) -> None:
-        if self._ctx is not None:
-            return
-        os.makedirs(PROFILE_DIR, exist_ok=True)
+    async def _ctx_for(self, account: str):
+        """Lazily launch (and cache) one persistent browser context per account."""
+        ctx = self._contexts.get(account)
+        if ctx is not None:
+            return ctx
+        os.makedirs(profile_dir(account), exist_ok=True)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        self._pw = await async_playwright().start()
-        self._ctx = await self._pw.chromium.launch_persistent_context(
-            PROFILE_DIR,
+        if self._pw is None:
+            self._pw = await async_playwright().start()
+        ctx = await self._pw.chromium.launch_persistent_context(
+            profile_dir(account),
             channel="chrome",
             headless=False,
             args=["--disable-blink-features=AutomationControlled"],
         )
+        self._contexts[account] = ctx
+        return ctx
 
-    async def _ensure(self) -> None:
-        if self._ctx is None:
-            await self.start()
-
-    async def _check_state(self, page: Page) -> None:
+    async def _check_state(self, page: Page, account: str) -> None:
         body = await page.inner_text("body")
         state = classify_page_state(page.url, body)
         if state == "login":
-            raise NotLoggedIn("run setup_login.py first")
+            raise NotLoggedIn(f"account '{account}' not logged in — run: "
+                              f"python -m mcp_chatgpt._login_oneshot {account}")
         if state == "challenge":
             raise Challenge("solve challenge in the window, then retry")
 
@@ -141,12 +157,12 @@ class ChatGPTSession:
         except Exception:
             pass
 
-    async def new_thread(self, prompt: str) -> dict:
+    async def new_thread(self, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
         async with self._lock:
-            await self._ensure()
-            page = await self._ctx.new_page()
+            ctx = await self._ctx_for(account)
+            page = await ctx.new_page()
             await page.goto(selectors.URL, wait_until="domcontentloaded")
-            await self._check_state(page)
+            await self._check_state(page, account)
             baseline = await self._generated_image_srcs(page)
             await self._type_and_send(page, prompt)
             outcome = await self._send_and_wait(page, baseline)
@@ -158,16 +174,16 @@ class ChatGPTSession:
                     "response": {"text": outcome.text, "images": images,
                                  "timed_out": outcome.timed_out}}
 
-    async def send(self, thread_id: str, prompt: str) -> dict:
+    async def send(self, thread_id: str, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
         async with self._lock:
-            await self._ensure()
             page = self._threads.get(thread_id)
             if page is None:
-                # Reopen the conversation by URL.
-                page = await self._ctx.new_page()
+                # Reopen the conversation by URL in the account's context.
+                ctx = await self._ctx_for(account)
+                page = await ctx.new_page()
                 await page.goto(f"https://chatgpt.com/c/{thread_id}",
                                 wait_until="domcontentloaded")
-                await self._check_state(page)
+                await self._check_state(page, account)
                 self._threads[thread_id] = page
             baseline = await self._generated_image_srcs(page)
             await self._type_and_send(page, prompt)
