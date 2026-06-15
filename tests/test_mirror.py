@@ -129,3 +129,34 @@ async def test_broadcast_drops_hanging_viewer_without_blocking_others(monkeypatc
     await mirror.broadcast(b"\x01frame")
     assert good.sent_bytes == [b"\x01frame"]   # good viewer got it despite slow one
     assert mirror.viewer_count() == 1           # hanging viewer was dropped
+
+
+# ---------------------------------------------------------------------------
+# Task 4: client frame encoder (downscale + jpeg)
+# ---------------------------------------------------------------------------
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "client"))
+import mirror_sender
+
+
+def test_encode_frame_downscales_and_returns_jpeg():
+    w, h = 1000, 500
+    rgb = bytes([255, 0, 0]) * (w * h)
+    out = mirror_sender.encode_frame(rgb, (w, h), max_width=640, quality=55)
+    assert isinstance(out, (bytes, bytearray))
+    assert out[:2] == b"\xff\xd8"          # JPEG SOI marker
+    from PIL import Image
+    import io
+    img = Image.open(io.BytesIO(out))
+    assert img.width == 640
+    assert img.height == 320               # aspect preserved (500 * 640/1000)
+
+
+def test_encode_frame_no_upscale_when_small():
+    w, h = 300, 200
+    rgb = bytes([0, 128, 0]) * (w * h)
+    out = mirror_sender.encode_frame(rgb, (w, h), max_width=640, quality=55)
+    from PIL import Image
+    import io
+    img = Image.open(io.BytesIO(out))
+    assert img.width == 300                # never upscales
