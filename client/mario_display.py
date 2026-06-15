@@ -274,6 +274,7 @@ class MarioDisplay:
         self._keyboard_cursor_timer = 0
         self.on_keyboard_submit = None  # callback(text)
         self.on_volume_change = None   # callback(delta: float)
+        self.on_frame_ready = None   # Optional: called with the rendered Surface after flip (mirror)
 
         # Party mode
         self.party_mode = False
@@ -2031,6 +2032,13 @@ class MarioDisplay:
             self._screen.blit(scaled, (x_off, y_off))
 
         pygame.display.flip()
+
+        # Mirror hook — additive, never breaks the loop.
+        if self.on_frame_ready is not None:
+            try:
+                self.on_frame_ready(self._screen)
+            except Exception:
+                pass
 
     def _draw_party_banner(self, surface):
         """Draw two-strip header: title bar (Y=0-28) + info strip (Y=28-48).
