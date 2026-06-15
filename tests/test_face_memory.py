@@ -87,3 +87,47 @@ def test_update_existing_face():
         assert len(all_faces) == 1
         if hasattr(fm, '_qdrant_client'):
             fm._qdrant_client.close()
+
+
+def test_find_match_is_euclidean_within_tolerance():
+    """find_match (euclidean-authoritative) matches a query within 0.6 distance.
+
+    A controlled offset of 0.04 per dim over 128 dims gives a euclidean distance
+    of 0.04 * sqrt(128) ≈ 0.45 — comfortably inside the calibrated 0.6 tolerance.
+    """
+    from server.face_memory import FaceMemory
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        fm = FaceMemory(db_path)
+        known = np.zeros(128, dtype=np.float64)
+        fm.store_face(person_id=7, name="Within", encoding=known)
+
+        near = known + 0.04  # distance ≈ 0.45 < 0.6
+        assert float(np.linalg.norm(near - known)) < 0.6  # sanity: inside tolerance
+        match = fm.find_match(near)
+        assert match is not None
+        assert match["name"] == "Within"
+        assert match["person_id"] == 7
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()
+
+
+def test_find_match_is_euclidean_beyond_tolerance():
+    """find_match returns None for a query beyond the 0.6 euclidean threshold.
+
+    An offset of 0.1 per dim over 128 dims gives 0.1 * sqrt(128) ≈ 1.13 — well
+    outside the 0.6 tolerance, so the (single) stored face must NOT match.
+    """
+    from server.face_memory import FaceMemory
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        fm = FaceMemory(db_path)
+        known = np.zeros(128, dtype=np.float64)
+        fm.store_face(person_id=9, name="Beyond", encoding=known)
+
+        far = known + 0.1  # distance ≈ 1.13 > 0.6
+        assert float(np.linalg.norm(far - known)) > 0.6  # sanity: outside tolerance
+        match = fm.find_match(far)
+        assert match is None
+        if hasattr(fm, '_qdrant_client'):
+            fm._qdrant_client.close()

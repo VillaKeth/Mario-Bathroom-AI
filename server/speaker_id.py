@@ -39,7 +39,12 @@ except ImportError:
 DEBUG_SPEAKER = os.environ.get("DEBUG_SPEAKER", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
-SIMILARITY_THRESHOLD = 0.75  # Cosine similarity threshold for matching (configurable via config.json)
+# Cosine similarity threshold for matching (configurable via config.json -> server.speaker_similarity_threshold).
+# Tuned to 0.65: real enrollment audio is the short "my name is X" utterance (~1.5-2s), which yields a
+# same-speaker self-similarity of only ~0.70-0.74 — the old 0.75 default NEVER matched returning guests
+# (verified empirically). Observed different-speaker scores stay ~0.49-0.56, so 0.65 keeps a safe margin
+# while making voice ID actually functional. Raise toward 0.72 if false matches appear at a noisy party.
+SIMILARITY_THRESHOLD = 0.65
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "voices.db")
 
 # Allow config.json to override threshold
@@ -56,6 +61,11 @@ if os.path.exists(_spk_config_path):
 _encoder = None
 _qdrant_client: QdrantClient = None if _HAS_QDRANT else None
 _collection_name = "mario_voices"
+
+
+def is_available() -> bool:
+    """True if speaker identification (resemblyzer + encoder) is ready."""
+    return _HAS_RESEMBLYZER and _encoder is not None
 
 
 def init_speaker_id(collection_name: str = "mario_voices"):

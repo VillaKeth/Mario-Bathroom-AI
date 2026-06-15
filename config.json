@@ -11,7 +11,7 @@
     "tts_pitch": "+10Hz",
     "tts_fast_mode": true,
     "tts_mode": "sovits",
-    "speaker_similarity_threshold": 0.75,
+    "speaker_similarity_threshold": 0.65,
     "debug_server": true,
     "debug_tts": true,
     "debug_idle": true,

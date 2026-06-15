@@ -118,10 +118,14 @@ class DistressTracker:
                          f"suppressed by false-trigger class: {suppressed}")
 
         # --- Decide if this frame counts as distress ---
+        # A bare RMS volume spike (shout, slam, yelling — common at a party)
+        # must NOT confirm distress on its own. Require a spike to co-occur with
+        # at least one actually-detected distress class.
+        has_distress_class = len(frame_result.get("distress_classes", [])) >= 1
         frame_is_distress = (
-            (frame_result.get("is_distress", False) or volume_spike)
-            and not suppressed
-        )
+            frame_result.get("is_distress", False)
+            or (volume_spike and has_distress_class)
+        ) and not suppressed
 
         frame_confidence = frame_result.get("confidence", 0.0)
         if volume_spike and not suppressed:

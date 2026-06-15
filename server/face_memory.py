@@ -117,25 +117,21 @@ class FaceMemory:
 
     def find_match(self, encoding: np.ndarray,
                    tolerance: Optional[float] = None) -> Optional[dict]:
-        """Find best matching face using Qdrant first, SQLite fallback.
-        
+        """Find best matching face via the SQLite Euclidean scan (authoritative).
+
+        WHY euclidean-only: dlib's face_recognition 128-dim encodings are
+        EUCLIDEAN-native and calibrated at a 0.6 distance threshold. The former
+        Qdrant path matched them with COSINE similarity at 0.4, which is the
+        wrong metric for these vectors and produced inconsistent matches /
+        confidences depending on which store answered. We therefore route ALL
+        matching through the calibrated euclidean scan below.
+        `lookup_face_qdrant()` / `store_face_qdrant()` remain defined for other
+        callers and future use, but `lookup_face_qdrant` is intentionally no
+        longer called by `find_match`.
+
         Uses early-exit: stops scanning if confidence > 0.95 (near-exact match).
-        For party-scale (20-50 guests), Qdrant search is <1ms.
+        For party-scale (20-50 guests), the linear SQLite scan is <1ms.
         """
-        # Try Qdrant first (primary method)
-        if self._qdrant_client:
-            qdrant_match = self.lookup_face_qdrant(encoding, tolerance)
-            if qdrant_match:
-                if DEBUG_FACE:
-                    logger.info(f"[face_memory] Qdrant match: {qdrant_match['name']} ({qdrant_match['confidence']:.3f})")
-                return {
-                    "person_id": None,  # Qdrant doesn't use person_id
-                    "name": qdrant_match["name"],
-                    "confidence": qdrant_match["confidence"],
-                    "visit_count": qdrant_match["visits"],
-                }
-        
-        # Fallback to SQLite (legacy method)
         tol = tolerance or self._tolerance
         with self._lock:
             conn = sqlite3.connect(self._db_path)

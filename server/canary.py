@@ -1,4 +1,4 @@
-"""Pre-Party Canary Self-Test — 10 smoke tests with confidence scoring."""
+"""Pre-Party Canary Self-Test — 11 smoke tests with confidence scoring."""
 
 import asyncio
 import json
@@ -122,10 +122,22 @@ class Canary:
                 resp = await client.get(f"{self.server_url}/api/health")
                 data = resp.json()
                 detector = data.get("distress_detector", data.get("audio_distress", "unknown"))
-                passed = resp.status_code == 200
+                passed = (detector == "ok")
                 return self._format_result("vomit_test", passed, f"Distress detector: {detector}")
         except Exception as e:
             return self._format_result("vomit_test", False, str(e))
+
+    async def _speaker_id_test(self) -> dict:
+        """Check speaker / voice identification status via health endpoint."""
+        try:
+            async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+                resp = await client.get(f"{self.server_url}/api/health")
+                data = resp.json()
+                status = data.get("speaker_id", "unknown")
+                passed = (status == "ok")
+                return self._format_result("speaker_id_test", passed, f"Speaker ID: {status}")
+        except Exception as e:
+            return self._format_result("speaker_id_test", False, str(e))
 
     async def _websocket_test(self) -> dict:
         """Connect and disconnect WebSocket."""
@@ -172,7 +184,7 @@ class Canary:
     # ── Run all ──────────────────────────────────────────────
 
     async def run_all(self) -> dict:
-        """Run all 10 smoke tests and return results with confidence score."""
+        """Run all 11 smoke tests and return results with confidence score."""
         if DEBUG_CANARY:
             logger.debug("[DEBUG_CANARY] run_all: START")
 
@@ -184,6 +196,7 @@ class Canary:
             self._memory_test,
             self._emotion_test,
             self._vomit_test,
+            self._speaker_id_test,
             self._websocket_test,
             self._dashboard_test,
             self._audio_test,
@@ -195,7 +208,8 @@ class Canary:
         final_results = []
         test_names = [
             "voice_test", "stt_test", "llm_test", "game_test", "memory_test",
-            "emotion_test", "vomit_test", "websocket_test", "dashboard_test", "audio_test",
+            "emotion_test", "vomit_test", "speaker_id_test", "websocket_test",
+            "dashboard_test", "audio_test",
         ]
         for i, r in enumerate(results):
             if isinstance(r, Exception):
