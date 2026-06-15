@@ -160,3 +160,24 @@ def test_encode_frame_no_upscale_when_small():
     import io
     img = Image.open(io.BytesIO(out))
     assert img.width == 300                # never upscales
+
+
+# ---------------------------------------------------------------------------
+# Task 5: MirrorSender class (inactive drops, active stores + queues)
+# ---------------------------------------------------------------------------
+
+def test_sender_inactive_drops_everything():
+    s = mirror_sender.MirrorSender("ws://x/mirror_ingest")
+    s.submit_rgb(b"\x00\x00\x00", (1, 1))
+    s.send_audio(b"RIFFxxxx")
+    assert s._latest is None
+    assert s._audio_q.empty()
+
+def test_sender_active_stores_latest_frame_and_queues_audio():
+    s = mirror_sender.MirrorSender("ws://x/mirror_ingest")
+    s._active = True  # simulate "viewer connected" without opening a socket
+    s.submit_rgb(b"\x01\x02\x03", (1, 1))
+    s.submit_rgb(b"\x04\x05\x06", (1, 1))   # newer replaces older (1-slot)
+    assert s._latest == (b"\x04\x05\x06", (1, 1))
+    s.send_audio(b"RIFFdata")
+    assert s._audio_q.get_nowait() == b"RIFFdata"
