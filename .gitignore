@@ -137,3 +137,7 @@ character_creator/sprite_config.json
 # session temp + sprite import staging
 _voicetmp/
 characters/*/_incoming/
+
+# mcp-chatgpt runtime (browser profile + downloaded images — never commit)
+mcp_chatgpt/profile/
+mcp_chatgpt/output/
