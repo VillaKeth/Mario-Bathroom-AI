@@ -71,7 +71,8 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
-async def run(character: str, start: int, force: bool, regen: bool, account: str) -> None:
+async def run(character: str, start: int, force: bool, regen: bool, account: str,
+              delay: float) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
     # Manifest of sprites already FRESHLY regenerated this campaign, so a re-run
@@ -96,6 +97,13 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
                 print(f"SKIP [{idx:02d}] {rel} (exists)", flush=True)
                 skipped.append(rel)
                 continue
+
+        # Pace generations to stay under ChatGPT's image cap. Applied before
+        # every real generation (including the first), so launching with a delay
+        # also acts as the initial wait. Skips above don't reach here.
+        if delay:
+            print(f"WAIT {int(delay)}s before [{idx:02d}] {rel}", flush=True)
+            await asyncio.sleep(delay)
 
         print(f"GEN  [{idx:02d}] {rel}", flush=True)
         # Retry on stochastic guardrail refusals (ChatGPT sometimes blocks a
@@ -146,5 +154,7 @@ if __name__ == "__main__":
     ap.add_argument("--regen", action="store_true",
                     help="overwrite existing sprites, but skip ones already regenerated (resumable)")
     ap.add_argument("--account", default="default", help="logged-in account profile to use")
+    ap.add_argument("--delay", type=float, default=0.0,
+                    help="seconds to wait before EACH generation (pacing; e.g. 900 = 15 min)")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account))
+    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account, a.delay))
