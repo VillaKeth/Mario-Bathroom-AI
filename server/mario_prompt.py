@@ -13,15 +13,21 @@ import json as _json
 # trivia, opener interjections) is gated so it NEVER leaks into other characters.
 _CHARACTER_NAME = "mario"
 _CHARACTER_DISPLAY_NAME = "Mario"
+_CHARACTER_DESCRIPTION = ""
+_CHARACTER_TAGLINE = ""
 
 
-def set_character(name: str, display_name: str):
-    """Set the active character so Mario-only flavor stays gated to Mario."""
-    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
+def set_character(name: str, display_name: str, description: str = "", tagline: str = ""):
+    """Set the active character so prompts assert its identity and Mario-only flavor stays gated to Mario."""
+    global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME, _CHARACTER_DESCRIPTION, _CHARACTER_TAGLINE
     if name:
         _CHARACTER_NAME = name
     if display_name:
         _CHARACTER_DISPLAY_NAME = display_name
+    if description:
+        _CHARACTER_DESCRIPTION = description
+    if tagline:
+        _CHARACTER_TAGLINE = tagline
 
 
 def _is_mario() -> bool:
@@ -89,6 +95,21 @@ TTS: Short sentences (under 15 words). No ALL CAPS. No emoji. No ellipsis. Spell
 
 End every response with JSON on its own line:
 {"emotion": "<happy/excited/surprised/confused/annoyed/mischievous/laughing/sad/angry/nervous/scared/love/proud/embarrassed/disgusted/determined/curious/thinking/shocked/frustrated/neutral>", "energy": <0.0-1.0>}"""
+
+# Rules portion of the base prompt (everything after the generic first line).
+_BASE_PROMPT_RULES = MARIO_SYSTEM_PROMPT.split("\n", 1)[1].lstrip("\n") if "\n" in MARIO_SYSTEM_PROMPT else MARIO_SYSTEM_PROMPT
+
+
+def _character_system_prompt() -> str:
+    """Base system prompt that ALWAYS states who the character is (generic, from config)."""
+    who = _CHARACTER_DISPLAY_NAME or _CHARACTER_NAME or "a friendly AI character"
+    bio = " ".join(p for p in [_CHARACTER_DESCRIPTION, _CHARACTER_TAGLINE] if p).strip()
+    header = f"You are {who}."
+    if bio:
+        header += f" {bio}"
+    header += " Always speak and answer as this character. Keep replies to 2-3 short sentences."
+    return header + "\n\n" + _BASE_PROMPT_RULES
+
 
 PHASE_PROMPTS = {
     "WARM_UP": """Extra vibe: You're welcoming and warm, fresh at the start of the party.
@@ -235,7 +256,7 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
             personality_warmth, chaos, gossip_aggression, roast_level (all 0.0-1.0).
     """
     speaker_name = _sanitize_input(speaker_name) if speaker_name else None
-    messages = [{"role": "system", "content": MARIO_SYSTEM_PROMPT}]
+    messages = [{"role": "system", "content": _character_system_prompt()}]
 
     # Inject night progression phase personality if provided
     if phase_modifier:
