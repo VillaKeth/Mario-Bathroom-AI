@@ -1884,6 +1884,45 @@ async def admin_simulate_text(request_body: dict = {}):
     return await _dispatch_user_text(request_body.get("text", ""))
 
 
+_FRIEND_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "friend.html")
+
+
+@app.get("/friend")
+async def friend_page():
+    """Serve the remote mirror page with the current control mode injected."""
+    try:
+        with open(_FRIEND_HTML_PATH, encoding="utf-8") as f:
+            html = f.read()
+    except Exception:
+        return HTMLResponse("<h1>mirror page missing</h1>", status_code=500)
+    html = html.replace("__CONTROL_MODE__", mirror_relay.get_control_mode())
+    return HTMLResponse(html)
+
+
+@app.post("/friend/say")
+async def friend_say(request_body: dict = {}):
+    """Authenticated remote text input. Only drives the bot in 'remote' control mode."""
+    text = (request_body.get("text") or "").strip()
+    token = request_body.get("token") or ""
+    pin = request_body.get("pin") or ""
+    ok, reason = mirror_relay.authorize_friend_input(
+        token, pin, _MIRROR_CFG, mirror_relay.get_control_mode()
+    )
+    if not ok:
+        return {"status": "error", "reason": reason}
+    if not text:
+        return {"status": "error", "message": "Text required"}
+    return await _dispatch_user_text(text)
+
+
+@app.post("/admin/mirror_mode")
+async def admin_mirror_mode(request_body: dict = {}):
+    """Flip control mode at runtime: {'mode': 'station'|'remote'}."""
+    mode = request_body.get("mode", "station")
+    mirror_relay.set_control_mode(mode)
+    return {"status": "ok", "control_mode": mirror_relay.get_control_mode()}
+
+
 @app.post("/admin/force_stop_game")
 async def force_stop_game(request_body: dict = {}):
     """Force-stop any active game (emergency recovery for stuck games)."""
