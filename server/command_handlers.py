@@ -9,6 +9,7 @@ from datetime import datetime
 
 from emotions import Emotion
 import game_handlers
+from game_handlers import _deflavor
 import speaker_id
 
 # Character identity — set by main.py on startup via set_character()
@@ -71,8 +72,7 @@ def set_character_content(extras: dict):
     ROASTS = extras.get("roasts", [])
     BATHROOM_FACTS = extras.get("bathroom_facts", [])
     PARTY_SUGGESTIONS = extras.get("party_suggestions", [])
-    if isinstance(extras.get("personality_modes"), dict):
-        PERSONALITY_MODES = extras["personality_modes"]
+    PERSONALITY_MODES = extras.get("personality_modes") if isinstance(extras.get("personality_modes"), dict) else {}
 
     import logging
     _pool_counts = {k: len(v) for k, v in {
@@ -460,7 +460,7 @@ def _format_character_text(text: str) -> str:
 # Main handler
 # ---------------------------------------------------------------------------
 
-def handle_special_commands(
+def _handle_special_commands_impl(
     transcript: str,
     state: dict,
     game_config: dict,
@@ -599,11 +599,11 @@ def handle_special_commands(
                     state["speaker_id"] = new_id
                     state["_name_from_parsing"] = True
                     emotion_system.current = "excited"
-                    return f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice from now on! Let's-a go!"
+                    return f"Nice to meet you, {name}! I'll remember your voice from now on!"
                 else:
                     state["speaker_name"] = name
                     state["_name_from_parsing"] = True
-                    return f"Nice to meet-a you, {name}! Wahoo! I'll remember you!"
+                    return f"Nice to meet you, {name}! I'll remember you!"
 
     # What time is it
     if any(w in lower for w in ["what time", "how late"]):
@@ -1517,3 +1517,14 @@ def handle_special_commands(
             return f"__SHOT_EVENT_TRIGGER__:{transcript}"
 
     return None
+
+
+def handle_special_commands(*args, **kwargs):
+    result = _handle_special_commands_impl(*args, **kwargs)
+    # Strip Mario verbal flavor for non-Mario characters. _deflavor self-no-ops
+    # when the active character IS Mario, so this is safe to always call.
+    if isinstance(result, str):
+        return _deflavor(result)
+    if isinstance(result, tuple) and result and isinstance(result[0], str):
+        return (_deflavor(result[0]),) + tuple(result[1:])
+    return result

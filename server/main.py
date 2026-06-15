@@ -711,10 +711,13 @@ async def lifespan(app: FastAPI):
     if _extras:
         command_handlers.set_character_content(_extras)
         logger.info(f"[CHARACTER] Extras content loaded ({len(_extras)} pools)")
-    else:
+    elif _character.name.lower() != "mario":
         # No extras.yaml — clear all pools to prevent Mario content leaking
         command_handlers.set_character_content({})
         logger.info("[CHARACTER] No extras content — pools cleared")
+    else:
+        # Mario with no extras: keep his module-level inline pools intact.
+        logger.info("[CHARACTER] Mario, no extras — keeping inline default pools")
 
     # Wire character identity into all modules with set_character()
     import party_report, party_stats as ps_mod, party_gossip as pg_mod
@@ -823,7 +826,11 @@ async def lifespan(app: FastAPI):
         logger.info("[CHARACTER] Time flavors cleared (no character-specific flavors)")
 
     # Reinitialize idle behavior with character-specific pools
-    global idle_behavior
+    # NOTE: _face_memory MUST be declared global here — without it the
+    # `_face_memory = FaceMemory(...)` assignment below binds a function-local
+    # and the module global stays None, silently disabling ALL face ID
+    # (person_detected early-returns, admin face endpoints fail).
+    global idle_behavior, _face_memory
     idle_behavior = IdleBehavior(character_loader=_character)
     # Give TTS precache access to character-specific idle pools
     tts._idle_behavior_ref = idle_behavior
@@ -1018,13 +1025,46 @@ async def lifespan(app: FastAPI):
 
     logger.info("Loading speaker identification...")
     speaker_id.init_speaker_id(collection_name=_character.collections["voices"])
+    if not speaker_id.is_available():
+        _spk_banner = (
+            "\n"
+            "############################################################\n"
+            "##  VOICE / SPEAKER IDENTIFICATION NOT LOADED            ##\n"
+            "##  resemblyzer is not installed — speaker ID is OFFLINE.##\n"
+            "##  Returning guests will NOT be recognized by voice.    ##\n"
+            "##  Likely fix: install 'resemblyzer' into the venv:     ##\n"
+            "##    pip install resemblyzer                            ##\n"
+            "##  Party will run, but voice memory is DOWN.            ##\n"
+            "############################################################"
+        )
+        logger.warning(_spk_banner)
+        print(_spk_banner)
 
     logger.info("Loading audio distress detector...")
+    _distress_load_error = None
     try:
         audio_distress.init_detector(device="cpu")
         logger.info(f"Audio distress detector: {'ready' if audio_distress.is_available() else 'FAILED'}")
     except Exception as e:
+        _distress_load_error = e
         logger.warning(f"Audio distress detector unavailable: {e} — text detection still active")
+
+    if not audio_distress.is_available():
+        _err_line = f"  Reason: {_distress_load_error}" if _distress_load_error else \
+            "  Reason: panns_inference model did not load (is the package installed?)."
+        _banner = (
+            "\n"
+            "############################################################\n"
+            "##  ACOUSTIC DISTRESS DETECTOR NOT LOADED                 ##\n"
+            "##  The PANNs vomit/retching audio detector is OFFLINE.   ##\n"
+            "##  ONLY text-based sick detection will work tonight.     ##\n"
+            f"{_err_line}\n"
+            "##  Likely fix: install 'panns_inference' into the venv.  ##\n"
+            "##  Party will run, but acoustic sick-detection is DOWN.  ##\n"
+            "############################################################"
+        )
+        logger.warning(_banner)
+        print(_banner)
 
     # Stateful tracker for volume-spike + temporal-coherence gating
     global _distress_tracker
@@ -1376,6 +1416,8 @@ async def health():
         "llm": llm_status,
         "tts": tts_status,
         "stt": stt_status,
+        "distress_detector": "ok" if audio_distress.is_available() else "unavailable",
+        "speaker_id": "ok" if speaker_id.is_available() else "unavailable",
         "memory_mb": round(_get_rss_mb()),
         "gpu_temp_c": round(_get_gpu_temp()),
         "guests_served": stats.get("total_visits", 0),
@@ -2243,8 +2285,9 @@ async def admin_switch_character(request_body: dict = {}):
         _extras = _character.get_extras_content()
         if _extras:
             command_handlers.set_character_content(_extras)
-        else:
+        elif _character.name.lower() != "mario":
             command_handlers.set_character_content({})
+        # else: Mario with no extras — keep module-level inline pools intact.
         
         import party_report, party_stats as ps_mod, party_gossip as pg_mod
         import catchphrase_mirror as cm_mod, emotions as emo_mod
@@ -3235,12 +3278,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             # Successfully learned guest name
             try:
                 _face_memory.learn_guest(name, state_current["_last_face_encoding"])
+                # Auto-enroll the voice too, so returning guests are recognized
+                # by voice (mirrors face auto-learning). Optional subsystem —
+                # must degrade, never crash this request.
+                try:
+                    _chunk = state_current.get("_last_audio_chunk")
+                    if _chunk and speaker_id.is_available():
+                        _emb = speaker_id.get_embedding(_chunk)
+                        if _emb is not None:
+                            speaker_id.learn_voice(name, _emb)
+                            logger.info(f"[VOICE_ENROLL] Learned voice for {name}")
+                except Exception as e:
+                    logger.warning(f"[VOICE_ENROLL] failed: {e}")
                 state_current["detected_guest"] = name
                 state_current["guest_visits"] = 1
                 state_current["_awaiting_name_response"] = False
                 state_current["_name_attempts"] = 0
                 state_current["_last_face_encoding"] = None
-                
+
                 logger.info(f"[GUEST_LEARNING] Successfully learned guest name: {name}")
                 
                 # Send personalized greeting
@@ -3262,12 +3317,23 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 
                 try:
                     _face_memory.learn_guest(mystery_name, state_current["_last_face_encoding"])
+                    # Auto-enroll the voice for this mystery guest too, so the
+                    # same person is re-recognized later. Optional — degrade safely.
+                    try:
+                        _chunk = state_current.get("_last_audio_chunk")
+                        if _chunk and speaker_id.is_available():
+                            _emb = speaker_id.get_embedding(_chunk)
+                            if _emb is not None:
+                                speaker_id.learn_voice(mystery_name, _emb)
+                                logger.info(f"[VOICE_ENROLL] Learned voice for {mystery_name}")
+                    except Exception as e:
+                        logger.warning(f"[VOICE_ENROLL] failed: {e}")
                     state_current["detected_guest"] = mystery_name
                     state_current["guest_visits"] = 1
                     state_current["_awaiting_name_response"] = False
                     state_current["_name_attempts"] = 0
                     state_current["_last_face_encoding"] = None
-                    
+
                     logger.info(f"[GUEST_LEARNING] Assigned mystery name: {mystery_name}")
                     
                     # Send mystery guest greeting
@@ -3567,10 +3633,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             all_hints.extend(personality_parts[:max(1, 3 - len(all_hints))])
 
         if all_hints:
-            ctx.append({"role": "system", "content": " | ".join(all_hints[:3])})
+            hints_joined = " | ".join(all_hints[:3])
+            if hints_joined and (mario_prompt._CHARACTER_NAME or "").lower() != "mario":
+                hints_joined = _game_handlers_mod._deflavor(hints_joined)
+            ctx.append({"role": "system", "content": hints_joined})
 
         # Conversation arc modifier — evolves Mario's personality based on depth + engagement
         arc_mod = mario_prompt.get_conversation_arc_modifier(exchange_count)
+        if arc_mod and (mario_prompt._CHARACTER_NAME or "").lower() != "mario":
+            arc_mod = _game_handlers_mod._deflavor(arc_mod)
         if arc_mod:
             ctx.append({"role": "system", "content": arc_mod})
 
@@ -4001,6 +4072,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             if discovery:
                 conv_hint = discovery
 
+        if conv_hint and (mario_prompt._CHARACTER_NAME or "").lower() != "mario":
+            conv_hint = _game_handlers_mod._deflavor(conv_hint)
         if conv_hint:
             ctx.append({"role": "system", "content": conv_hint})
 
@@ -4737,6 +4810,14 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
         # Wire voice identification to GuestProfile
         profile = guest_profiles.identify_by_voice(speaker_info["name"], str(speaker_info["speaker_id"]))
         state_current["guest_profile"] = profile
+        # Sharpen the known speaker's voiceprint over the night (EMA blend).
+        # Optional refinement — must never break the response pipeline.
+        try:
+            _sid = speaker_info.get("speaker_id")
+            if _sid is not None and speaker_id.is_available():
+                speaker_id.update_speaker(_sid, audio_chunk)
+        except Exception as e:
+            logger.debug(f"[VOICE_REFINE] skipped: {e}")
     elif speaker_info and speaker_info["is_new"] and state_current["speaker_name"] is None:
         pass
 
@@ -5204,7 +5285,12 @@ async def handle_event(ws: WebSocket, event: dict):
                 goodbye = mario_prompt.get_dynamic_goodbye(exchange_count, topics)
                 farewell_drama = mario_prompt.get_farewell_drama(exchange_count)
                 exit_poll = mario_prompt.get_exit_poll()
-                ctx.append({"role": "system", "content": f"{farewell_drama} | {goodbye} | {exit_poll}"})
+                goodbye_parts = [p for p in (farewell_drama, goodbye, exit_poll) if p]
+                goodbye_joined = " | ".join(goodbye_parts)
+                if goodbye_joined and (mario_prompt._CHARACTER_NAME or "").lower() != "mario":
+                    goodbye_joined = _game_handlers_mod._deflavor(goodbye_joined)
+                if goodbye_joined:
+                    ctx.append({"role": "system", "content": goodbye_joined})
 
             # Neuro-sama dramatic farewell energy
             drama_farewells = [
@@ -5332,8 +5418,8 @@ async def handle_event(ws: WebSocket, event: dict):
             state_current["speaker_id"] = new_id
             await ws.send_json({"type": "speaker_registered", "name": name, "id": new_id})
 
-            # Mario celebrates registering a new friend
-            celebrate = f"Wahoo! Nice to meet-a you, {name}! I'll-a remember your voice! Let's-a go!"
+            # Character celebrates registering a new friend (character-agnostic — no Mario dialect)
+            celebrate = f"Nice to meet you, {name}! I'll remember your voice!"
             try:
                 loop = asyncio.get_event_loop()
                 celebrate_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(celebrate))

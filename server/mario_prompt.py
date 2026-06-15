@@ -4,6 +4,7 @@ Designed for Neuro-sama style engagement: reactive, sassy, memorable, dynamic.
 """
 
 import re
+import functools
 from datetime import datetime
 import os
 import json as _json
@@ -25,6 +26,20 @@ def set_character(name: str, display_name: str):
 
 def _is_mario() -> bool:
     return (_CHARACTER_NAME or "").lower() == "mario"
+
+
+def _mario_only(fn):
+    """Conv-hint injectors that emit hardcoded Mario-universe lore. For any
+    non-Mario character they return '' so the cascade falls through to the next
+    (generic) hint — Mario lore must VANISH for other characters, never be
+    string-substituted (a 'Who is Mario's brother?' trivia line cannot be
+    salvaged by swapping the name)."""
+    @functools.wraps(fn)
+    def _wrapped(*args, **kwargs):
+        if not _is_mario():
+            return ""
+        return fn(*args, **kwargs)
+    return _wrapped
 
 
 _VIP_PROFILES_DIR = os.path.join(os.path.dirname(__file__), "data", "vip_profiles")
@@ -446,6 +461,7 @@ QUICK_CHALLENGES = [
     "What's your party superpower? Are you the dancer? The storyteller? The snack finder?",
 ]
 
+@_mario_only
 def maybe_challenge(exchange_count: int, mood_positive: bool = True) -> str | None:
     """Return a challenge string if conditions are right, else None.
     
@@ -595,6 +611,7 @@ MARIO_OPINIONS = {
     "cold": "Cold weather? I need my fire flower to stay warm!",
 }
 
+@_mario_only
 def get_opinion_hint(text: str) -> str | None:
     """Check if user mentioned a topic Mario has a strong opinion about."""
     lower = text.lower()
@@ -696,6 +713,7 @@ STAMINA_STAGES = {
     "second_wind": "SECOND WIND! You got a Star power-up! Back to MAXIMUM energy!",
 }
 
+@_mario_only
 def get_stamina_hint(exchange_count: int) -> str:
     """Return stamina hint based on how long the conversation has been going."""
     if exchange_count <= 3:
@@ -746,6 +764,7 @@ MARIO_STORIES = [
 
 _story_index = 0
 
+@_mario_only
 def maybe_start_story(exchange_count: int) -> str:
     """Occasionally offer to tell a mini adventure story after 6+ exchanges."""
     global _story_index
@@ -797,6 +816,7 @@ MARIO_COMEBACKS = [
     "That's-a rude! I'm telling Peach on you!",
 ]
 
+@_mario_only
 def detect_insult(user_text: str) -> str:
     """Detect if user is being mean and return a comeback hint."""
     words = set(user_text.lower().split())
@@ -841,6 +861,7 @@ EXCITEMENT_TRIGGERS = {
     "pasta", "pizza", "food", "party", "dance", "music", "fun",
 }
 
+@_mario_only
 def get_excitement_boost(user_text: str, exchange_count: int) -> str:
     """Boost Mario's excitement when conversation hits topics he loves."""
     words = set(user_text.lower().split())
@@ -869,6 +890,7 @@ DODGE_RESPONSES = [
     "dramatically gasp and say 'You can't-a just ASK a plumber that!' and change topic!",
 ]
 
+@_mario_only
 def detect_dodge_question(user_text: str) -> str:
     """Detect questions Mario should playfully dodge."""
     lower = user_text.lower()
@@ -893,6 +915,7 @@ MARIO_SECRETS = [
 
 _secret_index = 0
 
+@_mario_only
 def maybe_share_secret(exchange_count: int) -> str:
     """Occasionally share a fun secret after deep conversation."""
     global _secret_index
@@ -920,6 +943,7 @@ EMOTION_CUES = {
                "hint": "They're in a silly mood! Match their chaotic energy and be goofy!"},
 }
 
+@_mario_only
 def detect_emotion_mirror(user_text: str) -> str:
     """Detect user's emotional state and mirror it."""
     words = set(user_text.lower().split())
@@ -947,6 +971,7 @@ WORD_GAMES = [
 
 _word_game_offered = False
 
+@_mario_only
 def maybe_propose_word_game(exchange_count: int) -> str:
     """Occasionally propose a quick word game to break up conversation."""
     global _word_game_offered
@@ -1054,6 +1079,7 @@ HOT_TAKES = [
 
 _hot_take_used = set()
 
+@_mario_only
 def maybe_hot_take(exchange_count: int) -> str:
     """Occasionally drop a spicy hot take (5% after 7+ exchanges)."""
     import random
@@ -1114,6 +1140,7 @@ STORY_STARTERS = [
 _collab_story_active = False
 _collab_story_turns = 0
 
+@_mario_only
 def maybe_start_collab_story(exchange_count: int) -> str:
     """Start a collaborative story (4% after 8+ exchanges, one-time)."""
     global _collab_story_active, _collab_story_turns
@@ -1125,6 +1152,7 @@ def maybe_start_collab_story(exchange_count: int) -> str:
     starter = random.choice(STORY_STARTERS)
     return f"Start a collaborative story! Say: '{starter}' Then ask them to add the next part!"
 
+@_mario_only
 def continue_collab_story(user_text: str) -> str:
     """Continue the collaborative story if one is active."""
     global _collab_story_turns, _collab_story_active
@@ -1208,6 +1236,7 @@ TIMER_JOKES = [
     "{mins} minutes, Mario's starting to worry! Should I send Yoshi?",
 ]
 
+@_mario_only
 def get_bathroom_timer_hint(enter_time: float, exchange_count: int) -> str:
     """Tease about how long they've been in the bathroom."""
     import random, time as _time
@@ -1290,6 +1319,7 @@ _quiz_active = False
 _quiz_current = None
 _quiz_count = 0
 
+@_mario_only
 def maybe_start_quiz(exchange_count: int) -> str:
     """Start a quiz question (6% after 6+ exchanges)."""
     global _quiz_active, _quiz_current, _quiz_count
@@ -1332,6 +1362,7 @@ PUZZLES = [
 
 _puzzle_used = set()
 
+@_mario_only
 def maybe_pose_puzzle(exchange_count: int) -> str:
     """Pose a fun puzzle (5% after 7+ exchanges)."""
     import random
@@ -1367,6 +1398,7 @@ GOODBYE_TEMPLATES = {
     ],
 }
 
+@_mario_only
 def get_dynamic_goodbye(exchange_count: int, topics: set) -> str:
     """Generate a context-aware goodbye message."""
     import random
@@ -1451,6 +1483,7 @@ COMPLIMENTS = [
 
 _compliment_given = False
 
+@_mario_only
 def maybe_give_compliment(exchange_count: int) -> str:
     """Give a genuine compliment (10% after 5+ exchanges, one per visit)."""
     global _compliment_given
@@ -1737,6 +1770,7 @@ CHALLENGES = [
     ("reverse", "Disagree playfully!"),
 ]
 
+@_mario_only
 def maybe_start_challenge(exchange_count: int) -> str:
     """Occasionally propose a self-challenge to keep responses fresh."""
     global _challenge_active, _challenge_type, _challenge_turns
@@ -1777,6 +1811,7 @@ DEEP_SECRETS = [
 
 _deep_secret_idx = 0
 
+@_mario_only
 def get_deep_secret(exchange_count: int) -> str:
     """Share a deeper, funnier secret on longer conversations."""
     global _deep_secret_idx
@@ -1851,7 +1886,7 @@ def get_conversation_arc_modifier(exchange_count: int) -> str:
         return (
             "[HEART MODE]: This guest is sharing real, vulnerable things. "
             "Drop the chaos a bit. Be genuinely warm and caring. "
-            "You can still be Mario, but show the heart beneath the mustache. "
+            "You can still be yourself, but show the heart beneath the bravado. "
             "Use fewer catchphrases, more real words. Listen and respond to what they actually said."
         )
     
@@ -1946,6 +1981,7 @@ DEBATE_TOPICS = [
     ("Hot dogs = sandwiches?", "NO! That's like calling a pipe a tunnel!"),
 ]
 
+@_mario_only
 def maybe_start_debate(exchange_count: int) -> str:
     """Occasionally start a playful debate."""
     global _debate_active, _debate_topic
@@ -2011,6 +2047,7 @@ META_COMMENTS = [
     "This bathroom has better dialogue than most movies",
 ]
 
+@_mario_only
 def maybe_meta_comment(exchange_count: int) -> str:
     """Occasionally break the fourth wall with meta-commentary."""
     global _meta_used
@@ -2038,6 +2075,7 @@ def track_emotional_peak(text: str, emotion: str):
         snippet = text[:30].strip()
         _emotional_peaks.append((emotion, snippet))
 
+@_mario_only
 def get_emotional_callback() -> str:
     """Reference a past emotional peak."""
     import random
@@ -2069,6 +2107,7 @@ RAPID_FIRE_QUESTIONS = [
     "Call or text?", "Stars or mushrooms?", "Pipes or bridges?",
 ]
 
+@_mario_only
 def maybe_start_rapid_fire(exchange_count: int) -> str:
     """Start a rapid-fire round of quick questions."""
     global _rapid_fire_active, _rapid_fire_count
@@ -2163,6 +2202,7 @@ SOUND_EFFECTS = {
     "star": ["star", "shine", "sparkle", "glow", "bright", "brilliant"],
 }
 
+@_mario_only
 def suggest_sound_effect(text: str) -> str:
     """Suggest a Mario sound effect reference based on keywords."""
     import random
@@ -2199,6 +2239,7 @@ WYR_QUESTIONS = [
     "Luigi's height OR Mario's mustache permanently?",
 ]
 
+@_mario_only
 def maybe_would_you_rather(exchange_count: int) -> str:
     """Propose a Would You Rather question."""
     global _wyr_used
@@ -2227,6 +2268,7 @@ CONSPIRACIES = [
     "The ? blocks are ancient technology",
 ]
 
+@_mario_only
 def maybe_conspiracy(exchange_count: int) -> str:
     """Share a ridiculous Mario conspiracy theory."""
     global _conspiracy_used
@@ -2244,6 +2286,7 @@ def reset_conspiracy():
 # --- Role Reversal ---
 _role_reversal_used = False
 
+@_mario_only
 def maybe_role_reversal(exchange_count: int) -> str:
     """Propose switching roles — user becomes Mario."""
     global _role_reversal_used
@@ -2296,6 +2339,7 @@ THROWBACK_TRIGGERS = {
     "back in the day": "Back in the day I only had 2 directions to move!",
 }
 
+@_mario_only
 def check_throwback(text: str) -> str:
     """Reference retro gaming when user mentions old/classic things."""
     low = text.lower()
@@ -2317,6 +2361,7 @@ TTL_SETS = [
     ("I can eat 200 mushrooms in one sitting", "I'm afraid of caterpillars", "Peach's castle has a bowling alley"),
 ]
 
+@_mario_only
 def maybe_two_truths(exchange_count: int) -> str:
     """Propose Two Truths and a Lie."""
     global _ttl_used
@@ -2340,6 +2385,7 @@ FAREWELL_LEVELS = [
     "EPIC farewell — this was the greatest conversation of your LIFE",
 ]
 
+@_mario_only
 def get_farewell_drama(exchange_count: int) -> str:
     """Scale farewell drama based on conversation length AND depth."""
     # Deep conversations get upgraded farewell regardless of length
@@ -2364,6 +2410,7 @@ TWISTS = [
     "Pretend the bathroom is actually a secret warp zone!",
 ]
 
+@_mario_only
 def maybe_surprise_twist(exchange_count: int) -> str:
     """Inject a random surprise twist."""
     global _twist_used
@@ -2381,6 +2428,7 @@ def reset_twist():
 # --- Compliment Fishing ---
 _fish_used = False
 
+@_mario_only
 def maybe_fish_for_compliment(exchange_count: int) -> str:
     """Mario fishes for compliments."""
     global _fish_used
@@ -2404,6 +2452,7 @@ def reset_fish():
 # --- Prediction Game ---
 _prediction_used = False
 
+@_mario_only
 def maybe_make_prediction(exchange_count: int) -> str:
     """Mario makes a playful prediction about the user."""
     global _prediction_used
@@ -2430,6 +2479,7 @@ def reset_prediction():
 _battle_active = False
 _battle_round = 0
 
+@_mario_only
 def maybe_compliment_battle(exchange_count: int) -> str:
     """Start a compliment battle."""
     global _battle_active, _battle_round
@@ -2463,6 +2513,7 @@ IMPRESSIONS = [
     ("Wario", "Do WARIO: greedy, laughing, 'WAH WAH WAH!'"),
 ]
 
+@_mario_only
 def maybe_do_impression(exchange_count: int) -> str:
     """Mario does an impression of another character."""
     global _impression_used
@@ -2508,6 +2559,7 @@ def reset_handshake():
 # --- Visitor Ranking ---
 _visitor_rank = 0
 
+@_mario_only
 def get_visitor_ranking(exchange_count: int, visit_count: int = 1) -> str:
     """Assign the visitor a fun ranking."""
     global _visitor_rank
@@ -2541,6 +2593,7 @@ HYPOTHETICALS = [
     "If you could have any Mario power-up in real life?",
 ]
 
+@_mario_only
 def maybe_hypothetical(exchange_count: int) -> str:
     """Ask a fun hypothetical question."""
     global _hypothetical_used
@@ -2569,6 +2622,7 @@ ACCENT_MODES = [
     "Talk like a SHAKESPEARE Mario: 'To stomp or not to stomp-a!'",
 ]
 
+@_mario_only
 def maybe_accent_mode(exchange_count: int) -> str:
     """Temporarily switch to a fun accent."""
     global _accent_used
@@ -2644,6 +2698,7 @@ CHARACTER_TRIVIA = [
     ("What power-up lets Mario throw fireballs?", "Fire Flower"),
 ]
 
+@_mario_only
 def maybe_trivia_challenge(exchange_count: int) -> str:
     """Quick trivia question about Mario characters."""
     global _trivia_challenge_used
@@ -2670,6 +2725,7 @@ ESCALATING_COMPLIMENTS = [
     "You're getting your own star on the Mario Walk of Fame!",
 ]
 
+@_mario_only
 def get_escalating_compliment(exchange_count: int) -> str:
     """Give progressively bigger compliments as convo goes on."""
     global _compliment_escalation
@@ -2699,6 +2755,7 @@ SONG_PARODIES = [
 ]
 _song_used = False
 
+@_mario_only
 def maybe_song_mode(exchange_count: int) -> str:
     global _song_used
     if _song_used or exchange_count < 6:
@@ -2729,6 +2786,7 @@ ZODIAC_JOKES = {
     "pisces": "Pisces=Cheep Cheep energy",
 }
 
+@_mario_only
 def check_zodiac(text: str) -> str:
     low = text.lower()
     for sign, joke in ZODIAC_JOKES.items():
@@ -2762,6 +2820,7 @@ FORTUNES = [
 ]
 _fortune_given = False
 
+@_mario_only
 def maybe_fortune(exchange_count: int) -> str:
     global _fortune_given
     if _fortune_given or exchange_count < 8:
@@ -2813,6 +2872,7 @@ def detect_needs_support(text: str) -> str:
 # Friendship ceremony (after many exchanges)
 _ceremony_done = False
 
+@_mario_only
 def maybe_friendship_ceremony(exchange_count: int) -> str:
     global _ceremony_done
     if _ceremony_done or exchange_count < 20:
@@ -2862,6 +2922,7 @@ CHARACTER_VOICES = [
 ]
 _voice_switch_used = False
 
+@_mario_only
 def maybe_voice_switch(exchange_count: int) -> str:
     global _voice_switch_used
     if _voice_switch_used or exchange_count < 10:
@@ -2887,6 +2948,7 @@ DARES = [
 ]
 _dare_given = False
 
+@_mario_only
 def maybe_dare(exchange_count: int) -> str:
     global _dare_given
     if _dare_given or exchange_count < 7:
@@ -2911,6 +2973,7 @@ BATHROOM_TIPS = [
 ]
 _tip_given = False
 
+@_mario_only
 def maybe_bathroom_tip(exchange_count: int) -> str:
     global _tip_given
     if _tip_given or exchange_count < 5:
@@ -3018,6 +3081,7 @@ EXCUSES = [
 ]
 _excuse_given = False
 
+@_mario_only
 def maybe_excuse(exchange_count: int) -> str:
     global _excuse_given
     if _excuse_given or exchange_count < 12:
@@ -3043,6 +3107,7 @@ PARTY_ROLES = [
 ]
 _role_assigned = False
 
+@_mario_only
 def maybe_assign_role(exchange_count: int) -> str:
     global _role_assigned
     if _role_assigned or exchange_count < 6:
@@ -3067,6 +3132,7 @@ WORDS_OF_DAY = [
 ]
 _word_given = False
 
+@_mario_only
 def maybe_word_of_day(exchange_count: int) -> str:
     global _word_given
     if _word_given or exchange_count < 9:
@@ -3091,6 +3157,7 @@ AUDIENCE_PROMPTS = [
 ]
 _audience_used = False
 
+@_mario_only
 def maybe_audience_prompt(exchange_count: int) -> str:
     global _audience_used
     if _audience_used or exchange_count < 7:
@@ -3135,6 +3202,7 @@ POWER_RANKINGS = [
 ]
 _power_ranked = False
 
+@_mario_only
 def maybe_power_ranking(exchange_count: int) -> str:
     global _power_ranked
     if _power_ranked or exchange_count < 5:
@@ -3163,6 +3231,7 @@ FOOD_REACTIONS = {
     "chips": "Chips! Crunchier than a Koopa shell!",
 }
 
+@_mario_only
 def check_food_talk(text: str) -> str:
     low = text.lower()
     for food, reaction in FOOD_REACTIONS.items():
@@ -3174,6 +3243,7 @@ def check_food_talk(text: str) -> str:
 _password_active = False
 _password_word = ""
 
+@_mario_only
 def maybe_start_password(exchange_count: int) -> str:
     global _password_active, _password_word
     if _password_active or exchange_count < 11:
@@ -3233,6 +3303,7 @@ MOVIE_REFS = {
     "netflix": "Netflix and chill? More like Mushroom Kingdom and thrill!",
 }
 
+@_mario_only
 def check_movie_ref(text: str) -> str:
     low = text.lower()
     for ref, response in MOVIE_REFS.items():
@@ -3260,6 +3331,7 @@ def reset_time_capsule():
 # Competitive spirit (challenge based on response)
 _comp_used = False
 
+@_mario_only
 def maybe_competitive(exchange_count: int) -> str:
     global _comp_used
     if _comp_used or exchange_count < 7:
@@ -3308,6 +3380,7 @@ AWARDS = [
 ]
 _award_given = False
 
+@_mario_only
 def maybe_give_award(exchange_count: int) -> str:
     global _award_given
     if _award_given or exchange_count < 10:
@@ -3331,6 +3404,7 @@ TONGUE_TWISTERS = [
 ]
 _twister_used = False
 
+@_mario_only
 def maybe_tongue_twister(exchange_count: int) -> str:
     global _twister_used
     if _twister_used or exchange_count < 6:
@@ -3355,6 +3429,7 @@ EXIT_POLL_QUESTIONS = [
     "Quick poll: best Mario character? 1=Mario, 2=Luigi, 3=Yoshi, 4=Toad",
 ]
 
+@_mario_only
 def get_exit_poll() -> str:
     import random
     return random.choice(EXIT_POLL_QUESTIONS)
@@ -3373,6 +3448,7 @@ MUSIC_REACTIONS = {
     "reggae": "Reggae? Island vibes like Delfino Plaza!",
 }
 
+@_mario_only
 def check_music_talk(text: str) -> str:
     low = text.lower()
     for genre, reaction in MUSIC_REACTIONS.items():
@@ -3392,6 +3468,7 @@ PET_REACTIONS = {
     "rabbit": "Rabbits! Hoppy like Mario himself!",
 }
 
+@_mario_only
 def check_pet_talk(text: str) -> str:
     low = text.lower()
     for pet, reaction in PET_REACTIONS.items():
@@ -3400,6 +3477,7 @@ def check_pet_talk(text: str) -> str:
     return ""
 
 # Weather small talk (react to weather mentions)
+@_mario_only
 def check_weather(text: str) -> str:
     low = text.lower()
     if any(w in low for w in ["rain", "raining", "storm"]):
@@ -3415,6 +3493,7 @@ def check_weather(text: str) -> str:
 # Superhero alter ego
 _alter_ego_given = False
 
+@_mario_only
 def maybe_alter_ego(exchange_count: int) -> str:
     global _alter_ego_given
     if _alter_ego_given or exchange_count < 11:
@@ -3438,6 +3517,7 @@ def reset_alter_ego():
 # Secret handshake evolution (builds across conversation)
 _handshake_step = 0
 
+@_mario_only
 def evolve_handshake(exchange_count: int) -> str:
     global _handshake_step
     if exchange_count < 15 or _handshake_step >= 3:
@@ -3473,6 +3553,7 @@ DID_YOU_KNOW = [
 ]
 _fact_given = False
 
+@_mario_only
 def maybe_did_you_know(exchange_count: int) -> str:
     global _fact_given
     if _fact_given or exchange_count < 4:
@@ -3516,6 +3597,7 @@ SPORTS_REACTIONS = {
     "racing": "Racing! Mario Kart is the ULTIMATE race!",
 }
 
+@_mario_only
 def check_sports_talk(text: str) -> str:
     low = text.lower()
     for sport, reaction in SPORTS_REACTIONS.items():
@@ -3532,6 +3614,7 @@ PHILOSOPHY = [
 ]
 _philosophy_used = False
 
+@_mario_only
 def maybe_philosophy(exchange_count: int) -> str:
     global _philosophy_used
     if _philosophy_used or exchange_count < 10:
@@ -3549,6 +3632,7 @@ def reset_philosophy():
 # Skill brag (Mario brags about something)
 _brag_used = False
 
+@_mario_only
 def maybe_skill_brag(exchange_count: int) -> str:
     global _brag_used
     if _brag_used or exchange_count < 7:
@@ -3572,6 +3656,7 @@ def reset_skill_brag():
 # Gratitude burst (random appreciation moment)
 _gratitude_used = False
 
+@_mario_only
 def maybe_gratitude(exchange_count: int) -> str:
     global _gratitude_used
     if _gratitude_used or exchange_count < 8:
