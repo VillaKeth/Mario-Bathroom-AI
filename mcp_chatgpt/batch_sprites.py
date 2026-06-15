@@ -80,7 +80,6 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session()
     done, skipped, failed = [], [], []
-    consec_fail = 0
 
     for idx, rel, prompt in entries:
         if idx < start:
@@ -99,35 +98,39 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
                 continue
 
         print(f"GEN  [{idx:02d}] {rel}", flush=True)
-        try:
-            r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
-        except Exception as e:  # noqa: BLE001 - log and keep going
-            print(f"FAIL [{idx:02d}] gen error: {e}", flush=True)
-            failed.append(rel)
-            consec_fail += 1
-        else:
+        # Retry on stochastic guardrail refusals (ChatGPT sometimes blocks a
+        # perfectly innocuous render); only a real usage-limit stops the run.
+        img = None
+        status = "refused"
+        last_txt = ""
+        for attempt in range(1, 4):
+            try:
+                r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
+            except Exception as e:  # noqa: BLE001 - log and keep going
+                last_txt = f"gen error: {e}"
+                continue
             imgs = r.get("response", {}).get("images", [])
-            txt = r.get("response", {}).get("text", "")
-            if not imgs:
-                limited = any(m.lower() in txt.lower() for m in selectors.USAGE_LIMIT_MARKERS)
-                tag = " (USAGE LIMIT)" if limited else ""
-                print(f"FAIL [{idx:02d}] no image{tag} text={txt[:80]!r}", flush=True)
-                failed.append(rel)
-                consec_fail += 1
-            elif cut(imgs[0], dst):
-                print(f"DONE [{idx:02d}] {rel}", flush=True)
-                done.append(rel)
-                consec_fail = 0
-                done_set.add(rel)
-                manifest.write_text("\n".join(sorted(done_set)))
-            else:
-                failed.append(rel)
-                consec_fail += 1
+            last_txt = r.get("response", {}).get("text", "")
+            if imgs:
+                img, status = imgs[0], "ok"
+                break
+            if any(m.lower() in last_txt.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+                status = "limit"
+                break
+            print(f"     retry [{idx:02d}] attempt {attempt} blocked: {last_txt[:60]!r}", flush=True)
 
-        if consec_fail >= 3:
-            print("STOP: 3 consecutive failures — likely rate limited. Re-run with "
-                  "--regen later to resume where this left off.", flush=True)
+        if status == "limit":
+            print(f"STOP [{idx:02d}] usage limit hit. Re-run --regen later to resume.", flush=True)
+            failed.append(rel)
             break
+        if status == "ok" and cut(img, dst):
+            print(f"DONE [{idx:02d}] {rel}", flush=True)
+            done.append(rel)
+            done_set.add(rel)
+            manifest.write_text("\n".join(sorted(done_set)))
+        else:
+            print(f"FAIL [{idx:02d}] {rel} ({status}) text={last_txt[:80]!r}", flush=True)
+            failed.append(rel)
 
     print(f"\nSUMMARY done={len(done)} skipped={len(skipped)} failed={len(failed)} "
           f"regenerated_total={len(done_set)}", flush=True)
