@@ -29,3 +29,68 @@ def test_authorize_requires_token_and_pin_in_remote_mode():
     assert mirror.authorize_friend_input("wrong", "p", mcfg, "remote")[0] is False
     assert mirror.authorize_friend_input("t", "wrong", mcfg, "remote")[0] is False
     assert mirror.authorize_friend_input("", "", mcfg, "remote")[0] is False
+
+# ---------------------------------------------------------------------------
+# Task 3: viewer registry, capture signal, fan-out relay
+# ---------------------------------------------------------------------------
+
+import pytest
+
+
+class FakeWS:
+    def __init__(self, fail=False):
+        self.sent_bytes = []
+        self.sent_json = []
+        self.fail = fail
+
+    async def send_bytes(self, data):
+        if self.fail:
+            raise RuntimeError("dead socket")
+        self.sent_bytes.append(data)
+
+    async def send_json(self, obj):
+        if self.fail:
+            raise RuntimeError("dead socket")
+        self.sent_json.append(obj)
+
+
+@pytest.fixture(autouse=True)
+def _reset_mirror_state():
+    mirror.reset_state()
+    yield
+    mirror.reset_state()
+
+
+@pytest.mark.asyncio
+async def test_add_viewer_signals_capture_start_on_first_only():
+    station = FakeWS()
+    mirror.set_active_ws_getter(lambda: station)
+    v1, v2 = FakeWS(), FakeWS()
+    await mirror.add_viewer(v1)
+    await mirror.add_viewer(v2)
+    starts = [m for m in station.sent_json if m.get("type") == "mirror_request" and m.get("active")]
+    assert len(starts) == 1
+    assert mirror.viewer_count() == 2
+
+
+@pytest.mark.asyncio
+async def test_remove_last_viewer_signals_capture_stop():
+    station = FakeWS()
+    mirror.set_active_ws_getter(lambda: station)
+    v1 = FakeWS()
+    await mirror.add_viewer(v1)
+    await mirror.remove_viewer(v1)
+    stops = [m for m in station.sent_json if m.get("type") == "mirror_request" and not m.get("active")]
+    assert len(stops) == 1
+    assert mirror.viewer_count() == 0
+
+
+@pytest.mark.asyncio
+async def test_broadcast_sends_to_all_and_drops_dead():
+    mirror.set_active_ws_getter(lambda: None)
+    good, dead = FakeWS(), FakeWS(fail=True)
+    await mirror.add_viewer(good)
+    await mirror.add_viewer(dead)
+    await mirror.broadcast(b"\x01frame")
+    assert good.sent_bytes == [b"\x01frame"]
+    assert mirror.viewer_count() == 1

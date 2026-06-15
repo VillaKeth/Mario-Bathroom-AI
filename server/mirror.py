@@ -40,3 +40,65 @@ def authorize_friend_input(token: str, pin: str, mcfg: dict, control_mode: str):
     if token == want_token and pin == want_pin:
         return (True, "ok")
     return (False, "bad_credentials")
+
+
+# ---------------------------------------------------------------------------
+# Task 3: viewer registry, capture start/stop signal, fan-out relay
+# ---------------------------------------------------------------------------
+
+_viewers: set = set()
+_active_ws_getter = None  # callable returning the pygame client's WebSocket or None
+
+
+def reset_state():
+    """Test helper: clear all module state."""
+    global _viewers, _active_ws_getter
+    _viewers = set()
+    _active_ws_getter = None
+
+
+def set_active_ws_getter(fn):
+    global _active_ws_getter
+    _active_ws_getter = fn
+
+
+def viewer_count() -> int:
+    return len(_viewers)
+
+
+async def _signal_capture(active: bool):
+    """Tell the pygame client to start/stop capturing. Never raises."""
+    try:
+        ws = _active_ws_getter() if _active_ws_getter else None
+        if ws is not None:
+            await ws.send_json({"type": "mirror_request", "active": bool(active)})
+    except Exception as e:
+        if DEBUG_MIRROR:
+            print(f"[mirror] _signal_capture failed (ignored): {e}")
+
+
+async def add_viewer(ws):
+    first = len(_viewers) == 0
+    _viewers.add(ws)
+    if first:
+        await _signal_capture(True)
+
+
+async def remove_viewer(ws):
+    _viewers.discard(ws)
+    if len(_viewers) == 0:
+        await _signal_capture(False)
+
+
+async def broadcast(data: bytes):
+    """Fan out one tagged binary message to all viewers; drop dead sockets."""
+    dead = []
+    for ws in list(_viewers):
+        try:
+            await ws.send_bytes(data)
+        except Exception:
+            dead.append(ws)
+    for ws in dead:
+        _viewers.discard(ws)
+    if dead and len(_viewers) == 0:
+        await _signal_capture(False)
