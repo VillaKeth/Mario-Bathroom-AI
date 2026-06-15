@@ -27,15 +27,86 @@ from character_creator import sprite_generator as sg  # noqa: E402
 STATE_PATH = os.path.join(BASE, ".secrets", "flux_drip_state.json")
 
 
-def _pose_index():
-    """Map every matchable key -> canonical pose path."""
+def _add_pose(idx, p):
+    idx[p.replace("/", "_")] = p             # speech_talking_excited
+    idx[p.replace("/", "-")] = p
+    idx[p.split("/")[-1]] = p                # talking_excited
+
+
+def _pose_index(char=None):
+    """Map every matchable key -> sprite pose path.
+
+    Starts from the canonical generation plan, then layers the ACTIVE
+    character's own pose paths (from its character.yaml emotion/state/fallback
+    maps) on top — so characters with custom pose names (e.g. Rudi's
+    positive/smirk, greeting/casual_wave) match too. Character paths are added
+    last so they win any trailing-segment collision for that character."""
     idx = {}
     for info in sg._generation_pose_plan():
-        p = info["sprite_path"]              # e.g. speech/talking_excited
-        idx[p.replace("/", "_")] = p         # speech_talking_excited
-        idx[p.replace("/", "-")] = p
-        idx[p.split("/")[-1]] = p            # talking_excited
+        _add_pose(idx, info["sprite_path"])  # canonical fallback set
+
+    if char:
+        ypath = os.path.join(BASE, "characters", char, "character.yaml")
+        if os.path.exists(ypath):
+            import yaml
+            v = (yaml.safe_load(open(ypath, encoding="utf-8")) or {}).get("visuals", {}) or {}
+            for section in ("emotion_sprite_map", "state_sprite_map", "fallback_sprites"):
+                for val in (v.get(section) or {}).values():
+                    for p in (val if isinstance(val, list) else [val]):
+                        if p:
+                            _add_pose(idx, p)
     return idx
+
+
+def _already_transparent(src_path, min_frac=0.02):
+    """True if the image already has a real alpha channel with a meaningful
+    amount of transparent pixels — i.e. someone already cut the background."""
+    try:
+        from PIL import Image
+        import numpy as np
+        im = Image.open(src_path)
+        if im.mode not in ("RGBA", "LA", "PA"):
+            return False
+        a = np.asarray(im.convert("RGBA").split()[3])
+        return (a < 10).mean() > min_frac
+    except Exception:
+        return False
+
+
+_ANIME_SESSION = None
+
+
+def _remove_bg_anime(src_path, out_path):
+    """Best cutout for anime/illustration art: rembg's isnet-anime model + alpha
+    matting. Trained on anime, so it keeps soft hair wisps, ribbon tails and
+    thin limbs cleanly (matches the Win11 'Remove background' AI) without eating
+    clothes. Used as the PRIMARY method for premium imports; flood-fill is the
+    fallback for flat studio renders it might choke on. Returns True on success.
+    """
+    global _ANIME_SESSION
+    try:
+        from rembg import new_session, remove
+        from PIL import Image
+        import numpy as np
+        if _ANIME_SESSION is None:
+            _ANIME_SESSION = new_session("isnet-anime")
+        out = remove(
+            Image.open(src_path),
+            session=_ANIME_SESSION,
+            alpha_matting=True,
+            alpha_matting_foreground_threshold=240,
+            alpha_matting_background_threshold=10,
+            alpha_matting_erode_size=10,
+        )
+        # Sanity: must keep a believable amount of the figure (not erase it,
+        # not leave the whole frame opaque).
+        kept = (np.asarray(out.split()[3]) > 30).mean()
+        if 0.04 < kept < 0.97:
+            out.save(out_path)
+            return True
+    except Exception as e:
+        print(f"[import] isnet-anime failed ({e}); falling back")
+    return False
 
 
 def _remove_flat_bg(src_path, out_path, tol=46, feather=0):
@@ -130,7 +201,7 @@ def main():
         return
     done_dir = os.path.join(inbox, "done")
     os.makedirs(done_dir, exist_ok=True)
-    idx = _pose_index()
+    idx = _pose_index(char)
 
     imported = 0
     for fn in sorted(os.listdir(inbox)):
@@ -144,9 +215,15 @@ def main():
             continue
         out = os.path.join(BASE, "characters", char, "sprites", f"{pose}.png")
         os.makedirs(os.path.dirname(out), exist_ok=True)
-        # Flat-bg flood fill first (never eats clothes); fall back to rembg only
-        # if the background is not flat enough for a clean key.
-        if not _remove_flat_bg(src, out):
+        # If the source ALREADY has a transparent background (e.g. you cut it
+        # yourself with the Win11 'Remove background' tool), keep it verbatim —
+        # don't re-key a clean cutout. Otherwise: isnet-anime (best for anime
+        # soft edges), then flat-bg flood fill, then general rembg.
+        if _already_transparent(src):
+            from PIL import Image
+            Image.open(src).convert("RGBA").save(out)
+            print(f"[import] {fn}: already transparent — kept as-is")
+        elif not _remove_bg_anime(src, out) and not _remove_flat_bg(src, out):
             with open(src, "rb") as f:
                 sg._try_remove_background(f.read(), out)
         _autocrop(out)  # trim huge transparent margins so the figure fills the sprite

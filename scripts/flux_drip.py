@@ -97,7 +97,9 @@ def build_queue(state):
         visuals = (y.get("visuals") or {})
         short_desc = visuals.get("drip_description") or (
             desc[:300].rsplit(" ", 1)[0] if len(desc) > 300 else desc)
-        short_frame = ", full body head to toe, centered, full figure visible, plain background, NOT chibi"
+        short_frame = (", full body head to toe, centered, full figure visible, plain background, "
+                       "realistic adult body proportions, long legs, normal-sized head, "
+                       "NOT chibi, NOT super-deformed, NOT a child")
         for info in plan:
             key = f"{char}/{info['sprite_path']}"
             if key in done:
