@@ -76,5 +76,15 @@
     "person_detection_frame_skip": 3
   },
   "elevenlabs_api_key": "",
-  "alert_webhook_url": ""
+  "alert_webhook_url": "",
+  "mirror": {
+    "enabled": true,
+    "control_mode": "station",
+    "token": "changeme-token",
+    "pin": "1234",
+    "fps": 10,
+    "jpeg_quality": 55,
+    "max_width": 640,
+    "ingest_url": "ws://localhost:8765/mirror_ingest"
+  }
 }
