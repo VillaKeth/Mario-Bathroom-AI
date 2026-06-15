@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Mario AI — Live</title>
+<style>
+  html,body{margin:0;background:#111;color:#eee;font-family:system-ui,Arial,sans-serif;height:100%}
+  #wrap{display:flex;flex-direction:column;height:100%}
+  #stage{flex:1;display:flex;align-items:center;justify-content:center;background:#000;min-height:0}
+  canvas{max-width:100%;max-height:100%;image-rendering:auto}
+  #bar{display:flex;gap:8px;padding:10px;background:#1b1b1b;align-items:center}
+  #bar input{flex:1;padding:12px;font-size:16px;border-radius:8px;border:1px solid #444;background:#222;color:#fff}
+  #bar button{padding:12px 16px;font-size:16px;border-radius:8px;border:0;background:#e23;color:#fff}
+  #bar button:disabled{background:#555}
+  #status{padding:6px 10px;font-size:12px;color:#999}
+  #tapcover{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
+  <div id="status">connecting…</div>
+  <div id="bar" class="hidden">
+    <input id="pin" type="text" inputmode="numeric" placeholder="PIN" size="6" autocomplete="off">
+    <input id="msg" type="text" placeholder="Say something…" autocomplete="off">
+    <button id="send">Send</button>
+  </div>
+</div>
+<div id="tapcover">Tap to start</div>
+<script>
+const qs = new URLSearchParams(location.search);
+const TOKEN = qs.get("token") || "";
+const CONTROL_MODE = "__CONTROL_MODE__";   // injected by the server
+const canvas = document.getElementById("screen");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+const bar = document.getElementById("bar");
+const tapcover = document.getElementById("tapcover");
+let audioUnlocked = false;
+
+// Audio playback queue (WAV blobs arriving over WS).
+const audioEl = new Audio();
+const audioQueue = [];
+let playing = false;
+function pumpAudio(){
+  if (playing || audioQueue.length === 0) return;
+  playing = true;
+  const url = URL.createObjectURL(audioQueue.shift());
+  audioEl.src = url;
+  audioEl.play().catch(()=>{ playing = false; });
+}
+audioEl.onended = audioEl.onerror = () => { playing = false; pumpAudio(); };
+
+tapcover.onclick = () => {
+  audioUnlocked = true;
+  audioEl.play().catch(()=>{});   // unlock autoplay with a user gesture
+  tapcover.classList.add("hidden");
+};
+
+if (CONTROL_MODE === "remote") bar.classList.remove("hidden");
+
+function connect(){
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(proto + "://" + location.host + "/mirror");
+  ws.binaryType = "arraybuffer";
+  ws.onopen = () => statusEl.textContent = "live";
+  ws.onclose = () => { statusEl.textContent = "reconnecting…"; setTimeout(connect, 2000); };
+  ws.onmessage = (ev) => {
+    const buf = new Uint8Array(ev.data);
+    const tag = buf[0];
+    const payload = buf.subarray(1);
+    if (tag === 0x01) {                       // video frame (JPEG)
+      const blob = new Blob([payload], {type: "image/jpeg"});
+      createImageBitmap(blob).then(bmp => {
+        if (canvas.width !== bmp.width || canvas.height !== bmp.height){
+          canvas.width = bmp.width; canvas.height = bmp.height;
+        }
+        ctx.drawImage(bmp, 0, 0);
+        bmp.close && bmp.close();
+      }).catch(()=>{});
+    } else if (tag === 0x02) {                // audio (WAV)
+      if (!audioUnlocked) return;             // wait for the tap gesture
+      audioQueue.push(new Blob([payload], {type: "audio/wav"}));
+      pumpAudio();
+    }
+  };
+}
+connect();
+
+// Sending text (remote mode only).
+const sendBtn = document.getElementById("send");
+const msgEl = document.getElementById("msg");
+const pinEl = document.getElementById("pin");
+async function send(){
+  const text = msgEl.value.trim();
+  if (!text) return;
+  sendBtn.disabled = true;
+  try {
+    const r = await fetch("/friend/say", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text, token: TOKEN, pin: pinEl.value.trim()})
+    });
+    const j = await r.json();
+    statusEl.textContent = (j.status === "ok") ? "live" : ("✋ " + (j.message || j.reason || "rejected"));
+    if (j.status === "ok") msgEl.value = "";
+  } catch(e) {
+    statusEl.textContent = "send failed";
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+sendBtn.onclick = send;
+msgEl.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+</script>
+</body>
+</html>
