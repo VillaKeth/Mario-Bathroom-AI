@@ -28,6 +28,11 @@
       "command": "uvx",
       "args": ["mcp-server-time", "--local-timezone=America/New_York"],
       "env": {}
+    },
+    "chatgpt": {
+      "type": "stdio",
+      "command": "mcp_chatgpt/venv/Scripts/python.exe",
+      "args": ["-m", "mcp_chatgpt.server"]
     }
   }
 }
