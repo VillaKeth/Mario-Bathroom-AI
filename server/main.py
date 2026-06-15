@@ -1881,6 +1881,9 @@ async def _dispatch_user_text(text: str):
 @app.post("/admin/simulate_text")
 async def admin_simulate_text(request_body: dict = {}):
     """Admin: Simulate text input as if a user typed it (uses active WS connection)."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
     return await _dispatch_user_text(request_body.get("text", ""))
 
 
