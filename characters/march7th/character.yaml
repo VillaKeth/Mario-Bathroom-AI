@@ -112,6 +112,7 @@ visuals:
   fallback_sprites:
     emotion: neutral/idle
     state: neutral/idle
+  default_background: march7th_cozy_pink_room
 personality:
   baseline_emotion: happy
   baseline_energy: 0.8

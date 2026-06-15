@@ -1,0 +1,162 @@
+Robin 🎵 — SPRITE IMAGE PROMPTS (for GPT-4o / image gen)
+======================================================================
+HOW TO USE: copy one block, paste into the image GPT, generate.
+Save each result at the EXACT path shown, then run:
+    venv/Scripts/python.exe scripts/import_sprites.py robin_hsr
+(drop files in characters/robin_hsr/_incoming/ named like the path with
+ slashes as underscores, e.g. positive_happy.png; the importer routes them).
+Keep the MASTER DESCRIPTION identical every time; only 'Pose:' changes.
+======================================================================
+
+MASTER DESCRIPTION (paste into every block):
+A beloved galactic singer whose voice can inspire and heal across the stars
+
+======================================================================
+
+[01] save as: sprites/birthday/birthday.png   (file: birthday_birthday.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: holding a birthday cake with candles, warm smile.
+
+[02] save as: sprites/greeting/farewell.png   (file: greeting_farewell.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: exiting expression with matching body pose.
+
+[03] save as: sprites/greeting/wave.png   (file: greeting_wave.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: greeting expression with matching body pose.
+
+[04] save as: sprites/memorial/moment_of_silence.png   (file: memorial_moment_of_silence.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with head bowed, one hand over heart, solemn respectful pose.
+
+[05] save as: sprites/movement/dancing.png   (file: movement_dancing.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: doing a fun dance move, energetic and happy.
+
+[06] save as: sprites/movement/entering.png   (file: movement_entering.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: walking in confidently, dramatic entrance.
+
+[07] save as: sprites/negative/angry.png   (file: negative_angry.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with intense angry expression, fists clenched, leaning forward.
+
+[08] save as: sprites/negative/annoyed.png   (file: negative_annoyed.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with arms crossed, one eyebrow raised, clearly unimpressed look.
+
+[09] save as: sprites/negative/disgusted.png   (file: negative_disgusted.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: leaning away with disgusted face, hand up in stop gesture.
+
+[10] save as: sprites/negative/embarrassed.png   (file: negative_embarrassed.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: scratching back of head sheepishly, embarrassed half-smile.
+
+[11] save as: sprites/negative/nervous.png   (file: negative_nervous.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: looking nervously to the side, hands fidgeting, uncertain expression.
+
+[12] save as: sprites/negative/sad.png   (file: negative_sad.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: looking down sadly, shoulders slumped, disappointed expression.
+
+[13] save as: sprites/negative/scared.png   (file: negative_scared.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: jumping back with wide eyes, arms up in surprise, startled and scared.
+
+[14] save as: sprites/neutral/idle.png   (file: neutral_idle.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: standing relaxed, casual confident stance, neutral expression.
+
+[15] save as: sprites/party/celebrate.png   (file: party_celebrate.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: raising both arms in celebration, huge grin, confetti around.
+
+[16] save as: sprites/positive/excited.png   (file: positive_excited.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: jumping with excitement, fist pumped, huge grin.
+
+[17] save as: sprites/positive/happy.png   (file: positive_happy.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with a warm genuine smile, arms open, welcoming happy pose.
+
+[18] save as: sprites/positive/laughing.png   (file: positive_laughing.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: laughing hard, head thrown back, genuine amusement.
+
+[19] save as: sprites/positive/love.png   (file: positive_love.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with heart eyes, hands clasped near face, love-struck expression.
+
+[20] save as: sprites/positive/proud.png   (file: positive_proud.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: standing tall, hands on hips, chin up, supremely confident proud pose.
+
+[21] save as: sprites/reactions/cringe.png   (file: reactions_cringe.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: cringing hard, one eye closed, teeth gritted, looking away.
+
+[22] save as: sprites/reactions/impressed.png   (file: reactions_impressed.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: nodding approvingly, arms crossed, raised eyebrow, genuine respect.
+
+[23] save as: sprites/reactions/mind_blown.png   (file: reactions_mind_blown.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with hands on sides of head, amazed shocked expression.
+
+[24] save as: sprites/reactions/sassy.png   (file: reactions_sassy.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with hand on hip, head tilted, finger wagging, sassy attitude.
+
+[25] save as: sprites/sleep/sleeping.png   (file: sleep_sleeping.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: curled up sleeping, peaceful expression.
+
+[26] save as: sprites/sleep/sleepy.png   (file: sleep_sleepy.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: mid-yawn, hand covering mouth, half-closed eyes, sleepy.
+
+[27] save as: sprites/speech/listening.png   (file: speech_listening.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with head slightly tilted, attentive listening pose.
+
+[28] save as: sprites/speech/talking.png   (file: speech_talking.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: gesturing with one hand while speaking, animated expression.
+
+[29] save as: sprites/speech/talking_excited.png   (file: speech_talking_excited.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: gesturing with one hand while speaking, animated expression.
+
+[30] save as: sprites/thinking/confused.png   (file: thinking_confused.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with head tilted, confused expression, one eyebrow raised high.
+
+[31] save as: sprites/thinking/curious.png   (file: thinking_curious.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: leaning forward with curiosity, eyes bright, interested expression.
+
+[32] save as: sprites/thinking/determined.png   (file: thinking_determined.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with intense focused eyes, determined expression, leaning forward.
+
+[33] save as: sprites/thinking/idea.png   (file: thinking_idea.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with index finger raised, bright idea moment, excited eyes.
+
+[34] save as: sprites/thinking/mischievous.png   (file: thinking_mischievous.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: with a mischievous grin, fingers steepled, plotting look.
+
+[35] save as: sprites/thinking/shocked.png   (file: thinking_shocked.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: doing a dramatic double take, wide eyes, surprised.
+
+[36] save as: sprites/thinking/thinking.png   (file: thinking_thinking.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: looking upward thoughtfully, finger tapping chin, pondering.
+
+[37] save as: sprites/toast/raising_glass.png   (file: toast_raising_glass.png)
+----------------------------------------------------------------------
+{MASTER DESCRIPTION}  Pose: raising a glass high, confident smile, toasting.
