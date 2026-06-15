@@ -1918,6 +1918,9 @@ async def friend_say(request_body: dict = {}):
 @app.post("/admin/mirror_mode")
 async def admin_mirror_mode(request_body: dict = {}):
     """Flip control mode at runtime: {'mode': 'station'|'remote'}."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
     mode = request_body.get("mode", "station")
     mirror_relay.set_control_mode(mode)
     return {"status": "ok", "control_mode": mirror_relay.get_control_mode()}
