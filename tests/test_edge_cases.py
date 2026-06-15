@@ -1440,7 +1440,9 @@ class TestTextInputTimeout:
             return f.read()
 
     def test_text_input_timeout_value(self):
-        """asyncio.wait_for(_handle_text_input(...), timeout=45.0) must exist."""
+        """_handle_text_input(...) must be wrapped in asyncio.wait_for with a timeout
+        guard. Historically the literal 45.0; now the adaptive _PIPELINE_TIMEOUT
+        (llm_timeout + 30/90 by hardware tier). Either satisfies the contract."""
         import ast
 
         source = self._read_source()
@@ -1460,7 +1462,11 @@ class TestTextInputTimeout:
             for kw in node.keywords:
                 if kw.arg == "timeout":
                     val = kw.value
-                    if isinstance(val, ast.Constant) and val.value == 45.0:
+                    timeout_ok = (
+                        (isinstance(val, ast.Constant) and val.value == 45.0)
+                        or (isinstance(val, ast.Name) and val.id == "_PIPELINE_TIMEOUT")
+                    )
+                    if timeout_ok:
                         if node.args:
                             inner = node.args[0]
                             if isinstance(inner, ast.Await):
@@ -1472,8 +1478,8 @@ class TestTextInputTimeout:
                                 elif isinstance(inner_func, ast.Attribute) and inner_func.attr == "_handle_text_input":
                                     found = True
         assert found, (
-            "Expected asyncio.wait_for(_handle_text_input(...), timeout=45.0) "
-            "in server/main.py"
+            "Expected asyncio.wait_for(_handle_text_input(...), "
+            "timeout=_PIPELINE_TIMEOUT (or 45.0)) in server/main.py"
         )
 
     def test_text_input_exception_clears_active_flag(self):
