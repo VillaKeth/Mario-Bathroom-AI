@@ -19,11 +19,15 @@ import argparse
 import asyncio
 import re
 import subprocess
+import sys
 from pathlib import Path
 
-from mcp_chatgpt.browser import get_session
-
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:           # allow running as a plain script file
+    sys.path.insert(0, str(ROOT))
+
+from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
+
 MAIN_PY = ROOT / "venv" / "Scripts" / "python.exe"
 
 # Suppress GPT's habit of stamping text/letters onto the character or clothing.
@@ -66,7 +70,7 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
-async def run(character: str, start: int, force: bool) -> None:
+async def run(character: str, start: int, force: bool, account: str) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
     session = get_session()
@@ -83,7 +87,7 @@ async def run(character: str, start: int, force: bool) -> None:
 
         print(f"GEN  [{idx:02d}] {rel}", flush=True)
         try:
-            r = await session.new_thread(PROMPT_PREFIX + prompt)
+            r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
         except Exception as e:  # noqa: BLE001 - log and keep going
             print(f"FAIL [{idx:02d}] gen error: {e}", flush=True)
             failed.append(rel)
@@ -112,5 +116,6 @@ if __name__ == "__main__":
     ap.add_argument("--character", default="rudi")
     ap.add_argument("--start", type=int, default=1)
     ap.add_argument("--force", action="store_true", help="regenerate even if the sprite exists")
+    ap.add_argument("--account", default="default", help="logged-in account profile to use")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.start, a.force))
+    asyncio.run(run(a.character, a.start, a.force, a.account))
