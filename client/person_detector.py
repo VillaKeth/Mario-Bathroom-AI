@@ -24,13 +24,19 @@ try:
     from ultralytics import YOLO
     _yolo_available = True
 except ImportError:
-    logger.debug("[person_detector] ultralytics not installed — YOLO disabled")
+    logger.warning(
+        "[person_detector] ultralytics NOT installed — person detection DISABLED "
+        "(no camera presence/face capture). pip install ultralytics"
+    )
 
 try:
     import face_recognition as face_rec
     _face_rec_available = True
 except ImportError:
-    logger.debug("[person_detector] face_recognition not installed — face ID disabled")
+    logger.warning(
+        "[person_detector] face_recognition NOT installed — face ID DISABLED, "
+        "returning guests won't be recognized by face. pip install face_recognition"
+    )
 
 
 class DetectedPerson:
