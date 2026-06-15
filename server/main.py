@@ -1849,19 +1849,18 @@ async def admin_probe(request_body: dict = {}):
         return {"error": str(e), "char": _character.name, "text": ""}
 
 
-@app.post("/admin/simulate_text")
-async def admin_simulate_text(request_body: dict = {}):
-    """Admin: Simulate text input as if a user typed it (uses active WS connection)."""
-    text = request_body.get("text", "")
+async def _dispatch_user_text(text: str):
+    """Run a text input through the exact same pipeline as a real typed message,
+    sending the response to the active pygame client. Returns a status dict.
+
+    Shared by /admin/simulate_text and /friend/say."""
+    global _current_response_task
     if not text:
         return {"status": "error", "message": "Text required"}
     if not _active_ws:
         return {"status": "error", "message": "No active WebSocket connection"}
-    # Dispatch through the same handler as real text_input
-    global _current_response_task
-    # Cancel any in-progress response task (same as real text_input)
     if _current_response_task and not _current_response_task.done():
-        logger.info(f"[INTERRUPT] Cancelling previous response for simulated input: '{text[:50]}'")
+        logger.info(f"[INTERRUPT] Cancelling previous response for input: '{text[:50]}'")
         _current_response_task.cancel()
         try:
             await _active_ws.send_json({"type": "clear_audio"})
@@ -1872,7 +1871,13 @@ async def admin_simulate_text(request_body: dict = {}):
         state_current["_user_request_active"] = True
         state_current["_last_user_msg_time"] = time.time()
     _current_response_task = asyncio.create_task(_text_input_task(_active_ws, text))
-    return {"status": "ok", "message": f"Simulated: {text[:50]}"}
+    return {"status": "ok", "message": f"Dispatched: {text[:50]}"}
+
+
+@app.post("/admin/simulate_text")
+async def admin_simulate_text(request_body: dict = {}):
+    """Admin: Simulate text input as if a user typed it (uses active WS connection)."""
+    return await _dispatch_user_text(request_body.get("text", ""))
 
 
 @app.post("/admin/force_stop_game")
@@ -2501,8 +2506,15 @@ async def websocket_endpoint(ws: WebSocket):
                     logger.error(f"handle_audio error: {e}")
             elif "text" in data and data["text"]:
                 text_data = data["text"]
-                if len(text_data) > 64 * 1024:  # 64KB max JSON
-                    logger.warning(f"[VALIDATION] JSON too large: {len(text_data)} bytes")
+                # register_speaker carries base64 voice audio and legitimately needs
+                # a larger payload (a few-second clip base64s to ~250-500KB); every
+                # other event stays tightly capped. Flood is still bounded by the
+                # 30 msg/sec rate limiter above.
+                _json_cap = (2 * 1024 * 1024
+                             if '"register_speaker"' in text_data[:120]
+                             else 64 * 1024)
+                if len(text_data) > _json_cap:
+                    logger.warning(f"[VALIDATION] JSON too large: {len(text_data)} bytes (cap {_json_cap})")
                     continue
                 try:
                     await handle_event(ws, json.loads(text_data))
@@ -3271,86 +3283,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     emotion_system.update(event="speech_detected", transcript=text)
     idle_behavior.reset_timer()
 
-    # Dynamic guest learning flow - check for name responses
-    if state_current.get("_awaiting_name_response") and state_current.get("_last_face_encoding") is not None:
-        name = _parse_name_from_response(text)
-        if name:
-            # Successfully learned guest name
-            try:
-                _face_memory.learn_guest(name, state_current["_last_face_encoding"])
-                # Auto-enroll the voice too, so returning guests are recognized
-                # by voice (mirrors face auto-learning). Optional subsystem —
-                # must degrade, never crash this request.
-                try:
-                    _chunk = state_current.get("_last_audio_chunk")
-                    if _chunk and speaker_id.is_available():
-                        _emb = speaker_id.get_embedding(_chunk)
-                        if _emb is not None:
-                            speaker_id.learn_voice(name, _emb)
-                            logger.info(f"[VOICE_ENROLL] Learned voice for {name}")
-                except Exception as e:
-                    logger.warning(f"[VOICE_ENROLL] failed: {e}")
-                state_current["detected_guest"] = name
-                state_current["guest_visits"] = 1
-                state_current["_awaiting_name_response"] = False
-                state_current["_name_attempts"] = 0
-                state_current["_last_face_encoding"] = None
-
-                logger.info(f"[GUEST_LEARNING] Successfully learned guest name: {name}")
-                
-                # Send personalized greeting
-                greeting = f"Nice to meet you, {name}! Welcome to the party!"
-                greeting_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(greeting))
-                await send_response(ws, greeting, greeting_audio)
-                return
-                
-            except Exception as e:
-                logger.error(f"[GUEST_LEARNING] Failed to store guest {name}: {e}")
-        else:
-            # Failed to parse name - increment attempt counter
-            state_current["_name_attempts"] += 1
-            
-            if state_current["_name_attempts"] >= 2:
-                # Assign mystery guest name after 2 failed attempts
-                state_current["_mystery_guest_counter"] += 1
-                mystery_name = f"Mystery Guest #{state_current['_mystery_guest_counter']}"
-                
-                try:
-                    _face_memory.learn_guest(mystery_name, state_current["_last_face_encoding"])
-                    # Auto-enroll the voice for this mystery guest too, so the
-                    # same person is re-recognized later. Optional — degrade safely.
-                    try:
-                        _chunk = state_current.get("_last_audio_chunk")
-                        if _chunk and speaker_id.is_available():
-                            _emb = speaker_id.get_embedding(_chunk)
-                            if _emb is not None:
-                                speaker_id.learn_voice(mystery_name, _emb)
-                                logger.info(f"[VOICE_ENROLL] Learned voice for {mystery_name}")
-                    except Exception as e:
-                        logger.warning(f"[VOICE_ENROLL] failed: {e}")
-                    state_current["detected_guest"] = mystery_name
-                    state_current["guest_visits"] = 1
-                    state_current["_awaiting_name_response"] = False
-                    state_current["_name_attempts"] = 0
-                    state_current["_last_face_encoding"] = None
-
-                    logger.info(f"[GUEST_LEARNING] Assigned mystery name: {mystery_name}")
-                    
-                    # Send mystery guest greeting
-                    mystery_greeting = f"Alright, I'll just call you {mystery_name} for now! Let's party!"
-                    mystery_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(mystery_greeting))
-                    await send_response(ws, mystery_greeting, mystery_audio)
-                    return
-                    
-                except Exception as e:
-                    logger.error(f"[GUEST_LEARNING] Failed to store {mystery_name}: {e}")
-                    state_current["_awaiting_name_response"] = False
-            else:
-                # Ask again
-                retry_msg = "Sorry, I didn't catch that. What's your name?"
-                retry_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(retry_msg))
-                await send_response(ws, retry_msg, retry_audio)
-                return
+    # NOTE: the former "_awaiting_name_response" guest-learning flow was removed.
+    # That flag was never set True anywhere, so the block was unreachable dead
+    # code, and reactivating it would swallow any non-name reply (mislabeling a
+    # chatty guest as "Mystery Guest"). Guest learning happens through reachable
+    # paths instead:
+    #   - voice: command_handlers parses "my name is X" -> speaker_id.register_speaker()
+    #   - face:  person_detected (unknown face + known speaker) -> _face_memory.store_face()
 
     # Neuro-sama mood swing: 5% chance of random emotion shift mid-conversation
     if random.random() < 0.05:
