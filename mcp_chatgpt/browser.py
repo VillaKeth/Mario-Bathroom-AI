@@ -15,8 +15,7 @@ OUTPUT_DIR = os.path.join(_DIR, "output")
 
 DEFAULT_ACCOUNT = "default"
 
-# Image generation is slow; give it far more polls than plain text.
-TEXT_MAX_POLLS = 240        # ~120s at 0.5s
+# Image generation is slow; give the wait loop a generous poll budget.
 IMAGE_MAX_POLLS = 600       # ~300s at 0.5s
 
 
@@ -157,6 +156,23 @@ class ChatGPTSession:
         except Exception:
             pass
 
+    async def _notice(self, page: Page) -> str:
+        """Visible page text, captured only on a failed/empty generation so callers
+        can detect cap/limit banners or toasts that aren't in the assistant turn."""
+        try:
+            return (await page.inner_text("body"))[:1200]
+        except Exception:
+            return ""
+
+    async def _build_response(self, page: Page, outcome: WaitOutcome, images: list) -> dict:
+        resp = {"text": outcome.text, "images": images, "timed_out": outcome.timed_out}
+        # Only scrape the page notice when the reply is TRULY empty (no text and no
+        # image) — that's the cap/toast case. A real text answer must not be
+        # polluted with a dump of page chrome.
+        if not images and not (outcome.text or "").strip():
+            resp["notice"] = await self._notice(page)
+        return resp
+
     async def new_thread(self, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
         async with self._lock:
             ctx = await self._ctx_for(account)
@@ -171,8 +187,7 @@ class ChatGPTSession:
             self._threads[thread_id] = page
             images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
             return {"thread_id": thread_id,
-                    "response": {"text": outcome.text, "images": images,
-                                 "timed_out": outcome.timed_out}}
+                    "response": await self._build_response(page, outcome, images)}
 
     async def send(self, thread_id: str, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
         async with self._lock:
@@ -189,8 +204,7 @@ class ChatGPTSession:
             await self._type_and_send(page, prompt)
             outcome = await self._send_and_wait(page, baseline)
             images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
-            return {"response": {"text": outcome.text, "images": images,
-                                 "timed_out": outcome.timed_out}}
+            return {"response": await self._build_response(page, outcome, images)}
 
     async def close_thread(self, thread_id: str) -> dict:
         async with self._lock:
@@ -198,6 +212,23 @@ class ChatGPTSession:
             if page is not None:
                 await page.close()
             return {"ok": page is not None}
+
+    async def close(self) -> None:
+        """Close every browser context + Playwright. For one-shot scripts; the
+        long-running MCP server leaves the session open for its lifetime."""
+        for ctx in self._contexts.values():
+            try:
+                await ctx.close()
+            except Exception:
+                pass
+        self._contexts.clear()
+        self._threads.clear()
+        if self._pw is not None:
+            try:
+                await self._pw.stop()
+            except Exception:
+                pass
+            self._pw = None
 
 
 _session: ChatGPTSession | None = None

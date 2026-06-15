@@ -1,4 +1,4 @@
-from mcp_chatgpt.parsing import parse_thread_id, classify_page_state
+from mcp_chatgpt.parsing import parse_thread_id, classify_page_state, parse_reset_seconds
 
 
 def test_parse_thread_id_basic():
@@ -23,3 +23,27 @@ def test_classify_login_by_url():
 
 def test_classify_challenge_by_body():
     assert classify_page_state("https://chatgpt.com/", "Just a moment...") == "challenge"
+
+
+def test_reset_seconds_minutes():
+    assert parse_reset_seconds("You've hit the limit. Try again in 12 minutes.") == 720
+
+
+def test_reset_seconds_seconds():
+    assert parse_reset_seconds("Please try again in 30 seconds") == 30
+
+
+def test_reset_seconds_hours():
+    assert parse_reset_seconds("Image limit reached. Come back in 2 hours.") == 7200
+
+
+def test_reset_seconds_countdown_mmss():
+    assert parse_reset_seconds("Try again in 04:59") == 299
+
+
+def test_reset_seconds_countdown_hms():
+    assert parse_reset_seconds("available in 1:02:03") == 3723
+
+
+def test_reset_seconds_none_when_absent():
+    assert parse_reset_seconds("You've reached your limit, come back later") is None

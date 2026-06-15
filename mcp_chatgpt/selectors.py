@@ -12,7 +12,6 @@ STOP_BUTTON = "[data-testid='stop-button']"
 
 # Assistant output
 ASSISTANT_TURN = "[data-message-author-role='assistant']"
-ASSISTANT_IMAGE = "img"  # queried *within* the last assistant turn
 
 # Generated images render OUTSIDE the assistant-turn element, so they are found
 # page-level and identified by their src host/path (avatars are gravatar.com and
@@ -28,5 +27,5 @@ CHALLENGE_TEXT_MARKERS = ("Verify you are human", "Just a moment", "Checking you
 USAGE_LIMIT_MARKERS = (
     "You've reached", "usage limit", "limit reached",
     "too many requests", "try again later", "rate limit",
-    "you can create", "come back later",
+    "come back later",
 )

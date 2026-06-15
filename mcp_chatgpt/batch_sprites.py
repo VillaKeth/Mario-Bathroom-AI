@@ -28,6 +28,7 @@ if str(ROOT) not in sys.path:           # allow running as a plain script file
 
 from mcp_chatgpt import selectors  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
+from mcp_chatgpt.parsing import parse_reset_seconds  # noqa: E402 (after sys.path setup)
 
 MAIN_PY = ROOT / "venv" / "Scripts" / "python.exe"
 
@@ -71,74 +72,101 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
+async def _generate_once(session, prompt: str, account: str):
+    """One sprite attempt, up to 3 retries for stochastic guardrail blocks.
+    Returns (image_path|None, status, message); status in {ok, cap, refused}.
+    Scans assistant text AND the page notice, so a cap banner is caught even when
+    it isn't part of the reply."""
+    msg = ""
+    for attempt in range(1, 4):
+        try:
+            r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
+        except Exception as e:  # noqa: BLE001
+            msg = f"gen error: {e}"
+            continue
+        resp = r.get("response", {})
+        imgs = resp.get("images", [])
+        msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
+        if imgs:
+            return imgs[0], "ok", msg
+        if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+            return None, "cap", msg
+        print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
+    return None, "refused", msg
+
+
 async def run(character: str, start: int, force: bool, regen: bool, account: str,
-              delay: float) -> None:
+              delay: float, cap_fallback: float, max_cap_waits: int) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
     # Manifest of sprites already FRESHLY regenerated this campaign, so a re-run
-    # after a rate-limit resumes instead of redoing finished ones.
+    # after a cap resumes instead of redoing finished ones.
     manifest = char_dir / ".regen_done.txt"
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session()
     done, skipped, failed = [], [], []
+    capped_out = False
 
-    for idx, rel, prompt in entries:
-        if idx < start:
-            continue
-        dst = char_dir / rel
-        # --regen: overwrite existing art, but skip ones already regenerated.
-        # default: skip any sprite that already exists. --force ignores both.
-        if not force:
-            if regen and rel in done_set:
-                print(f"SKIP [{idx:02d}] {rel} (already regenerated)", flush=True)
-                skipped.append(rel)
+    try:
+        for idx, rel, prompt in entries:
+            if idx < start:
                 continue
-            if not regen and dst.exists() and dst.stat().st_size > 1000:
-                print(f"SKIP [{idx:02d}] {rel} (exists)", flush=True)
-                skipped.append(rel)
-                continue
+            dst = char_dir / rel
+            # --regen: overwrite existing art, but skip ones already regenerated.
+            # default: skip any sprite that already exists. --force ignores both.
+            if not force:
+                if regen and rel in done_set:
+                    print(f"SKIP [{idx:02d}] {rel} (already regenerated)", flush=True)
+                    skipped.append(rel)
+                    continue
+                if not regen and dst.exists() and dst.stat().st_size > 1000:
+                    print(f"SKIP [{idx:02d}] {rel} (exists)", flush=True)
+                    skipped.append(rel)
+                    continue
 
-        # Pace generations to stay under ChatGPT's image cap. Applied before
-        # every real generation (including the first), so launching with a delay
-        # also acts as the initial wait. Skips above don't reach here.
-        if delay:
-            print(f"WAIT {int(delay)}s before [{idx:02d}] {rel}", flush=True)
-            await asyncio.sleep(delay)
+            # Proactive pacing before each real generation (skips don't reach here).
+            if delay:
+                print(f"WAIT {int(delay)}s before [{idx:02d}] {rel}", flush=True)
+                await asyncio.sleep(delay)
 
-        print(f"GEN  [{idx:02d}] {rel}", flush=True)
-        # Retry on stochastic guardrail refusals (ChatGPT sometimes blocks a
-        # perfectly innocuous render); only a real usage-limit stops the run.
-        img = None
-        status = "refused"
-        last_txt = ""
-        for attempt in range(1, 4):
-            try:
-                r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
-            except Exception as e:  # noqa: BLE001 - log and keep going
-                last_txt = f"gen error: {e}"
-                continue
-            imgs = r.get("response", {}).get("images", [])
-            last_txt = r.get("response", {}).get("text", "")
-            if imgs:
-                img, status = imgs[0], "ok"
+            print(f"GEN  [{idx:02d}] {rel}", flush=True)
+            cap_waits = 0
+            while True:
+                img, status, msg = await _generate_once(session, prompt, account)
+                if status == "ok":
+                    if cut(img, dst):
+                        print(f"DONE [{idx:02d}] {rel}", flush=True)
+                        done.append(rel)
+                        done_set.add(rel)
+                        manifest.write_text("\n".join(sorted(done_set)))
+                    else:
+                        print(f"FAIL [{idx:02d}] {rel} (cut)", flush=True)
+                        failed.append(rel)
+                    break
+                if status == "cap":
+                    cap_waits += 1
+                    secs = parse_reset_seconds(msg)
+                    src = "page timer" if secs is not None else "fallback"
+                    secs = int(max(30, min(secs if secs is not None else cap_fallback, 7200)))
+                    print(f"CAP  [{idx:02d}] image cap hit. Message:\n{msg[:400]}", flush=True)
+                    if cap_waits > max_cap_waits:
+                        print(f"STOP [{idx:02d}] capped {cap_waits}x — ending run. "
+                              "Re-run --regen later to resume.", flush=True)
+                        failed.append(rel)
+                        capped_out = True
+                        break
+                    print(f"CAP  [{idx:02d}] waiting {secs}s ({src}) then retrying", flush=True)
+                    await asyncio.sleep(secs)
+                    continue
+                # refused after retries
+                print(f"FAIL [{idx:02d}] {rel} (refused) text={msg[:80]!r}", flush=True)
+                failed.append(rel)
                 break
-            if any(m.lower() in last_txt.lower() for m in selectors.USAGE_LIMIT_MARKERS):
-                status = "limit"
-                break
-            print(f"     retry [{idx:02d}] attempt {attempt} blocked: {last_txt[:60]!r}", flush=True)
 
-        if status == "limit":
-            print(f"STOP [{idx:02d}] usage limit hit. Re-run --regen later to resume.", flush=True)
-            failed.append(rel)
-            break
-        if status == "ok" and cut(img, dst):
-            print(f"DONE [{idx:02d}] {rel}", flush=True)
-            done.append(rel)
-            done_set.add(rel)
-            manifest.write_text("\n".join(sorted(done_set)))
-        else:
-            print(f"FAIL [{idx:02d}] {rel} ({status}) text={last_txt[:80]!r}", flush=True)
-            failed.append(rel)
+            if capped_out:
+                break
+    finally:
+        await session.close()
 
     print(f"\nSUMMARY done={len(done)} skipped={len(skipped)} failed={len(failed)} "
           f"regenerated_total={len(done_set)}", flush=True)
@@ -156,5 +184,10 @@ if __name__ == "__main__":
     ap.add_argument("--account", default="default", help="logged-in account profile to use")
     ap.add_argument("--delay", type=float, default=0.0,
                     help="seconds to wait before EACH generation (pacing; e.g. 900 = 15 min)")
+    ap.add_argument("--cap-fallback", type=float, default=900.0,
+                    help="seconds to wait on a cap when the page shows no parseable timer")
+    ap.add_argument("--max-cap-waits", type=int, default=8,
+                    help="give up a run after this many cap-waits on one sprite")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account, a.delay))
+    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account, a.delay,
+                    a.cap_fallback, a.max_cap_waits))
