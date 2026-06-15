@@ -1,4 +1,0 @@
-data: {"status":"processing","message":"Starting image generation..."}
-
-data: {"status":"error","success":false,"message":"Failed to process image generation request","error":"fetch failed"}
-
