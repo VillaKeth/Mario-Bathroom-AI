@@ -75,6 +75,7 @@ from audio_capture import AudioCapture
 from audio_playback import AudioPlayback
 from presence import PresenceDetector
 from ws_client import MarioWSClient
+from mirror_sender import MirrorSender
 from sound_effects import SoundEffects
 
 SERVER_URL = client_config.get("server_url", "ws://localhost:8765/ws")
@@ -89,6 +90,14 @@ class MarioClient:
         self.presence = PresenceDetector()
         self.display = MarioDisplay()
         self.ws = MarioWSClient(server_url)
+        _mcfg = (_full_config or {}).get("mirror", {})
+        self.mirror = MirrorSender(
+            ingest_url=_mcfg.get("ingest_url", server_url.replace("/ws", "/mirror_ingest")),
+            max_width=_mcfg.get("max_width", 640),
+            quality=_mcfg.get("jpeg_quality", 55),
+            fps=_mcfg.get("fps", 10),
+        )
+        self._mirror_enabled = bool(_mcfg.get("enabled", False))
         self.sfx = SoundEffects()
 
         # Apply audio gain from config
@@ -122,6 +131,7 @@ class MarioClient:
         self.ws.on_memorial_event = self._on_memorial_event
         self.ws.on_clear_audio = self._on_clear_audio
         self.ws.on_character_switched = self._on_character_switched
+        self.ws.on_mirror_request = self._on_mirror_request
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -212,6 +222,10 @@ class MarioClient:
         self._audio_wait_cancel.set()
         self.audio_capture.stop()
         self.audio_playback.stop()
+        try:
+            self.mirror.stop()
+        except Exception:
+            pass
         if self.presence:
             self.presence.stop()
         self.ws.close()
@@ -347,6 +361,7 @@ class MarioClient:
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
         self.audio_playback.play(wav_bytes)
+        self.mirror.send_audio(wav_bytes)   # tee to remote viewers (no-op if inactive)
         # Track when playback finishes for echo cancellation
         # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
         duration = max(0.5, len(wav_bytes) / 48000)
@@ -357,6 +372,33 @@ class MarioClient:
         self._audio_wait_cancel.set()
         self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
         self._audio_wait_thread.start()
+
+    def _on_mirror_request(self, active: bool):
+        """Server signals a viewer connected/left — start/stop capture."""
+        if not self._mirror_enabled:
+            return
+        try:
+            if active:
+                self.mirror.start()
+                self.display.on_frame_ready = self._capture_frame
+            else:
+                self.display.on_frame_ready = None
+                self.mirror.stop()
+        except Exception as e:
+            if DEBUG_CLIENT:
+                logger.error(f"[DEBUG_CLIENT] mirror_request handling failed: {e}")
+
+    def _capture_frame(self, surface):
+        """Called by the display after flip when the mirror is active. Cheap + safe."""
+        try:
+            import pygame
+            try:
+                rgb = pygame.image.tobytes(surface, "RGB")
+            except AttributeError:
+                rgb = pygame.image.tostring(surface, "RGB")  # older pygame
+            self.mirror.submit_rgb(rgb, surface.get_size())
+        except Exception:
+            pass
 
     def _on_clear_audio(self):
         """Called when server requests immediate audio interruption (new user input)."""
@@ -379,6 +421,7 @@ class MarioClient:
             logger.info(f"[DEBUG_CLIENT] Audio chunk {chunk_idx}/{total} ({len(wav_bytes)} bytes, is_last={is_last})")
         # Queue the chunk — AudioPlayback plays them sequentially
         self.audio_playback.play(wav_bytes)
+        self.mirror.send_audio(wav_bytes)   # tee streaming chunk to remote viewers
         # Keep speaking state active; extend echo cancellation window
         duration = max(0.5, len(wav_bytes) / 48000)
         self._last_play_end_time = time.time() + duration
