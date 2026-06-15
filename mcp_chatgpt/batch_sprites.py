@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:           # allow running as a plain script file
     sys.path.insert(0, str(ROOT))
 
+from mcp_chatgpt import selectors  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
 
 MAIN_PY = ROOT / "venv" / "Scripts" / "python.exe"
@@ -70,20 +71,32 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
-async def run(character: str, start: int, force: bool, account: str) -> None:
+async def run(character: str, start: int, force: bool, regen: bool, account: str) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
+    # Manifest of sprites already FRESHLY regenerated this campaign, so a re-run
+    # after a rate-limit resumes instead of redoing finished ones.
+    manifest = char_dir / ".regen_done.txt"
+    done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session()
     done, skipped, failed = [], [], []
+    consec_fail = 0
 
     for idx, rel, prompt in entries:
         if idx < start:
             continue
         dst = char_dir / rel
-        if dst.exists() and dst.stat().st_size > 1000 and not force:
-            print(f"SKIP [{idx:02d}] {rel} (exists)", flush=True)
-            skipped.append(rel)
-            continue
+        # --regen: overwrite existing art, but skip ones already regenerated.
+        # default: skip any sprite that already exists. --force ignores both.
+        if not force:
+            if regen and rel in done_set:
+                print(f"SKIP [{idx:02d}] {rel} (already regenerated)", flush=True)
+                skipped.append(rel)
+                continue
+            if not regen and dst.exists() and dst.stat().st_size > 1000:
+                print(f"SKIP [{idx:02d}] {rel} (exists)", flush=True)
+                skipped.append(rel)
+                continue
 
         print(f"GEN  [{idx:02d}] {rel}", flush=True)
         try:
@@ -91,22 +104,33 @@ async def run(character: str, start: int, force: bool, account: str) -> None:
         except Exception as e:  # noqa: BLE001 - log and keep going
             print(f"FAIL [{idx:02d}] gen error: {e}", flush=True)
             failed.append(rel)
-            continue
-
-        imgs = r.get("response", {}).get("images", [])
-        if not imgs:
-            txt = r.get("response", {}).get("text", "")[:80]
-            print(f"FAIL [{idx:02d}] no image (limit/timeout?) text={txt!r}", flush=True)
-            failed.append(rel)
-            continue
-
-        if cut(imgs[0], dst):
-            print(f"DONE [{idx:02d}] {rel}", flush=True)
-            done.append(rel)
+            consec_fail += 1
         else:
-            failed.append(rel)
+            imgs = r.get("response", {}).get("images", [])
+            txt = r.get("response", {}).get("text", "")
+            if not imgs:
+                limited = any(m.lower() in txt.lower() for m in selectors.USAGE_LIMIT_MARKERS)
+                tag = " (USAGE LIMIT)" if limited else ""
+                print(f"FAIL [{idx:02d}] no image{tag} text={txt[:80]!r}", flush=True)
+                failed.append(rel)
+                consec_fail += 1
+            elif cut(imgs[0], dst):
+                print(f"DONE [{idx:02d}] {rel}", flush=True)
+                done.append(rel)
+                consec_fail = 0
+                done_set.add(rel)
+                manifest.write_text("\n".join(sorted(done_set)))
+            else:
+                failed.append(rel)
+                consec_fail += 1
 
-    print(f"\nSUMMARY done={len(done)} skipped={len(skipped)} failed={len(failed)}", flush=True)
+        if consec_fail >= 3:
+            print("STOP: 3 consecutive failures — likely rate limited. Re-run with "
+                  "--regen later to resume where this left off.", flush=True)
+            break
+
+    print(f"\nSUMMARY done={len(done)} skipped={len(skipped)} failed={len(failed)} "
+          f"regenerated_total={len(done_set)}", flush=True)
     if failed:
         print("FAILED:", failed, flush=True)
 
@@ -115,7 +139,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--character", default="rudi")
     ap.add_argument("--start", type=int, default=1)
-    ap.add_argument("--force", action="store_true", help="regenerate even if the sprite exists")
+    ap.add_argument("--force", action="store_true", help="(re)generate every sprite, ignore manifest + existing")
+    ap.add_argument("--regen", action="store_true",
+                    help="overwrite existing sprites, but skip ones already regenerated (resumable)")
     ap.add_argument("--account", default="default", help="logged-in account profile to use")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.start, a.force, a.account))
+    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account))

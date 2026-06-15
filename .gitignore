@@ -141,3 +141,6 @@ characters/*/_incoming/
 # mcp-chatgpt runtime (browser profile + downloaded images — never commit)
 mcp_chatgpt/profile/
 mcp_chatgpt/output/
+
+# sprite-regen resume manifest (local progress tracking, not source)
+characters/*/.regen_done.txt
