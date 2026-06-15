@@ -47,6 +47,17 @@ async def wait_for_response(
             await sleep(poll_interval)
             continue
 
+        # No content yet — neither text nor a new image. This covers both the
+        # pre-generation blank turn AND the gap after generation ends but before
+        # a generated image has rendered (image-gen lags the Stop button). Never
+        # mistake an empty turn for a finished reply: keep waiting until real text
+        # or an image appears (or the overall timeout fires).
+        if not r.text and r.image_count == 0:
+            stable = 0
+            last_text = r.text
+            await sleep(poll_interval)
+            continue
+
         if r.text == last_text:
             stable += 1
         else:

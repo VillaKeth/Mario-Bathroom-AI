@@ -59,3 +59,45 @@ def test_waits_for_image_bytes_before_done():
                                  stable_window=2, max_polls=20, poll_interval=0.0))
     assert out.had_image is True
     assert out.timed_out is False
+
+
+def test_no_complete_on_empty_before_generation():
+    # Long pre-generation gap (not generating, empty text, no image) must NOT be
+    # treated as a finished empty reply. Wait through the gap, capture the real
+    # answer once it streams and stabilises. Regression: follow-up send returned "".
+    probe = _scripted_probe(
+        [ProbeResult(is_generating=False, text="", image_count=0, images_ready=True)] * 6
+        + [
+            ProbeResult(is_generating=True, text="4", image_count=0, images_ready=True),
+            ProbeResult(is_generating=True, text="42", image_count=0, images_ready=True),
+            ProbeResult(is_generating=False, text="It was 42.", image_count=0, images_ready=True),
+            ProbeResult(is_generating=False, text="It was 42.", image_count=0, images_ready=True),
+            ProbeResult(is_generating=False, text="It was 42.", image_count=0, images_ready=True),
+            ProbeResult(is_generating=False, text="It was 42.", image_count=0, images_ready=True),
+            ProbeResult(is_generating=False, text="It was 42.", image_count=0, images_ready=True),
+        ]
+    )
+    out = _run(wait_for_response(probe, sleep=_noop_sleep,
+                                 stable_window=4, max_polls=40, poll_interval=0.0))
+    assert out.text == "It was 42."
+    assert out.timed_out is False
+
+
+def test_waits_for_image_appearing_after_generation_ends():
+    # Image generation: Stop button (is_generating) clears BEFORE the <img> renders.
+    # The gap is empty (no text, no image). Must not complete empty — wait for the
+    # image to appear and load. Regression: image new_thread returned no images.
+    probe = _scripted_probe(
+        [ProbeResult(is_generating=True, text="", image_count=0, images_ready=True)] * 2
+        + [ProbeResult(is_generating=False, text="", image_count=0, images_ready=True)] * 4
+        + [
+            ProbeResult(is_generating=False, text="", image_count=1, images_ready=False),
+            ProbeResult(is_generating=False, text="", image_count=1, images_ready=True),
+            ProbeResult(is_generating=False, text="", image_count=1, images_ready=True),
+            ProbeResult(is_generating=False, text="", image_count=1, images_ready=True),
+        ]
+    )
+    out = _run(wait_for_response(probe, sleep=_noop_sleep,
+                                 stable_window=2, max_polls=40, poll_interval=0.0))
+    assert out.had_image is True
+    assert out.timed_out is False

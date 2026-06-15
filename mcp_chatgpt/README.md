@@ -11,8 +11,14 @@ venv/Scripts/python.exe -m venv mcp_chatgpt/venv
 mcp_chatgpt/venv/Scripts/python.exe -m pip install -r mcp_chatgpt/requirements.txt
 
 # 2. Log into ChatGPT once (opens a real Chrome window)
+#    Easiest: log in, then just CLOSE the window — it auto-saves, no terminal needed:
+mcp_chatgpt/venv/Scripts/python.exe -m mcp_chatgpt._login_oneshot
+#    Alternative (press Enter in the terminal when done instead of closing):
 mcp_chatgpt/venv/Scripts/python.exe -m mcp_chatgpt.setup_login
 ```
+
+The session is saved to `mcp_chatgpt/profile/` and reused on every run — log in
+once (re-login only when the session expires or OpenAI forces re-auth).
 
 ## Register with Claude Code
 

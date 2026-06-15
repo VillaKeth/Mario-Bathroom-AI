@@ -58,30 +58,49 @@ class ChatGPTSession:
         if state == "challenge":
             raise Challenge("solve challenge in the window, then retry")
 
-    async def _probe(self, page: Page) -> ProbeResult:
+    async def _generated_image_els(self, page: Page):
+        """(src, element) for every generated image on the page (by src marker).
+
+        Generated images render OUTSIDE the assistant-turn element, so they are
+        located page-level. Avatars (gravatar.com) never match the markers.
+        """
+        out = []
+        for img in await page.query_selector_all("img"):
+            src = await img.get_attribute("src") or ""
+            if any(m in src for m in selectors.GENERATED_IMAGE_MARKERS):
+                out.append((src, img))
+        return out
+
+    async def _generated_image_srcs(self, page: Page) -> set:
+        """Snapshot of generated-image srcs present right now (the baseline)."""
+        return {src for src, _img in await self._generated_image_els(page)}
+
+    async def _new_generated_image_els(self, page: Page, baseline: set):
+        """Generated images present now but absent from `baseline`, deduped by src."""
+        seen: set = set()
+        out = []
+        for src, img in await self._generated_image_els(page):
+            if src in baseline or src in seen:
+                continue
+            seen.add(src)
+            out.append((src, img))
+        return out
+
+    async def _probe(self, page: Page, baseline: set) -> ProbeResult:
         generating = (await page.query_selector(selectors.STOP_BUTTON)) is not None
         turns = await page.query_selector_all(selectors.ASSISTANT_TURN)
-        if not turns:
-            return ProbeResult(generating, "", 0, True)
-        last = turns[-1]
-        text = await last.inner_text()
-        imgs = await last.query_selector_all(selectors.ASSISTANT_IMAGE)
+        text = await turns[-1].inner_text() if turns else ""
+        new_imgs = await self._new_generated_image_els(page, baseline)
         ready = True
-        for img in imgs:
+        for _src, img in new_imgs:
             ok = await page.evaluate("e => e.complete && e.naturalWidth > 0", img)
             ready = ready and bool(ok)
-        return ProbeResult(generating, text, len(imgs), ready)
+        return ProbeResult(generating, text, len(new_imgs), ready)
 
-    async def _download_images(self, page: Page, thread_id: str) -> list[str]:
-        turns = await page.query_selector_all(selectors.ASSISTANT_TURN)
-        if not turns:
-            return []
-        imgs = await turns[-1].query_selector_all(selectors.ASSISTANT_IMAGE)
+    async def _download_images(self, page: Page, thread_id: str, baseline: set) -> list[str]:
+        new_imgs = await self._new_generated_image_els(page, baseline)
         paths: list[str] = []
-        for i, img in enumerate(imgs):
-            src = await img.get_attribute("src")
-            if not src:
-                continue
+        for i, (src, _img) in enumerate(new_imgs):
             # Fetch bytes through the page (carries auth cookies), return base64.
             b64 = await page.evaluate(
                 """async (url) => {
@@ -99,13 +118,12 @@ class ChatGPTSession:
             paths.append(path)
         return paths
 
-    async def _send_and_wait(self, page: Page) -> WaitOutcome:
-        # Decide poll budget by whether an image is being produced — start with text
-        # budget; the wait loop itself extends for image bytes, so use the image
-        # budget whenever any <img> appears. Simpler: always use IMAGE_MAX_POLLS
-        # (slow path is rare and timing out early on images is worse than waiting).
+    async def _send_and_wait(self, page: Page, baseline: set) -> WaitOutcome:
+        # Always use the image poll budget — image generation is the slow path and
+        # timing out early on it is worse than waiting on a fast text reply.
+        # `baseline` lets the probe count only NEWLY generated images.
         return await wait_for_response(
-            lambda: self._probe(page),
+            lambda: self._probe(page, baseline),
             sleep=asyncio.sleep,
             stable_window=4,
             max_polls=IMAGE_MAX_POLLS,
@@ -115,6 +133,13 @@ class ChatGPTSession:
     async def _type_and_send(self, page: Page, prompt: str) -> None:
         await page.fill(selectors.COMPOSER, prompt)
         await page.click(selectors.SEND_BUTTON)
+        # Wait for streaming to actually begin (Stop button appears) so the wait
+        # loop doesn't sample the blank pre-generation turn. Instant replies may
+        # finish before this fires — that's fine, the wait loop handles it.
+        try:
+            await page.wait_for_selector(selectors.STOP_BUTTON, timeout=15000)
+        except Exception:
+            pass
 
     async def new_thread(self, prompt: str) -> dict:
         async with self._lock:
@@ -122,12 +147,13 @@ class ChatGPTSession:
             page = await self._ctx.new_page()
             await page.goto(selectors.URL, wait_until="domcontentloaded")
             await self._check_state(page)
+            baseline = await self._generated_image_srcs(page)
             await self._type_and_send(page, prompt)
-            outcome = await self._send_and_wait(page)
+            outcome = await self._send_and_wait(page, baseline)
             await page.wait_for_timeout(300)  # let URL settle to /c/<uuid>
             thread_id = parse_thread_id(page.url) or f"tab-{id(page)}"
             self._threads[thread_id] = page
-            images = await self._download_images(page, thread_id) if outcome.had_image else []
+            images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
             return {"thread_id": thread_id,
                     "response": {"text": outcome.text, "images": images,
                                  "timed_out": outcome.timed_out}}
@@ -143,9 +169,10 @@ class ChatGPTSession:
                                 wait_until="domcontentloaded")
                 await self._check_state(page)
                 self._threads[thread_id] = page
+            baseline = await self._generated_image_srcs(page)
             await self._type_and_send(page, prompt)
-            outcome = await self._send_and_wait(page)
-            images = await self._download_images(page, thread_id) if outcome.had_image else []
+            outcome = await self._send_and_wait(page, baseline)
+            images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
             return {"response": {"text": outcome.text, "images": images,
                                  "timed_out": outcome.timed_out}}
 

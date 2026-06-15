@@ -1,6 +1,6 @@
 """All ChatGPT DOM selectors live here — single repair point when OpenAI reships UI.
 
-Verified against live DOM on: <DATE — fill in during Task 8>
+Verified against live DOM on: 2026-06-15
 """
 
 URL = "https://chatgpt.com/"
@@ -13,6 +13,11 @@ STOP_BUTTON = "[data-testid='stop-button']"
 # Assistant output
 ASSISTANT_TURN = "[data-message-author-role='assistant']"
 ASSISTANT_IMAGE = "img"  # queried *within* the last assistant turn
+
+# Generated images render OUTSIDE the assistant-turn element, so they are found
+# page-level and identified by their src host/path (avatars are gravatar.com and
+# never match these). Verified against live DOM on 2026-06-15.
+GENERATED_IMAGE_MARKERS = ("/backend-api/", "oaiusercontent.com")
 
 # State detection
 # Login: when logged out, ChatGPT redirects to a URL containing this path.
