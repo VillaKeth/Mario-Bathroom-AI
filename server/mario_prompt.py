@@ -100,6 +100,20 @@ End every response with JSON on its own line:
 _BASE_PROMPT_RULES = MARIO_SYSTEM_PROMPT.split("\n", 1)[1].lstrip("\n") if "\n" in MARIO_SYSTEM_PROMPT else MARIO_SYSTEM_PROMPT
 
 
+_MONTH_WORDS = ("january", "february", "march", "april", "may", "june", "july",
+                "august", "september", "october", "november", "december")
+
+
+def _real_datetime_line() -> str:
+    """A plain-English line stating the real current date + time, so the LLM is
+    grounded in today rather than inventing a date (e.g. assuming it's its own
+    name). Avoids %-d/%-I (not portable to Windows strftime)."""
+    now = datetime.now()
+    date_str = now.strftime("%A, %B ") + str(now.day) + now.strftime(", %Y")
+    time_str = now.strftime("%I:%M %p").lstrip("0")
+    return f"Today's real date is {date_str} and the current time is about {time_str}."
+
+
 def _character_system_prompt() -> str:
     """Base system prompt that ALWAYS states who the character is (generic, from config)."""
     who = _CHARACTER_DISPLAY_NAME or _CHARACTER_NAME or "a friendly AI character"
@@ -108,6 +122,13 @@ def _character_system_prompt() -> str:
     if bio:
         header += f" {bio}"
     header += " Always speak and answer as this character. Keep replies to 2-3 short sentences."
+    # Ground the character in the real present so it doesn't fabricate the date.
+    header += "\n\n" + _real_datetime_line()
+    # If the name resembles a calendar date, make clear it's a NAME, not today.
+    name_l = (who or "").lower()
+    if any(m in name_l for m in _MONTH_WORDS):
+        header += (f" Important: \"{who}\" is your NAME, not today's date — "
+                   f"never claim that today is \"{who}\" or that it is your namesake date.")
     return header + "\n\n" + _BASE_PROMPT_RULES
 
 
