@@ -1218,7 +1218,12 @@ async def _run_shot_event(event):
                 phase_text = event.toast_text
             elif phase_name == "recovery":
                 phase_text = event.recovery_line
-                
+            # Characterize: events are authored with Mario flavor ("Mario", "Wahoo",
+            # the "-a" accent). _deflavor swaps in the active character's name and
+            # strips Mario-only stims for non-Mario characters; for Mario it's a
+            # no-op so he keeps his accent.
+            phase_text = _game_handlers_mod._deflavor(phase_text or "")
+
             logger.info(f"[SHOT_EVENT] {event.name} phase: {phase_name}")
 
             # Handle countdown phase specially
@@ -1268,7 +1273,7 @@ async def _run_shot_event(event):
                     "type": "memorial_event",
                     "phase": "music",
                     "name": event.display_name or event.name,
-                    "text": event.announcement_text or "",
+                    "text": _game_handlers_mod._deflavor(event.announcement_text or ""),
                     "tone": event.tone,
                     "music_file": event.music_file,
                     "image_file": event.image_file,

@@ -316,7 +316,14 @@ def clean_text_for_tts(text):
             'oh,', 'oh ', 'ah,', 'ah ', 'hmm,', 'hmm ', 'um,', 'um ',
             'uh,', 'uh ', 'mama mia', 'ha ', 'hah', 'hey,', 'hey ',
         ])
-        if not _already_has_intro:
+        # Don't pad bare numbers / countdown words — "Oh, ten!" sounds like the
+        # voice says "a-ten" before every countdown number.
+        _bare = _re.sub(r'[^a-z0-9]', '', _lower)
+        _is_number = _bare.isdigit() or _bare in {
+            'zero', 'one', 'two', 'three', 'four', 'five',
+            'six', 'seven', 'eight', 'nine', 'ten',
+        }
+        if not _already_has_intro and not _is_number:
             clean_text = "Oh, " + clean_text[0].lower() + clean_text[1:]
             if DEBUG_SOVITS:
                 print(f"[sovits] SHORT PHRASE PADDED: '{clean_text}'", file=sys.stderr)
