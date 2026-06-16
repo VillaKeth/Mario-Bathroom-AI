@@ -44,6 +44,10 @@ class FakeWS:
         self.sent_json = []
         self.sent_text = []
         self.fail = fail
+        self.closed = False
+
+    async def close(self, *a, **k):
+        self.closed = True
 
     async def send_bytes(self, data):
         if self.fail:
@@ -117,6 +121,29 @@ async def test_no_duplicate_or_spurious_capture_signals():
     stops = [m for m in station.sent_json if m.get("type") == "mirror_request" and not m.get("active")]
     assert len(starts) == 1
     assert len(stops) == 1
+
+
+@pytest.mark.asyncio
+async def test_broadcast_closes_dropped_viewer_socket():
+    # A dropped viewer's socket MUST be closed, so the browser gets onclose and
+    # reconnects — otherwise its page freezes forever (the overnight-party bug).
+    mirror.set_active_ws_getter(lambda: None)
+    dead = FakeWS(fail=True)
+    await mirror.add_viewer(dead)
+    await mirror.broadcast(b"\x01frame")
+    assert mirror.viewer_count() == 0
+    assert dead.closed is True
+
+
+@pytest.mark.asyncio
+async def test_broadcast_text_closes_dropped_viewer_socket():
+    mirror.set_active_ws_getter(lambda: None)
+    good, dead = FakeWS(), FakeWS(fail=True)
+    await mirror.add_viewer(good)
+    await mirror.add_viewer(dead)
+    await mirror.broadcast_text({"type": "presence", "viewers": 2})
+    assert dead.closed is True
+    assert good.closed is False
 
 
 @pytest.mark.asyncio

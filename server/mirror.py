@@ -56,7 +56,9 @@ def authorize_friend_input(token: str, pin: str, mcfg: dict, control_mode: str):
 _viewers: set = set()
 _active_ws_getter = None  # callable returning the pygame client's WebSocket or None
 _capture_active = False        # last capture state we signaled to the pygame client
-_SEND_TIMEOUT = 2.0            # per-viewer send timeout (seconds); module-level so tests can override
+_SEND_TIMEOUT = 8.0            # per-viewer send timeout (seconds); generous so a big
+                              # audio chunk to a phone over the tunnel isn't false-dropped.
+                              # module-level so tests can override.
 _control_mode = "station"
 
 # --- relay queue: decouple the ingest socket from slow viewers ----------------
@@ -70,6 +72,7 @@ _pending = deque()        # bytes messages awaiting fan-out
 _PENDING_MAX = 64         # cap; video collapses to latest, audio is preserved
 _relay_event = None       # asyncio.Event, created lazily inside the loop
 _relay_task = None        # the single drain worker task
+_lag_task = None          # diagnostic event-loop-lag monitor task
 
 # --- single-talker turn-lock + live transcript (remote mode UX) ---------------
 # One person "holds the turn" while chatting; each accepted message refreshes the
@@ -153,10 +156,28 @@ async def remove_viewer(ws):
         await _sync_capture_state()
 
 
+async def _close_quietly(ws):
+    try:
+        await ws.close()
+    except Exception:
+        pass
+
+
+async def _drop_dead(dead):
+    """Remove dead viewers AND close their sockets, so the browser's onclose
+    fires and the page reconnects (instead of freezing forever with no frames)."""
+    if not dead:
+        return
+    for ws in dead:
+        _viewers.discard(ws)
+        await _close_quietly(ws)
+    await _sync_capture_state()
+
+
 async def broadcast(data: bytes):
     """Fan out one tagged binary message to all viewers concurrently.
-    Drop sockets that error or exceed _SEND_TIMEOUT; never let one slow
-    viewer block the others."""
+    Drop (and close) sockets that error or exceed _SEND_TIMEOUT; never let one
+    slow viewer block the others."""
     if not _viewers:
         return
 
@@ -168,11 +189,7 @@ async def broadcast(data: bytes):
             return ws
 
     results = await asyncio.gather(*[_safe_send(ws) for ws in list(_viewers)])
-    dead = [ws for ws in results if ws is not None]
-    for ws in dead:
-        _viewers.discard(ws)
-    if dead:
-        await _sync_capture_state()
+    await _drop_dead([ws for ws in results if ws is not None])
 
 
 # ---------------------------------------------------------------------------
@@ -216,17 +233,35 @@ async def _relay_worker():
         ev.clear()
         while _pending:
             data = _pending.popleft()
+            t0 = time.monotonic()
             await broadcast(data)
+            dt = time.monotonic() - t0
+            if dt > 1.0:
+                print(f"[mirror] SLOW broadcast {dt:.1f}s tag={data[:1]!r} {len(data)}B "
+                      f"viewers={len(_viewers)} pending={len(_pending)}")
+
+
+async def _loop_lag_monitor():
+    """Diagnostic: detect when the asyncio event loop is blocked (synchronous
+    work starving coroutines). A 1s sleep that returns much later == a block."""
+    while True:
+        t0 = time.monotonic()
+        await asyncio.sleep(1.0)
+        lag = time.monotonic() - t0 - 1.0
+        if lag > 1.5:
+            print(f"[mirror] EVENT LOOP BLOCKED ~{lag:.1f}s (coroutines starved)")
 
 
 def ensure_relay_worker():
     """Start the single drain worker if not already running. Idempotent.
     Must be called from within the server event loop (e.g. the ingest endpoint)."""
-    global _relay_task, _relay_event
+    global _relay_task, _relay_event, _lag_task
     if _relay_event is None:
         _relay_event = asyncio.Event()
     if _relay_task is None or _relay_task.done():
         _relay_task = asyncio.ensure_future(_relay_worker())
+    if _lag_task is None or _lag_task.done():
+        _lag_task = asyncio.ensure_future(_loop_lag_monitor())
     return _relay_task
 
 
@@ -316,11 +351,7 @@ async def broadcast_text(obj: dict):
             return ws
 
     results = await asyncio.gather(*[_safe_send(ws) for ws in list(_viewers)])
-    dead = [ws for ws in results if ws is not None]
-    for ws in dead:
-        _viewers.discard(ws)
-    if dead:
-        await _sync_capture_state()
+    await _drop_dead([ws for ws in results if ws is not None])
 
 
 # ---------------------------------------------------------------------------

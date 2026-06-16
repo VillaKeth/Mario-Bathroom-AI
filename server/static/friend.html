@@ -141,9 +141,19 @@ pinEl.value = localStorage.getItem("mirror_pin") || "";
 
 // --- WebSocket: binary frames/audio + JSON control events --------------------
 let ws = null;
+let lastFrameTs = Date.now();   // frame watchdog clock
 function sendHello(){
   try { ws.send(JSON.stringify({type:"hello", name: myName, id: clientId})); } catch(e){}
 }
+// Watchdog: if frames stop arriving for >6s while the socket looks open, the
+// server may have dropped us without a clean close. Force a reconnect so the
+// page self-heals instead of sitting frozen.
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN && (Date.now() - lastFrameTs) > 6000) {
+    statusEl.textContent = "recovering…";
+    try { ws.close(); } catch(e){}   // triggers onclose -> reconnect
+  }
+}, 2000);
 function handleControl(obj){
   if (obj.type === "presence"){
     viewersEl.textContent = "👁 " + obj.viewers + (obj.viewers === 1 ? " watching" : " watching");
@@ -158,7 +168,7 @@ function connect(){
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(proto + "://" + location.host + "/mirror");
   ws.binaryType = "arraybuffer";
-  ws.onopen = () => { statusEl.textContent = "live"; sendHello(); };
+  ws.onopen = () => { statusEl.textContent = "live"; lastFrameTs = Date.now(); sendHello(); };
   ws.onclose = () => { statusEl.textContent = "reconnecting…"; setTimeout(connect, 2000); };
   ws.onmessage = (ev) => {
     if (typeof ev.data === "string"){        // JSON control event
@@ -169,6 +179,7 @@ function connect(){
     const tag = buf[0];
     const payload = buf.subarray(1);
     if (tag === 0x01) {                       // video frame (JPEG)
+      lastFrameTs = Date.now();               // watchdog: a frame arrived
       const blob = new Blob([payload], {type: "image/jpeg"});
       createImageBitmap(blob).then(bmp => {
         if (canvas.width !== bmp.width || canvas.height !== bmp.height){
