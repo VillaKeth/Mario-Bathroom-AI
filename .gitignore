@@ -120,9 +120,14 @@ fish_speech_repo/
 fish_speech_env/
 gpt_sovits_env/
 
-# Qdrant runtime data (collections + lock + meta churn) — not source
-server/data/qdrant_*/collection/
-server/data/qdrant_*/*.lock
+# Runtime DBs + Qdrant vector stores — regenerated at runtime and they hold guest
+# face/voice/conversation data, so NEVER commit. (Lore re-ingests from hsr_lore.yaml.)
+server/data/qdrant_faces/
+server/data/qdrant_memories/
+server/data/qdrant_voices/
+server/data/memory.db
+server/data/voices.db
+server/data/party_state.json
 
 # Wizard draft workspace (staged uploads before character is built)
 character_creator/_drafts/
