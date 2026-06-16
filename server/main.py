@@ -1088,6 +1088,16 @@ async def lifespan(app: FastAPI):
             vip_knowledge.load_all_vip_profiles()
             logger.info("VIP profiles loaded into semantic memory")
 
+            # Load world lore (e.g. scraped HSR wiki facts) for THIS character.
+            try:
+                import lore_knowledge
+                _lore_path = os.path.join(_character.character_dir, "memories", "hsr_lore.yaml")
+                _n_lore = lore_knowledge.load_lore_file(_lore_path)
+                if _n_lore:
+                    logger.info(f"Loaded {_n_lore} world-lore facts into semantic memory")
+            except Exception as _e:
+                logger.warning(f"World-lore load skipped: {_e}")
+
             # Inject birthday_person_facts from config into Qdrant for semantic search
             bday_name = server_config.get("birthday_person_name", "")
             bday_facts = server_config.get("birthday_person_facts", [])
@@ -3465,6 +3475,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             guest_context=guest_ctx,
         )
         _inject_birthday_always_on(ctx)
+        # World lore (e.g. HSR): inject only facts semantically relevant to what
+        # the guest just said, so she "knows" her universe without info-dumping.
+        try:
+            import lore_knowledge
+            _lore = lore_knowledge.get_lore_for_prompt(text)
+            if _lore:
+                ctx.append({"role": "system", "content":
+                            "TRUE facts about YOUR world and the people in it — treat these as "
+                            "ground truth and answer accurately from them. These names refer to "
+                            "characters in your universe, NOT real-world namesakes (e.g. Kafka is "
+                            "a person you know, not the author). Weave them in naturally, don't "
+                            "info-dump:\n- " + "\n- ".join(_lore)})
+                logger.info(f"[LORE] injected {len(_lore)} facts for '{text[:50]}'")
+        except Exception as _e:
+            logger.debug(f"[LORE] injection skipped: {_e}")
         # Per-character temperament, scaled by how well it knows THIS guest
         # (cold characters thaw with repeat visits). Injected before the
         # transient emotion so personality is the base layer.
