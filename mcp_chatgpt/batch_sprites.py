@@ -72,26 +72,44 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
+# A browser/profile-launch failure (e.g. the profile is already open in another
+# session) is infrastructure-fatal — retrying just reopens tabs and burns the
+# whole queue with the same error, so we stop the run instead.
+_FATAL_GEN_ERR = ("launch_persistent_context", "existing browser",
+                  "Target page", "has been closed", "ProfileInUse")
+
+
 async def _generate_once(session, prompt: str, account: str):
     """One sprite attempt, up to 3 retries for stochastic guardrail blocks.
-    Returns (image_path|None, status, message); status in {ok, cap, refused}.
+    Returns (image_path|None, status, message); status in {ok, cap, refused, fatal}.
     Scans assistant text AND the page notice, so a cap banner is caught even when
-    it isn't part of the reply."""
+    it isn't part of the reply. Each opened thread/tab is closed before returning
+    so tabs don't pile up across sprites and retries."""
     msg = ""
     for attempt in range(1, 4):
         try:
             r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
         except Exception as e:  # noqa: BLE001
             msg = f"gen error: {e}"
+            if any(s in msg for s in _FATAL_GEN_ERR):
+                return None, "fatal", msg
             continue
-        resp = r.get("response", {})
-        imgs = resp.get("images", [])
-        msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
-        if imgs:
-            return imgs[0], "ok", msg
-        if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
-            return None, "cap", msg
-        print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
+        tid = r.get("thread_id")
+        try:
+            resp = r.get("response", {})
+            imgs = resp.get("images", [])
+            msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
+            if imgs:
+                return imgs[0], "ok", msg
+            if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+                return None, "cap", msg
+            print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
+        finally:
+            if tid:
+                try:
+                    await session.close_thread(tid)   # close the tab; no pileup
+                except Exception:  # noqa: BLE001
+                    pass
     return None, "refused", msg
 
 
@@ -133,6 +151,12 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
             cap_waits = 0
             while True:
                 img, status, msg = await _generate_once(session, prompt, account)
+                if status == "fatal":
+                    print(f"STOP [{idx:02d}] fatal browser error — ending run "
+                          f"(is the profile open elsewhere?):\n{msg[:300]}", flush=True)
+                    failed.append(rel)
+                    capped_out = True   # reuse the break-out-of-everything flag
+                    break
                 if status == "ok":
                     if cut(img, dst):
                         print(f"DONE [{idx:02d}] {rel}", flush=True)
