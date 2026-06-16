@@ -1,16 +1,13 @@
 {
-  "_README": "Shot Events Configuration \u00e2\u20ac\u201d Add new party events by copying an existing entry below. See docs/EVENTS.md for details.",
+  "_README": "Shot Events Configuration â€” Add new party events by copying an existing entry below. See docs/EVENTS.md for details.",
   "events": [
     {
       "name": "lisa_webb_memorial",
       "display_name": "Lisa Webb",
       "tone": "solemn",
-      "trigger_type": "auto",
+      "trigger_type": "voice",
       "voice_keywords": [
-        "lisa",
-        "aunt lisa",
-        "lisa webb",
-        "toast to lisa"
+        "lisa webb"
       ],
       "phases": [
         "announcement",
@@ -28,7 +25,8 @@
       "music_file": "client/assets/music/lisa_webb_memorial.mp3",
       "music_duration": 120,
       "skip_key": "ctrl+shift+l",
-      "image_file": "client/assets/images/lisa_webb.jpg"
+      "image_file": "client/assets/images/lisa_webb.jpg",
+      "repeatable": true
     },
     {
       "name": "birthday_boy",

@@ -27,6 +27,7 @@ class ShotEvent:
     music_duration: int = 0
     skip_key: Optional[str] = None  # e.g., "ctrl+shift+l"
     image_file: Optional[str] = None  # event-specific image shown during phases
+    repeatable: bool = False  # if True, can fire again after it completes (no once-per-session lock)
     fired: bool = False
 
 class ShotEventManager:
@@ -59,6 +60,11 @@ class ShotEventManager:
     def complete(self, name: str):
         if self._active_event == name:
             self._active_event = None
+            # Repeatable events (e.g. the Lisa Webb bit) unlock after completing,
+            # so they can fire again the next time the keyword is said.
+            ev = self.events.get(name)
+            if ev is not None and ev.repeatable:
+                ev.fired = False
             if DEBUG_SHOT_EVENTS:
                 print(f"[DEBUG_SHOT_EVENTS] complete: {name}")
     
@@ -177,6 +183,7 @@ def create_default_events() -> ShotEventManager:
                 music_duration=int(music_duration),
                 skip_key=entry.get("skip_key"),
                 image_file=entry.get("image_file"),
+                repeatable=entry.get("repeatable", False),
             )
             mgr.register(event)
         except KeyError as e:
