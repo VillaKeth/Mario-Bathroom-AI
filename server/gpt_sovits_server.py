@@ -103,8 +103,11 @@ def clean_text_for_tts(text):
     # Also strip literal escape sequences that might come from LLM output
     clean_text = clean_text.replace('\\n', ' ').replace('\\r', ' ').replace('\\t', ' ')
 
-    # Remove stage directions / action markers like "(whispers)" "(laughs)" etc.
-    clean_text = _re.sub(r'\([^)]*\)', '', clean_text)
+    # Parentheticals are SPOKEN (the bubble keeps the brackets). Convert the
+    # brackets to comma pauses rather than deleting the words — TTS can't voice
+    # "(" / ")". (Usually already done upstream in tts._preclean_tts_text; this
+    # keeps the subprocess correct on its own.)
+    clean_text = _re.sub(r'[()]', ', ', clean_text)
 
     # Remove sound effects / onomatopoeia that GPT-SoVITS cannot pronounce
     # NOTE: wahoo removed from this list — it's a key Mario catchphrase the model handles well

@@ -1352,6 +1352,11 @@ def _preclean_tts_text(text: str) -> str:
     t = t.replace('—', ', ').replace('–', ', ')
     # Asterisks (action markers like *laughs*)
     t = t.replace('*', '')
+    # Parentheses → spoken aside: keep the words, drop the brackets. TTS can't
+    # voice "(" / ")", so they become a comma pause (how an aside sounds aloud).
+    # NOTE: this only affects the SPOKEN text; the speech bubble keeps the
+    # brackets for grammatical structure. (Artifacts cleaned just below.)
+    t = t.replace('(', ', ').replace(')', ', ')
     # Strip emoji / pictographs — TTS can't speak them, and removing them later
     # leaves a stray space before punctuation (e.g. display name "Reze 💣!" was
     # spoken as "Reze  !"). Remove here, then fix the spacing below.
