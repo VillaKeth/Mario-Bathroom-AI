@@ -144,3 +144,9 @@ mcp_chatgpt/output/
 
 # sprite-regen resume manifest (local progress tracking, not source)
 characters/*/.regen_done.txt
+
+# browser-driven test artifacts (playwright/chrome-devtools snapshots & shots)
+.playwright-mcp/
+
+# mirror debug frame dump (regenerable; not source)
+_tunnel_frame.jpg
