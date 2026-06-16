@@ -92,6 +92,8 @@ async def _generate_once(session, prompt: str, account: str):
             r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
         except Exception as e:  # noqa: BLE001
             msg = f"gen error: {e}"
+            if "not logged in" in msg.lower():
+                return None, "notloggedin", msg
             if any(s in msg for s in _FATAL_GEN_ERR):
                 return None, "fatal", msg
             continue
@@ -177,6 +179,13 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                     failed.append(rel)
                     capped_out = True   # reuse the break-out-of-everything flag
                     break
+                if status == "notloggedin":
+                    # Park it far out so pick() skips it for the rest of the run
+                    # (doesn't affect the all-capped wait, which uses the soonest).
+                    print(f"DROP [{idx:02d}] '{acct}' not logged in — dropping from rotation. "
+                          f"Re-login: python -m mcp_chatgpt._login_oneshot {acct}", flush=True)
+                    pool.mark_capped(acct, 10**9)
+                    continue
                 if status == "ok":
                     if cut(img, dst):
                         print(f"DONE [{idx:02d}] {rel} (via {acct})", flush=True)
