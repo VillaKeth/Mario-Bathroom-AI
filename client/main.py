@@ -360,7 +360,14 @@ class MarioClient:
             return
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
-        self.audio_playback.play(wav_bytes)
+        # If a countdown number is pending, reveal it exactly when this clip
+        # starts playing — so the visual countdown is driven by the audio.
+        pending = getattr(self, "_pending_countdown_number", None)
+        if pending is not None:
+            self._pending_countdown_number = None
+            self.audio_playback.play(wav_bytes, on_start=(lambda n=pending: self.display.set_countdown(n)))
+        else:
+            self.audio_playback.play(wav_bytes)
         self.mirror.send_audio(wav_bytes)   # tee to remote viewers (no-op if inactive)
         # Track when playback finishes for echo cancellation
         # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
@@ -816,7 +823,9 @@ class MarioClient:
         elif phase == "countdown":
             countdown_number = self._convert_countdown_word_to_number(text)
             if countdown_number:
-                self.display.set_countdown(countdown_number)
+                # Show the number when its AUDIO starts (see _on_mario_audio),
+                # not now — keeps the visual in sync with the spoken number.
+                self._pending_countdown_number = countdown_number
         elif phase in ("music", "silence"):
             # Clear countdown when music/silence phase starts
             self.display.clear_countdown()

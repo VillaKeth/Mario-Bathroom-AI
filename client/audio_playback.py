@@ -53,13 +53,15 @@ class AudioPlayback:
         if self._thread:
             self._thread.join(timeout=2.0)
 
-    def play(self, wav_bytes: bytes):
-        """Queue WAV audio bytes for playback."""
+    def play(self, wav_bytes: bytes, on_start=None):
+        """Queue WAV audio bytes for playback. on_start (optional) is called the
+        moment this clip actually begins playing — used to sync the countdown
+        visual to the spoken number instead of to message arrival."""
         if not wav_bytes or len(wav_bytes) < 44:
             if DEBUG_PLAYBACK:
                 logger.warning(f"[DEBUG_PLAYBACK] play: invalid audio ({len(wav_bytes) if wav_bytes else 0} bytes), skipping")
             return
-        self._play_queue.put(wav_bytes)
+        self._play_queue.put((wav_bytes, on_start))
 
     def clear(self):
         """Interrupt current playback and drain the queue (for self-interruption).
@@ -136,11 +138,21 @@ class AudioPlayback:
         """Background thread that plays queued audio."""
         while self._playing:
             try:
-                wav_bytes = self._play_queue.get(timeout=0.5)
+                item = self._play_queue.get(timeout=0.5)
             except queue.Empty:
                 continue
 
+            # Items are (wav_bytes, on_start); tolerate a bare buffer too.
+            if isinstance(item, tuple):
+                wav_bytes, on_start = item
+            else:
+                wav_bytes, on_start = item, None
             try:
+                if on_start:
+                    try:
+                        on_start()
+                    except Exception as cb_e:
+                        logger.error(f"[DEBUG_PLAYBACK] on_start callback error: {cb_e}")
                 self._play_wav(wav_bytes)
             except Exception as e:
                 logger.error(f"[DEBUG_PLAYBACK] _worker: playback error: {e}")
