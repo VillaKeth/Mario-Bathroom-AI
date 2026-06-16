@@ -48,6 +48,27 @@ def test_all_capped_returns_none_then_recovers():
     assert pool.seconds_until_any() == 0  # a is free now
 
 
+def test_exclude_skips_refused_accounts():
+    pool = AccountPool(["a", "b", "c"], clock=FakeClock())
+    # 'a' refused the current item — exclude it, rotation serves b then c.
+    assert pool.pick(exclude={"a"}) == "b"
+    assert pool.pick(exclude={"a"}) == "c"
+    # all excluded → None
+    assert pool.pick(exclude={"a", "b", "c"}) is None
+
+
+def test_exclude_with_caps_interaction():
+    clk = FakeClock()
+    pool = AccountPool(["a", "b"], clock=clk)
+    pool.mark_capped("b", 300)              # b capped
+    # exclude a (refused) and b is capped → nothing available
+    assert pool.pick(exclude={"a"}) is None
+    # soonest free among non-excluded (only b) is its 300s cap
+    assert pool.seconds_until_any(exclude={"a"}) == 300
+    # excluding everything → 0 (nothing to wait on)
+    assert pool.seconds_until_any(exclude={"a", "b"}) == 0
+
+
 def test_reset_buffer_then_back_in_rotation():
     clk = FakeClock()
     pool = AccountPool(["a", "b"], clock=clk)

@@ -143,6 +143,9 @@ class ChatGPTSession:
             stable_window=4,
             max_polls=IMAGE_MAX_POLLS,
             poll_interval=0.5,
+            # A generated image can lag a few seconds behind settled text — give a
+            # longer no-image grace (~5s) so a real render isn't cut off as "none".
+            no_image_stable_window=10,
         )
 
     async def _type_and_send(self, page: Page, prompt: str) -> None:

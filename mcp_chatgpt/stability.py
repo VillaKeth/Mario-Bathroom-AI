@@ -25,13 +25,23 @@ async def wait_for_response(
     stable_window: int = 4,
     max_polls: int = 240,
     poll_interval: float = 0.5,
+    no_image_stable_window: int | None = None,
 ) -> WaitOutcome:
     """Poll `probe` until the assistant reply is complete or `max_polls` is hit.
 
     Done = not generating AND (no pending image bytes) AND text unchanged for
-    `stable_window` consecutive polls. Returns partial text with timed_out=True
-    on exhaustion. Never raises for slowness.
+    enough consecutive polls. Returns partial text with timed_out=True on
+    exhaustion. Never raises for slowness.
+
+    A generated image can lag BEHIND the (preamble) text — the Stop button and
+    the text settle a few polls before the <img> commits to the DOM. So when no
+    image has appeared yet, require a LONGER stable streak
+    (`no_image_stable_window`, default = `stable_window`) before concluding the
+    reply is text-only. Once an image is in hand, the short `stable_window` is
+    enough. This stops a real image from being cut off as "no image" while still
+    letting a genuine text-only refusal finish (just a few polls slower).
     """
+    no_image_window = no_image_stable_window if no_image_stable_window is not None else stable_window
     stable = 0
     last_text: str | None = None
     saw_image = False
@@ -64,7 +74,8 @@ async def wait_for_response(
             stable = 0
             last_text = r.text
 
-        if stable >= stable_window:
+        need = stable_window if saw_image else no_image_window
+        if stable >= need:
             return WaitOutcome(text=r.text, timed_out=False, had_image=saw_image)
 
         await sleep(poll_interval)

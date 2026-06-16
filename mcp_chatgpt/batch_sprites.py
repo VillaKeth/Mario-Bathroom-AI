@@ -91,7 +91,7 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
     {ok, cap, refused, fatal, notloggedin}. Scans assistant text AND the page
     notice, so a cap banner is caught even when it isn't part of the reply."""
     msg = ""
-    for attempt in range(1, 4):
+    for attempt in range(1, 3):     # 2 tries on this account, then rotate (caller)
         try:
             if thread_id is None:
                 r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
@@ -160,11 +160,18 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
 
             print(f"GEN  [{idx:02d}] {rel}", flush=True)
             wait_rounds = 0
+            refused_here = set()    # accounts that guardrail-refused THIS sprite
             while True:
-                acct = pool.pick()
+                acct = pool.pick(exclude=refused_here)
                 if acct is None:
-                    # Every account is capped — wait for the soonest reset, then
-                    # the capped account re-enters rotation on its own.
+                    # Nothing pickable: either every account refused this sprite,
+                    # or the only un-refused ones are capped.
+                    if len(refused_here) >= len(pool.accounts):
+                        print(f"FAIL [{idx:02d}] {rel} (refused by all "
+                              f"{len(pool.accounts)} accounts)", flush=True)
+                        failed.append(rel)
+                        break
+                    # Some accounts haven't refused but are capped — wait soonest.
                     wait_rounds += 1
                     if wait_rounds > max_cap_waits:
                         print(f"STOP [{idx:02d}] all accounts capped {wait_rounds}x — "
@@ -172,8 +179,8 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                         failed.append(rel)
                         capped_out = True
                         break
-                    secs = int(max(5, min(pool.seconds_until_any(), 93600)))
-                    print(f"WAITALL [{idx:02d}] all {len(pool.accounts)} accounts capped — "
+                    secs = int(max(5, min(pool.seconds_until_any(exclude=refused_here), 93600)))
+                    print(f"WAITALL [{idx:02d}] accounts capped — "
                           f"sleeping {secs}s for soonest reset", flush=True)
                     # Don't hold 5 browsers open through a multi-hour idle: Chrome
                     # closes idle tabs/contexts and we'd resume on a dead page. Tear
@@ -224,10 +231,13 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                     print(f"CAP  [{idx:02d}] '{acct}' capped {secs}s ({src}); rotating. "
                           f"Msg: {msg[:160]!r}", flush=True)
                     continue
-                # refused after retries
-                print(f"FAIL [{idx:02d}] {rel} (refused on {acct}) text={msg[:80]!r}", flush=True)
-                failed.append(rel)
-                break
+                # Guardrail/refusal on this account — rotate to a fresh one instead
+                # of burning the same account's quota. If EVERY account refuses, the
+                # pick(exclude=...) above runs out and fails the sprite.
+                print(f"REFUSE [{idx:02d}] '{acct}' refused; rotating. text={msg[:80]!r}",
+                      flush=True)
+                refused_here.add(acct)
+                continue
 
             if capped_out:
                 break
