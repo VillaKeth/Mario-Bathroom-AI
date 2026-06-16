@@ -44,6 +44,7 @@ model_comparison/
 # Logs and temp output
 logs/
 *.log
+*.log.err
 ralph_r*_out.txt
 ralph_r*_err.txt
 ralph_*_debug*.txt
