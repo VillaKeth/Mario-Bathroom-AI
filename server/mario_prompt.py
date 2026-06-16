@@ -103,6 +103,20 @@ _BASE_PROMPT_RULES = MARIO_SYSTEM_PROMPT.split("\n", 1)[1].lstrip("\n") if "\n" 
 _MONTH_WORDS = ("january", "february", "march", "april", "may", "june", "july",
                 "august", "september", "october", "november", "december")
 
+# Global rules applied to EVERY character (loaded from characters/_shared/
+# global_rules.yaml at startup). Empty by default.
+_GLOBAL_RULES = []
+
+
+def set_global_rules(rules):
+    """Set the global prompt rules injected into every character's prompt."""
+    global _GLOBAL_RULES
+    _GLOBAL_RULES = [str(r).strip() for r in (rules or []) if str(r).strip()]
+
+
+def get_global_rules() -> list:
+    return list(_GLOBAL_RULES)
+
 
 def _real_datetime_line() -> str:
     """A plain-English line stating the real current date + time, so the LLM is
@@ -129,7 +143,11 @@ def _character_system_prompt() -> str:
     if any(m in name_l for m in _MONTH_WORDS):
         header += (f" Important: \"{who}\" is your NAME, not today's date — "
                    f"never claim that today is \"{who}\" or that it is your namesake date.")
-    return header + "\n\n" + _BASE_PROMPT_RULES
+    out = header + "\n\n" + _BASE_PROMPT_RULES
+    # Global rules every character obeys (from characters/_shared/global_rules.yaml).
+    if _GLOBAL_RULES:
+        out += "\n\n" + "\n".join(f"- {r}" for r in _GLOBAL_RULES)
+    return out
 
 
 PHASE_PROMPTS = {

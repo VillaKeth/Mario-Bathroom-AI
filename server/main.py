@@ -696,7 +696,12 @@ async def lifespan(app: FastAPI):
     _character_name = config.get("character", "mario")
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
-    tts.set_pronunciation(_character.pronunciation)
+    # Global rules + pronunciation (characters/_shared/global_rules.yaml) layered
+    # under every character. Character's own pronunciation overrides global.
+    import global_rules
+    _global = global_rules.load_global_rules(_shared_dir)
+    mario_prompt.set_global_rules(_global["prompt_rules"])
+    tts.set_pronunciation(global_rules.merge_pronunciation(_global["pronunciation"], _character.pronunciation))
     # Wire per-character voice (reference clip + transcript) so GPT-SoVITS clones
     # THIS character zero-shot instead of always sounding like Mario.
     if hasattr(tts, "set_voice_config"):
@@ -2355,8 +2360,11 @@ async def admin_switch_character(request_body: dict = {}):
         old_name = _character.name
         _character = CharacterLoader(characters_dir, char_name)
         
-        # Re-wire all modules
-        tts.set_pronunciation(_character.pronunciation)
+        # Re-wire all modules (re-apply global rules + pronunciation too)
+        import global_rules
+        _g = global_rules.load_global_rules(os.path.join(characters_dir, "_shared"))
+        mario_prompt.set_global_rules(_g["prompt_rules"])
+        tts.set_pronunciation(global_rules.merge_pronunciation(_g["pronunciation"], _character.pronunciation))
         llm.set_character(_character.name, _character.display_name)
         safety_filter.set_character(_character.name, _character.display_name)
         mario_prompt.set_character(_character.name, _character.display_name, _character.description, _character.tagline)
@@ -2870,6 +2878,13 @@ async def _generate_llm_idle() -> dict | None:
             ctx.append({"role": "system", "content": mario_prompt._real_datetime_line() +
                         " If your name resembles a date, that's your NAME, not today's date — "
                         "don't claim today is your namesake date."})
+        except Exception:
+            pass
+        # Global rules apply to idle chatter too (empty by default = no-op).
+        try:
+            _gr = mario_prompt.get_global_rules()
+            if _gr:
+                ctx.append({"role": "system", "content": "\n".join(f"- {r}" for r in _gr)})
         except Exception:
             pass
         # Add a hint about recent conversation for context

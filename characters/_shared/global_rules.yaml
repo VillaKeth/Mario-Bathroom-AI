@@ -1,0 +1,13 @@
+# Global rules + pronunciation applied to EVERY character, on top of their own
+# config. Edit this file to change behavior for all characters at once — no code
+# change needed. Keep it minimal; leave prompt_rules empty unless a rule should
+# truly apply to every character.
+
+# Extra system-prompt lines every character obeys (injected into replies + idle).
+# Empty by default.
+prompt_rules: []
+
+# Word -> spoken form, applied to all characters' TTS. A character's own
+# voice.pronunciation rule overrides an entry here on conflict.
+pronunciation:
+  Hoppenstedt: Hoppenstead
