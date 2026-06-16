@@ -378,6 +378,16 @@ def _inject_birthday_always_on(ctx: list) -> list:
             f"Drop references to the birthday whenever natural."
         )
         ctx.append({"role": "system", "content": birthday_ctx})
+        # Always carry the birthday person's actual facts so ANY guest (not just
+        # the VIP themselves) gets his name/job/details right when they ask.
+        # Without this the facts only surfaced when the VIP was the speaker.
+        if _birthday_facts:
+            # Prefix with "VIP" so the context trimmer treats this as protected
+            # (see _PROTECTED_TAGS) and never drops the birthday person's facts.
+            ctx.append({"role": "system", "content":
+                        f"[VIP] Facts about {birthday_vip.name} (answer accurately from these "
+                        f"when asked about him; weave in naturally, don't info-dump): "
+                        + " | ".join(_birthday_facts)})
     return ctx
 
 # Lock for state_current to prevent race conditions across async handlers
