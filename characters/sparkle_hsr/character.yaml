@@ -16,6 +16,21 @@ visuals:
   ai_pose_size:
   - 250
   - 250
+  art_style: 3d_figurine
+  visual_description: >-
+    Sparkle, a chaotic trickster from the Masked Fools. A slender young woman
+    with long flowing pale lavender-to-silver hair in two high twin tails, large
+    expressive violet eyes, a small beauty mark, and a sly playful grin. She
+    wears an elegant theatrical Pierrot harlequin jester costume in black and
+    magenta with a teal ruffled collar and cuffs, ribbon and diamond patterns,
+    often holding or wearing a decorative half mask. Mischievous, animated,
+    mid-performance energy. Anime 3D figurine render style, clean studio
+    lighting.
+  drip_description: >-
+    a slender mischievous young woman with long pale lavender-silver hair in two
+    high twin tails, violet eyes, a theatrical Pierrot harlequin jester costume
+    in black and magenta with teal ruffled collar, holding a decorative half
+    mask, anime 3D figurine style, playful trickster
   theme_colors:
     primary: '#FF69B4'
     secondary: '#9370DB'

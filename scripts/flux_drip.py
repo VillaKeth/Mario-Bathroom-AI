@@ -38,7 +38,7 @@ LOG_PATH = os.path.join(BASE, "flux_drip.log")
 # Characters whose sprites get flux upgrades, in priority order.
 # Local-SD sprites are TEMPORARY placeholders only — flux output is the quality
 # source of record; the drip replaces every local-SD sprite, Jax first.
-DRIP_CHARACTERS = ["jax", "reze", "march7th"]
+DRIP_CHARACTERS = ["jax", "reze", "march7th", "sparkle_hsr"]
 
 # Poses most visible at the party — upgraded first.
 HERO_POSES = [
@@ -159,12 +159,59 @@ class InsufficientPollen(Exception):
     pass
 
 
+def _git(*a):
+    import subprocess
+    return subprocess.run(["git", "-C", BASE, *a], capture_output=True, text=True)
+
+
+def commit_push(files):
+    """Stage ONLY the given sprite files, commit, and push. Safe to run
+    unattended against a dirty, concurrently-pushed tree: it never leaves the
+    working tree (which the live server reads) in a conflicted state. On any
+    trouble it aborts cleanly and defers the push to a later run.
+    """
+    rel = sorted({os.path.relpath(f, BASE).replace(os.sep, "/") for f in files})
+    if not rel:
+        return
+    if _git("add", "--", *rel).returncode != 0:
+        log("git add failed — skipping commit")
+        return
+    if _git("diff", "--cached", "--quiet").returncode == 0:
+        return  # nothing actually new staged
+    chars = sorted({r.split("/")[1] for r in rel if r.startswith("characters/")})
+    subj = f"feat(sprites): flux drip {', '.join(chars) or 'sprites'} (+{len(rel)})"
+    msg = (subj + "\n\n"
+           "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>")
+    if _git("commit", "-m", msg).returncode != 0:
+        log("git commit failed")
+        return
+    log(f"committed: {subj}")
+    _git("fetch", "origin", "master")
+    # Only touch the working tree if the branch actually diverged; an additive
+    # sprite commit on top of remote needs no rebase when we're already ahead.
+    diverged = _git("merge-base", "--is-ancestor",
+                    "origin/master", "HEAD").returncode != 0
+    if diverged:
+        pr = _git("-c", "rebase.autostash=true", "pull", "--rebase",
+                  "origin", "master")
+        if pr.returncode != 0 or _git("ls-files", "-u").stdout.strip():
+            log("rebase/integration conflict — aborting, push deferred")
+            _git("rebase", "--abort")
+            return
+    if _git("push", "origin", "master").returncode == 0:
+        log("pushed")
+    else:
+        log("push failed — deferred to next run")
+
+
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--max", type=int, default=5, help="max images this run")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--redo-cropped", action="store_true",
                     help="re-queue sprites whose subject runs off the top/bottom edge")
+    ap.add_argument("--commit", action="store_true",
+                    help="git commit + push the sprites generated this run")
     args = ap.parse_args()
 
     token = sg._load_pollinations_token()
@@ -203,6 +250,7 @@ async def main():
         return
 
     done_count = 0
+    generated = []
     for char, sprite_path, prompt, key in queue:
         if done_count >= args.max:
             break
@@ -223,7 +271,11 @@ async def main():
         state["done"].append(key)
         save_state(state)
         done_count += 1
+        generated.append(out)
         log(f"upgraded {key} ({len(img):,}b) | spent {sg._pollinations_spent():.4f}")
+
+    if args.commit and generated:
+        commit_push(generated)
 
     log(f"drip end: upgraded {done_count} sprite(s)")
 
