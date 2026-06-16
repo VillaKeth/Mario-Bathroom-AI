@@ -73,11 +73,10 @@ def cut(src: str, dst: Path) -> bool:
     return True
 
 
-# A browser/profile-launch failure (e.g. the profile is already open in another
-# session) is infrastructure-fatal — retrying just reopens tabs and burns the
-# whole queue with the same error, so we stop the run instead.
-_FATAL_GEN_ERR = ("launch_persistent_context", "existing browser",
-                  "Target page", "has been closed", "ProfileInUse")
+# A profile-LAUNCH failure (profile already open in another session) is
+# infrastructure-fatal — retrying just burns the queue, so we stop the run.
+# NOTE: a closed/stale page is NOT here — that's recoverable (reopened below).
+_FATAL_GEN_ERR = ("launch_persistent_context", "existing browser", "ProfileInUse")
 
 
 async def _generate_once(session, prompt: str, account: str, thread_id):
@@ -101,10 +100,15 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
                 r = await session.send(thread_id, PROMPT_PREFIX + prompt, account=account)
         except Exception as e:  # noqa: BLE001
             msg = f"gen error: {e}"
-            if "not logged in" in msg.lower():
+            low = msg.lower()
+            if "not logged in" in low:
                 return None, "notloggedin", msg, thread_id
             if any(s in msg for s in _FATAL_GEN_ERR):
                 return None, "fatal", msg, thread_id
+            # Stale page/context (closed or crashed during an idle wait): drop the
+            # thread so the next attempt reopens a fresh conversation, then retry.
+            if any(s in low for s in ("has been closed", "target page", "crash")):
+                thread_id = None
             continue
         resp = r.get("response", {})
         imgs = resp.get("images", [])
@@ -171,6 +175,12 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                     secs = int(max(5, min(pool.seconds_until_any(), 93600)))
                     print(f"WAITALL [{idx:02d}] all {len(pool.accounts)} accounts capped — "
                           f"sleeping {secs}s for soonest reset", flush=True)
+                    # Don't hold 5 browsers open through a multi-hour idle: Chrome
+                    # closes idle tabs/contexts and we'd resume on a dead page. Tear
+                    # the session down (frees the windows too); thread uuids persist
+                    # and reopen by URL on the next send.
+                    if secs > 120:
+                        await session.close()
                     await asyncio.sleep(secs)
                     continue
 
