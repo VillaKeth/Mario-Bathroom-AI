@@ -831,8 +831,11 @@ def _handle_special_commands_impl(
         stats = party_stats.get_stats()
         return f"{stage} We've had {stats['total_visits']} visitors so far!"
 
-    # What can you do / help
-    if any(w in lower for w in ["what can you do", "what do you do", "help me", "your abilities", "your powers"]):
+    # What can you do / help — only for a SHORT, explicit capability question.
+    # Guarded by word count (and "help me" dropped) so real requests like
+    # "can you help me solve a dynamic programming problem" reach the LLM instead
+    # of getting the canned abilities dump.
+    if _word_count <= 7 and any(w in lower for w in ["what can you do", "what do you do", "what are your abilities", "your abilities", "your powers", "what can you help"]):
         emotion_system.current = Emotion.EXCITED
         return (
             "I can do so much! Ask for a joke, trivia, song, dare, roast, nickname, "
