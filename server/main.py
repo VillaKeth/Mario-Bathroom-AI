@@ -2862,6 +2862,16 @@ async def _generate_llm_idle() -> dict | None:
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
         ]
+        # Idle chatter bypasses build_context(), so the character-prompt's date
+        # grounding doesn't reach here — a date-named character then riffs "on
+        # this March 7th day". Inject the real date + a name-vs-date note so idle
+        # thoughts know what day it actually is.
+        try:
+            ctx.append({"role": "system", "content": mario_prompt._real_datetime_line() +
+                        " If your name resembles a date, that's your NAME, not today's date — "
+                        "don't claim today is your namesake date."})
+        except Exception:
+            pass
         # Add a hint about recent conversation for context
         history = state_current.get("conversation_history", [])
         if history:
