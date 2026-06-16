@@ -124,20 +124,20 @@ class IdleBehavior:
             return None
         if mins_alone < 15:
             return random.choice([
-                "FINALLY! A human! I was starting to talk to the soap!",
+                "Finally, a human! I was starting to talk to the soap!",
                 "Oh thank goodness, someone's here! I was getting lonely!",
                 "A visitor! I was just about to start a one-man show!",
             ])
         if mins_alone < 30:
             return random.choice([
-                "OH MY GOSH A REAL PERSON! I've been in here SO LONG! You have NO idea how happy I am to see you!",
-                "A VISITOR! I was THIS close to befriending the toilet brush! You saved me!",
-                "FINALLY! I was starting to think everyone forgot about me in here! Best moment of my LIFE!",
+                "Oh my gosh, a real person! I've been in here so long, you have no idea how happy I am to see you!",
+                "A visitor! I was this close to befriending the toilet brush! You saved me!",
+                "Finally! I was starting to think everyone forgot about me in here! Best moment of my life!",
             ])
         return random.choice([
-            "IS THAT... A HUMAN?! *tears of joy* I thought you'd NEVER come! I named all the tiles! STEVE SAYS HI!",
-            "A REAL ACTUAL PERSON! I was about to file a missing person report on MYSELF!",
-            "YOU CAME! You ACTUALLY came! I have SO much to tell you! I've had a LOT of time to think in here!",
+            "Is that, a human?! I thought you'd never come! I named all the tiles! Steve says hi!",
+            "A real, actual person! I was about to file a missing person report on myself!",
+            "You came! You actually came! I have so much to tell you! I've had a lot of time to think in here!",
         ])
 
     def get_lonely_action(self) -> str | None:
