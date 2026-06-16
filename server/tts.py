@@ -162,6 +162,8 @@ _sovits_available = False
 _sovits_lock = threading.Lock()
 _sovits_restart_count = 0
 _sovits_max_restarts = 10  # Auto-restart up to 10 times before giving up
+_sovits_last_restart_attempt = 0.0   # time.time() of the last restart attempt
+_SOVITS_RESTART_COOLDOWN = 30.0      # min seconds between restart attempts (prevents spin)
 
 # Background regeneration queue (replaces thread-per-request)
 import queue as _queue_mod
@@ -890,7 +892,7 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
     When _is_user=False, yields to pending user TTS requests to reduce latency.
     """
     import json as _json
-    global _sovits_process, _sovits_available, _sovits_restart_count
+    global _sovits_process, _sovits_available, _sovits_restart_count, _sovits_last_restart_attempt
 
     # Non-user calls yield to pending user TTS (prevents idle/precache from blocking user)
     if not _is_user and _user_tts_waiting.is_set():
@@ -903,15 +905,21 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
         _sovits_available = False
 
     if not _sovits_available or _sovits_process is None:
-        # Try auto-restart if we haven't exceeded limit
-        if _sovits_restart_count < _sovits_max_restarts:
-            logger.info(f"[DEBUG_TTS] sovits: attempting auto-restart ({_sovits_restart_count + 1}/{_sovits_max_restarts})...")
-            if _start_sovits_subprocess():
-                _sovits_restart_count += 1
-            else:
-                raise RuntimeError("GPT-SoVITS subprocess not available and restart failed")
+        # Subprocess is down. Attempt recovery, but rate-limit restarts so a
+        # persistently-dead subprocess doesn't spin (5s kill + ~23s model load)
+        # on every call. Within the cooldown we raise fast so the caller falls
+        # back to Edge; once the cooldown elapses we try sovits again. This
+        # means a transient timeout can NEVER permanently latch us onto Edge.
+        now = time.time()
+        if now - _sovits_last_restart_attempt < _SOVITS_RESTART_COOLDOWN:
+            raise RuntimeError("GPT-SoVITS unavailable (restart cooldown); using fallback")
+        _sovits_last_restart_attempt = now
+        logger.info("[DEBUG_TTS] sovits: subprocess down, attempting auto-restart...")
+        if _start_sovits_subprocess():
+            _sovits_restart_count += 1
+            logger.info(f"[DEBUG_TTS] sovits: auto-restart OK (#{_sovits_restart_count})")
         else:
-            raise RuntimeError("GPT-SoVITS subprocess not available (max restarts exceeded)")
+            raise RuntimeError("GPT-SoVITS restart failed; using fallback")
 
     with _sovits_lock:
         # Inside lock: abort non-user calls if user TTS arrived while waiting for lock
@@ -949,7 +957,7 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
                     return _sovits_process.stdout.readline().strip()
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                     future = pool.submit(_read_line)
-                    line = future.result(timeout=30)  # 30s max per synthesis
+                    line = future.result(timeout=60)  # 60s max per synthesis
                 if not line:
                     raise RuntimeError("GPT-SoVITS subprocess returned empty response")
                 resp = _json.loads(line)
@@ -1425,8 +1433,11 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
 
     start = time.time()
 
-    # GPT-SoVITS mode: direct synthesis, no RVC needed
-    if TTS_MODE == "sovits" and _sovits_available and not force_fast:
+    # GPT-SoVITS mode: direct synthesis, no RVC needed.
+    # NOTE: do NOT gate on _sovits_available here — _sovits_synthesize handles a
+    # dead subprocess by auto-restarting (rate-limited). Gating on the flag would
+    # make a single transient failure latch us onto Edge for the rest of the run.
+    if TTS_MODE == "sovits" and not force_fast:
         try:
             result = _normalize_audio(_sovits_synthesize(text, _is_user=_is_user))
             total = time.time() - start
