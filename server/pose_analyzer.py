@@ -559,26 +559,23 @@ def analyze_text(text: str) -> dict:
     # TTS-safe cleanup: collapse repeated characters that cause letter-by-letter speech
     tts_text = re.sub(r'(.)\1{2,}', r'\1\1', tts_text)
 
-    # Strip musical notes and special symbols TTS can't pronounce
-    tts_text = tts_text.replace('♪', '').replace('♫', '').replace('🎵', '')
-    # Strip ALL emoji characters (Unicode ranges for emoji)
-    tts_text = re.sub(
-        r'[\U0001F600-\U0001F64F'   # emoticons
-        r'\U0001F300-\U0001F5FF'     # misc symbols & pictographs
-        r'\U0001F680-\U0001F6FF'     # transport & map symbols
-        r'\U0001F1E0-\U0001F1FF'     # flags
-        r'\U00002702-\U000027B0'     # dingbats
-        r'\U0000FE00-\U0000FE0F'     # variation selectors
-        r'\U0001F900-\U0001F9FF'     # supplemental symbols
-        r'\U0001FA00-\U0001FA6F'     # chess symbols
-        r'\U0001FA70-\U0001FAFF'     # symbols extended-A
-        r'\U00002600-\U000026FF'     # misc symbols
-        r'\U0000200D'                # zero-width joiner
-        r'\U00002B50\U00002B55'      # star, circle
-        r'\U0000231A-\U0000231B'     # watch, hourglass
-        r'\U000023E9-\U000023F3'     # media controls
-        r'\U0000203C\U00002049'      # exclamation marks
-        r']+', '', tts_text)
+    # Emoji / musical notes TTS can't pronounce. The LLM often uses an emoji as a
+    # sentence separator ("tunes 🎵 What do you say"); when a Capitalized word
+    # follows, restore the intended PERIOD so spoken sentences don't run together
+    # ("tunes 🎵 What" -> "tunes. What"). Emoji is removed only from the SPOKEN
+    # text here — display_text keeps it, so the bubble still shows emoji.
+    _EMOJI = (
+        r'[\U0001F300-\U0001FAFF'           # pictographs, emoticons, transport, 🎵, supplemental
+        r'\U0001F000-\U0001F2FF'             # mahjong/dominoes/enclosed
+        r'\U0001F1E0-\U0001F1FF'             # flags
+        r'\U00002600-\U000027BF'             # misc symbols + dingbats
+        r'\U00002B00-\U00002BFF'             # stars/arrows block
+        r'\U0000FE00-\U0000FE0F\U0000200D'   # variation selectors, ZWJ
+        r'\U0000231A-\U0000231B\U000023E9-\U000023F3'  # watch/hourglass, media
+        r'\U0000203C\U00002049♪♫]'           # ‼ ⁉ ♪ ♫
+    )
+    tts_text = re.sub(r'(\w)\s*' + _EMOJI + r'+\s*([A-Z])', r'\1. \2', tts_text)
+    tts_text = re.sub(_EMOJI + r'+', '', tts_text)
     tts_text = re.sub(r'\s+', ' ', tts_text).strip()
 
     # Strip gibberish onomatopoeia patterns (caps/mixed with 3+ hyphens like WHA-LOL-WHOA-OHH)

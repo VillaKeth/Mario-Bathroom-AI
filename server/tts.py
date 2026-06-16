@@ -1357,14 +1357,14 @@ def _preclean_tts_text(text: str) -> str:
     # NOTE: this only affects the SPOKEN text; the speech bubble keeps the
     # brackets for grammatical structure. (Artifacts cleaned just below.)
     t = t.replace('(', ', ').replace(')', ', ')
-    # Emoji / pictographs — TTS can't speak them. Replace with a comma PAUSE
-    # rather than deleting: the LLM often uses an emoji as a sentence separator
-    # ("...indie tunes 🎵 What do you say?"), and deleting it ran the sentences
-    # together ("tunes What"). The comma artifact cleanup just below removes any
-    # stray/leading/trailing commas this creates (e.g. "Reze 💣!" -> "Reze!").
-    t = _re_tts.sub(
-        r'[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF'
-        r'♀-♂←-⇿⌀-⏿️‍]', ', ', t)
+    # Emoji / pictographs — TTS can't speak them. When one separates a clause from
+    # a following Capitalized word it stood in for a sentence break, so restore the
+    # intended PERIOD ("tunes 🎵 What" -> "tunes. What"); strip the rest. Emoji is
+    # removed only from spoken text — the speech bubble keeps it.
+    _EMOJI = (r'[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF'
+              r'♀-♂←-⇿⌀-⏿️‍]')
+    t = _re_tts.sub(r'(\w)\s*' + _EMOJI + r'+\s*([A-Z])', r'\1. \2', t)
+    t = _re_tts.sub(_EMOJI + r'+', '', t)
     # Clean up resulting artifacts: leading commas, double commas, etc.
     t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
     t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
