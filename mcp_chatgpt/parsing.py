@@ -23,18 +23,23 @@ def classify_page_state(url: str, body_text: str) -> str:
     return "ok"
 
 
-_RESET_IN = re.compile(r"in\s+(\d+)\s*(second|minute|hour)s?", re.I)
+_DUR_PART = re.compile(r"(\d+)\s*(hour|minute|second)s?", re.I)
 _RESET_CLOCK = re.compile(r"\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b")
+_MULT = {"hour": 3600, "minute": 60, "second": 1}
 
 
 def parse_reset_seconds(text: str) -> int | None:
-    """Best-effort wait-seconds from a cap message: 'try again in 12 minutes',
-    'in 30 seconds', 'in 2 hours', or an mm:ss / h:mm:ss countdown. Returns None
-    if nothing parseable (caller falls back to a default)."""
+    """Best-effort wait-seconds from a cap message. Handles single AND COMPOUND
+    durations — 'try again in 12 minutes', 'in 30 seconds', 'in 2 hours', and
+    'the limit resets in 5 hours and 51 minutes' (sums every part so we don't
+    resume early) — plus an mm:ss / h:mm:ss countdown. Returns None if nothing
+    parseable (caller falls back to a default)."""
     t = text or ""
-    m = _RESET_IN.search(t)
-    if m:
-        return int(m.group(1)) * {"second": 1, "minute": 60, "hour": 3600}[m.group(2).lower()]
+    parts = _DUR_PART.findall(t)
+    if parts:
+        total = sum(int(n) * _MULT[u.lower()] for n, u in parts)
+        if total > 0:
+            return total
     m = _RESET_CLOCK.search(t)
     if m:
         a, b, c = m.group(1), m.group(2), m.group(3)

@@ -45,5 +45,15 @@ def test_reset_seconds_countdown_hms():
     assert parse_reset_seconds("available in 1:02:03") == 3723
 
 
+def test_reset_seconds_compound_hours_and_minutes():
+    assert parse_reset_seconds("the limit resets in 5 hours and 51 minutes") == 5 * 3600 + 51 * 60
+
+
+def test_reset_seconds_real_free_plan_message():
+    msg = ("You've hit the free plan limit for image generations requests. "
+           "You can create more images when the limit resets in 5 hours and 51 minutes.")
+    assert parse_reset_seconds(msg) == 21060
+
+
 def test_reset_seconds_none_when_absent():
     assert parse_reset_seconds("You've reached your limit, come back later") is None

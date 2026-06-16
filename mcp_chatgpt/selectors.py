@@ -23,9 +23,13 @@ GENERATED_IMAGE_MARKERS = ("/backend-api/", "oaiusercontent.com")
 LOGIN_URL_FRAGMENT = "/auth/login"
 # Cloudflare / challenge interstitials commonly show this in body text.
 CHALLENGE_TEXT_MARKERS = ("Verify you are human", "Just a moment", "Checking your browser")
-# Usage-limit / throttle text markers — generation halts (not retries) on these.
+# Usage-limit / throttle text markers — generation waits for the reset on these.
+# "free plan limit" / "limit resets" are the verified live wording for the image
+# cap: "You've hit the free plan limit for image generations requests. You can
+# create more images when the limit resets in 5 hours and 51 minutes."
 USAGE_LIMIT_MARKERS = (
-    "You've reached", "usage limit", "limit reached",
+    "You've reached", "you've hit", "usage limit", "limit reached",
+    "free plan limit", "limit resets", "plan limit for image",
     "too many requests", "try again later", "rate limit",
     "come back later",
 )

@@ -145,9 +145,13 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
                     break
                 if status == "cap":
                     cap_waits += 1
-                    secs = parse_reset_seconds(msg)
-                    src = "page timer" if secs is not None else "fallback"
-                    secs = int(max(30, min(secs if secs is not None else cap_fallback, 7200)))
+                    parsed = parse_reset_seconds(msg)
+                    src = "page timer" if parsed is not None else "fallback"
+                    # +60s buffer so we wake just AFTER the reset (not the exact
+                    # second). Clamp 30s..8h — free-plan image resets run ~6h, so
+                    # the old 2h clamp woke early and re-hit the cap.
+                    secs = (parsed + 60) if parsed is not None else cap_fallback
+                    secs = int(max(30, min(secs, 28800)))
                     print(f"CAP  [{idx:02d}] image cap hit. Message:\n{msg[:400]}", flush=True)
                     if cap_waits > max_cap_waits:
                         print(f"STOP [{idx:02d}] capped {cap_waits}x — ending run. "
