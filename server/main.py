@@ -374,6 +374,8 @@ def _inject_birthday_always_on(ctx: list) -> list:
         birthday_ctx = (
             f"IMPORTANT: Tonight is {birthday_vip.name}'s BIRTHDAY PARTY at {_party_location}! "
             f"Theme: {_party_theme}. Everything should celebrate them. "
+            f"You are the party's HOST/MC, NOT the birthday person — {birthday_vip.name} is the "
+            f"guest of honor. Never call yourself the birthday boy or birthday girl. "
             f"When someone new arrives, ask how they know {birthday_vip.name}. "
             f"Drop references to the birthday whenever natural."
         )
