@@ -1333,6 +1333,23 @@ def clear_post_synthesis_callbacks():
     _post_synthesis_callbacks.clear()
 
 
+def _expand_tts_abbreviations(t: str) -> str:
+    """Spell out abbreviations whose trailing period would otherwise be read as a
+    sentence boundary by the splitter (and leave an unpronounceable stub) — e.g.
+    "St. Michael's" was split into "...St." + "Michael's" so the voice dropped the
+    "St.". Case-sensitive for titles (St/Mr/Dr...) so normal words aren't touched."""
+    t = _re_tts.sub(r'\bSt\.\s+([A-Z])', r'Saint \1', t)      # St. Michael's -> Saint Michael's
+    t = _re_tts.sub(r'\bSt\.(?=\s|$)', 'Street', t)            # bare "St." -> Street
+    t = _re_tts.sub(r'\bMt\.\s+([A-Z])', r'Mount \1', t)       # Mt. Everest -> Mount Everest
+    t = _re_tts.sub(r'\bMr\.\s', 'Mister ', t)
+    t = _re_tts.sub(r'\bMrs\.\s', 'Missus ', t)
+    t = _re_tts.sub(r'\bMs\.\s', 'Miss ', t)
+    t = _re_tts.sub(r'\bDr\.\s+([A-Z])', r'Doctor \1', t)      # Dr. Ratio -> Doctor Ratio
+    t = _re_tts.sub(r'\bvs\.', 'versus', t, flags=_re_tts.IGNORECASE)
+    t = _re_tts.sub(r'\betc\.', 'etcetera', t, flags=_re_tts.IGNORECASE)
+    return t
+
+
 def _preclean_tts_text(text: str) -> str:
     """Pre-clean text before any TTS engine sees it.
 
@@ -1340,6 +1357,8 @@ def _preclean_tts_text(text: str) -> str:
     struggle with. Applied before cache key generation so cleaned text is cached.
     """
     t = text
+    # Spell out abbreviations first, so their period isn't treated as a sentence end.
+    t = _expand_tts_abbreviations(t)
     # Ellipsis variants → natural pause (comma + space)
     t = t.replace('…', ', ')                       # Smart ellipsis
     t = _re_tts.sub(r'\.{3,}', ', ', t)            # Three+ dots → pause
