@@ -80,40 +80,41 @@ _FATAL_GEN_ERR = ("launch_persistent_context", "existing browser",
                   "Target page", "has been closed", "ProfileInUse")
 
 
-async def _generate_once(session, prompt: str, account: str):
+async def _generate_once(session, prompt: str, account: str, thread_id):
     """One sprite attempt, up to 3 retries for stochastic guardrail blocks.
-    Returns (image_path|None, status, message); status in {ok, cap, refused, fatal}.
-    Scans assistant text AND the page notice, so a cap banner is caught even when
-    it isn't part of the reply. Each opened thread/tab is closed before returning
-    so tabs don't pile up across sprites and retries."""
+
+    Uses ONE persistent chat per account: the first call opens the thread, every
+    later call sends into that SAME conversation (keeps history to 1 chat/account
+    and 1 reused tab/account — no per-sprite open/close churn). The thread stays
+    open for reuse and is torn down only by session.close() at the end.
+
+    Returns (image_path|None, status, message, thread_id); status in
+    {ok, cap, refused, fatal, notloggedin}. Scans assistant text AND the page
+    notice, so a cap banner is caught even when it isn't part of the reply."""
     msg = ""
     for attempt in range(1, 4):
         try:
-            r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
+            if thread_id is None:
+                r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
+                thread_id = r.get("thread_id")
+            else:
+                r = await session.send(thread_id, PROMPT_PREFIX + prompt, account=account)
         except Exception as e:  # noqa: BLE001
             msg = f"gen error: {e}"
             if "not logged in" in msg.lower():
-                return None, "notloggedin", msg
+                return None, "notloggedin", msg, thread_id
             if any(s in msg for s in _FATAL_GEN_ERR):
-                return None, "fatal", msg
+                return None, "fatal", msg, thread_id
             continue
-        tid = r.get("thread_id")
-        try:
-            resp = r.get("response", {})
-            imgs = resp.get("images", [])
-            msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
-            if imgs:
-                return imgs[0], "ok", msg
-            if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
-                return None, "cap", msg
-            print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
-        finally:
-            if tid:
-                try:
-                    await session.close_thread(tid)   # close the tab; no pileup
-                except Exception:  # noqa: BLE001
-                    pass
-    return None, "refused", msg
+        resp = r.get("response", {})
+        imgs = resp.get("images", [])
+        msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
+        if imgs:
+            return imgs[0], "ok", msg, thread_id
+        if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+            return None, "cap", msg, thread_id
+        print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
+    return None, "refused", msg, thread_id
 
 
 async def run(character: str, start: int, force: bool, regen: bool, accounts: list,
@@ -126,6 +127,7 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session()
     pool = AccountPool(accounts)
+    threads: dict = {}          # account -> persistent thread_id (one chat each)
     print(f"ACCOUNTS rotating: {', '.join(pool.accounts)}", flush=True)
     done, skipped, failed = [], [], []
     capped_out = False
@@ -172,7 +174,9 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                     await asyncio.sleep(secs)
                     continue
 
-                img, status, msg = await _generate_once(session, prompt, acct)
+                img, status, msg, tid = await _generate_once(
+                    session, prompt, acct, threads.get(acct))
+                threads[acct] = tid     # remember this account's persistent chat
                 if status == "fatal":
                     print(f"STOP [{idx:02d}] fatal browser error on '{acct}' — ending run "
                           f"(is the profile open elsewhere?):\n{msg[:300]}", flush=True)
