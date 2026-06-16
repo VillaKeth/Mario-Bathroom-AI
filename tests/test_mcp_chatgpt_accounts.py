@@ -20,9 +20,14 @@ def test_empty_accounts_rejected():
         AccountPool([])
 
 
-def test_round_robin_spreads_load():
-    pool = AccountPool(["a", "b", "c"], clock=FakeClock())
-    assert [pool.pick() for _ in range(6)] == ["a", "b", "c", "a", "b", "c"]
+def test_sticky_stays_until_capped():
+    clk = FakeClock()
+    pool = AccountPool(["a", "b", "c"], clock=clk)
+    assert [pool.pick() for _ in range(3)] == ["a", "a", "a"]   # sticks on a
+    pool.mark_capped("a", 100)
+    assert [pool.pick() for _ in range(2)] == ["b", "b"]        # advances to b, sticks
+    pool.mark_capped("b", 100)
+    assert pool.pick() == "c"
 
 
 def test_capped_account_is_skipped():
@@ -30,7 +35,7 @@ def test_capped_account_is_skipped():
     pool = AccountPool(["a", "b"], clock=clk)
     assert pool.pick() == "a"
     pool.mark_capped("b", 300)          # b parked
-    # only 'a' is available now, even though rotation would prefer 'b' next
+    # 'a' is the sticky current and still usable
     assert pool.pick() == "a"
     assert pool.pick() == "a"
 
@@ -48,12 +53,12 @@ def test_all_capped_returns_none_then_recovers():
     assert pool.seconds_until_any() == 0  # a is free now
 
 
-def test_exclude_skips_refused_accounts():
+def test_exclude_advances_as_refusals_grow():
     pool = AccountPool(["a", "b", "c"], clock=FakeClock())
-    # 'a' refused the current item — exclude it, rotation serves b then c.
+    # 'a' refused → exclude it, get b. b refused → exclude {a,b}, get c.
     assert pool.pick(exclude={"a"}) == "b"
-    assert pool.pick(exclude={"a"}) == "c"
-    # all excluded → None
+    assert pool.pick(exclude={"a", "b"}) == "c"
+    # all excluded → None (caller fails the item: refused by everyone)
     assert pool.pick(exclude={"a", "b", "c"}) is None
 
 
@@ -69,14 +74,12 @@ def test_exclude_with_caps_interaction():
     assert pool.seconds_until_any(exclude={"a", "b"}) == 0
 
 
-def test_reset_buffer_then_back_in_rotation():
+def test_capped_account_returns_after_reset():
     clk = FakeClock()
     pool = AccountPool(["a", "b"], clock=clk)
     pool.mark_capped("a", 60)
-    # b still serves while a is parked
-    assert pool.pick() == "b"
-    assert pool.pick() == "b"
-    clk.advance(61)
-    # a is back; rotation includes it again
-    got = {pool.pick() for _ in range(4)}
-    assert got == {"a", "b"}
+    assert pool.pick() == "b"      # a capped → stick on b
+    assert pool.pick() == "b"      # sticky stays on b even after...
+    clk.advance(61)                # ...a resets (sticky doesn't pre-empt b)
+    pool.mark_capped("b", 60)      # now b caps
+    assert pool.pick() == "a"      # recovered a is picked up

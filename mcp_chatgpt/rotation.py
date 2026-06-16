@@ -3,12 +3,14 @@ import time
 
 
 class AccountPool:
-    """Round-robin over logged-in accounts, skipping any currently capped.
+    """STICKY account selector over logged-in accounts.
 
-    A cap is recorded as a future 'available again' time (monotonic clock), so
-    a capped account re-enters rotation automatically once its reported reset
-    passes. Spreading generations across N accounts also delays hitting any
-    single account's cap. `clock` is injectable for tests."""
+    pick() returns the SAME account every call (one account at a time, doing
+    items one-by-one) until that account is capped or explicitly excluded — then
+    it advances to the next usable one. This keeps work on a single account/chat
+    instead of hopping every item. A cap is recorded as a future 'available
+    again' time (monotonic clock), so a capped account re-enters selection once
+    its reported reset passes. `clock` is injectable for tests."""
 
     def __init__(self, accounts, clock=time.monotonic):
         if not accounts:
@@ -19,9 +21,11 @@ class AccountPool:
         self._idx = 0
 
     def pick(self, exclude=()):
-        """Next available account (round-robin), skipping capped ones and any in
-        `exclude`. Returns None if none qualify. `exclude` lets a caller rotate
-        past accounts that already refused the current item (without capping them)."""
+        """Current usable account, STICKY: keeps returning the same one until it
+        caps or is excluded, then advances to the next usable account. Skips
+        capped accounts and any in `exclude`. Returns None if none qualify.
+        `exclude` lets a caller rotate past accounts that already refused the
+        current item (without capping them) — growing it forces advancement."""
         exclude = set(exclude)
         now = self._clock()
         n = len(self.accounts)
@@ -31,7 +35,7 @@ class AccountPool:
             if a in exclude:
                 continue
             if self._cap_until[a] <= now:
-                self._idx = (j + 1) % n      # advance so the next pick rotates on
+                self._idx = j      # STICK on this account (do not advance)
                 return a
         return None
 

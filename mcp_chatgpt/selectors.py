@@ -18,6 +18,19 @@ ASSISTANT_TURN = "[data-message-author-role='assistant']"
 # never match these). Verified against live DOM on 2026-06-15.
 GENERATED_IMAGE_MARKERS = ("/backend-api/", "oaiusercontent.com")
 
+# Response A/B chooser ("Which response do you prefer?") — an occasional model
+# comparison that can block a continuing chat until one side is picked. Detected
+# by body text; resolved by clicking a candidate button. NOTE: button selectors
+# are best-effort text guesses — verify/tighten against a live A/B test.
+RESPONSE_PICKER_MARKERS = ("which response do you prefer", "prefer this response",
+                           "compare these responses")
+RESPONSE_PICKER_BUTTONS = (
+    "button:has-text('I prefer this response')",
+    "button:has-text('prefer this response')",
+    "button:has-text('Keep this response')",
+    "[data-testid='paragen-prefer-button']",
+)
+
 # State detection
 # Login: when logged out, ChatGPT redirects to a URL containing this path.
 LOGIN_URL_FRAGMENT = "/auth/login"

@@ -45,6 +45,10 @@ class ChatGPTSession:
         self._contexts: dict = {}            # account -> BrowserContext
         self._threads: dict[str, Page] = {}  # thread_id -> Page (uuid is globally unique)
         self._lock = asyncio.Lock()
+        # Every generated-image src ever downloaded. Folded into each baseline so
+        # a previously-saved image can never be re-detected as "new" and saved
+        # twice (guards against page/history races producing duplicate sprites).
+        self._saved_srcs: set = set()
 
     async def _ctx_for(self, account: str):
         """Lazily launch (and cache) one persistent browser context per account."""
@@ -131,6 +135,7 @@ class ChatGPTSession:
             with open(path, "wb") as f:
                 f.write(base64.b64decode(b64))
             paths.append(path)
+            self._saved_srcs.add(src)   # never download this exact image again
         return paths
 
     async def _send_and_wait(self, page: Page, baseline: set) -> WaitOutcome:
@@ -147,6 +152,39 @@ class ChatGPTSession:
             # longer no-image grace (~5s) so a real render isn't cut off as "none".
             no_image_stable_window=10,
         )
+
+    async def _resolve_response_chooser(self, page: Page) -> bool:
+        """Best-effort: ChatGPT occasionally shows an A/B 'which response do you
+        prefer' chooser that blocks a continuing chat until one is picked. If the
+        marker text is present, click the first candidate button so we can read a
+        single settled response. Non-fatal no-op if nothing matches. NOTE: button
+        selectors are unverified guesses — tighten once seen on a live A/B."""
+        try:
+            body = await page.inner_text("body")
+        except Exception:  # noqa: BLE001
+            return False
+        if not any(m in body.lower() for m in selectors.RESPONSE_PICKER_MARKERS):
+            return False
+        for sel in selectors.RESPONSE_PICKER_BUTTONS:
+            try:
+                btn = await page.query_selector(sel)
+                if btn:
+                    await btn.click()
+                    await page.wait_for_timeout(600)
+                    print(f"[chooser] resolved A/B response picker via {sel}", flush=True)
+                    return True
+            except Exception:  # noqa: BLE001
+                continue
+        print("[chooser] A/B picker detected but no known button matched", flush=True)
+        return False
+
+    async def _send_wait_resolve(self, page: Page, baseline: set) -> WaitOutcome:
+        """Wait for the reply; if an A/B chooser appears, resolve it and re-settle
+        so we read the single chosen response (and its image)."""
+        outcome = await self._send_and_wait(page, baseline)
+        if await self._resolve_response_chooser(page):
+            outcome = await self._send_wait_resolve(page, baseline)
+        return outcome
 
     async def _type_and_send(self, page: Page, prompt: str) -> None:
         await page.fill(selectors.COMPOSER, prompt)
@@ -182,9 +220,9 @@ class ChatGPTSession:
             page = await ctx.new_page()
             await page.goto(selectors.URL, wait_until="domcontentloaded")
             await self._check_state(page, account)
-            baseline = await self._generated_image_srcs(page)
+            baseline = await self._generated_image_srcs(page) | self._saved_srcs
             await self._type_and_send(page, prompt)
-            outcome = await self._send_and_wait(page, baseline)
+            outcome = await self._send_wait_resolve(page, baseline)
             await page.wait_for_timeout(300)  # let URL settle to /c/<uuid>
             thread_id = parse_thread_id(page.url) or f"tab-{id(page)}"
             self._threads[thread_id] = page
@@ -203,9 +241,9 @@ class ChatGPTSession:
                                 wait_until="domcontentloaded")
                 await self._check_state(page, account)
                 self._threads[thread_id] = page
-            baseline = await self._generated_image_srcs(page)
+            baseline = await self._generated_image_srcs(page) | self._saved_srcs
             await self._type_and_send(page, prompt)
-            outcome = await self._send_and_wait(page, baseline)
+            outcome = await self._send_wait_resolve(page, baseline)
             images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
             return {"response": await self._build_response(page, outcome, images)}
 
