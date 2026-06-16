@@ -105,9 +105,16 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
                 return None, "notloggedin", msg, thread_id
             if any(s in msg for s in _FATAL_GEN_ERR):
                 return None, "fatal", msg, thread_id
-            # Stale page/context (closed or crashed during an idle wait): drop the
-            # thread so the next attempt reopens a fresh conversation, then retry.
-            if any(s in low for s in ("has been closed", "target page", "crash")):
+            # Recoverable browser instability (stale/closed page, wedged context,
+            # failed target creation): relaunch the account's context + drop the
+            # thread so the next attempt reopens fresh. NOT a guardrail refusal.
+            if any(s in low for s in ("has been closed", "target page", "crash",
+                                      "createtarget", "new_page", "protocol error",
+                                      "connection closed", "browser has been closed")):
+                try:
+                    await session.reset_account(account)
+                except Exception:  # noqa: BLE001
+                    pass
                 thread_id = None
             continue
         resp = r.get("response", {})

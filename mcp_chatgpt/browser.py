@@ -233,6 +233,9 @@ class ChatGPTSession:
     async def send(self, thread_id: str, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
         async with self._lock:
             page = self._threads.get(thread_id)
+            if page is not None and page.is_closed():
+                self._threads.pop(thread_id, None)   # stale tab — reopen below
+                page = None
             if page is None:
                 # Reopen the conversation by URL in the account's context.
                 ctx = await self._ctx_for(account)
@@ -253,6 +256,19 @@ class ChatGPTSession:
             if page is not None:
                 await page.close()
             return {"ok": page is not None}
+
+    async def reset_account(self, account: str) -> None:
+        """Drop an account's browser context (and its now-dead pages) so the next
+        use relaunches it fresh — recovery from a wedged/dead context (e.g.
+        'Target.createTarget: Failed', 'browser has been closed')."""
+        ctx = self._contexts.pop(account, None)
+        if ctx is not None:
+            try:
+                await ctx.close()
+            except Exception:  # noqa: BLE001
+                pass
+        for tid in [t for t, pg in self._threads.items() if pg.is_closed()]:
+            self._threads.pop(tid, None)
 
     async def close(self) -> None:
         """Close every browser context + Playwright. For one-shot scripts; the
