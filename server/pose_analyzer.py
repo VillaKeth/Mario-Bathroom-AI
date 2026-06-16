@@ -551,6 +551,12 @@ def analyze_text(text: str) -> dict:
     tts_text = re.sub(r'\*[^*]+\*', '', text).strip()
     tts_text = re.sub(r'\s+', ' ', tts_text).strip()
 
+    # Normalize the "WOOHOO" excitement shout for the SPOKEN text only: ALL-CAPS
+    # + repeated vowels make sovits garble it and trip the caps->high-energy
+    # boost. Render it as a clean, normal-case "Woo-hoo" (the bubble keeps the
+    # original). Done before energy detection so it doesn't count as a caps word.
+    tts_text = re.sub(r'\bw[ou]o+h+oo*\b', 'Woo-hoo', tts_text, flags=re.IGNORECASE)
+
     # Detect energy level BEFORE cleaning (caps = high energy)
     caps_words = len(re.findall(r'\b[A-Z]{2,}\b', tts_text))
     has_exclamation = '!' in tts_text or '!!' in text
