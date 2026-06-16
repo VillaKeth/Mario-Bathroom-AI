@@ -4987,7 +4987,9 @@ async def _handle_special_commands(transcript: str) -> str:
                 # Start the event in background
                 asyncio.create_task(_run_shot_event(matched_event))
                 logger.info(f"[VOICE_TRIGGER] Triggered shot event: {matched_event.name}")
-                return f"Ohhh, you said the magic words! Let's-a do this! {matched_event.name} incoming!"
+                _ev_label = matched_event.display_name or matched_event.name
+                return _game_handlers_mod._deflavor(
+                    f"Ohhh, you said the magic words! Let's-a do this! {_ev_label} incoming!")
             else:
                 logger.warning(f"[VOICE_TRIGGER] Failed to trigger {matched_event.name}: {trigger_result}")
                 return "Something went wrong with that request!"
