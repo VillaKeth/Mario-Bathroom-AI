@@ -93,46 +93,54 @@ class MirrorSender:
     def _run(self):
         import time
         import websocket  # websocket-client, already a client dependency
-        try:
-            self._ws = websocket.create_connection(self.ingest_url, timeout=5)
-        except Exception as e:
-            logger.error(f"[mirror] ingest connect failed (mirror disabled): {e}")
-            self._active = False
-            return
-        last_frame = 0.0
+        backoff = 1.0
+        # Outer loop: (re)connect for as long as we are active. A transient send
+        # error closes the socket and reconnects instead of killing the sender
+        # thread permanently (which previously left the viewer frozen until the
+        # server re-signalled capture).
         while not self._stop.is_set():
-            sent_anything = False
-            # Drain audio first (don't drop speech).
             try:
-                while True:
-                    wav = self._audio_q.get_nowait()
-                    self._ws.send_binary(TAG_AUDIO + wav)
-                    sent_anything = True
-            except queue.Empty:
-                pass
+                self._ws = websocket.create_connection(self.ingest_url, timeout=5)
+                backoff = 1.0
             except Exception as e:
-                logger.error(f"[mirror] audio send failed: {e}")
-                break
-            # Then at most one frame per interval.
-            now = time.time()
-            if now - last_frame >= self.frame_interval:
-                with self._latest_lock:
-                    item = self._latest
-                    self._latest = None
-                if item is not None:
+                logger.error(f"[mirror] ingest connect failed: {e}; retrying in {backoff:.0f}s")
+                if self._stop.wait(backoff):
+                    break
+                backoff = min(backoff * 2, 10.0)
+                continue
+
+            last_frame = 0.0
+            try:
+                while not self._stop.is_set():
+                    sent_anything = False
+                    # Drain audio first (don't drop speech).
                     try:
-                        jpeg = encode_frame(item[0], item[1], self.max_width, self.quality)
-                        self._ws.send_binary(TAG_VIDEO + jpeg)
-                        last_frame = now
-                        sent_anything = True
-                    except Exception as e:
-                        logger.error(f"[mirror] frame send failed: {e}")
-                        break
-            if not sent_anything:
-                time.sleep(0.01)
-        try:
-            if self._ws:
-                self._ws.close()
-        except Exception:
-            pass
-        self._ws = None
+                        while True:
+                            wav = self._audio_q.get_nowait()
+                            self._ws.send_binary(TAG_AUDIO + wav)
+                            sent_anything = True
+                    except queue.Empty:
+                        pass
+                    # Then at most one frame per interval.
+                    now = time.time()
+                    if now - last_frame >= self.frame_interval:
+                        with self._latest_lock:
+                            item = self._latest
+                            self._latest = None
+                        if item is not None:
+                            jpeg = encode_frame(item[0], item[1], self.max_width, self.quality)
+                            self._ws.send_binary(TAG_VIDEO + jpeg)
+                            last_frame = now
+                            sent_anything = True
+                    if not sent_anything:
+                        time.sleep(0.01)
+            except Exception as e:
+                logger.error(f"[mirror] send failed, reconnecting: {e}")
+            finally:
+                try:
+                    if self._ws:
+                        self._ws.close()
+                except Exception:
+                    pass
+                self._ws = None
+            # loop back to reconnect unless we are stopping

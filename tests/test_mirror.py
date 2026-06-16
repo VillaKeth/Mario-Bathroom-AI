@@ -42,6 +42,7 @@ class FakeWS:
     def __init__(self, fail=False):
         self.sent_bytes = []
         self.sent_json = []
+        self.sent_text = []
         self.fail = fail
 
     async def send_bytes(self, data):
@@ -53,6 +54,11 @@ class FakeWS:
         if self.fail:
             raise RuntimeError("dead socket")
         self.sent_json.append(obj)
+
+    async def send_text(self, text):
+        if self.fail:
+            raise RuntimeError("dead socket")
+        self.sent_text.append(text)
 
 
 @pytest.fixture(autouse=True)
@@ -208,3 +214,170 @@ async def test_ingest_relay_is_verbatim():
     await mirror.broadcast(b"\x02RIFFwav")
     await mirror.broadcast(b"\x01\xff\xd8jpg")
     assert v.sent_bytes == [b"\x02RIFFwav", b"\x01\xff\xd8jpg"]
+
+
+# ---------------------------------------------------------------------------
+# Relay queue: non-blocking ingest hand-off decoupled from slow viewers
+# (regression: overnight party run froze the viewer page; the ingest loop was
+#  awaiting a slow-tunnel viewer per frame, stalling the client's sender.)
+# ---------------------------------------------------------------------------
+
+def test_enqueue_collapses_consecutive_frames():
+    mirror.enqueue(b"\x01frame_a")
+    mirror.enqueue(b"\x01frame_b")        # newest replaces the un-sent older frame
+    assert list(mirror._pending) == [b"\x01frame_b"]
+
+
+def test_enqueue_preserves_audio_and_collapses_only_frames():
+    mirror.enqueue(b"\x02audio1")
+    mirror.enqueue(b"\x01frameA")
+    mirror.enqueue(b"\x01frameB")         # collapses with frameA, NOT with audio
+    mirror.enqueue(b"\x02audio2")
+    assert list(mirror._pending) == [b"\x02audio1", b"\x01frameB", b"\x02audio2"]
+
+
+def test_enqueue_drops_oldest_video_first_when_over_cap(monkeypatch):
+    monkeypatch.setattr(mirror, "_PENDING_MAX", 3)
+    mirror.enqueue(b"\x01vid")
+    mirror.enqueue(b"\x02a1")
+    mirror.enqueue(b"\x02a2")
+    mirror.enqueue(b"\x02a3")             # over cap -> shed the video, keep all audio
+    assert list(mirror._pending) == [b"\x02a1", b"\x02a2", b"\x02a3"]
+
+
+def test_enqueue_drops_oldest_when_no_video_to_shed(monkeypatch):
+    monkeypatch.setattr(mirror, "_PENDING_MAX", 2)
+    mirror.enqueue(b"\x02a1")
+    mirror.enqueue(b"\x02a2")
+    mirror.enqueue(b"\x02a3")             # over cap, no video -> drop oldest audio
+    assert list(mirror._pending) == [b"\x02a2", b"\x02a3"]
+
+
+@pytest.mark.asyncio
+async def test_relay_worker_drains_pending_to_viewers():
+    mirror.set_active_ws_getter(lambda: None)
+    v = FakeWS()
+    await mirror.add_viewer(v)
+    mirror.ensure_relay_worker()
+    mirror.enqueue(b"\x02RIFFwav")
+    mirror.enqueue(b"\x01\xff\xd8jpg")
+    await asyncio.sleep(0.05)             # let the worker fan out
+    assert v.sent_bytes == [b"\x02RIFFwav", b"\x01\xff\xd8jpg"]
+
+
+@pytest.mark.asyncio
+async def test_enqueue_is_nonblocking_despite_hanging_viewer(monkeypatch):
+    monkeypatch.setattr(mirror, "_SEND_TIMEOUT", 0.05)
+    mirror.set_active_ws_getter(lambda: None)
+
+    class HangingWS(FakeWS):
+        async def send_bytes(self, data):
+            await asyncio.sleep(5)        # never completes within the timeout
+
+    good, slow = FakeWS(), HangingWS()
+    await mirror.add_viewer(good)
+    await mirror.add_viewer(slow)
+    mirror.ensure_relay_worker()
+    mirror.enqueue(b"\x01frame")          # synchronous — returns instantly
+    await asyncio.sleep(0.2)              # worker drops the slow viewer on timeout
+    assert good.sent_bytes == [b"\x01frame"]
+    assert mirror.viewer_count() == 1     # hanging viewer dropped, ingest unaffected
+
+
+# ---------------------------------------------------------------------------
+# Single-talker turn-lock (remote mode): one talker at a time, idle auto-release
+# ---------------------------------------------------------------------------
+
+def test_turn_acquired_when_free():
+    granted, holder = mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    assert granted is True
+    assert holder == "Alex"
+
+
+def test_turn_refresh_extends_expiry_for_same_owner():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    # Same owner sends again before expiry -> still granted, expiry pushed out.
+    granted, holder = mirror.acquire_or_refresh_turn("client-a", "Alex", now=120.0)
+    assert granted is True
+    state = mirror.turn_state(now=120.0)
+    assert state["seconds_left"] == int(mirror._TURN_IDLE_SECONDS)
+
+
+def test_turn_denied_for_second_client_while_held():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    granted, holder = mirror.acquire_or_refresh_turn("client-b", "Bso", now=105.0)
+    assert granted is False
+    assert holder == "Alex"          # the denied client is told who holds it
+
+
+def test_turn_granted_after_idle_expiry():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    later = 100.0 + mirror._TURN_IDLE_SECONDS + 1
+    granted, holder = mirror.acquire_or_refresh_turn("client-b", "Bso", now=later)
+    assert granted is True
+    assert holder == "Bso"
+
+
+def test_release_turn_only_by_owner():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    mirror.release_turn("client-b")                 # not the owner -> no-op
+    assert mirror.turn_state(now=101.0)["busy"] is True
+    mirror.release_turn("client-a")                 # owner -> frees it
+    assert mirror.turn_state(now=101.0)["busy"] is False
+
+
+def test_expire_turn_if_idle_reports_change_once():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    later = 100.0 + mirror._TURN_IDLE_SECONDS + 1
+    assert mirror.expire_turn_if_idle(now=later) is True    # just expired
+    assert mirror.expire_turn_if_idle(now=later) is False   # already free
+
+
+def test_turn_state_reports_busy_name_and_seconds_left():
+    mirror.acquire_or_refresh_turn("client-a", "Alex", now=100.0)
+    state = mirror.turn_state(now=110.0)
+    assert state["busy"] is True
+    assert state["name"] == "Alex"
+    assert state["seconds_left"] == int(mirror._TURN_IDLE_SECONDS) - 10
+
+
+def test_turn_state_free_when_no_holder():
+    state = mirror.turn_state(now=100.0)
+    assert state == {"busy": False, "name": None, "seconds_left": 0}
+
+
+# ---------------------------------------------------------------------------
+# Live transcript ring (last 6 lines)
+# ---------------------------------------------------------------------------
+
+def test_transcript_ring_caps_at_six_in_order():
+    for i in range(8):
+        mirror.add_transcript("Alex", f"msg{i}")
+    snap = mirror.transcript_snapshot()
+    assert len(snap) == 6
+    assert snap[0] == {"who": "Alex", "text": "msg2"}    # oldest two dropped
+    assert snap[-1] == {"who": "Alex", "text": "msg7"}
+
+
+def test_transcript_records_who_said_what():
+    mirror.add_transcript("Alex", "hello there")
+    mirror.add_transcript("March 7th", "hi Alex!")
+    assert mirror.transcript_snapshot() == [
+        {"who": "Alex", "text": "hello there"},
+        {"who": "March 7th", "text": "hi Alex!"},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# JSON control fan-out to viewers (presence / turn / transcript events)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_broadcast_text_sends_json_to_all_and_drops_dead():
+    mirror.set_active_ws_getter(lambda: None)
+    good, dead = FakeWS(), FakeWS(fail=True)
+    await mirror.add_viewer(good)
+    await mirror.add_viewer(dead)
+    await mirror.broadcast_text({"type": "presence", "viewers": 2})
+    assert _json.loads(good.sent_text[0]) == {"type": "presence", "viewers": 2}
+    assert mirror.viewer_count() == 1     # dead viewer dropped

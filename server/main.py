@@ -1904,10 +1904,13 @@ async def friend_page():
 
 @app.post("/friend/say")
 async def friend_say(request_body: dict = {}):
-    """Authenticated remote text input. Only drives the bot in 'remote' control mode."""
+    """Authenticated remote text input. Only drives the bot in 'remote' control
+    mode, and only one talker holds the turn at a time (idle auto-release)."""
     text = (request_body.get("text") or "").strip()
     token = request_body.get("token") or ""
     pin = request_body.get("pin") or ""
+    name = (request_body.get("name") or "").strip() or "Guest"
+    client_id = (request_body.get("id") or "").strip()
     ok, reason = mirror_relay.authorize_friend_input(
         token, pin, _MIRROR_CFG, mirror_relay.get_control_mode()
     )
@@ -1915,6 +1918,21 @@ async def friend_say(request_body: dict = {}):
         return {"status": "error", "reason": reason}
     if not text:
         return {"status": "error", "message": "Text required"}
+    if not client_id:
+        return {"status": "error", "reason": "no_client_id"}
+    # One talker at a time. First sender holds the turn; each message refreshes
+    # the idle timer; others are told who is talking until it auto-frees.
+    now = time.time()
+    granted, holder = mirror_relay.acquire_or_refresh_turn(client_id, name, now)
+    if not granted:
+        return {"status": "busy", "holder": holder}
+    # Log the talker's line and push transcript + turn state to all viewers.
+    try:
+        mirror_relay.add_transcript(name, text)
+        await mirror_relay.broadcast_text({"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+        await mirror_relay.broadcast_text({"type": "turn", **mirror_relay.turn_state(now)})
+    except Exception:
+        pass
     return await _dispatch_user_text(text)
 
 
@@ -2605,8 +2623,14 @@ async def websocket_endpoint(ws: WebSocket):
 
 @app.websocket("/mirror_ingest")
 async def mirror_ingest_endpoint(ws: WebSocket):
-    """The pygame client pushes tagged binary (frames + audio) here; we relay verbatim."""
+    """The pygame client pushes tagged binary (frames + audio) here; we relay verbatim.
+
+    The receive loop only ever does a non-blocking enqueue() — fan-out to viewers
+    happens on a separate worker task. This keeps the ingest socket drained even
+    when a viewer (e.g. a phone over the tunnel) is slow, so the client's sender
+    never times out and the viewer page never freezes."""
     await ws.accept()
+    mirror_relay.ensure_relay_worker()
     try:
         while True:
             msg = await ws.receive()
@@ -2615,23 +2639,45 @@ async def mirror_ingest_endpoint(ws: WebSocket):
                 if msg.get("type") == "websocket.disconnect":
                     break
                 continue
-            await mirror_relay.broadcast(data)
+            mirror_relay.enqueue(data)
     except Exception as e:
         print(f"[mirror] ingest closed: {e}")
 
 
 @app.websocket("/mirror")
 async def mirror_viewer_endpoint(ws: WebSocket):
-    """A browser viewer. Receives relayed frames + audio. Never drives the bot."""
+    """A browser viewer. Receives relayed frames + audio + JSON control events
+    (presence / turn / transcript). Sends only a {hello} greeting + keepalives;
+    never drives the bot."""
     await ws.accept()
     await mirror_relay.add_viewer(ws)
+    mirror_relay.ensure_presence_loop()
+    # Push current state to the newcomer, and the new headcount to everyone.
+    try:
+        now = time.time()
+        await ws.send_text(json.dumps({"type": "presence", "viewers": mirror_relay.viewer_count()}))
+        await ws.send_text(json.dumps({"type": "turn", **mirror_relay.turn_state(now)}))
+        await ws.send_text(json.dumps({"type": "transcript", "lines": mirror_relay.transcript_snapshot()}))
+        await mirror_relay.broadcast_text({"type": "presence", "viewers": mirror_relay.viewer_count()})
+    except Exception:
+        pass
     try:
         while True:
-            await ws.receive_text()
+            raw = await ws.receive_text()
+            # Viewer control messages (e.g. {"type":"hello","name":...}) are
+            # informational; malformed frames are ignored as keepalives.
+            try:
+                json.loads(raw)
+            except Exception:
+                continue
     except Exception:
         pass
     finally:
         await mirror_relay.remove_viewer(ws)
+        try:
+            await mirror_relay.broadcast_text({"type": "presence", "viewers": mirror_relay.viewer_count()})
+        except Exception:
+            pass
 
 
 async def _heartbeat_loop(ws: WebSocket):
@@ -4613,6 +4659,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         voice_params["pitch"] = "+5Hz"
     game_sound = state_current.pop("_game_sound_hint", None)
     tts_text = analyzed["tts_text"]
+    # Mirror: log the bot's full reply to the live transcript for remote viewers.
+    # This runs once per response (full text, pre-streaming); idle mumbles use a
+    # different path and are intentionally excluded.
+    try:
+        _bot_label = getattr(_character, "display_name", None) or getattr(_character, "name", None) or "Bot"
+        mirror_relay.add_transcript(_bot_label, analyzed["display_text"])
+        await mirror_relay.broadcast_text({"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+    except Exception:
+        pass
     streamed = False
     # Detect particle effects from both user input and Mario's response
     # Keyword match first, then fall back to emotion-based particles
