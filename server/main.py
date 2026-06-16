@@ -2540,6 +2540,17 @@ async def websocket_endpoint(ws: WebSocket):
             
             greeting_text = filter_response(greeting_text)
             analyzed = analyze_text(greeting_text)
+            # Hold the opening line until GPT-SoVITS is actually ready, so the
+            # FIRST thing guests hear is her real cloned voice — not the Edge
+            # fallback (which fires if the greeting races sovits startup).
+            if getattr(tts, "TTS_MODE", "") == "sovits" and not getattr(tts, "_sovits_available", False):
+                logger.info("[GREETING] Waiting for GPT-SoVITS to be ready before the opening line…")
+                for _ in range(60):  # up to ~30s
+                    if getattr(tts, "_sovits_available", False):
+                        break
+                    await asyncio.sleep(0.5)
+                    if state_current.get("_last_user_msg_time", 0.0) > 0:
+                        return  # user jumped in; let the normal pipeline handle it
             greeting_audio = await _loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
             
             # Final check before sending (user may have typed during TTS)
