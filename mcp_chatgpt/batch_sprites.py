@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:           # allow running as a plain script file
 from mcp_chatgpt import selectors  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.parsing import parse_reset_seconds  # noqa: E402 (after sys.path setup)
+from mcp_chatgpt.rotation import AccountPool  # noqa: E402 (after sys.path setup)
 
 MAIN_PY = ROOT / "venv" / "Scripts" / "python.exe"
 
@@ -113,7 +114,7 @@ async def _generate_once(session, prompt: str, account: str):
     return None, "refused", msg
 
 
-async def run(character: str, start: int, force: bool, regen: bool, account: str,
+async def run(character: str, start: int, force: bool, regen: bool, accounts: list,
               delay: float, cap_fallback: float, max_cap_waits: int) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
@@ -122,6 +123,8 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
     manifest = char_dir / ".regen_done.txt"
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session()
+    pool = AccountPool(accounts)
+    print(f"ACCOUNTS rotating: {', '.join(pool.accounts)}", flush=True)
     done, skipped, failed = [], [], []
     capped_out = False
 
@@ -148,18 +151,35 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
                 await asyncio.sleep(delay)
 
             print(f"GEN  [{idx:02d}] {rel}", flush=True)
-            cap_waits = 0
+            wait_rounds = 0
             while True:
-                img, status, msg = await _generate_once(session, prompt, account)
+                acct = pool.pick()
+                if acct is None:
+                    # Every account is capped — wait for the soonest reset, then
+                    # the capped account re-enters rotation on its own.
+                    wait_rounds += 1
+                    if wait_rounds > max_cap_waits:
+                        print(f"STOP [{idx:02d}] all accounts capped {wait_rounds}x — "
+                              "ending run. Re-run --regen later to resume.", flush=True)
+                        failed.append(rel)
+                        capped_out = True
+                        break
+                    secs = int(max(5, min(pool.seconds_until_any(), 93600)))
+                    print(f"WAITALL [{idx:02d}] all {len(pool.accounts)} accounts capped — "
+                          f"sleeping {secs}s for soonest reset", flush=True)
+                    await asyncio.sleep(secs)
+                    continue
+
+                img, status, msg = await _generate_once(session, prompt, acct)
                 if status == "fatal":
-                    print(f"STOP [{idx:02d}] fatal browser error — ending run "
+                    print(f"STOP [{idx:02d}] fatal browser error on '{acct}' — ending run "
                           f"(is the profile open elsewhere?):\n{msg[:300]}", flush=True)
                     failed.append(rel)
                     capped_out = True   # reuse the break-out-of-everything flag
                     break
                 if status == "ok":
                     if cut(img, dst):
-                        print(f"DONE [{idx:02d}] {rel}", flush=True)
+                        print(f"DONE [{idx:02d}] {rel} (via {acct})", flush=True)
                         done.append(rel)
                         done_set.add(rel)
                         manifest.write_text("\n".join(sorted(done_set)))
@@ -168,28 +188,21 @@ async def run(character: str, start: int, force: bool, regen: bool, account: str
                         failed.append(rel)
                     break
                 if status == "cap":
-                    cap_waits += 1
                     parsed = parse_reset_seconds(msg)
                     src = "page timer" if parsed is not None else "fallback"
                     # The reset is whatever THIS response reports (varies: minutes,
                     # hours, "5 hours and 51 minutes", a clock countdown) — parsed
                     # dynamically, never assumed. +60s buffer to wake just AFTER the
-                    # reset. Clamp only as an absurdity guard (30s..26h) so a parser
+                    # reset. Clamp only as an absurdity guard (5s..26h) so a parser
                     # misfire can't truncate a real long reset NOR sleep forever.
                     secs = (parsed + 60) if parsed is not None else cap_fallback
-                    secs = int(max(30, min(secs, 93600)))
-                    print(f"CAP  [{idx:02d}] image cap hit. Message:\n{msg[:400]}", flush=True)
-                    if cap_waits > max_cap_waits:
-                        print(f"STOP [{idx:02d}] capped {cap_waits}x — ending run. "
-                              "Re-run --regen later to resume.", flush=True)
-                        failed.append(rel)
-                        capped_out = True
-                        break
-                    print(f"CAP  [{idx:02d}] waiting {secs}s ({src}) then retrying", flush=True)
-                    await asyncio.sleep(secs)
+                    secs = int(max(5, min(secs, 93600)))
+                    pool.mark_capped(acct, secs)
+                    print(f"CAP  [{idx:02d}] '{acct}' capped {secs}s ({src}); rotating. "
+                          f"Msg: {msg[:160]!r}", flush=True)
                     continue
                 # refused after retries
-                print(f"FAIL [{idx:02d}] {rel} (refused) text={msg[:80]!r}", flush=True)
+                print(f"FAIL [{idx:02d}] {rel} (refused on {acct}) text={msg[:80]!r}", flush=True)
                 failed.append(rel)
                 break
 
@@ -211,13 +224,17 @@ if __name__ == "__main__":
     ap.add_argument("--force", action="store_true", help="(re)generate every sprite, ignore manifest + existing")
     ap.add_argument("--regen", action="store_true",
                     help="overwrite existing sprites, but skip ones already regenerated (resumable)")
-    ap.add_argument("--account", default="default", help="logged-in account profile to use")
+    ap.add_argument("--account", default="default", help="single logged-in account (back-compat)")
+    ap.add_argument("--accounts", default="",
+                    help="comma-separated accounts to rotate through, e.g. 'default,work'. "
+                         "Caps rotate to the next; only ALL-capped waits.")
     ap.add_argument("--delay", type=float, default=0.0,
                     help="seconds to wait before EACH generation (pacing; e.g. 900 = 15 min)")
     ap.add_argument("--cap-fallback", type=float, default=900.0,
                     help="seconds to wait on a cap when the page shows no parseable timer")
     ap.add_argument("--max-cap-waits", type=int, default=8,
-                    help="give up a run after this many cap-waits on one sprite")
+                    help="give up a sprite after this many all-accounts-capped waits")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.start, a.force, a.regen, a.account, a.delay,
+    accounts = [s.strip() for s in a.accounts.split(",") if s.strip()] or [a.account]
+    asyncio.run(run(a.character, a.start, a.force, a.regen, accounts, a.delay,
                     a.cap_fallback, a.max_cap_waits))
