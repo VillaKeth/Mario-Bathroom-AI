@@ -21,3 +21,19 @@ def test_preclean_paren_leaves_no_comma_artifacts():
     assert ",," not in out
     assert not out.strip().startswith(",")
     assert "waves" in out and "friend" in out
+
+
+def test_preclean_emoji_between_words_becomes_pause_not_runon():
+    # Regression: an emoji used as a sentence separator was stripped to nothing,
+    # producing run-on speech ("indie tunes What do you say"). It must leave a
+    # comma pause instead.
+    out = tts._preclean_tts_text("a playlist of catchy indie tunes \U0001F3B5 What do you say?")
+    assert "tunes What" not in out
+    assert "tunes, What" in out
+
+
+def test_preclean_emoji_at_edges_leaves_no_stray_comma():
+    out = tts._preclean_tts_text("\U0001F389 Welcome friend \U0001F38A")
+    assert not out.strip().startswith(",")
+    assert not out.strip().endswith(",")
+    assert "Welcome friend" in out

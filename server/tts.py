@@ -1357,12 +1357,14 @@ def _preclean_tts_text(text: str) -> str:
     # NOTE: this only affects the SPOKEN text; the speech bubble keeps the
     # brackets for grammatical structure. (Artifacts cleaned just below.)
     t = t.replace('(', ', ').replace(')', ', ')
-    # Strip emoji / pictographs — TTS can't speak them, and removing them later
-    # leaves a stray space before punctuation (e.g. display name "Reze 💣!" was
-    # spoken as "Reze  !"). Remove here, then fix the spacing below.
+    # Emoji / pictographs — TTS can't speak them. Replace with a comma PAUSE
+    # rather than deleting: the LLM often uses an emoji as a sentence separator
+    # ("...indie tunes 🎵 What do you say?"), and deleting it ran the sentences
+    # together ("tunes What"). The comma artifact cleanup just below removes any
+    # stray/leading/trailing commas this creates (e.g. "Reze 💣!" -> "Reze!").
     t = _re_tts.sub(
         r'[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF'
-        r'♀-♂←-⇿⌀-⏿️‍]', '', t)
+        r'♀-♂←-⇿⌀-⏿️‍]', ', ', t)
     # Clean up resulting artifacts: leading commas, double commas, etc.
     t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
     t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
