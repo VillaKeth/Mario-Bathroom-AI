@@ -2,6 +2,7 @@
 import os
 
 from shared.character_loader import CharacterLoader
+from server.safety_filter import filter_response, check_input, set_safety_config
 
 
 def _write_char(tmp_path, name, extra_yaml=""):
@@ -31,3 +32,43 @@ class TestCharacterSafetyConfig:
                             "safety:\n  enabled: false\n  block_slurs: true\n")
         assert char.safety_enabled is False
         assert char.safety_block_slurs is True
+
+
+class TestSafetyToggle:
+    def teardown_method(self):
+        # CRITICAL: module-global flags persist across tests in one pytest
+        # process. Reset to fail-safe defaults so later tests see filtering ON.
+        set_safety_config(True, True)
+
+    def test_default_blocks_profanity_input(self):
+        set_safety_config(True, True)
+        assert check_input("what the fuck")["safe"] is False
+
+    def test_disabled_allows_profanity_input(self):
+        set_safety_config(False, True)
+        assert check_input("what the fuck")["safe"] is True
+
+    def test_disabled_allows_profanity_output(self):
+        set_safety_config(False, True)
+        assert "fuck" in filter_response("oh fuck yeah").lower()
+
+    def test_content_passes_while_slurs_blocked(self):
+        # The exact March config: content off, slurs on.
+        set_safety_config(False, True)
+        out = filter_response("this damn party is fucking wild")
+        assert "fucking" in out.lower()
+        assert "damn" in out.lower()
+
+    def test_slur_blocked_in_output_even_when_disabled(self):
+        set_safety_config(False, True)
+        out = filter_response("you r3tard")
+        assert "r3tard" not in out
+        assert "****" in out
+
+    def test_slur_blocked_in_input_even_when_disabled(self):
+        set_safety_config(False, True)
+        assert check_input("you r3tard")["safe"] is False
+
+    def test_everything_off_allows_slurs(self):
+        set_safety_config(False, False)
+        assert check_input("you r3tard")["safe"] is True
