@@ -114,7 +114,10 @@ class ChatGPTSession:
         return out
 
     async def _probe(self, page: Page, baseline: set) -> ProbeResult:
-        generating = (await page.query_selector(self.site.stop_button)) is not None
+        # Some providers (e.g. grok) have no Stop button — treat "no stop selector"
+        # as not-generating and let the wait loop rely on text/image stability.
+        generating = bool(self.site.stop_button) and \
+            (await page.query_selector(self.site.stop_button)) is not None
         turns = await page.query_selector_all(self.site.assistant_turn)
         text = await turns[-1].inner_text() if turns else ""
         new_imgs = await self._new_generated_image_els(page, baseline)
@@ -196,14 +199,20 @@ class ChatGPTSession:
 
     async def _type_and_send(self, page: Page, prompt: str) -> None:
         await page.fill(self.site.composer, prompt)
-        await page.click(self.site.send_button)
+        # Submit: click the Send button if the site has one, else press Enter
+        # (grok/gemini-style composers submit on Enter, no Send button).
+        if self.site.send_button:
+            await page.click(self.site.send_button)
+        else:
+            await page.keyboard.press("Enter")
         # Wait for streaming to actually begin (Stop button appears) so the wait
-        # loop doesn't sample the blank pre-generation turn. Instant replies may
-        # finish before this fires — that's fine, the wait loop handles it.
-        try:
-            await page.wait_for_selector(self.site.stop_button, timeout=15000)
-        except Exception:
-            pass
+        # loop doesn't sample the blank pre-generation turn. Sites without a Stop
+        # button skip this — the wait loop handles them via text/image stability.
+        if self.site.stop_button:
+            try:
+                await page.wait_for_selector(self.site.stop_button, timeout=15000)
+            except Exception:
+                pass
 
     async def _notice(self, page: Page) -> str:
         """Visible page text, captured only on a failed/empty generation so callers

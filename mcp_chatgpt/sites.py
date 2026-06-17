@@ -54,8 +54,8 @@ SITES = {
     # the real generated-image src host, login/cap wording).
     "grok": Site(
         url="https://grok.com/",
-        composer="textarea, [contenteditable='true']",
-        send_button="button[type='submit'], button[aria-label*='Send' i]",
+        composer="[contenteditable='true']",
+        send_button="",                       # no Send button; submit via Enter
         stop_button="button[aria-label*='Stop' i]",
         assistant_turn="[data-testid*='message'], .message-bubble",
         generated_image_markers=("assets.grok.com", "imggen", "grok-attachments"),
