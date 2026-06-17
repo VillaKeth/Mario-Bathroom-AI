@@ -127,11 +127,25 @@ class ChatGPTSession:
             ready = ready and bool(ok)
         return ProbeResult(generating, text, len(new_imgs), ready)
 
-    async def _download_images(self, page: Page, thread_id: str, baseline: set) -> list[str]:
-        new_imgs = await self._new_generated_image_els(page, baseline)
-        paths: list[str] = []
-        for i, (src, _img) in enumerate(new_imgs):
-            # Fetch bytes through the page (carries auth cookies), return base64.
+    async def _fetch_image_bytes(self, page: Page, src, img) -> bytes | None:
+        """Get a generated image's bytes, robust across providers (≥1KB or None).
+
+        Tiers: (1) the browser CONTEXT request — carries auth cookies and is NOT
+        subject to page CORS, so it works for cross-origin CDNs like grok's
+        assets.grok.com; (2) an in-page fetch — works when same-origin/CORS-open;
+        (3) a screenshot of the <img> element — always works (captures the
+        rendered pixels) when the bytes can't be fetched at all."""
+        # (1) context request (cookies, no CORS)
+        try:
+            resp = await page.request.get(src)
+            if resp.ok:
+                data = await resp.body()
+                if data and len(data) > 1000:
+                    return data
+        except Exception:  # noqa: BLE001
+            pass
+        # (2) in-page fetch → base64
+        try:
             b64 = await page.evaluate(
                 """async (url) => {
                     const r = await fetch(url);
@@ -142,9 +156,30 @@ class ChatGPTSession:
                 }""",
                 src,
             )
+            data = base64.b64decode(b64) if b64 else b""
+            if data and len(data) > 1000:
+                return data
+        except Exception:  # noqa: BLE001
+            pass
+        # (3) element screenshot (rendered pixels)
+        try:
+            data = await img.screenshot()
+            if data and len(data) > 1000:
+                return data
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+    async def _download_images(self, page: Page, thread_id: str, baseline: set) -> list[str]:
+        new_imgs = await self._new_generated_image_els(page, baseline)
+        paths: list[str] = []
+        for i, (src, img) in enumerate(new_imgs):
+            data = await self._fetch_image_bytes(page, src, img)
+            if not data:
+                continue   # couldn't get real bytes — skip (don't write an empty file)
             path = os.path.join(OUTPUT_DIR, f"{thread_id}_{i}.png")
             with open(path, "wb") as f:
-                f.write(base64.b64decode(b64))
+                f.write(data)
             paths.append(path)
             self._saved_srcs.add(src)   # never download this exact image again
         return paths
