@@ -885,6 +885,78 @@ def expected_sprite_count() -> int:
     return len(_generation_pose_plan())
 
 
+def _pose_direction(key: str) -> str:
+    """Canonical pose direction template for an emotion/state key. Falls back to a
+    generic '{char} with a <key> expression' so custom map keys still produce a
+    usable prompt."""
+    p = POSE_PROMPTS.get(key) or STATE_PROMPTS.get(key)
+    return p or ("{char} with a " + key.replace("_", " ") + " expression and a matching body pose")
+
+
+def build_sprite_prompts_text(char_dir: str) -> tuple[str, int]:
+    """Build batch-compatible sprite_prompts.txt content from a character's OWN
+    character.yaml — works for canonical wizard characters AND hand-authored ones
+    with custom sprite paths (mario, rudi).
+
+    Output format is exactly what mcp_chatgpt/batch_sprites.py parses:
+
+        [NN] sprites/<path>.png
+        ----------------------------------------------------------------------
+        <full self-contained image prompt>
+
+    Each prompt = the character's visual_description + the pose direction for that
+    sprite + the art-style suffix + the framing suffix — i.e. identical to what
+    the wizard would send a backend (generate_single_pose), so the file always
+    matches how this character actually gets drawn.
+
+    Returns (text, n_blocks).
+    """
+    import yaml
+    y = yaml.safe_load(open(os.path.join(char_dir, "character.yaml"), encoding="utf-8")) or {}
+    vis = y.get("visuals", {}) or {}
+    ident = y.get("identity", {}) or {}
+    disp = ident.get("display_name") or ident.get("name") or os.path.basename(char_dir.rstrip("/\\"))
+    desc = (vis.get("visual_description") or vis.get("drip_description")
+            or f"{disp}, {ident.get('description', '')}".strip().rstrip(","))
+    art = vis.get("art_style", "3d_figurine")
+    style = ART_STYLE_SUFFIXES.get(art, ART_STYLE_SUFFIXES["3d_figurine"])
+
+    # Unique sprite paths from the character's own maps, each tagged with the
+    # emotion/state key that drives its pose direction. Emotions first, then states.
+    seen: dict[str, str] = {}
+    for emotion, path in (vis.get("emotion_sprite_map") or {}).items():
+        if path and path not in seen:
+            seen[path] = emotion
+    for state, val in (vis.get("state_sprite_map") or {}).items():
+        for path in (val if isinstance(val, list) else [val]):
+            if path and path not in seen:
+                seen[path] = state
+
+    lines = [
+        f"# {disp} — sprite image prompts (mcp_chatgpt batch format).",
+        f"# art_style: {art}. Generate on a plain background; the app cuts it out.",
+        "# Each block is [NN] sprites/<path>.png then the full prompt to generate.",
+        "",
+    ]
+    for i, (path, key) in enumerate(sorted(seen.items()), 1):
+        full = _pose_direction(key).replace("{char}", desc) + style + FRAMING_SUFFIX
+        lines.append(f"[{i:02d}] sprites/{path}.png")
+        lines.append("-" * 70)
+        lines.append(full)
+        lines.append("")
+    return "\n".join(lines), len(seen)
+
+
+def write_sprite_prompts_file(char_dir: str) -> int:
+    """Write characters/<char>/sprite_prompts.txt in batch format. Returns block count.
+    Called by the wizard at build time so every character ships a paste-ready,
+    mcp_chatgpt-batch-ready prompt sheet (no hand-writing 39 prompts)."""
+    text, n = build_sprite_prompts_text(char_dir)
+    with open(os.path.join(char_dir, "sprite_prompts.txt"), "w", encoding="utf-8") as f:
+        f.write(text)
+    return n
+
+
 def _sprite_file_present(output_dir: str, sprite_path: str) -> bool:
     """A planned sprite counts as present if its PNG exists and is non-trivial."""
     p = os.path.join(output_dir, f"{sprite_path}.png")

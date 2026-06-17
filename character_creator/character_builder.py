@@ -69,7 +69,16 @@ def build_character(config: dict, characters_dir: str) -> str:
     
     # Auto-generate placeholder sprites so character is immediately usable
     _generate_placeholder_sprites(char_dir, config)
-    
+
+    # Write the batch-ready sprite prompt sheet (so nobody hand-writes 39 prompts;
+    # mcp_chatgpt/batch_sprites.py and manual image gen both consume this file).
+    try:
+        from character_creator.sprite_generator import write_sprite_prompts_file
+        n = write_sprite_prompts_file(char_dir)
+        logger.info(f"Wrote sprite_prompts.txt ({n} pose blocks) for '{name}'")
+    except Exception as e:  # noqa: BLE001 — never block character creation on this
+        logger.warning(f"Could not write sprite_prompts.txt for '{name}': {e}")
+
     logger.info(f"Character '{name}' created at {char_dir}")
     return char_dir
 

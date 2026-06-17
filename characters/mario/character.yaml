@@ -25,6 +25,8 @@ visuals:
   sprite_dir: "sprites/"
   ai_poses_dir: "../../mario_3d_assets/ai_poses_transparent/"
   ai_pose_size: [250, 250]
+  visual_description: "Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression"
+  art_style: "3d_figurine"
   theme_colors:
     primary: "#E52521"
     secondary: "#049CD8"

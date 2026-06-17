@@ -1,0 +1,175 @@
+# Mario AI 🍄 — sprite image prompts (mcp_chatgpt batch format).
+# art_style: 3d_figurine. Generate on a plain background; the app cuts it out.
+# Each block is [NN] sprites/<path>.png then the full prompt to generate.
+
+[01] sprites/bathroom/grossed_out.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression holding nose in disgust, leaning away, revolted face, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[02] sprites/birthday/birthday_boy.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression holding a birthday cake with candles, warm smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[03] sprites/birthday/party_dance.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[04] sprites/greeting/farewell.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a exiting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[05] sprites/greeting/wave_high.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a greeting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[06] sprites/memorial/moment_of_silence.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with head bowed, one hand over heart, solemn respectful pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[07] sprites/movement/dancing_1.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[08] sprites/movement/dancing_2.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[09] sprites/movement/running.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression walking in confidently, dramatic entrance, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[10] sprites/negative/angry.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with intense angry expression, fists clenched, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[11] sprites/negative/annoyed.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with arms crossed, one eyebrow raised, clearly unimpressed look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[12] sprites/negative/disgusted.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression leaning away with disgusted face, hand up in stop gesture, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[13] sprites/negative/embarrassed.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression scratching back of head sheepishly, embarrassed half-smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[14] sprites/negative/nervous.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression looking nervously to the side, hands fidgeting, uncertain expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[15] sprites/negative/sad.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression looking down sadly, shoulders slumped, disappointed expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[16] sprites/negative/scared.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression jumping back with wide eyes, arms up in surprise, startled and scared, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[17] sprites/neutral/idle.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression standing relaxed, casual confident stance, neutral expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[18] sprites/party/celebrate.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression raising both arms in celebration, huge grin, confetti around, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[19] sprites/party/cheers.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a celebratory expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[20] sprites/positive/excited_jump.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression jumping with excitement, fist pumped, huge grin, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[21] sprites/positive/happy.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a warm genuine smile, arms open, welcoming happy pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[22] sprites/positive/laughing.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression laughing hard, head thrown back, genuine amusement, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[23] sprites/positive/love.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with heart eyes, hands clasped near face, love-struck expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[24] sprites/positive/proud.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression standing tall, hands on hips, chin up, supremely confident proud pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[25] sprites/reactions/cringe.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression cringing hard, one eye closed, teeth gritted, looking away, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[26] sprites/reactions/impressed.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression nodding approvingly, arms crossed, raised eyebrow, genuine respect, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[27] sprites/reactions/mind_blown.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with hands on sides of head, amazed shocked expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[28] sprites/reactions/sassy.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with hand on hip, head tilted, finger wagging, sassy attitude, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[29] sprites/sleep/sleeping.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression curled up sleeping, peaceful expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[30] sprites/sleep/sleepy.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression mid-yawn, hand covering mouth, half-closed eyes, sleepy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[31] sprites/sleep/yawning.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a bored expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[32] sprites/speech/listening.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with head slightly tilted, attentive listening pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[33] sprites/speech/talking.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[34] sprites/speech/talking_excited.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[35] sprites/thinking/confused.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with head tilted, confused expression, one eyebrow raised high, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[36] sprites/thinking/curious.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression leaning forward with curiosity, eyes bright, interested expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[37] sprites/thinking/determined.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with intense focused eyes, determined expression, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[38] sprites/thinking/idea.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with index finger raised, bright idea moment, excited eyes, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[39] sprites/thinking/mischievous.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with a mischievous grin, fingers steepled, plotting look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[40] sprites/thinking/shocked.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression with mouth wide open in shock, eyes huge, absolutely stunned, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[41] sprites/thinking/surprised.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression doing a dramatic double take, wide eyes, surprised, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[42] sprites/thinking/thinking.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression looking upward thoughtfully, finger tapping chin, pondering, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[43] sprites/toast/raising_glass.png
+----------------------------------------------------------------------
+Classic Mario: a short, stout, cheerful cartoon plumber with a big round nose, a bushy brown mustache, a red cap with a white circle on the front, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression raising a glass high, confident smile, toasting, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
