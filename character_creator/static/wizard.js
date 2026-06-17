@@ -1606,7 +1606,21 @@ class WizardUI {
             
             progressFill.style.width = '80%';
             const result = await api('POST', '/api/create-character', characterData);
-            
+
+            // Save event settings (location / banner / VIP) as part of creation so
+            // the location isn't a missable extra click — she needs it to know
+            // where she is. Only send non-empty fields so blanks don't wipe config.
+            try {
+                const ev = {};
+                const _t = document.getElementById('event-theme')?.value.trim();
+                const _l = document.getElementById('event-location')?.value.trim();
+                const _v = document.getElementById('event-vip')?.value.trim();
+                if (_t) ev.party_theme = _t;
+                if (_l) ev.party_location = _l;
+                if (_v) ev.birthday_person_name = _v;
+                if (Object.keys(ev).length) await api('POST', '/api/event-config', ev);
+            } catch (e) { /* non-fatal — Save Event Settings still works manually */ }
+
             progressFill.style.width = '100%';
             
             // Store the created character path for content generation
