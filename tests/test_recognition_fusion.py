@@ -57,3 +57,10 @@ def test_new_or_missing_voice_and_no_face_is_unknown():
 def test_voice_floor_rises_with_noise():
     assert rf.voice_confidence_floor(1.0) > rf.voice_confidence_floor(0.0)
     assert rf.voice_confidence_floor(0.0) >= 0.6
+
+
+def test_live_party_noise_default_is_strict():
+    # The live default must demand a clearly-strict voice floor so an un-enrolled
+    # stranger is not greeted by a guest's name (open-set rejection).
+    assert 0.0 < rf.LIVE_PARTY_NOISE_LEVEL <= 1.0
+    assert rf.voice_confidence_floor(rf.LIVE_PARTY_NOISE_LEVEL) >= 0.72

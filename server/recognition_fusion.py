@@ -19,6 +19,12 @@ VOICE_FLOOR_NOISY = 0.85
 # returned face match is already trustworthy; this is an extra optional gate.
 FACE_MIN_CONFIDENCE = 0.0
 
+# Default noise assumption for the LIVE party flow (a bathroom party is loud). It
+# maps to a strict voice floor (~0.75) so a voice-only match must be clearly
+# confident — or be confirmed by a face — before the bot greets someone by name.
+# Tune via config (server.party_noise_level) if the room is quieter/louder.
+LIVE_PARTY_NOISE_LEVEL = 0.5
+
 
 def voice_confidence_floor(noise_level: float) -> float:
     """Minimum voice confidence to accept, scaled by noise_level in [0, 1]

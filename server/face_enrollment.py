@@ -51,12 +51,14 @@ def resolve_faces(faces: list, face_memory, speaker_name: Optional[str]) -> dict
                 "name": match["name"],
                 "person_id": match.get("person_id"),
                 "visit_count": match.get("visit_count"),
+                "confidence": match.get("confidence"),
             })
         elif speaker_name:
             # Unknown face, but we know who is speaking -> link face to that guest.
             if face_memory is not None:
                 face_memory.learn_guest(speaker_name, enc)
-            detected.append({"name": speaker_name, "person_id": None, "visit_count": None})
+            detected.append({"name": speaker_name, "person_id": None,
+                             "visit_count": None, "confidence": None})
         else:
             # Unknown face, nobody identified yet -> remember it until a name arrives.
             new_face_count += 1

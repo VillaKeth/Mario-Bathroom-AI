@@ -20,8 +20,8 @@ Most of this audit has been implemented. Face enrollment now works end-to-end.
 | F2 | ✅ FIXED | Stash-then-name implemented: `link_pending_face` wired into the `register_speaker` event and the voice "my name is X" path (`_handle_special_commands`). |
 | F3 | ✅ FIXED | Qdrant voice lookup disabled (`_USE_QDRANT_VOICE=False`); SQLite cosine scan is now the single source of truth (the store EMA actually updates). |
 | F4 | ✅ FIXED | Matched faces key their profile on `person_id` (was the absent `"id"`). |
-| F5 | ◑ PARTIAL | **Done:** audio-energy gate (`_has_speech_energy`) + **multi-sample enrollment** (`register_speaker_multi` averages several clips — measured +11pp accuracy at 5 dB party noise, +16pp at 0 dB). **Remaining:** TTS-bleed suppression (F5c) and **open-set rejection** — voice still false-accepts an un-enrolled stranger at the 0.65 threshold (see lab below). |
-| F6 | ◑ PARTIAL | **Done:** detector model / tolerance / frame-skip configurable on `PersonDetector` (env `FACE_DETECTOR_MODEL`, `FACE_MATCH_TOLERANCE`); **SNR-aware fusion** added (`server/recognition_fusion.py`: trust the face under noise, gate the voice by a noise-scaled confidence floor). **Remaining:** multi-encoding face gallery (schema migration), deferred. |
+| F5 | ◑ PARTIAL | **Done:** audio-energy gate + **multi-sample enrollment** (+11pp @5 dB, +16pp @0 dB) + **open-set rejection now wired** — the live voice commit (`_process_audio`, `_do_greeting`) goes through `_voice_commit_ok`, which demonstrably rejected a stranger that raw-matched at conf 0.74. **Remaining:** TTS-bleed suppression (F5c); the floor is a mitigation, not a guarantee (a stranger >0.76 with no camera still slips — face confirmation is the strong guard). |
+| F6 | ✅ FIXED | Detector model / tolerance / frame-skip configurable; **SNR-aware fusion is now WIRED into the live pipeline** (`recognition_fusion.fuse_identity`: trust the face, gate the voice by a noise-scaled floor; `person_detected` stores the confirmed face so the voice path can fuse across the event boundary). Multi-encoding face gallery still deferred (schema migration). |
 | F7 | ✅ FIXED | `lookup_face_qdrant` now logs a deprecation warning (wrong metric; bypassed by `find_match`). |
 | F8 | ✅ resolved | Subsumed by F3 — SQLite is the single source the EMA refinement writes. |
 
@@ -46,9 +46,9 @@ Voice-alone at 5 dB would have been 50%; fusion reached 100% (face carried it, a
 even corrected a wrong voice match). Face imposters: 0/2 false-accepts. **Voice
 imposter: 1/1 false-accept** — the open-set gap above.
 
-**Still open (need bigger changes):** F5c TTS-bleed suppression, open-set voice
-rejection (raise threshold / require face confirmation for new greetings), F6
-multi-encoding face gallery. Detail in §5 below.
+**Still open (need bigger changes):** F5c TTS-bleed suppression, F6 multi-encoding
+face gallery, and tighter open-set guarantees (the noise floor mitigates but a
+high-confidence stranger with no camera present can still slip). Detail in §5 below.
 
 ---
 

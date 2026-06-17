@@ -42,6 +42,7 @@ import llm
 import hardware
 import speaker_id
 import face_enrollment
+import recognition_fusion
 import memory
 import mario_prompt
 import safety_filter
@@ -435,6 +436,8 @@ state_current = {
     "_name_attempts": 0,
     "_mystery_guest_counter": 0,
     "_last_face_encoding": None,  # Store encoding while learning guest name
+    "_last_voice_result": None,   # {name, speaker_id, confidence, is_new, ts} for fusion
+    "_last_face_result": None,    # {name, confidence, ts} last confident face match (fusion)
 }
 
 # Active WebSocket reference for admin endpoints to broadcast to
@@ -5052,6 +5055,26 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 f"tts={_timing.get('tts_ms',0)}ms]")
 
 
+def _fresh_result(result, now, window=6.0):
+    """Return a stored {..., ts} result only if it is within `window` seconds."""
+    if result and (now - result.get("ts", 0.0)) <= window:
+        return result
+    return None
+
+
+def _voice_commit_ok(speaker_info, now):
+    """Open-set gate: trust a voice identification only if it clears the noise-scaled
+    confidence floor OR a recent face match confirms the same name (recognition_fusion).
+    Prevents greeting an un-enrolled stranger by a guest's name. See audit F5."""
+    if not speaker_info or speaker_info.get("is_new"):
+        return False
+    recent_face = _fresh_result(state_current.get("_last_face_result"), now)
+    decision = recognition_fusion.fuse_identity(
+        voice=speaker_info, face=recent_face,
+        noise_level=recognition_fusion.LIVE_PARTY_NOISE_LEVEL)
+    return bool(decision["name"]) and decision["name"] == speaker_info.get("name")
+
+
 async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     """Inner audio processing — STT + speaker ID, then shared pipeline."""
     _response_start = time.time()
@@ -5161,23 +5184,34 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     except Exception as e:
         logger.debug(f"[WS] Thinking state send failed: {e}")
 
-    # Update speaker state
-    if speaker_info and not speaker_info["is_new"]:
+    # Update speaker state — open-set gated (recognition_fusion) so a stranger is
+    # NOT greeted by a guest's name. Record the raw voice result for fusion, then
+    # commit only if it clears the noise-scaled floor or a recent face confirms it.
+    _now = time.time()
+    state_current["_last_voice_result"] = {
+        "name": speaker_info.get("name"),
+        "speaker_id": speaker_info.get("speaker_id"),
+        "confidence": speaker_info.get("confidence", 0.0),
+        "is_new": speaker_info.get("is_new", True),
+        "ts": _now,
+    }
+    if _voice_commit_ok(speaker_info, _now):
         state_current["speaker_name"] = speaker_info["name"]
         state_current["speaker_id"] = speaker_info["speaker_id"]
         # Wire voice identification to GuestProfile
         profile = guest_profiles.identify_by_voice(speaker_info["name"], str(speaker_info["speaker_id"]))
         state_current["guest_profile"] = profile
-        # Sharpen the known speaker's voiceprint over the night (EMA blend).
-        # Optional refinement — must never break the response pipeline.
+        # Sharpen the print only on a COMMITTED match (never on a rejected/false one).
         try:
             _sid = speaker_info.get("speaker_id")
             if _sid is not None and speaker_id.is_available():
                 speaker_id.update_speaker(_sid, audio_chunk)
         except Exception as e:
             logger.debug(f"[VOICE_REFINE] skipped: {e}")
-    elif speaker_info and speaker_info["is_new"] and state_current["speaker_name"] is None:
-        pass
+    elif speaker_info and not speaker_info["is_new"]:
+        logger.info(f"[OPEN_SET] voice '{speaker_info.get('name')}' "
+                    f"conf={speaker_info.get('confidence', 0):.2f} not committed "
+                    f"(below party floor, no face confirm)")
 
     await _generate_and_send_response(ws, transcript, source="audio", start_time=_response_start)
 
@@ -5235,17 +5269,26 @@ async def _do_greeting(ws: WebSocket, event: dict):
         state_current["speaker_name"] = event["name"].strip()
         logger.info(f"[BROWSER_MEMORY] Got name from presence_enter payload: '{state_current['speaker_name']}'")
 
-    # Try to identify by audio
+    # Try to identify by audio (open-set gated — see _voice_commit_ok)
     if event.get("audio"):
         audio_data = base64.b64decode(event["audio"])
         info = speaker_id.identify_speaker(audio_data)
-        if not info["is_new"]:
+        _gnow = time.time()
+        state_current["_last_voice_result"] = {
+            "name": info.get("name"), "speaker_id": info.get("speaker_id"),
+            "confidence": info.get("confidence", 0.0), "is_new": info.get("is_new", True),
+            "ts": _gnow,
+        }
+        if _voice_commit_ok(info, _gnow):
             state_current["speaker_name"] = info["name"]
             state_current["speaker_id"] = info["speaker_id"]
             memory.record_visit(info["speaker_id"])
             # Wire voice identification to GuestProfile
             profile = guest_profiles.identify_by_voice(info["name"], str(info["speaker_id"]))
             state_current["guest_profile"] = profile
+        elif info and not info.get("is_new"):
+            logger.info(f"[OPEN_SET] greeting voice '{info.get('name')}' "
+                        f"conf={info.get('confidence', 0):.2f} not committed (no face confirm)")
 
     # Browser fallback: look up or create speaker_id by name if not identified by voice
     if state_current["speaker_id"] is None and state_current["speaker_name"]:
@@ -5880,6 +5923,16 @@ async def handle_event(ws: WebSocket, event: dict):
             # F2: stash the unknown face so it can be named when the guest speaks.
             state_current["detected_guest"] = None
             state_current["_last_face_encoding"] = face_result["pending_encoding"]
+
+        # Remember the most recent CONFIRMED face match so the voice path can fuse
+        # with it (open-set confirmation across the voice/face event boundary).
+        _known = next((d for d in face_result["detected"] if d.get("person_id") is not None), None)
+        if _known:
+            state_current["_last_face_result"] = {
+                "name": _known["name"],
+                "confidence": _known.get("confidence") or 0.0,
+                "ts": time.time(),
+            }
 
         # Store for group greeting logic (Task 7)
         state_current["_detected_names"] = detected_names

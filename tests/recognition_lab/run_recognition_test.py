@@ -272,9 +272,14 @@ def main():
             if not flacs:
                 continue
             y, sr = sf.read(flacs[0], dtype="float32")
-            info = speaker_id.identify_speaker(to_pcm16(y if sr == SR else y))
-            voice_total += 1; voice_false += 1 if not info["is_new"] else 0
-            print(f"  voice libri#{spk}: {'FALSE-ACCEPT ' + str(info['name']) if not info['is_new'] else 'rejected'}")
+            info = speaker_id.identify_speaker(to_pcm16(y))
+            # Open-set gate (the LIVE policy): no face, party noise floor.
+            decision = rf.fuse_identity(voice=info, face=None, noise_level=rf.LIVE_PARTY_NOISE_LEVEL)
+            raw = f"match {info['name']}" if not info["is_new"] else "rejected"
+            voice_total += 1
+            voice_false += 1 if decision["name"] else 0  # count AFTER the open-set gate
+            print(f"  voice libri#{spk}: raw={raw}(c={info.get('confidence',0):.2f}) "
+                  f"-> open-set gate={decision['name'] or 'rejected'}")
             break  # one is enough to demonstrate
     results["imposter"] = {"face_false": face_false, "face_total": face_total,
                            "voice_false": voice_false, "voice_total": voice_total}

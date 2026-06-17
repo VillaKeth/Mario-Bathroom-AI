@@ -32,11 +32,11 @@ def _face(enc):
     return {"encoding": list(enc), "confidence": 0.9}
 
 
-def test_known_face_returns_name_and_person_id():
-    """F4: a matched face surfaces person_id (not an absent 'id')."""
-    fm = FakeFaceMemory(match_result={"name": "Alice", "person_id": 7, "visit_count": 3})
+def test_known_face_returns_name_person_id_and_confidence():
+    """F4: a matched face surfaces person_id + confidence (not an absent 'id')."""
+    fm = FakeFaceMemory(match_result={"name": "Alice", "person_id": 7, "visit_count": 3, "confidence": 0.82})
     res = face_enrollment.resolve_faces([_face(np.ones(128))], fm, speaker_name=None)
-    assert res["detected"] == [{"name": "Alice", "person_id": 7, "visit_count": 3}]
+    assert res["detected"] == [{"name": "Alice", "person_id": 7, "visit_count": 3, "confidence": 0.82}]
     assert res["new_face_count"] == 0
     assert res["pending_encoding"] is None
     assert fm.learned == []  # known face must not re-enroll
