@@ -440,8 +440,13 @@ state_current = {
     "_last_face_result": None,    # {name, confidence, ts} last confident face match (fusion)
 }
 
-# Active WebSocket reference for admin endpoints to broadcast to
+# Active WebSocket reference for admin endpoints to broadcast to.
+# _ws_clients tracks ALL live /ws connections (oldest..newest); _active_ws is the
+# most recent. A stray/extra connection (e.g. an e2e test, a second tab) must not
+# permanently orphan the real client: when a connection drops we fall back to a
+# still-connected one instead of nulling, so the display/chat self-heals.
 _active_ws: "WebSocket | None" = None
+_ws_clients: list = []
 
 # Track the current response generation task for cancellation on new input
 _current_response_task: "asyncio.Task | None" = None
@@ -2707,8 +2712,10 @@ async def restart_sovits():
 async def websocket_endpoint(ws: WebSocket):
     global _active_ws
     await ws.accept()
+    if ws not in _ws_clients:
+        _ws_clients.append(ws)
     _active_ws = ws
-    logger.info("Client connected!")
+    logger.info(f"Client connected! (live /ws clients: {len(_ws_clients)})")
 
     # Reset per-connection state (games, conversation, identity, etc.)
     state_current["_active_game"] = None
@@ -2873,7 +2880,18 @@ async def websocket_endpoint(ws: WebSocket):
             await leaderboard_task
         except asyncio.CancelledError:
             pass
-        _active_ws = None
+        # Deregister this connection. Only give up the active slot if WE held it,
+        # and even then fall back to another still-connected client (the real
+        # pygame display) rather than nulling — so a stray connection leaving
+        # can't strand the bot with "no active websocket".
+        try:
+            _ws_clients.remove(ws)
+        except ValueError:
+            pass
+        if _active_ws is ws:
+            _active_ws = _ws_clients[-1] if _ws_clients else None
+        logger.info(f"Client disconnected (live /ws clients: {len(_ws_clients)}, "
+                    f"active={'yes' if _active_ws is not None else 'none'})")
 
 
 @app.websocket("/mirror_ingest")
