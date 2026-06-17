@@ -119,13 +119,15 @@ def get_global_rules() -> list:
 
 
 def _real_datetime_line() -> str:
-    """A plain-English line stating the real current date + time, so the LLM is
-    grounded in today rather than inventing a date (e.g. assuming it's its own
-    name). Avoids %-d/%-I (not portable to Windows strftime)."""
+    """A plain-English line grounding the LLM in today's real date so it doesn't
+    invent one (e.g. assuming it's its own name). We deliberately OMIT a precise
+    clock time — the LLM recites it ("at 1:00 PM (13:00)") and TTS mangles the
+    digits into "one zero zero pm". Time-of-day vibe is handled separately by
+    time flavors. Avoids %-d/%-I (not portable to Windows strftime)."""
     now = datetime.now()
     date_str = now.strftime("%A, %B ") + str(now.day) + now.strftime(", %Y")
-    time_str = now.strftime("%I:%M %p").lstrip("0")
-    return f"Today's real date is {date_str} and the current time is about {time_str}."
+    return (f"For your awareness only, do NOT recite the date or time unless a guest "
+            f"asks: today is {date_str}.")
 
 
 def _character_system_prompt() -> str:

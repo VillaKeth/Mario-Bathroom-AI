@@ -10,7 +10,7 @@ voice:
   edge_voice: en-US-AriaNeural
   rate: +0%
   pitch: +0Hz
-  pronunciation: {}
+  pronunciation: {mostest: "most est"}
   engines:
   - sovits
   - edge
