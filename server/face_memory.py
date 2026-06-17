@@ -229,7 +229,13 @@ class FaceMemory:
             
         Returns:
             dict with name, confidence, visits or None if no match
+
+        DEPRECATED: dlib's 128-dim encodings are euclidean-native (0.6 threshold);
+        this cosine@0.4 path is the wrong metric and is NOT used by find_match.
+        Kept only for back-compat. See AUDIT_VOICE_FACE_RECOGNITION.md (F7).
         """
+        logger.warning("[face_memory] lookup_face_qdrant is deprecated (cosine on "
+                       "euclidean-native vectors); use find_match instead.")
         if not self._qdrant_client or encoding.shape != (128,):
             return None
             

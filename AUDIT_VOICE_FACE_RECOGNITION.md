@@ -10,6 +10,33 @@ storage layer is dead code.
 
 ---
 
+## 0. FIX STATUS (updated 2026-06-17)
+
+Most of this audit has been implemented. Face enrollment now works end-to-end.
+
+| # | Status | What changed |
+|---|--------|--------------|
+| F1 | ✅ FIXED | Live face enroll now calls `learn_guest` via new `server/face_enrollment.py:resolve_faces` (was the crashing `store_face(speaker, enc)`). |
+| F2 | ✅ FIXED | Stash-then-name implemented: `link_pending_face` wired into the `register_speaker` event and the voice "my name is X" path (`_handle_special_commands`). |
+| F3 | ✅ FIXED | Qdrant voice lookup disabled (`_USE_QDRANT_VOICE=False`); SQLite cosine scan is now the single source of truth (the store EMA actually updates). |
+| F4 | ✅ FIXED | Matched faces key their profile on `person_id` (was the absent `"id"`). |
+| F5 | ◑ PARTIAL | **Done:** audio-energy gate (`_has_speech_energy`) rejects silent/noise chunks before embed/enroll. **Remaining:** multi-sample enrollment (F5b) and TTS-bleed suppression (F5c) — both need client-protocol / timing changes, deferred. Threshold left config-driven at 0.65. |
+| F6 | ◑ PARTIAL | **Done:** detector model / tolerance / frame-skip now configurable on `PersonDetector` (env `FACE_DETECTOR_MODEL`, `FACE_MATCH_TOLERANCE`) so the GPU box can use `cnn`. **Remaining:** multi-encoding gallery (needs a schema migration), deferred. |
+| F7 | ✅ FIXED | `lookup_face_qdrant` now logs a deprecation warning (wrong metric; bypassed by `find_match`). |
+| F8 | ✅ resolved | Subsumed by F3 — SQLite is the single source the EMA refinement writes. |
+
+**New/changed files:** `server/face_enrollment.py` (new), `server/speaker_id.py`,
+`server/face_memory.py`, `server/main.py`, `client/person_detector.py`.
+**Tests:** `tests/test_face_enrollment.py`, `tests/test_speaker_audio_gate.py`,
+`tests/test_person_detector_config.py` (15 new tests, TDD red→green). Full suite:
+1047 passed (2 pre-existing failures unrelated to voice/face: a live-server e2e
+timeout and a Qdrant `mario_memories` collection-state test).
+
+**Still open (need bigger changes):** F5b multi-sample enrollment, F5c TTS-bleed
+suppression, F6 multi-encoding face gallery. Detail in §5 below.
+
+---
+
 ## 1. System context (what this app is)
 
 "Mario AI Party Bot." A laptop/Pi runs an AI character (Mario, or a swappable

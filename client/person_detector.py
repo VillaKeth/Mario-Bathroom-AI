@@ -5,6 +5,7 @@ for returning-guest identification. Privacy-first: no face images stored,
 only 128-dim numerical encodings.
 """
 import logging
+import os
 import threading
 import time
 from typing import Optional
@@ -65,7 +66,9 @@ class PersonDetector:
     FACE_MATCH_TOLERANCE = 0.6  # Lower = stricter matching
     YOLO_FRAME_SKIP = 3  # Run YOLO every Nth frame
 
-    def __init__(self, yolo_model: str = "yolov8n.pt"):
+    def __init__(self, yolo_model: str = "yolov8n.pt", face_detector_model: str = None,
+                 match_tolerance: float = None, yolo_confidence: float = None,
+                 frame_skip: int = None):
         self._yolo_model_name = yolo_model
         self._yolo = None
         self._frame_count = 0
@@ -73,8 +76,20 @@ class PersonDetector:
         self.is_available = False
         self.on_person_detected = None  # callback(DetectedPerson)
 
+        # F6: tunable knobs (defaults preserve current behavior). The face detector
+        # model can be raised to "cnn" on a GPU box (e.g. the RTX 3090 party machine)
+        # for much better detection of non-frontal / low-light faces at the doorway.
+        # Override in code or via env: FACE_DETECTOR_MODEL / FACE_MATCH_TOLERANCE.
+        self.face_detector_model = face_detector_model or os.environ.get("FACE_DETECTOR_MODEL", "hog")
+        if match_tolerance is None:
+            match_tolerance = float(os.environ.get("FACE_MATCH_TOLERANCE", self.FACE_MATCH_TOLERANCE))
+        self.match_tolerance = match_tolerance
+        self.yolo_confidence = yolo_confidence if yolo_confidence is not None else self.YOLO_CONFIDENCE
+        self.frame_skip = frame_skip if frame_skip is not None else self.YOLO_FRAME_SKIP
+
         if DEBUG_PERSON:
-            logger.info(f"[person_detector] init: yolo={yolo_model}")
+            logger.info(f"[person_detector] init: yolo={yolo_model} detector={self.face_detector_model} "
+                        f"tol={self.match_tolerance} conf={self.yolo_confidence} skip={self.frame_skip}")
 
         if _yolo_available:
             try:
@@ -93,12 +108,12 @@ class PersonDetector:
             return []
 
         self._frame_count += 1
-        if self._frame_count % self.YOLO_FRAME_SKIP != 0:
+        if self._frame_count % self.frame_skip != 0:
             return []
 
         try:
             results = self._yolo.predict(
-                frame, conf=self.YOLO_CONFIDENCE,
+                frame, conf=self.yolo_confidence,
                 classes=[self.PERSON_CLASS_ID],
                 verbose=False
             )
@@ -136,7 +151,7 @@ class PersonDetector:
                 return None
 
             rgb_crop = cv2.cvtColor(person_crop, cv2.COLOR_BGR2RGB)
-            face_locations = face_rec.face_locations(rgb_crop, model="hog")
+            face_locations = face_rec.face_locations(rgb_crop, model=self.face_detector_model)
             if not face_locations:
                 return None
 

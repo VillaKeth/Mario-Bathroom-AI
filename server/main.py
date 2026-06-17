@@ -41,6 +41,7 @@ import tts
 import llm
 import hardware
 import speaker_id
+import face_enrollment
 import memory
 import mario_prompt
 import safety_filter
@@ -5160,7 +5161,16 @@ async def _handle_special_commands(transcript: str) -> str:
     # Only set command cooldown when a command actually matched
     if response is not None:
         state_current["_last_command_time"] = time.time()
-    
+
+    # F2: if the guest just gave a name (e.g. "my name is X") and an unknown face
+    # was stashed earlier, link that face to the name now. One-shot — clears the stash.
+    if (_face_memory is not None and state_current.get("speaker_name")
+            and state_current.get("_last_face_encoding") is not None):
+        if face_enrollment.link_pending_face(
+                _face_memory, state_current["speaker_name"], state_current["_last_face_encoding"]):
+            guest_profiles.identify_by_face(state_current["speaker_name"], "auto_linked")
+            state_current["_last_face_encoding"] = None
+
     # Check for shot event trigger response
     if response and response.startswith("__SHOT_EVENT_TRIGGER__:"):
         original_text = response.split(":", 1)[1]
@@ -5744,6 +5754,11 @@ async def handle_event(ws: WebSocket, event: dict):
             memory.register_person(new_id, name)
             state_current["speaker_name"] = name
             state_current["speaker_id"] = new_id
+            # F2: attach a face stashed before this guest spoke, if any.
+            if _face_memory is not None and face_enrollment.link_pending_face(
+                _face_memory, name, state_current.get("_last_face_encoding")):
+                guest_profiles.identify_by_face(name, "auto_linked")
+                state_current["_last_face_encoding"] = None
             await ws.send_json({"type": "speaker_registered", "name": name, "id": new_id})
 
             # Character celebrates registering a new friend (character-agnostic — no Mario dialect)
@@ -5808,38 +5823,33 @@ async def handle_event(ws: WebSocket, event: dict):
         if not faces and "face_encoding" in event:
             faces = [{"encoding": event["face_encoding"], "confidence": event.get("confidence", 0.5)}]
         
+        # Match / enroll each face via the tested face_enrollment module.
+        # F1: unknown face + known speaker now ENROLLS (learn_guest) instead of
+        # crashing on a bad store_face() call. F4: matched faces key their profile
+        # on the real person_id, not an absent "id". See AUDIT_VOICE_FACE_RECOGNITION.md.
+        face_result = face_enrollment.resolve_faces(
+            faces, _face_memory, state_current.get("speaker_name")
+        )
+
         detected_names = []
-        new_face_count = 0
-        
-        for face_data in faces:
-            enc = face_data.get("encoding")
-            if not enc or not isinstance(enc, list) or len(enc) != 128:
-                continue
-            
-            enc_array = np.array(enc, dtype=np.float64)
-            if np.any(np.isnan(enc_array)) or np.any(np.isinf(enc_array)):
-                continue
-            
-            match = _face_memory.find_match(enc_array)
-            if match and match.get("name"):
-                name = match["name"]
-                face_id = str(match.get("id", ""))
-                profile = guest_profiles.identify_by_face(name, face_id)
-                detected_names.append(name)
+        for d in face_result["detected"]:
+            name = d["name"]
+            if d.get("person_id") is not None:
+                # Known, matched face — use the real person_id as the profile key (F4).
+                profile = guest_profiles.identify_by_face(name, str(d["person_id"]))
                 state_current["detected_guest"] = name
                 state_current["guest_visits"] = profile.visit_count
             else:
-                # Unknown face
-                speaker = state_current.get("speaker_name")
-                if speaker:
-                    _face_memory.store_face(speaker, enc_array)
-                    guest_profiles.identify_by_face(speaker, "auto_linked")
-                    detected_names.append(speaker)
-                else:
-                    new_face_count += 1
-                    state_current["detected_guest"] = None
-                    state_current["_last_face_encoding"] = enc_array
-        
+                # Face just auto-linked to the current speaker.
+                guest_profiles.identify_by_face(name, "auto_linked")
+            detected_names.append(name)
+
+        new_face_count = face_result["new_face_count"]
+        if face_result["pending_encoding"] is not None:
+            # F2: stash the unknown face so it can be named when the guest speaks.
+            state_current["detected_guest"] = None
+            state_current["_last_face_encoding"] = face_result["pending_encoding"]
+
         # Store for group greeting logic (Task 7)
         state_current["_detected_names"] = detected_names
         state_current["_new_face_count"] = new_face_count

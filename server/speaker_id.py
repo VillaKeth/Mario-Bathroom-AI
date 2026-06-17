@@ -58,9 +58,40 @@ if os.path.exists(_spk_config_path):
     except Exception:
         pass
 
+# Minimum RMS energy (int16 scale) for a chunk to count as speech. Below this the
+# audio is treated as silence/noise: no embedding, no match, no enrollment (F5).
+# Conservative default — only rejects near-silence; override via SPEAKER_MIN_RMS.
+try:
+    MIN_SPEECH_RMS = float(os.environ.get("SPEAKER_MIN_RMS", "120") or 120)
+except (TypeError, ValueError):
+    MIN_SPEECH_RMS = 120.0
+
+# Voice matching routes through the SQLite cosine scan (the store the EMA refinement
+# in update_speaker() actually writes). The Qdrant voice path is never populated by
+# the live enrollment path (register_speaker writes SQLite only), so consulting it
+# first only ever returned stale/empty results. Kept defined for future use but no
+# longer consulted by identify_speaker. See AUDIT_VOICE_FACE_RECOGNITION.md (F3/F8).
+_USE_QDRANT_VOICE = False
+
 _encoder = None
 _qdrant_client: QdrantClient = None if _HAS_QDRANT else None
 _collection_name = "mario_voices"
+
+
+def _audio_rms(audio_data: bytes) -> float:
+    """Root-mean-square amplitude of int16 PCM bytes (0.0 for empty/silent)."""
+    if not audio_data:
+        return 0.0
+    samples = np.frombuffer(audio_data, dtype=np.int16).astype(np.float64)
+    if samples.size == 0:
+        return 0.0
+    return float(np.sqrt(np.mean(samples * samples)))
+
+
+def _has_speech_energy(audio_data: bytes, min_rms: float = None) -> bool:
+    """True if the chunk is loud enough to plausibly contain speech (F5 gate)."""
+    floor = MIN_SPEECH_RMS if min_rms is None else min_rms
+    return _audio_rms(audio_data) >= floor
 
 
 def is_available() -> bool:
@@ -136,6 +167,13 @@ def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
     """
     if _encoder is None:
         raise RuntimeError("Speaker ID not initialized. Call init_speaker_id() first.")
+
+    # Reject near-silent / no-speech chunks before embedding (F5): a silent buffer
+    # otherwise yields a meaningless embedding that pollutes matching and enrollment.
+    if not _has_speech_energy(audio_data):
+        if DEBUG_SPEAKER:
+            logger.info(f"[DEBUG_SPEAKER] get_embedding: below speech-energy floor (rms={_audio_rms(audio_data):.0f})")
+        return None
 
     audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
     processed = preprocess_wav(audio_np, source_sr=sample_rate)
@@ -281,8 +319,9 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     if embedding is None:
         return {"name": None, "speaker_id": None, "confidence": 0.0, "is_new": True}
 
-    # Try Qdrant first (primary method)
-    if _qdrant_client:
+    # Qdrant voice lookup is disabled (_USE_QDRANT_VOICE=False) — see note above.
+    # All real matching flows through the SQLite cosine scan below.
+    if _USE_QDRANT_VOICE and _qdrant_client:
         qdrant_match = lookup_voice_qdrant(embedding)
         if qdrant_match:
             if DEBUG_SPEAKER:
