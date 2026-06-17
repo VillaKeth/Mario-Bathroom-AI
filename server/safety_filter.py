@@ -8,18 +8,36 @@ import unicodedata
 DEBUG_SAFETY = True
 logger = logging.getLogger(__name__)
 
-# Words/phrases that should be filtered from Mario's responses
-BLOCKED_PATTERNS = [
+# Slur patterns — an INDEPENDENT tier. These stay blocked even when a character
+# disables general content filtering (safety.enabled: false), because this bot
+# speaks responses out loud in a room. Gated by _BLOCK_SLURS.
+SLUR_PATTERNS = [
+    r'\b(n[i1]gg|f[a4]gg?|r[e3]tard)\b',
+]
+
+# General content patterns — profanity, violence, hate, drugs, assault. Gated by
+# _SAFETY_ENABLED; a character with safety.enabled: false lets all of these
+# through to the LLM and out unredacted.
+CONTENT_PATTERNS = [
     r'\b(fuck|shit|damn|ass|bitch|bastard|dick|cock|pussy)\b',
     r'\b(kill|murder|suicide|die|death|dying)\b(?!.*(?:mushroom|bowser|goomba|game|laughing|funny|comedy))',
     r'\b(racist|sexist|homophob|transphob|bigot)\b',
     r'\b(nazi|hitler|holocaust)\b',
     r'\b(drugs?|cocaine|heroin|meth|weed)\b(?!.*mushroom)',
     r'\b(rape|molest|abuse|assault)\b',
-    r'\b(n[i1]gg|f[a4]gg?|r[e3]tard)\b',
 ]
 
-BLOCKED_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in BLOCKED_PATTERNS]
+SLUR_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in SLUR_PATTERNS]
+CONTENT_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in CONTENT_PATTERNS]
+
+# Backwards-compat: anything importing the old names gets the union.
+BLOCKED_PATTERNS = SLUR_PATTERNS + CONTENT_PATTERNS
+BLOCKED_RE = SLUR_RE + CONTENT_RE
+
+# Per-character toggles, set at startup by main.py from character.yaml. Default
+# ON (filtered) so a misconfigured / parentless boot fails safe.
+_SAFETY_ENABLED = True   # gates CONTENT_RE + MILD_REPLACEMENTS + banned topics
+_BLOCK_SLURS = True      # independent gate for SLUR_RE
 
 _CHARACTER_NAME = "assistant"
 _CHARACTER_DISPLAY_NAME = "Assistant"
@@ -31,6 +49,26 @@ def set_character(name: str, display_name: str):
         _CHARACTER_NAME = name
     if display_name:
         _CHARACTER_DISPLAY_NAME = display_name
+
+
+def set_safety_config(enabled: bool, block_slurs: bool = True):
+    """Set per-character content gating (called at startup from character.yaml).
+
+    enabled=False lets all CONTENT_PATTERNS + MILD_REPLACEMENTS through (the
+    'uncensored' character). block_slurs is independent: when True, SLUR_PATTERNS
+    stay blocked regardless of `enabled`.
+    """
+    global _SAFETY_ENABLED, _BLOCK_SLURS
+    _SAFETY_ENABLED = bool(enabled)
+    _BLOCK_SLURS = bool(block_slurs)
+    if DEBUG_SAFETY:
+        logger.info(f"[DEBUG_SAFETY] set_safety_config: enabled={_SAFETY_ENABLED} block_slurs={_BLOCK_SLURS}")
+
+
+def is_safety_enabled() -> bool:
+    """True when general content filtering is active for the current character.
+    Used by mario_prompt to decide whether to inject BANNED TOPICS guardrails."""
+    return _SAFETY_ENABLED
 
 
 # Mario-style replacements for mild language
@@ -115,23 +153,30 @@ def filter_response(text: str) -> str:
         if last_punct > len(text) // 2:
             text = text[:last_punct + 1]
 
-    # Check for blocked patterns
-    for pattern in BLOCKED_RE:
-        if pattern.search(text):
-            if DEBUG_SAFETY:
-                logger.warning(f"[DEBUG_SAFETY] Blocked pattern '{pattern.pattern}' found in response, sanitizing")
-            text = pattern.sub("****", text)
+    # Slur tier — always applied when _BLOCK_SLURS (independent of _SAFETY_ENABLED).
+    if _BLOCK_SLURS:
+        for pattern in SLUR_RE:
+            if pattern.search(text):
+                if DEBUG_SAFETY:
+                    logger.warning("[DEBUG_SAFETY] Blocked slur pattern in response, sanitizing")
+                text = pattern.sub("****", text)
 
-    # Apply mild replacements
-    for pattern, replacement in MILD_REPLACEMENTS.items():
-        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    # General content tier + mild replacements — only when safety enabled.
+    if _SAFETY_ENABLED:
+        for pattern in CONTENT_RE:
+            if pattern.search(text):
+                if DEBUG_SAFETY:
+                    logger.warning("[DEBUG_SAFETY] Blocked content pattern in response, sanitizing")
+                text = pattern.sub("****", text)
+        for pattern, replacement in MILD_REPLACEMENTS.items():
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
     # Catch LLM breaking character — strip meta/AI self-references
     for pat, repl in _character_break_patterns():
         text = re.sub(pat, repl, text)
 
     # Enforce maximum response length — Mario should be punchy, not an essay writer
-    MAX_RESPONSE_CHARS = 300
+    MAX_RESPONSE_CHARS = 500
     if len(text) > MAX_RESPONSE_CHARS:
         # Try to cut at a sentence boundary
         truncated = text[:MAX_RESPONSE_CHARS]
@@ -161,8 +206,14 @@ def check_input(text: str) -> dict:
     # Normalize Unicode to catch homoglyphs and fullwidth chars
     lower = _normalize_unicode(text).lower()
 
-    # Check for harmful content
-    for pattern in BLOCKED_RE:
+    # Assemble the active blocklist: slurs if _BLOCK_SLURS, content if _SAFETY_ENABLED.
+    active = []
+    if _BLOCK_SLURS:
+        active += SLUR_RE
+    if _SAFETY_ENABLED:
+        active += CONTENT_RE
+
+    for pattern in active:
         if pattern.search(lower):
             if DEBUG_SAFETY:
                 logger.warning(f"[DEBUG_SAFETY] check_input: unsafe input detected")

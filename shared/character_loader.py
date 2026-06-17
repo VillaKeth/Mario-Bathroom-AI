@@ -119,6 +119,15 @@ class CharacterLoader:
         lore_file = memory.get("lore_file", "memories/lore.yaml")
         self.lore_file: str = str(self._resolve_path(lore_file)) if lore_file is not None else None
 
+        # Parse safety — per-character content gating. Defaults ON (filtered) so
+        # any character WITHOUT a safety block stays safe; a character opts OUT
+        # of content filtering explicitly. block_slurs is an INDEPENDENT tier: it
+        # can stay True while enabled is False (slurs blocked, everything else
+        # allowed) — enforced in server/safety_filter.py.
+        safety = self._config.get("safety", {}) or {}
+        self.safety_enabled: bool = bool(safety.get("enabled", True))
+        self.safety_block_slurs: bool = bool(safety.get("block_slurs", True))
+
         # Log load summary
         logger.info(
             f"Loaded character '{self.name}': "

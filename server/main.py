@@ -721,6 +721,12 @@ async def lifespan(app: FastAPI):
         tts.set_voice_config(_character.voice_config, _character.name)
     llm.set_character(_character.name, _character.display_name)
     safety_filter.set_character(_character.name, _character.display_name)
+    safety_filter.set_safety_config(_character.safety_enabled, _character.safety_block_slurs)
+    logger.info(
+        f"[CHARACTER] Safety: content_filter="
+        f"{'ON' if _character.safety_enabled else 'OFF'}, "
+        f"block_slurs={_character.safety_block_slurs}"
+    )
     mario_prompt.set_character(_character.name, _character.display_name, _character.description, _character.tagline)
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
@@ -2408,6 +2414,12 @@ async def admin_switch_character(request_body: dict = {}):
             tts.set_voice_config(_character.voice_config, _character.name)
         llm.set_character(_character.name, _character.display_name)
         safety_filter.set_character(_character.name, _character.display_name)
+        safety_filter.set_safety_config(_character.safety_enabled, _character.safety_block_slurs)
+        logger.info(
+            f"[CHARACTER] Safety: content_filter="
+            f"{'ON' if _character.safety_enabled else 'OFF'}, "
+            f"block_slurs={_character.safety_block_slurs}"
+        )
         mario_prompt.set_character(_character.name, _character.display_name, _character.description, _character.tagline)
         _game_handlers_mod.set_character(_character.name, _character.display_name)
         _game_handlers_mod.load_character_pools(_character)

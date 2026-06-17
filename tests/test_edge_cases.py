@@ -1010,7 +1010,7 @@ class TestCharacterBreakingFilter:
     def test_truncation_still_works(self):
         long_text = "Wahoo! " * 100
         result = self._fn(long_text)
-        assert len(result) <= 310  # 300 + some buffer for truncation point
+        assert len(result) <= 510  # 500 + some buffer for truncation point
 
 
 class TestCheckInput:

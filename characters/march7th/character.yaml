@@ -144,3 +144,9 @@ memory:
     memories: march7th_memories
   vip_profiles_dir: memories/vip_profiles/
   lore_file: memories/lore.yaml
+safety:
+  # Uncensored character: no profanity/topic deflection. Slurs still blocked
+  # because the bot speaks out loud in a room of guests. See
+  # docs/superpowers/plans/2026-06-16-content-filter-uncensor-toggle.md
+  enabled: false
+  block_slurs: true
