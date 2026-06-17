@@ -81,7 +81,8 @@ _lag_task = None          # diagnostic event-loop-lag monitor task
 # NOT a security boundary.
 _TURN_IDLE_SECONDS = 30.0
 _turn = {"owner": None, "name": None, "expires": 0.0}
-_transcript = deque(maxlen=6)   # items: {"who": str, "text": str}
+_transcript = deque(maxlen=6)   # items: {"who": str, "text": str} — live inline view
+_full_transcript = deque(maxlen=400)  # longer history for the "full chat log" panel
 _presence_task = None           # watcher loop: frees idle turns + tells viewers
 
 
@@ -97,7 +98,7 @@ def get_control_mode() -> str:
 def reset_state():
     """Test helper: clear all module state."""
     global _viewers, _active_ws_getter, _capture_active, _control_mode
-    global _pending, _relay_event, _relay_task, _turn, _transcript, _presence_task
+    global _pending, _relay_event, _relay_task, _turn, _transcript, _full_transcript, _presence_task
     _viewers = set()
     _active_ws_getter = None
     _capture_active = False
@@ -112,6 +113,7 @@ def reset_state():
     _presence_task = None
     _turn = {"owner": None, "name": None, "expires": 0.0}
     _transcript = deque(maxlen=6)
+    _full_transcript = deque(maxlen=400)
 
 
 def set_active_ws_getter(fn):
@@ -320,16 +322,22 @@ def turn_state(now: float) -> dict:
 # ---------------------------------------------------------------------------
 
 def add_transcript(who: str, text: str):
-    """Append one line to the rolling transcript (capped at 6)."""
+    """Append one line to the live (6) and full (400) transcripts."""
     who = (who or "").strip() or "?"
     text = (text or "").strip()
     if text:
         _transcript.append({"who": who, "text": text})
+        _full_transcript.append({"who": who, "text": text})
 
 
 def transcript_snapshot() -> list:
-    """Current transcript lines, oldest first."""
+    """Current live transcript lines (last 6), oldest first."""
     return list(_transcript)
+
+
+def full_transcript_snapshot() -> list:
+    """Full chat history kept for the scrollable log (up to 400), oldest first."""
+    return list(_full_transcript)
 
 
 # ---------------------------------------------------------------------------

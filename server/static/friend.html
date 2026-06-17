@@ -24,6 +24,18 @@
   #bar button,#setup button{padding:12px 16px;font-size:16px;border-radius:8px;border:0;background:#e23;color:#fff}
   #bar button:disabled{background:#555}
   #tapcover{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+  #topright{display:flex;align-items:center;gap:10px}
+  #logToggle{padding:4px 10px;font-size:13px;border-radius:6px;border:1px solid #444;background:#2a2a2a;color:#fc8;cursor:pointer}
+  #fulllog{position:fixed;inset:0;background:rgba(8,8,12,.97);display:flex;flex-direction:column;z-index:20}
+  #fulllog-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#1b1b1b;font-size:16px;font-weight:600;color:#fc8;border-bottom:1px solid #333}
+  #logClose{padding:8px 14px;font-size:14px;border-radius:8px;border:0;background:#e23;color:#fff;cursor:pointer}
+  #fulllog-body{flex:1;overflow-y:auto;padding:14px 16px 30px;font-size:16px;line-height:1.45}
+  #fulllog-body .row{margin:10px 0;display:flex;flex-direction:column;gap:2px}
+  #fulllog-body .name{font-weight:700;font-size:13px;color:#8cf}
+  #fulllog-body .row.bot .name{color:#fb6}
+  #fulllog-body .bubble{background:#1d1d28;border-radius:10px;padding:8px 12px;max-width:92%;align-self:flex-start;white-space:pre-wrap;word-break:break-word}
+  #fulllog-body .row.bot .bubble{background:#2a241a}
+  #fulllog-body .empty{color:#888;text-align:center;margin-top:40px}
   .hidden{display:none!important}
 </style>
 </head>
@@ -31,7 +43,10 @@
 <div id="wrap">
   <div id="top">
     <span id="status">connecting…</span>
-    <span id="viewers">👁 –</span>
+    <span id="topright">
+      <button id="logToggle" title="Full chat log">📜 Log</button>
+      <span id="viewers">👁 –</span>
+    </span>
   </div>
   <div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
   <div id="turn"></div>
@@ -45,6 +60,13 @@
     <input id="msg" type="text" placeholder="Say something…" autocomplete="off">
     <button id="send">Send</button>
   </div>
+</div>
+<div id="fulllog" class="hidden">
+  <div id="fulllog-head">
+    <span>📜 Full chat log</span>
+    <button id="logClose">✕ Close</button>
+  </div>
+  <div id="fulllog-body"></div>
 </div>
 <div id="tapcover">Tap to start</div>
 <script>
@@ -130,6 +152,45 @@ function renderLog(lines){
   logEl.scrollTop = logEl.scrollHeight;
 }
 
+// --- full chat log (scrollable visual-novel view) ----------------------------
+const logToggle = document.getElementById("logToggle");
+const fulllog = document.getElementById("fulllog");
+const fulllogBody = document.getElementById("fulllog-body");
+const logClose = document.getElementById("logClose");
+let logOpen = false;
+
+function isBotWho(who){
+  // Heuristic: anyone who isn't the viewer is "the bot/host" side.
+  return !(myName && who && who.toLowerCase() === myName.toLowerCase());
+}
+function renderFullLog(lines){
+  fulllogBody.innerHTML = "";
+  if (!lines || !lines.length){
+    const e = document.createElement("div"); e.className = "empty";
+    e.textContent = "No messages yet."; fulllogBody.appendChild(e); return;
+  }
+  lines.forEach(l => {
+    const row = document.createElement("div");
+    row.className = "row" + (isBotWho(l.who) ? " bot" : "");
+    const nm = document.createElement("div"); nm.className = "name"; nm.textContent = l.who;
+    const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = l.text;
+    row.appendChild(nm); row.appendChild(bub); fulllogBody.appendChild(row);
+  });
+  fulllogBody.scrollTop = fulllogBody.scrollHeight;
+}
+async function loadFullLog(){
+  try {
+    const r = await fetch("/friend/log", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({token: TOKEN, pin: (localStorage.getItem("mirror_pin") || "")})
+    });
+    const j = await r.json();
+    if (j.status === "ok") renderFullLog(j.lines);
+  } catch(e){}
+}
+logToggle.onclick = () => { logOpen = true; fulllog.classList.remove("hidden"); loadFullLog(); };
+logClose.onclick = () => { logOpen = false; fulllog.classList.add("hidden"); };
+
 saveBtn.onclick = () => {
   const n = nameEl.value.trim();
   if (!n) return;
@@ -162,6 +223,7 @@ function handleControl(obj){
     renderTurn();
   } else if (obj.type === "transcript"){
     renderLog(obj.lines);
+    if (logOpen) loadFullLog();   // keep the full-log panel live while it's open
   }
 }
 function connect(){

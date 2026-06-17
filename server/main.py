@@ -1993,6 +1993,18 @@ async def friend_say(request_body: dict = {}):
     return await _dispatch_user_text(text)
 
 
+@app.post("/friend/log")
+async def friend_log(request_body: dict = {}):
+    """Return the full rolling chat log for the scrollable 'full log' panel on the
+    mirror page. Viewing is open (the live transcript is already broadcast to every
+    viewer), so this only sanity-checks the mirror token — no PIN required."""
+    token = request_body.get("token") or ""
+    want = (_MIRROR_CFG or {}).get("token", "")
+    if want and token != want:
+        return {"status": "error", "reason": "bad_token"}
+    return {"status": "ok", "lines": mirror_relay.full_transcript_snapshot()}
+
+
 @app.post("/admin/mirror_mode")
 async def admin_mirror_mode(request_body: dict = {}):
     """Flip control mode at runtime: {'mode': 'station'|'remote'}."""
