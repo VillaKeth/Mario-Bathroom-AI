@@ -105,6 +105,15 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
                 return None, "notloggedin", msg, thread_id
             if any(s in msg for s in _FATAL_GEN_ERR):
                 return None, "fatal", msg, thread_id
+            # Network/HTTP error reaching chatgpt.com (e.g. ERR_HTTP_RESPONSE_CODE_
+            # FAILURE = the site bounced us, often Cloudflare/bot-throttle after too
+            # many rapid opens). Surface a distinct status so the caller BACKS OFF on
+            # the SAME account instead of instantly rotating through every account
+            # (which is the rapid-fire hammering that causes the throttle).
+            if any(s in low for s in ("net::", "err_http", "err_connection",
+                                      "err_timed_out", "err_network", "err_aborted",
+                                      "err_name_not_resolved")):
+                return None, "neterror", msg, thread_id
             # Recoverable browser instability (stale/closed page, wedged context,
             # failed target creation): relaunch the account's context + drop the
             # thread so the next attempt reopens fresh. NOT a guardrail refusal.
@@ -168,6 +177,7 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
             print(f"GEN  [{idx:02d}] {rel}", flush=True)
             wait_rounds = 0
             refusal_clears = 0      # times we've re-tried the refused (stochastic) set
+            net_retries = 0         # consecutive network/HTTP errors on this sprite
             refused_here = set()    # accounts that guardrail-refused THIS sprite
             while True:
                 acct = pool.pick(exclude=refused_here)
@@ -226,6 +236,27 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
                           f"Re-login: python -m mcp_chatgpt._login_oneshot {acct}", flush=True)
                     pool.mark_capped(acct, 10**9)
                     continue
+                if status == "neterror":
+                    # chatgpt.com bounced us (HTTP/Cloudflare). Do NOT rotate to the
+                    # next account — that rapid-fire blast is what causes the throttle.
+                    # Back off on the SAME account (growing cooldown), fresh browser.
+                    net_retries += 1
+                    if net_retries > 8:
+                        print(f"STOP [{idx:02d}] persistent network errors x{net_retries} "
+                              f"(IP throttled?) — ending run; re-run later.", flush=True)
+                        failed.append(rel)
+                        capped_out = True
+                        break
+                    backoff = int(min(30 * net_retries, 240))
+                    print(f"NET  [{idx:02d}] '{acct}' chatgpt.com HTTP error — cooling "
+                          f"{backoff}s on SAME account (no rotate). {msg[:70]!r}", flush=True)
+                    try:
+                        await session.reset_account(acct)     # fresh browser, shed bad CF state
+                    except Exception:  # noqa: BLE001
+                        pass
+                    threads.pop(acct, None)
+                    await asyncio.sleep(backoff)
+                    continue        # sticky pick returns the SAME account → retry it
                 if status == "ok":
                     if cut(img, dst):
                         print(f"DONE [{idx:02d}] {rel} (via {acct})", flush=True)
