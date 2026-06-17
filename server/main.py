@@ -2565,6 +2565,13 @@ async def admin_restart(request_body: dict = {}):
     async def _do_restart():
         # Let the HTTP response flush to the (possibly remote) client first.
         await asyncio.sleep(1.5)
+        # os._exit skips cleanup, which would orphan the GPT-SoVITS subprocess
+        # (it keeps the GPU and the next boot's instance fights it for VRAM ->
+        # Edge fallback). Reap it explicitly before exiting.
+        try:
+            tts._kill_stale_sovits_processes()
+        except Exception as e:
+            logger.warning(f"[ADMIN] sovits reap before restart failed: {e}")
         logger.info("[ADMIN] Restart requested — exiting for supervised relaunch")
         os._exit(0)
 

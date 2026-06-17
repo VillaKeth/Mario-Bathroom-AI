@@ -751,7 +751,8 @@ def init_tts():
 
     # --- GPT-SoVITS setup ---
     if TTS_MODE == "sovits":
-        # Direct sovits mode: keep subprocess running permanently
+        # Direct sovits mode: keep subprocess running permanently.
+        # (_start_sovits_subprocess reaps any orphaned instance first.)
         logger.info(f"[DEBUG_TTS] init_tts: TTS_MODE=sovits, launching GPT-SoVITS subprocess...")
         if _start_sovits_subprocess():
             try:
@@ -783,6 +784,12 @@ def _start_sovits_subprocess():
     if not os.path.exists(SOVITS_SERVER_SCRIPT):
         logger.warning(f"[DEBUG_TTS] sovits: server script not found at {SOVITS_SERVER_SCRIPT}")
         return False
+
+    # Reap any existing/orphaned SoVITS instance before spawning, so exactly one
+    # ever runs. Covers a stale subprocess from a prior server (os._exit/crash)
+    # AND a hung instance during an in-app auto-restart — either path otherwise
+    # accumulates instances that starve the GPU and force Edge fallback.
+    _kill_stale_sovits_processes()
 
     logger.info("[DEBUG_TTS] sovits: starting GPT-SoVITS subprocess...")
     start = time.time()
@@ -997,6 +1004,44 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
                 _sovits_process = None
                 logger.error(f"[DEBUG_TTS] sovits: subprocess failed ({err_type}: {err_str}), will auto-restart on next call")
             raise
+
+
+def _kill_stale_sovits_processes() -> int:
+    """Reap leftover GPT-SoVITS subprocesses from a previous or crashed server.
+
+    When the server exits without reaping its child (an os._exit restart, a
+    crash, a hard kill), the SoVITS subprocess is orphaned and keeps a model
+    resident on the GPU. On a small card two instances then fight over VRAM,
+    synthesis OOMs or stalls past the timeout, and the pipeline falls back to
+    Edge — exactly the 'why am I hearing Edge' symptom. Reaping stale instances
+    before launching a fresh one keeps exactly one alive and SoVITS reliable.
+
+    Matches by the server script name so it catches BOTH the venv launcher and
+    the real python it spawns. Never kills our own process."""
+    try:
+        import psutil
+    except ImportError:
+        logger.warning("[DEBUG_TTS] _kill_stale_sovits_processes: psutil unavailable, skipping reap")
+        return 0
+    me = os.getpid()
+    killed = 0
+    for proc in psutil.process_iter(["pid", "cmdline"]):
+        try:
+            if proc.info["pid"] == me:
+                continue
+            cmd = proc.info.get("cmdline") or []
+            if any("gpt_sovits_server.py" in str(a) for a in cmd):
+                proc.kill()
+                killed += 1
+                logger.info(f"[DEBUG_TTS] reaped stale sovits process pid={proc.info['pid']}")
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+        except Exception:
+            continue
+    if killed:
+        logger.info(f"[DEBUG_TTS] _kill_stale_sovits_processes: reaped {killed} stale instance(s)")
+        time.sleep(1.0)  # let the GPU release VRAM before we launch a fresh one
+    return killed
 
 
 def _kill_sovits_subprocess():
