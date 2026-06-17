@@ -640,9 +640,9 @@ class MarioDisplay:
                     self._running = False
                     return False
                 if event.type == pygame.MOUSEWHEEL and self._show_chat_history:
-                    # Wheel up (y>0) -> older lines; down -> newer.
+                    # Wheel up (y>0) -> older; down -> newer. Scroll is in pixels.
                     self._chat_scroll = _clamp_chat_scroll(
-                        self._chat_scroll + event.y * 3,
+                        self._chat_scroll + event.y * 48,
                         self._chat_total_lines, self._chat_viewport_lines)
                     continue
                 if event.type == pygame.KEYDOWN:
@@ -2194,11 +2194,12 @@ class MarioDisplay:
 
     def _scroll_chat_log(self, key):
         """Adjust the backlog scroll offset for a navigation key, then clamp."""
-        page = max(1, self._chat_viewport_lines - 1)
+        step = 36  # pixels per arrow press
+        page = max(step, self._chat_viewport_lines - 48)  # ~viewport minus a sliver
         if key == pygame.K_UP:
-            self._chat_scroll += 1
+            self._chat_scroll += step
         elif key == pygame.K_DOWN:
-            self._chat_scroll -= 1
+            self._chat_scroll -= step
         elif key == pygame.K_PAGEUP:
             self._chat_scroll += page
         elif key == pygame.K_PAGEDOWN:
@@ -2225,62 +2226,91 @@ class MarioDisplay:
         panel_w, panel_h = W - margin * 2, H - margin * 2
         try:
             overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-            overlay.fill((10, 10, 24, 235))
+            overlay.fill((14, 14, 26, 240))
             surface.blit(overlay, (panel_x, panel_y))
-            pygame.draw.rect(surface, (255, 215, 0), (panel_x, panel_y, panel_w, panel_h), 2)
+            pygame.draw.rect(surface, (124, 92, 255), (panel_x, panel_y, panel_w, panel_h),
+                             2, border_radius=14)
         except Exception:
             return
 
-        title_font = self._chat_title_font or pygame.font.SysFont("arial", 18, bold=True)
-        msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 15)
-        title = title_font.render(
-            "Chat Log  -  arrows / wheel / PgUp / PgDn / Home / End,  Esc closes",
-            True, (255, 215, 0))
-        surface.blit(title, (panel_x + 16, panel_y + 10))
+        title_font = self._chat_title_font or pygame.font.SysFont("arial", 16, bold=True)
+        name_font = self._chat_title_font or pygame.font.SysFont("arial", 14, bold=True)
+        msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 14)
 
-        line_h = msg_font.get_height() + 2
-        content_x = panel_x + 16
-        content_top = panel_y + 44
-        content_bottom = panel_y + panel_h - 12
-        viewport_lines = max(1, (content_bottom - content_top) // line_h)
-        char_w = max(1, msg_font.size("m")[0])
-        max_chars = max(8, (panel_w - 36) // char_w)
+        # Header: title + nav hint
+        title = title_font.render("Chat History", True, (255, 200, 120))
+        surface.blit(title, (panel_x + 18, panel_y + 12))
+        hint = msg_font.render("arrows / wheel / PgUp / PgDn / Home / End  -  Esc closes",
+                               True, (140, 140, 162))
+        surface.blit(hint, (panel_x + 18 + title.get_width() + 18, panel_y + 15))
 
-        # Flatten the whole history into colored display lines, oldest -> newest.
-        disp = []  # (color, text)
+        content_x = panel_x + 18
+        content_top = panel_y + 46
+        content_bottom = panel_y + panel_h - 14
+        content_w = panel_w - 36
+        viewport_px = max(1, content_bottom - content_top)
+
+        line_h = msg_font.get_height() + 3
+        name_h = name_font.get_height() + 3
+        pad = 10                      # bubble inner padding
+        gap = 14                      # vertical gap between messages
+        bubble_max_w = int(content_w * 0.90)
+        text_max_w = max(40, bubble_max_w - 2 * pad)
+
+        # Build message blocks (name chip + rounded bubble), tunnel-style.
+        blocks = []
         for m in self._chat_history:
             role = m.get("role", "")
-            who = self._chat_char_name if role == "mario" else (
+            is_bot = role == "mario"
+            who = self._chat_char_name if is_bot else (
                 "You" if role == "user" else (role.title() or "?"))
-            color = (152, 251, 152) if role == "mario" else (135, 206, 250)
+            who = _EMOJI_RE.sub("", who).strip() or ("AI" if is_bot else "You")
+            name_color = (255, 184, 102) if is_bot else (140, 200, 255)
+            bubble_color = (44, 37, 26) if is_bot else (30, 30, 44)
             body = m.get("full_text") or m.get("text") or ""
-            for ln in _wrap_text(f"{who}: {body}", max_chars):
-                disp.append((color, ln))
-            disp.append(((120, 120, 140), ""))  # blank spacer between turns
+            lines = self._wrap_text_for_bubble(body, msg_font, text_max_w) or [""]
+            widest = max((msg_font.size(ln)[0] for ln in lines), default=0)
+            bub_w = min(bubble_max_w, max(widest + 2 * pad, 64))
+            bub_h = len(lines) * line_h + 2 * pad
+            blocks.append({
+                "who": who, "name_color": name_color, "bubble_color": bubble_color,
+                "lines": lines, "bub_w": bub_w, "bub_h": bub_h,
+                "height": name_h + bub_h + gap,
+            })
 
-        total = len(disp)
-        self._chat_total_lines = total
-        self._chat_viewport_lines = viewport_lines
-        scroll = _clamp_chat_scroll(self._chat_scroll, total, viewport_lines)
+        total_px = sum(b["height"] for b in blocks)
+        # _chat_total_lines/_chat_viewport_lines now carry PIXELS (scroll is px).
+        self._chat_total_lines = total_px
+        self._chat_viewport_lines = viewport_px
+        scroll = _clamp_chat_scroll(self._chat_scroll, total_px, viewport_px)
         self._chat_scroll = scroll
 
-        if total == 0:
-            surface.blit(msg_font.render("(no messages yet)", True, (160, 160, 170)),
+        if not blocks:
+            surface.blit(msg_font.render("No messages yet.", True, (160, 160, 175)),
                          (content_x, content_top))
             return
 
-        end = total - scroll
-        start = max(0, end - viewport_lines)
-        y = content_top
-        for color, ln in disp[start:end]:
-            if ln:
-                surface.blit(msg_font.render(ln, True, color), (content_x, y))
-            y += line_h
+        # Newest pinned to the bottom; scroll = pixels dragged up from the bottom.
+        prev_clip = surface.get_clip()
+        surface.set_clip(pygame.Rect(content_x, content_top, content_w, viewport_px))
+        y = content_bottom + scroll
+        for b in reversed(blocks):
+            y -= b["height"]
+            if y + b["height"] < content_top or y > content_bottom:
+                continue  # fully off-screen
+            surface.blit(name_font.render(b["who"], True, b["name_color"]), (content_x, y))
+            bub = pygame.Rect(content_x, y + name_h, b["bub_w"], b["bub_h"])
+            pygame.draw.rect(surface, b["bubble_color"], bub, border_radius=10)
+            ty = y + name_h + pad
+            for ln in b["lines"]:
+                surface.blit(msg_font.render(ln, True, (232, 232, 240)), (content_x + pad, ty))
+                ty += line_h
+        surface.set_clip(prev_clip)
 
         if scroll > 0:
-            tag = msg_font.render(f"v {scroll} newer line(s) below", True, (255, 200, 80))
-            surface.blit(tag, (panel_x + panel_w - tag.get_width() - 16,
-                               panel_y + panel_h - line_h - 6))
+            tag = msg_font.render("newer below", True, (255, 200, 80))
+            surface.blit(tag, (panel_x + panel_w - tag.get_width() - 18,
+                               panel_y + panel_h - line_h - 8))
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,
