@@ -119,3 +119,10 @@ class TestBrevityAndCap:
         from server import mario_prompt
         prompt = mario_prompt._character_system_prompt()
         assert "2-3 short sentences" not in prompt
+
+
+class TestMarchCharacterConfig:
+    def test_march_is_uncensored_with_slur_guard(self):
+        char = CharacterLoader("characters", "march7th")
+        assert char.safety_enabled is False
+        assert char.safety_block_slurs is True
