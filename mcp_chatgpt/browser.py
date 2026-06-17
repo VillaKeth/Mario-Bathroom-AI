@@ -240,7 +240,30 @@ class ChatGPTSession:
             outcome = await self._send_wait_resolve(page, baseline)
         return outcome
 
+    async def _dismiss_intro(self, page: Page) -> None:
+        """Click onboarding buttons (in order, each if present) before the composer
+        exists — fresh gemini accounts show a 'Use Gemini' landing then a 'No
+        thanks' data dialog. No-op once the composer is already on the page."""
+        if not self.site.intro_buttons:
+            return
+        if await page.query_selector(self.site.composer):
+            return
+        for sel in self.site.intro_buttons:
+            try:
+                btn = await page.query_selector(sel)
+                if btn:
+                    await btn.click()
+                    await page.wait_for_timeout(2000)
+                    print(f"[intro] clicked {sel}", flush=True)
+            except Exception:  # noqa: BLE001
+                continue
+        try:
+            await page.wait_for_selector(self.site.composer, timeout=10000)
+        except Exception:  # noqa: BLE001
+            pass
+
     async def _type_and_send(self, page: Page, prompt: str) -> None:
+        await self._dismiss_intro(page)
         await page.fill(self.site.composer, prompt)
         # Submit: click the Send button if the site has one, else press Enter
         # (grok/gemini-style composers submit on Enter, no Send button).

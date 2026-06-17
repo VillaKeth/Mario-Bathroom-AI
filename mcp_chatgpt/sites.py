@@ -24,6 +24,10 @@ class Site:
     # For providers with no Stop button (gemini shows "Creating your image..."
     # while the image renders) this keeps the wait loop from finishing early.
     generating_text_markers: tuple = ()
+    # Ordered onboarding buttons clicked (each if present) BEFORE the composer
+    # exists — e.g. fresh gemini accounts show "Use Gemini" then a "No thanks"
+    # data-sharing dialog. Clicked in order, only when the composer isn't there.
+    intro_buttons: tuple = ()
 
 
 SITES = {
@@ -90,6 +94,16 @@ SITES = {
                          "can't help with that"),
         generating_text_markers=("creating your image", "creating image",
                                  "generating", "working on", "let me create"),
+        # Fresh-account onboarding: "Use Gemini" landing CTA, then a "No thanks"
+        # data-sharing dialog — click both (decline data) so the composer loads.
+        intro_buttons=(
+            "button:has-text('Use Gemini')",
+            "button:has-text('Chat with Gemini')",
+            "a:has-text('Use Gemini')",
+            "button:has-text('No thanks')",
+            "button:has-text('No, thanks')",
+            "button:has-text('Don')",
+        ),
     ),
 }
 
