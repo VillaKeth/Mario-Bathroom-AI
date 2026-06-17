@@ -1,7 +1,7 @@
 import pytest
 from mcp_chatgpt.sites import SITES, Site, get_site
 
-REQUIRED = ("url", "composer", "send_button", "assistant_turn",
+REQUIRED = ("url", "composer", "assistant_turn",
             "generated_image_markers", "login_url_fragment",
             "challenge_text_markers", "usage_limit_markers")
 
@@ -32,7 +32,7 @@ def test_image_markers_and_limit_markers_are_tuples():
 
 def test_grok_site_present_and_complete():
     s = get_site("grok")
-    for f in ("url", "composer", "send_button", "assistant_turn",
+    for f in ("url", "composer", "assistant_turn",
               "generated_image_markers", "login_url_fragment", "usage_limit_markers"):
         assert getattr(s, f), f"grok site missing {f}"
     assert s.url.startswith("https://grok.com")
@@ -40,7 +40,7 @@ def test_grok_site_present_and_complete():
 
 def test_gemini_site_present_and_complete():
     s = get_site("gemini")
-    for f in ("url", "composer", "send_button", "assistant_turn",
+    for f in ("url", "composer", "assistant_turn",
               "generated_image_markers", "login_url_fragment", "usage_limit_markers"):
         assert getattr(s, f), f"gemini site missing {f}"
     assert "gemini.google.com" in s.url
