@@ -20,20 +20,35 @@ Most of this audit has been implemented. Face enrollment now works end-to-end.
 | F2 | ✅ FIXED | Stash-then-name implemented: `link_pending_face` wired into the `register_speaker` event and the voice "my name is X" path (`_handle_special_commands`). |
 | F3 | ✅ FIXED | Qdrant voice lookup disabled (`_USE_QDRANT_VOICE=False`); SQLite cosine scan is now the single source of truth (the store EMA actually updates). |
 | F4 | ✅ FIXED | Matched faces key their profile on `person_id` (was the absent `"id"`). |
-| F5 | ◑ PARTIAL | **Done:** audio-energy gate (`_has_speech_energy`) rejects silent/noise chunks before embed/enroll. **Remaining:** multi-sample enrollment (F5b) and TTS-bleed suppression (F5c) — both need client-protocol / timing changes, deferred. Threshold left config-driven at 0.65. |
-| F6 | ◑ PARTIAL | **Done:** detector model / tolerance / frame-skip now configurable on `PersonDetector` (env `FACE_DETECTOR_MODEL`, `FACE_MATCH_TOLERANCE`) so the GPU box can use `cnn`. **Remaining:** multi-encoding gallery (needs a schema migration), deferred. |
+| F5 | ◑ PARTIAL | **Done:** audio-energy gate (`_has_speech_energy`) + **multi-sample enrollment** (`register_speaker_multi` averages several clips — measured +11pp accuracy at 5 dB party noise, +16pp at 0 dB). **Remaining:** TTS-bleed suppression (F5c) and **open-set rejection** — voice still false-accepts an un-enrolled stranger at the 0.65 threshold (see lab below). |
+| F6 | ◑ PARTIAL | **Done:** detector model / tolerance / frame-skip configurable on `PersonDetector` (env `FACE_DETECTOR_MODEL`, `FACE_MATCH_TOLERANCE`); **SNR-aware fusion** added (`server/recognition_fusion.py`: trust the face under noise, gate the voice by a noise-scaled confidence floor). **Remaining:** multi-encoding face gallery (schema migration), deferred. |
 | F7 | ✅ FIXED | `lookup_face_qdrant` now logs a deprecation warning (wrong metric; bypassed by `find_match`). |
 | F8 | ✅ resolved | Subsumed by F3 — SQLite is the single source the EMA refinement writes. |
 
-**New/changed files:** `server/face_enrollment.py` (new), `server/speaker_id.py`,
-`server/face_memory.py`, `server/main.py`, `client/person_detector.py`.
-**Tests:** `tests/test_face_enrollment.py`, `tests/test_speaker_audio_gate.py`,
-`tests/test_person_detector_config.py` (15 new tests, TDD red→green). Full suite:
-1047 passed (2 pre-existing failures unrelated to voice/face: a live-server e2e
-timeout and a Qdrant `mario_memories` collection-state test).
+**New/changed files:** `server/face_enrollment.py`, `server/recognition_fusion.py`
+(new), `server/speaker_id.py`, `server/face_memory.py`, `server/main.py`,
+`client/person_detector.py`. **Tests:** `test_face_enrollment`,
+`test_speaker_audio_gate`, `test_person_detector_config`, `test_speaker_enroll_multi`,
+`test_recognition_fusion` (29 new tests, TDD red→green). Full suite 1047 passed
+(2 pre-existing, unrelated failures).
 
-**Still open (need bigger changes):** F5b multi-sample enrollment, F5c TTS-bleed
-suppression, F6 multi-encoding face gallery. Detail in §5 below.
+**Measured (tests/recognition_lab/ — real LibriSpeech voices, Olivetti faces, party
+noise mixed in):**
+
+| | clean | 10 dB | 5 dB | 0 dB |
+|---|---|---|---|---|
+| Voice, single-sample enroll | 100% | 78% | 56% | 28% |
+| Voice, **multi-sample** enroll | 100% | 83% | 67% | 44% |
+| Face (cross-angle) | 100% | — | — | — |
+| **Voice+Face fused** @5 dB | — | — | **100%** | — |
+
+Voice-alone at 5 dB would have been 50%; fusion reached 100% (face carried it, and
+even corrected a wrong voice match). Face imposters: 0/2 false-accepts. **Voice
+imposter: 1/1 false-accept** — the open-set gap above.
+
+**Still open (need bigger changes):** F5c TTS-bleed suppression, open-set voice
+rejection (raise threshold / require face confirmation for new greetings), F6
+multi-encoding face gallery. Detail in §5 below.
 
 ---
 

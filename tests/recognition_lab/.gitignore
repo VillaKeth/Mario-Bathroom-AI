@@ -1,0 +1,13 @@
+# Generated / downloaded assets — regenerable via build_library.py + _fetch_libri.py.
+# Olivetti faces + LibriSpeech audio have their own licenses; don't redistribute here.
+people/
+assets/
+_corpus/
+index.html
+manifest.json
+results.json
+*.wav
+*.mp3
+*.flac
+*.jpg
+*.png

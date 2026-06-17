@@ -94,6 +94,20 @@ def _has_speech_energy(audio_data: bytes, min_rms: float = None) -> bool:
     return _audio_rms(audio_data) >= floor
 
 
+def _average_embeddings(embeddings):
+    """L2-normalized mean of several voice embeddings (multi-sample enrollment, F5).
+
+    Averaging multiple clips into one print is far more robust than a single short
+    utterance. Ignores None entries; returns None if nothing usable.
+    """
+    arr = [np.asarray(e, dtype=np.float64) for e in embeddings if e is not None]
+    if not arr:
+        return None
+    mean = np.mean(arr, axis=0)
+    norm = np.linalg.norm(mean)
+    return mean / norm if norm > 0 else mean
+
+
 def is_available() -> bool:
     """True if speaker identification (resemblyzer + encoder) is ready."""
     return _HAS_RESEMBLYZER and _encoder is not None
@@ -407,6 +421,42 @@ def register_speaker(name: str, audio_data: bytes, sample_rate: int = 16000) -> 
 
     if DEBUG_SPEAKER:
         logger.info(f"[DEBUG_SPEAKER] register_speaker: END id={speaker_id_val}")
+    return speaker_id_val
+
+
+def register_speaker_multi(name: str, audio_chunks, sample_rate: int = 16000) -> int:
+    """Enroll a speaker from MULTIPLE clips, storing their averaged embedding (F5).
+
+    Far more robust than the single short "my name is X" utterance: averaging several
+    clips cancels per-clip noise/variation, which lets matching survive party noise.
+    Unusable / too-quiet clips are skipped. Raises ValueError if none are usable.
+    """
+    if not _HAS_RESEMBLYZER or _encoder is None:
+        raise ValueError("Speaker identification not available — resemblyzer not installed")
+
+    embeddings = []
+    for chunk in audio_chunks:
+        try:
+            emb = get_embedding(chunk, sample_rate)
+        except (ValueError, RuntimeError):
+            emb = None
+        if emb is not None:
+            embeddings.append(emb)
+
+    mean = _average_embeddings(embeddings)
+    if mean is None:
+        raise ValueError("No usable audio to create voice embedding (all clips empty/too quiet)")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute(
+            "INSERT INTO speakers (name, embedding) VALUES (?, ?)",
+            (name, mean.astype(np.float32).tobytes()),
+        )
+        speaker_id_val = cursor.lastrowid
+        conn.commit()
+
+    if DEBUG_SPEAKER:
+        logger.info(f"[DEBUG_SPEAKER] register_speaker_multi: id={speaker_id_val} from {len(embeddings)} clips")
     return speaker_id_val
 
 
