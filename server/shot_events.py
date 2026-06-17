@@ -35,8 +35,17 @@ class ShotEventManager:
         self.events: dict[str, ShotEvent] = {}
         self._active_event: Optional[str] = None
         self._countdown_cache: dict[str, bytes] = {}
+        self._drink_cue: Optional[dict] = None  # {"text", "audio"} — precached "Take a shot!"
         if DEBUG_SHOT_EVENTS:
             print("[DEBUG_SHOT_EVENTS] ShotEventManager: initialized")
+
+    def set_drink_cue(self, text: str, audio: bytes):
+        """Cache the instant 'Take a shot!' cue so it fires the moment the
+        countdown ends (no on-demand synth freeze at 1)."""
+        self._drink_cue = {"text": text, "audio": audio}
+
+    def get_drink_cue(self) -> Optional[dict]:
+        return self._drink_cue
     
     def register(self, event: ShotEvent):
         self.events[event.name] = event

@@ -1170,7 +1170,17 @@ async def lifespan(app: FastAPI):
                     _tts_executor, lambda: tts.synthesize_user(text)
                 )
             )
-            logger.info("Shot event countdown audio pre-cached")
+            # Pre-cache the instant "Take a shot!" drink cue (in the active
+            # character's voice) so it fires the moment the countdown ends —
+            # no synth freeze at "1".
+            try:
+                _dc_text = _game_handlers_mod._deflavor("Take a shot!")
+                _dc_audio = await asyncio.get_event_loop().run_in_executor(
+                    _tts_executor, lambda: tts.synthesize_user(_dc_text))
+                shot_event_manager.set_drink_cue(_dc_text, _dc_audio)
+            except Exception as _e:
+                logger.error(f"Failed to pre-cache drink cue: {_e}")
+            logger.info("Shot event countdown + drink cue audio pre-cached")
         except Exception as e:
             logger.error(f"Failed to pre-cache countdown audio: {e}")
     
@@ -1286,6 +1296,25 @@ async def _run_shot_event(event):
                     # countdown by the audio, not a fixed 1s) so visual + voice stay together.
                     _cd_dur = max(0.85, (len(audio_bytes) - 44) / 48000.0) if audio_bytes else 1.0
                     await asyncio.sleep(_cd_dur)
+
+                # The instant "Take a shot!" cue — precached, so it lands the moment
+                # the countdown hits 1 (no synth freeze). Celebratory events only;
+                # solemn/memorial countdowns don't get a drink cue.
+                if event.tone in ("fun", "celebratory", "party"):
+                    _dc = shot_event_manager.get_drink_cue()
+                    if _dc and _dc.get("audio") and _active_ws:
+                        try:
+                            async with _ws_send_lock:
+                                if _active_ws is not None:
+                                    await _active_ws.send_json({
+                                        "type": "memorial_event", "phase": "toast",
+                                        "text": _dc["text"], "name": event.display_name or event.name,
+                                        "tone": event.tone, "image_file": event.image_file,
+                                    })
+                                    await _active_ws.send_bytes(_dc["audio"])
+                        except Exception as e:
+                            logger.error(f"[SHOT_EVENT] drink cue send error: {e}")
+                        await asyncio.sleep(max(0.6, (len(_dc["audio"]) - 44) / 48000.0))
                 continue
 
             # Handle music phase
@@ -1307,8 +1336,14 @@ async def _run_shot_event(event):
                             await _active_ws.send_json(event_data)
                 except Exception as e:
                     logger.error(f"[SHOT_EVENT] Send error for music phase: {e}")
-                
-                await asyncio.sleep(event.music_duration)
+
+                if event.tone in ("fun", "celebratory", "party"):
+                    # Start the music and let her toast/speech play OVER it — don't
+                    # block for the whole song. The client keeps playing the track.
+                    await asyncio.sleep(1.5)
+                else:
+                    # Solemn/memorial: hold for the full track (moment with the music).
+                    await asyncio.sleep(event.music_duration)
                 continue
 
             # Handle text-based phases

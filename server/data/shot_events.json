@@ -70,8 +70,8 @@
       "phases": [
         "announcement",
         "countdown",
-        "toast",
         "music",
+        "toast",
         "recovery"
       ],
       "announcement_text": "Attention everyone! Mario has a very special toast! This one goes out to the heroes of the Dark World, Deltarune!",
