@@ -112,6 +112,10 @@ class MarioClient:
         if party_theme:
             self.display.set_party_name(party_theme)
 
+        # Label for her lines in the chat backlog (F3)
+        if hasattr(self.display, "set_chat_char_name"):
+            self.display.set_chat_char_name(_character.name)
+
         self._running = False
         self._audio_thread = None
         self._health_thread = None
@@ -133,6 +137,7 @@ class MarioClient:
         self.ws.on_character_switched = self._on_character_switched
         self.ws.on_mirror_request = self._on_mirror_request
         self.ws.on_set_volume = self._on_set_volume
+        self.ws.on_user_message = self._on_user_message
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -287,6 +292,11 @@ class MarioClient:
 
             time.sleep(0.01)
 
+    def _on_user_message(self, text):
+        """Guest's own line (echoed by the server) — add to the chat backlog."""
+        if text:
+            self.display.add_chat_message("user", text)
+
     def _on_mario_text(self, text: str, metadata: dict = None):
         """Called when Mario has something to say."""
         # Cancel any pending audio-wait thread from previous text
@@ -303,7 +313,11 @@ class MarioClient:
         self.display.set_mario_text(text)
         self.display.set_state(STATE_TALKING)
         self.display._speaking = True
-        
+
+        # Log her line to the chat backlog (skip thinking-filler placeholders)
+        if not (metadata or {}).get("is_thinking_filler"):
+            self.display.add_chat_message("mario", text, full_text=(metadata or {}).get("full_text"))
+
         # Don't set closed captions for regular speech — speech bubble already shows it.
         # Captions are only used during events (set in _on_memorial_event).
 

@@ -10,6 +10,7 @@ import string
 import time
 import pygame
 from closed_captions import ClosedCaptions
+from chat_backlog import _clamp_chat_scroll, _wrap_text
 
 DEBUG_DISPLAY = True
 logger = logging.getLogger(__name__)
@@ -315,10 +316,14 @@ class MarioDisplay:
         self._render_w = WINDOW_WIDTH
         self._render_h = WINDOW_HEIGHT
 
-        # Chat history sidebar (F3 toggle)
-        self._chat_history = []  # List of {"role": "mario"|"user", "text": str}
+        # Chat backlog (F3) — full-session, scrollable visual-novel log
+        self._chat_history = []  # {"role","text","full_text","time"}
         self._show_chat_history = False
-        self._MAX_CHAT_HISTORY = 20
+        self._chat_scroll = 0           # lines scrolled up from newest (0 = bottom)
+        self._chat_total_lines = 0      # set during render, for scroll clamping
+        self._chat_viewport_lines = 1
+        self._chat_char_name = "AI"     # label for her lines; set by client
+        self._MAX_CHAT_HISTORY = 10000  # whole session, effectively uncapped
 
         # Panic mode (Konami-like sequence: Up Up Down Down Left Right)
         self._panic_mode = False
@@ -634,9 +639,24 @@ class MarioDisplay:
                 if event.type == pygame.QUIT:
                     self._running = False
                     return False
+                if event.type == pygame.MOUSEWHEEL and self._show_chat_history:
+                    # Wheel up (y>0) -> older lines; down -> newer.
+                    self._chat_scroll = _clamp_chat_scroll(
+                        self._chat_scroll + event.y * 3,
+                        self._chat_total_lines, self._chat_viewport_lines)
+                    continue
                 if event.type == pygame.KEYDOWN:
+                    # Chat backlog scrolling — only while the log overlay is open
+                    if self._show_chat_history and event.key in (
+                        pygame.K_UP, pygame.K_DOWN, pygame.K_PAGEUP,
+                        pygame.K_PAGEDOWN, pygame.K_HOME, pygame.K_END,
+                    ):
+                        self._scroll_chat_log(event.key)
+                        continue
                     if event.key == pygame.K_ESCAPE:
-                        if self.keyboard_mode:
+                        if self._show_chat_history:
+                            self._show_chat_history = False
+                        elif self.keyboard_mode:
                             self.keyboard_mode = False
                             self._keyboard_text = ""
                         else:
@@ -649,6 +669,7 @@ class MarioDisplay:
                         self._show_help = not self._show_help
                     elif event.key == pygame.K_F3:
                         self._show_chat_history = not self._show_chat_history
+                        self._chat_scroll = 0  # open at newest
                     elif event.key == pygame.K_F4:
                         self._health_visible = not self._health_visible
                     elif event.key == pygame.K_F5:
@@ -847,15 +868,27 @@ class MarioDisplay:
         self._typewriter_speed = max(0.15, min(8.0, speed))
         self._typewriter_audio_synced = True
 
-    def add_chat_message(self, role, text):
-        """Add a message to chat history. role is 'mario' or 'user'."""
+    def add_chat_message(self, role, text, full_text=None):
+        """Add a message to the chat backlog. role is 'mario' or 'user'.
+
+        full_text is the complete "what she meant to say" reply (may be longer
+        than the spoken `text`); defaults to text when not provided.
+        """
         if not isinstance(text, str):
             text = str(text) if text is not None else ""
         if not isinstance(role, str):
             role = str(role) if role is not None else "unknown"
-        self._chat_history.append({"role": role, "text": text, "time": time.time()})
+        if not isinstance(full_text, str) or not full_text.strip():
+            full_text = text
+        self._chat_history.append({"role": role, "text": text,
+                                   "full_text": full_text, "time": time.time()})
         if len(self._chat_history) > self._MAX_CHAT_HISTORY:
             self._chat_history.pop(0)
+
+    def set_chat_char_name(self, name):
+        """Set the display label for her lines in the backlog (e.g. 'March')."""
+        if name and isinstance(name, str):
+            self._chat_char_name = name.strip()
 
     def set_subtitle(self, text: str):
         """Set subtitle text (what the user said). Auto-clears after 5 seconds."""
@@ -2159,38 +2192,95 @@ class MarioDisplay:
         except Exception:
             pass  # Never crash the display for a banner
 
+    def _scroll_chat_log(self, key):
+        """Adjust the backlog scroll offset for a navigation key, then clamp."""
+        page = max(1, self._chat_viewport_lines - 1)
+        if key == pygame.K_UP:
+            self._chat_scroll += 1
+        elif key == pygame.K_DOWN:
+            self._chat_scroll -= 1
+        elif key == pygame.K_PAGEUP:
+            self._chat_scroll += page
+        elif key == pygame.K_PAGEDOWN:
+            self._chat_scroll -= page
+        elif key == pygame.K_HOME:
+            self._chat_scroll = self._chat_total_lines   # clamp pins to oldest
+        elif key == pygame.K_END:
+            self._chat_scroll = 0                        # newest
+        self._chat_scroll = _clamp_chat_scroll(
+            self._chat_scroll, self._chat_total_lines, self._chat_viewport_lines)
+
     def _draw_chat_history(self, surface):
-        """Draw scrollable chat log on right side."""
-        if not self._show_chat_history or not self._chat_history or not self._font_small:
+        """Full-screen scrollable visual-novel backlog (F3).
+
+        Whole session, both sides, newest at the bottom, using the full
+        "meant to say" text. Scroll: arrows / PgUp / PgDn / Home / End / wheel.
+        Esc or F3 closes.
+        """
+        if not self._show_chat_history or not self._font_small:
             return
-        panel_w = 280
-        panel_x = surface.get_width() - panel_w - 10
-        panel_y = getattr(self, '_banner_bottom', 48) + 4
-        panel_h = surface.get_height() - 120
-        # Semi-transparent background
+        W, H = surface.get_width(), surface.get_height()
+        margin = 40
+        panel_x, panel_y = margin, margin
+        panel_w, panel_h = W - margin * 2, H - margin * 2
         try:
             overlay = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 180))
+            overlay.fill((10, 10, 24, 235))
             surface.blit(overlay, (panel_x, panel_y))
+            pygame.draw.rect(surface, (255, 215, 0), (panel_x, panel_y, panel_w, panel_h), 2)
         except Exception:
             return
-        # Title
-        title_font = self._chat_title_font or pygame.font.SysFont("arial", 16, bold=True)
-        title = title_font.render("Chat History (F3)", True, (255, 215, 0))
-        surface.blit(title, (panel_x + 10, panel_y + 5))
-        # Messages (newest at bottom)
-        msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 13)
-        y_offset = panel_y + 30
-        from datetime import datetime as _dt
-        for msg in self._chat_history[-12:]:  # Show last 12
-            color = (144, 238, 144) if msg["role"] == "mario" else (173, 216, 230)
-            prefix = "M:" if msg["role"] == "mario" else "U:"
-            ts = msg.get("time")
-            ts_str = _dt.fromtimestamp(ts).strftime("%H:%M") if ts else ""
-            text = f"{ts_str} {prefix} {msg['text'][:40]}{'...' if len(msg['text']) > 40 else ''}"
-            rendered = msg_font.render(text, True, color)
-            surface.blit(rendered, (panel_x + 10, y_offset))
-            y_offset += 22
+
+        title_font = self._chat_title_font or pygame.font.SysFont("arial", 18, bold=True)
+        msg_font = self._chat_msg_font or pygame.font.SysFont("arial", 15)
+        title = title_font.render(
+            "Chat Log  -  arrows / wheel / PgUp / PgDn / Home / End,  Esc closes",
+            True, (255, 215, 0))
+        surface.blit(title, (panel_x + 16, panel_y + 10))
+
+        line_h = msg_font.get_height() + 2
+        content_x = panel_x + 16
+        content_top = panel_y + 44
+        content_bottom = panel_y + panel_h - 12
+        viewport_lines = max(1, (content_bottom - content_top) // line_h)
+        char_w = max(1, msg_font.size("m")[0])
+        max_chars = max(8, (panel_w - 36) // char_w)
+
+        # Flatten the whole history into colored display lines, oldest -> newest.
+        disp = []  # (color, text)
+        for m in self._chat_history:
+            role = m.get("role", "")
+            who = self._chat_char_name if role == "mario" else (
+                "You" if role == "user" else (role.title() or "?"))
+            color = (152, 251, 152) if role == "mario" else (135, 206, 250)
+            body = m.get("full_text") or m.get("text") or ""
+            for ln in _wrap_text(f"{who}: {body}", max_chars):
+                disp.append((color, ln))
+            disp.append(((120, 120, 140), ""))  # blank spacer between turns
+
+        total = len(disp)
+        self._chat_total_lines = total
+        self._chat_viewport_lines = viewport_lines
+        scroll = _clamp_chat_scroll(self._chat_scroll, total, viewport_lines)
+        self._chat_scroll = scroll
+
+        if total == 0:
+            surface.blit(msg_font.render("(no messages yet)", True, (160, 160, 170)),
+                         (content_x, content_top))
+            return
+
+        end = total - scroll
+        start = max(0, end - viewport_lines)
+        y = content_top
+        for color, ln in disp[start:end]:
+            if ln:
+                surface.blit(msg_font.render(ln, True, color), (content_x, y))
+            y += line_h
+
+        if scroll > 0:
+            tag = msg_font.render(f"v {scroll} newer line(s) below", True, (255, 200, 80))
+            surface.blit(tag, (panel_x + panel_w - tag.get_width() - 16,
+                               panel_y + panel_h - line_h - 6))
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,

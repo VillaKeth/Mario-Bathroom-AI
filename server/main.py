@@ -3664,6 +3664,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_energy = None
     _was_llm_response = False  # Track if response came from LLM vs canned fallback
 
+    # Echo the guest's own line to the client so it shows in the chat backlog
+    # ("both sides"). Only real user input — not internal greeting/face triggers.
+    if text and source in ("text", "audio"):
+        try:
+            await ws.send_json({"type": "user_message", "text": text})
+        except Exception as e:
+            logger.debug(f"[WS] user_message echo failed: {e}")
+
     # Safety check
     _t0 = time.time()
     safety = check_input(text)
