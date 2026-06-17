@@ -33,9 +33,46 @@ inside and does **not** start with `_` (those are shared, e.g. `_shared`).
 
 Default if the field is missing or invalid → `mario`.
 
-### The fast way: live hot-swap (no restart)
+### The easy way: the Control Panel (`/control`)
 
-There's an admin endpoint that swaps mid-session without restarting:
+To press buttons instead of running commands, open the admin control panel:
+
+```
+http://localhost:8765/control       (local)
+https://<your-tunnel-url>/control    (remote, over the Cloudflare tunnel)
+```
+
+Paste the **admin key** (`admin_api_key` from `config.json`) and press **Connect**.
+The key is stored only in your browser and sent with every action — the page bakes
+in no secrets, so the URL is useless to anyone without the key. (This is the *admin*
+key, not the guest mirror PIN.)
+
+Everything on the panel is gated by that key:
+
+| Control | What it does | Applies |
+|---|---|---|
+| **🎭 Character** | Dropdown + *Switch now (live)* or *Switch & Restart* | live / full reload |
+| **⚙️ Safe settings** | Idle chatter on/off, idle "use-the-AI" chance, idle min/max seconds | on restart |
+| **🔊 Volume** | Slider 0–2× — sets the bot's speaker volume on the party machine | live |
+| **🌙 Night phase** | Force WARM_UP / PARTY_MODE / UNHINGED / WIND_DOWN, or AUTO | live |
+| **🔁 Restart** | Reboots the server (type `RESTART` to confirm) | ~30–60s down |
+
+Notes:
+- **Switch now vs Switch & Restart** — "now" changes voice + personality instantly;
+  "& Restart" also fully reloads the new character's memory, VIPs, and lore (see the
+  reload-vs-restart tables below).
+- **Volume** is the connected display's playback gain (loudness) — a character's
+  actual *voice* is still set in its folder.
+- **Night phase** normally advances on its own by party time; forcing a phase
+  overrides the clock until you set it back to AUTO.
+- **Restart** only brings the server back if it was launched via `start_server.bat`
+  (or `start.bat`), which run it in a supervised loop. Launched another way → it
+  exits and stays down.
+
+### The scripting way: admin endpoints (curl)
+
+The panel buttons just call these endpoints — handy for scripts. The character
+swap is mid-session, no restart:
 
 ```bash
 # List available characters + see the current one:
@@ -198,8 +235,12 @@ content edit: **restart the server** to make it take effect.
 
 | I want to… | Do this |
 |---|---|
-| Switch character for the party (do it right) | Edit `config.json` `character` → restart |
-| Switch character live as a gag/demo | `POST /admin/switch_character` |
+| Manage the bot by clicking buttons (local or remote) | Open `/control`, paste the admin key |
+| Switch character for the party (do it right) | Edit `config.json` `character` → restart — or `/control` → *Switch & Restart* |
+| Switch character live as a gag/demo | `/control` → *Switch now*, or `POST /admin/switch_character` |
+| Turn the bot's volume up/down remotely | `/control` → Volume slider |
+| Force / unstick the party mood (night phase) | `/control` → Night phase (AUTO = back to automatic) |
+| Reboot the server from my phone | `/control` → Restart (type `RESTART`) |
 | Give a character world/backstory knowledge | `memories/hsr_lore.yaml` → restart |
 | Make it remember a specific person | `memories/vip_profiles/<name>.json` → restart |
 | Change how it talks/feels | `prompts/system_prompt.md` + `personality:` block → restart |
