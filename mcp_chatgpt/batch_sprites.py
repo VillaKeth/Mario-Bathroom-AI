@@ -26,7 +26,6 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:           # allow running as a plain script file
     sys.path.insert(0, str(ROOT))
 
-from mcp_chatgpt import selectors  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.parsing import parse_reset_seconds  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.rotation import AccountPool  # noqa: E402 (after sys.path setup)
@@ -131,7 +130,7 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
         msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
         if imgs:
             return imgs[0], "ok", msg, thread_id
-        if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+        if any(m.lower() in msg.lower() for m in session.site.usage_limit_markers):
             return None, "cap", msg, thread_id
         print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
     return None, "refused", msg, thread_id
