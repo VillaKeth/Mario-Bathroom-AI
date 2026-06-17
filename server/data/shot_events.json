@@ -54,7 +54,8 @@
       "countdown": true,
       "music_file": "client/assets/audio/jacob_birthday.mp3",
       "music_duration": 30,
-      "image_file": "client/assets/images/jacob.jpg"
+      "image_file": "client/assets/images/jacob.jpg",
+      "repeatable": true
     },
     {
       "name": "deltarune",
@@ -79,7 +80,8 @@
       "countdown": true,
       "music_file": "client/assets/audio/deltarune_hopes_dreams.mp3",
       "music_duration": 90,
-      "image_file": "assets/event_images/deltarune.png"
+      "image_file": "assets/event_images/deltarune.png",
+      "repeatable": true
     },
     {
       "name": "mario_kart",

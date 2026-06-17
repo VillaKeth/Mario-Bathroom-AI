@@ -1256,6 +1256,7 @@ async def _run_shot_event(event):
                             "text": countdown_text,
                             "name": event.display_name or event.name,
                             "tone": event.tone,
+                            "image_file": event.image_file,
                         }
                         
                         try:
@@ -1266,7 +1267,10 @@ async def _run_shot_event(event):
                         except Exception as e:
                             logger.error(f"[SHOT_EVENT] Send error for countdown {countdown_text}: {e}")
                     
-                    await asyncio.sleep(1.0)  # 1 second between countdown numbers
+                    # Pace by the number's actual spoken length (gates the
+                    # countdown by the audio, not a fixed 1s) so visual + voice stay together.
+                    _cd_dur = max(0.85, (len(audio_bytes) - 44) / 48000.0) if audio_bytes else 1.0
+                    await asyncio.sleep(_cd_dur)
                 continue
 
             # Handle music phase
@@ -1322,20 +1326,17 @@ async def _run_shot_event(event):
                 except Exception as e:
                     logger.error(f"[SHOT_EVENT] Send error for {phase_name}: {e}")
                 
-                # Add phase-specific delays (long enough for text to be read)
+                # Gate each phase on how long she ACTUALLY speaks it (measured from
+                # the audio bytes), plus a small buffer — so the on-screen text and
+                # the next phase never run ahead of her voice (which caused the
+                # "wrong order" feeling). 24kHz mono 16-bit PCM -> bytes/48000.
+                _audio_dur = max(0.5, (len(audio_bytes) - 44) / 48000.0) if audio_bytes else 1.0
                 if phase_name == "silence":
-                    await asyncio.sleep(5.0)  # 5 second silence
+                    await asyncio.sleep(_audio_dur + 5.0)   # speak, then a real moment of silence
                 elif phase_name == "recovery":
-                    await asyncio.sleep(15.0)  # 15 second cooldown
-                elif phase_name == "announcement":
-                    # Wait long enough for announcement TTS to finish + reading time
-                    audio_est = len(phase_text.split()) / 2.5  # ~2.5 words/sec
-                    await asyncio.sleep(max(5.0, audio_est + 2.0))
-                elif phase_name == "toast":
-                    audio_est = len(phase_text.split()) / 2.5
-                    await asyncio.sleep(max(5.0, audio_est + 2.0))
+                    await asyncio.sleep(_audio_dur + 2.0)
                 else:
-                    await asyncio.sleep(3.0)  # Default 3 second pause
+                    await asyncio.sleep(_audio_dur + 1.5)
         
         logger.info(f"[SHOT_EVENT] {event.name} complete")
         
