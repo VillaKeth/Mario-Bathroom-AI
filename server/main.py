@@ -2559,6 +2559,57 @@ async def admin_restart(request_body: dict = {}):
     return {"status": "ok", "message": "Restarting now — this page reconnects in ~30-60s."}
 
 
+@app.post("/admin/set_volume")
+async def admin_set_volume(request_body: dict = {}):
+    """Admin: set the client's playback volume remotely (gain 0.0-2.0, 1.0 = normal).
+
+    Pushed to the connected client over the WebSocket; the client applies it to
+    its audio output gain. No effect (and reported) if no client is connected."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    try:
+        gain = float(request_body.get("gain"))
+    except (TypeError, ValueError):
+        return {"status": "error", "message": "gain must be a number 0.0-2.0"}
+    if gain < 0.0 or gain > 2.0:
+        return {"status": "error", "message": "gain out of range 0.0-2.0"}
+    if not _active_ws:
+        return {"status": "error", "message": "No client connected"}
+    try:
+        await _active_ws.send_json({"type": "set_volume", "gain": gain})
+    except Exception as e:
+        return {"status": "error", "message": f"send failed: {e}"}
+    logger.info(f"[ADMIN] set_volume -> {gain:.2f}")
+    return {"status": "ok", "gain": gain}
+
+
+@app.post("/admin/set_night_phase")
+async def admin_set_night_phase(request_body: dict = {}):
+    """Admin: force a party night phase, or 'AUTO' to return to automatic
+    (time + guest) progression. The override wins over the clock everywhere
+    (personality, guardrails, idle)."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    name = (request_body.get("phase") or "").strip().upper()
+    valid = {"WARM_UP", "PARTY_MODE", "UNHINGED", "WIND_DOWN"}
+    if name == "AUTO":
+        night_progression.clear_phase_override()
+    elif name in valid:
+        night_progression.set_phase_override(Phase[name])
+    else:
+        return {"status": "error", "message": f"phase must be AUTO or one of {sorted(valid)}"}
+    try:
+        hours = night_progression.get_hours_elapsed()
+        eff = night_progression.get_effective_phase(hours, party_gossip.get_guest_count())
+        eff_name = eff.name
+    except Exception:
+        eff_name = name
+    logger.info(f"[ADMIN] set_night_phase -> override={name} effective={eff_name}")
+    return {"status": "ok", "override": name, "effective_phase": eff_name}
+
+
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
 
 @app.get("/tts")

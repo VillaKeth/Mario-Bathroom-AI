@@ -32,6 +32,31 @@ def test_phase_4_at_7_5_hours(progression):
     assert progression.get_time_phase(7.5) == Phase.WIND_DOWN
 
 
+# --- Manual phase override (admin force via /control) ---
+
+def test_phase_override_forces_time_phase(progression):
+    """An override is returned regardless of elapsed hours."""
+    progression.set_phase_override(Phase.UNHINGED)
+    assert progression.get_time_phase(0.0) == Phase.UNHINGED
+    assert progression.get_time_phase(7.5) == Phase.UNHINGED
+
+
+def test_phase_override_bypasses_guest_cap(progression):
+    """A forced phase ignores the low-turnout energy cap."""
+    progression.set_phase_override(Phase.UNHINGED)
+    # hours=0 + 1 guest is normally WARM_UP (energy cap); the override wins.
+    assert progression.get_effective_phase(0.0, 1) == Phase.UNHINGED
+
+
+def test_phase_override_clear_reverts(progression):
+    """Clearing the override returns to the time/guest-based phases."""
+    progression.set_phase_override(Phase.UNHINGED)
+    assert progression.get_time_phase(0.5) == Phase.UNHINGED
+    progression.clear_phase_override()
+    assert progression.get_time_phase(0.5) == Phase.WARM_UP
+    assert progression.get_effective_phase(6.0, 30) == Phase.UNHINGED
+
+
 # --- Guest energy ---
 
 def test_guest_energy_low(progression):

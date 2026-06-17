@@ -32,6 +32,7 @@ class MarioWSClient:
         self.on_clear_audio = None      # Called when server requests audio interruption
         self.on_character_switched = None  # Called with (data: dict) on hot-swap
         self.on_mirror_request = None   # Called with (active: bool) — start/stop mirror capture
+        self.on_set_volume = None       # Called with (gain: float) — remote volume set
         self.on_connected = None
         self.on_disconnected = None
 
@@ -188,6 +189,12 @@ class MarioWSClient:
                         logger.info(f"[DEBUG_WS] mirror_request active={active}")
                     if self.on_mirror_request:
                         self.on_mirror_request(active)
+
+                elif msg_type == "set_volume":
+                    if DEBUG_WS:
+                        logger.info(f"[DEBUG_WS] set_volume gain={data.get('gain')}")
+                    if self.on_set_volume:
+                        self.on_set_volume(data.get("gain"))
 
             except json.JSONDecodeError as e:
                 logger.error(f"[DEBUG_WS] invalid JSON: {e}")

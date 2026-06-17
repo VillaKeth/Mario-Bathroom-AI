@@ -81,6 +81,28 @@
     <button id="saveSettings" class="ghost">Save settings</button>
   </div>
 
+  <div class="card" id="volCard" style="display:none">
+    <h2>🔊 Volume (live)</h2>
+    <div class="note">Sets the bot's speaker volume on the party machine right now. 1.0 = normal, 2.0 = loud.</div>
+    <label for="vol">Volume: <b><span id="volVal">1.0</span>×</b></label>
+    <input id="vol" type="range" min="0" max="2" step="0.05" value="1.0">
+    <button id="setVol" class="ghost">Set volume</button>
+  </div>
+
+  <div class="card" id="phaseCard" style="display:none">
+    <h2>🌙 Night phase</h2>
+    <div class="note">Auto = advances by party time on its own. Pick one to force it
+      (changes warmth, chaos, gossip &amp; roast level). Takes effect immediately.</div>
+    <select id="phasesel">
+      <option value="AUTO">Auto (by time)</option>
+      <option value="WARM_UP">Warm-up (chill, warm)</option>
+      <option value="PARTY_MODE">Party mode (lively)</option>
+      <option value="UNHINGED">Unhinged (chaotic, roasty)</option>
+      <option value="WIND_DOWN">Wind-down (mellow)</option>
+    </select>
+    <button id="setPhase" class="ghost">Set phase</button>
+  </div>
+
   <div class="card" id="restartCard" style="display:none">
     <h2>🔁 Restart server</h2>
     <div class="note">Type <b>RESTART</b> below to confirm. The bot drops for ~30–60s while it reboots.</div>
@@ -116,7 +138,7 @@ async function post(path, body) {
 }
 
 function showPanels(show) {
-  for (const id of ["charCard", "setCard", "restartCard"])
+  for (const id of ["charCard", "setCard", "volCard", "phaseCard", "restartCard"])
     $(id).style.display = show ? "block" : "none";
 }
 
@@ -169,6 +191,20 @@ async function saveSettings() {
   }
 }
 
+async function setVolume() {
+  const g = parseFloat($("vol").value);
+  const res = await post("/admin/set_volume", { gain: g });
+  log(res.status === "ok" ? `✓ Volume set to ${g.toFixed(2)}×` : "✗ " + (res.message || "failed"),
+      res.status === "ok" ? "ok" : "bad");
+}
+
+async function setPhase() {
+  const p = $("phasesel").value;
+  const res = await post("/admin/set_night_phase", { phase: p });
+  if (res.status !== "ok") { log("✗ " + (res.message || "failed"), "bad"); return; }
+  log(`✓ Phase ${p === "AUTO" ? "set to AUTO" : "forced to " + p} (now: ${res.effective_phase}).`, "ok");
+}
+
 async function restart() {
   const c = $("confirm").value.trim();
   if (c.toUpperCase() !== "RESTART") { log('Type RESTART to confirm.', "bad"); return; }
@@ -181,6 +217,9 @@ $("connect").onclick = connect;
 $("switchLive").onclick = () => doSwitch(false);
 $("switchRestart").onclick = () => doSwitch(true);
 $("saveSettings").onclick = saveSettings;
+$("vol").oninput = () => { $("volVal").textContent = parseFloat($("vol").value).toFixed(2); };
+$("setVol").onclick = setVolume;
+$("setPhase").onclick = setPhase;
 $("restartBtn").onclick = restart;
 // Auto-connect if a key is already saved.
 if (apiKey()) connect();

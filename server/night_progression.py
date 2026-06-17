@@ -73,6 +73,9 @@ class NightProgression:
                     logger.debug(f"[DEBUG_NIGHT] NightProgression.__init__: stale start_time detected ({hours_ago:.1f}h ago), resetting to now")
                 start_time = now
         self._start_time = start_time if start_time is not None else now
+        # Manual phase override set by an admin (via /control). None = automatic
+        # (time + guest driven). When set, it wins over both everywhere.
+        self._phase_override = None
         if DEBUG_NIGHT:
             logger.debug(f"[DEBUG_NIGHT] NightProgression.__init__: start_time={self._start_time}")
 
@@ -80,8 +83,29 @@ class NightProgression:
     def start_time(self) -> float:
         return self._start_time
 
+    @property
+    def phase_override(self):
+        """The forced Phase, or None when running automatically."""
+        return self._phase_override
+
+    def set_phase_override(self, phase: Phase):
+        """Force a specific phase (admin). Wins over time + guest energy until cleared."""
+        self._phase_override = phase
+        if DEBUG_NIGHT:
+            logger.debug(f"[DEBUG_NIGHT] set_phase_override: {phase.name if phase else None}")
+
+    def clear_phase_override(self):
+        """Return to automatic, time/guest-based phase progression."""
+        self._phase_override = None
+        if DEBUG_NIGHT:
+            logger.debug("[DEBUG_NIGHT] clear_phase_override")
+
     def get_time_phase(self, hours_elapsed: float) -> Phase:
-        """Determine phase from elapsed hours: 0-2→WARM_UP, 2-5→PARTY_MODE, 5-7→UNHINGED, 7-8→WIND_DOWN."""
+        """Determine phase from elapsed hours: 0-2→WARM_UP, 2-5→PARTY_MODE, 5-7→UNHINGED, 7-8→WIND_DOWN.
+
+        A manual override (set_phase_override) short-circuits this."""
+        if self._phase_override is not None:
+            return self._phase_override
         if DEBUG_NIGHT:
             logger.debug(f"[DEBUG_NIGHT] get_time_phase: hours_elapsed={hours_elapsed}")
         if hours_elapsed < 2:
@@ -107,7 +131,11 @@ class NightProgression:
             return 4
 
     def get_effective_phase(self, hours_elapsed: float, unique_guests: int) -> Phase:
-        """Effective phase = min(time_phase, guest_energy). Low turnout caps escalation."""
+        """Effective phase = min(time_phase, guest_energy). Low turnout caps escalation.
+
+        A manual override wins outright — a forced phase ignores the guest cap."""
+        if self._phase_override is not None:
+            return self._phase_override
         time_phase = self.get_time_phase(hours_elapsed)
         guest_energy = self.get_guest_energy(unique_guests)
         effective = Phase(min(int(time_phase), guest_energy))

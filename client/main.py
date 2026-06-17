@@ -132,6 +132,7 @@ class MarioClient:
         self.ws.on_clear_audio = self._on_clear_audio
         self.ws.on_character_switched = self._on_character_switched
         self.ws.on_mirror_request = self._on_mirror_request
+        self.ws.on_set_volume = self._on_set_volume
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -768,6 +769,17 @@ class MarioClient:
         self.display.show_volume(new_vol)
         if DEBUG_AUDIO:
             logger.info(f"[DEBUG_AUDIO] Volume changed: {current:.1f} -> {new_vol:.1f}")
+
+    def _on_set_volume(self, gain):
+        """Server-driven absolute volume set (from the admin control page)."""
+        try:
+            new_vol = max(0.0, min(2.0, float(gain)))
+        except (TypeError, ValueError):
+            logger.warning(f"[CLIENT] set_volume ignored bad gain: {gain!r}")
+            return
+        self.audio_playback.set_volume(new_vol)
+        self.display.show_volume(new_vol)
+        logger.info(f"[CLIENT] remote set_volume -> {new_vol:.2f}")
 
     def _on_memorial_skip(self):
         """Called when user presses Ctrl+Shift+L to skip memorial event."""
