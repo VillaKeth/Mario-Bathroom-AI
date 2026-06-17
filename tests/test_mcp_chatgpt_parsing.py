@@ -1,4 +1,5 @@
 from mcp_chatgpt.parsing import parse_thread_id, classify_page_state, parse_reset_seconds
+from mcp_chatgpt.sites import get_site
 
 
 def test_parse_thread_id_basic():
@@ -14,15 +15,15 @@ def test_parse_thread_id_none_when_no_conversation():
 
 
 def test_classify_ok():
-    assert classify_page_state("https://chatgpt.com/c/x", "normal page body") == "ok"
+    assert classify_page_state("https://chatgpt.com/c/x", "normal page body", get_site("chatgpt")) == "ok"
 
 
 def test_classify_login_by_url():
-    assert classify_page_state("https://auth.openai.com/auth/login", "") == "login"
+    assert classify_page_state("https://auth.openai.com/auth/login", "", get_site("chatgpt")) == "login"
 
 
 def test_classify_challenge_by_body():
-    assert classify_page_state("https://chatgpt.com/", "Just a moment...") == "challenge"
+    assert classify_page_state("https://chatgpt.com/", "Just a moment...", get_site("chatgpt")) == "challenge"
 
 
 def test_reset_seconds_minutes():
@@ -57,3 +58,18 @@ def test_reset_seconds_real_free_plan_message():
 
 def test_reset_seconds_none_when_absent():
     assert parse_reset_seconds("You've reached your limit, come back later") is None
+
+
+def test_classify_login_with_site():
+    s = get_site("chatgpt")
+    assert classify_page_state("https://auth.openai.com/auth/login", "", s) == "login"
+
+
+def test_classify_challenge_with_site():
+    s = get_site("chatgpt")
+    assert classify_page_state("https://chatgpt.com/", "Just a moment...", s) == "challenge"
+
+
+def test_classify_ok_with_site():
+    s = get_site("chatgpt")
+    assert classify_page_state("https://chatgpt.com/c/x", "hello", s) == "ok"
