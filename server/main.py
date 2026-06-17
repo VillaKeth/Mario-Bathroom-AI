@@ -4820,7 +4820,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Guard against None response_text from any failure path
     if not response_text:
         response_text = "Let's keep talking! What's on your mind?"
-    response_text = filter_response(response_text)
+    _raw_response = response_text
+    response_text = filter_response(_raw_response)
+    # Uncapped clean version for the chat backlog ("what she meant to say").
+    _full_clean = filter_response(_raw_response, cap=False)
     response_text = mario_prompt.maybe_add_question(response_text, text)
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
     response_text = mario_prompt.check_opener_variety(response_text)
@@ -4857,6 +4860,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     mario_prompt.track_catchphrase(response_text)
 
     analyzed = analyze_text(response_text)
+    # Full "meant to say" text for the chat backlog: the uncapped clean reply,
+    # stripped of the trailing emotion JSON. Guarded so it's never shorter than
+    # the spoken text (an uncapped reply may gain appended flavor downstream).
+    _full_display = (analyze_text(_full_clean).get("display_text") or "").strip()
+    analyzed["full_text"] = (_full_display
+                             if len(_full_display) > len(analyzed.get("display_text", ""))
+                             else analyzed.get("display_text", ""))
     # Use reaction suggestion to enhance pose if none detected
     if not analyzed.get("pose_hint"):
         reaction = mario_prompt.suggest_reaction(text)
@@ -4978,7 +4988,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     await send_response(ws, analyzed["display_text"], first_audio,
                         sound=game_sound, emotion=response_emotion or emotion_system.current,
                         pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
-                        particle_effect=particle,
+                        particle_effect=particle, full_text=analyzed.get("full_text"),
                         chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
                     streamed = True
 
@@ -5038,7 +5048,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         await send_response(ws, analyzed["display_text"], response_audio,
             sound=game_sound, emotion=response_emotion or emotion_system.current,
             pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
-            particle_effect=particle)
+            particle_effect=particle, full_text=analyzed.get("full_text"))
 
     # Track response time with breakdown
     _timing["tts_ms"] = int((time.time() - _t_tts) * 1000)
@@ -6013,14 +6023,22 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         pose_hint: str = None, response_time: float = None,
                         particle_effect: str = None,
                         chunk_index: int = None, total_chunks: int = None,
-                        is_last: bool = None, is_idle: bool = False):
-    """Send Mario's response (text + audio + metadata) to the client."""
+                        is_last: bool = None, is_idle: bool = False,
+                        full_text: str = None):
+    """Send Mario's response (text + audio + metadata) to the client.
+
+    full_text is the complete untruncated reply for the chat backlog ("what she
+    meant to say"); the spoken/displayed `text` may be capped. Defaults to text.
+    """
     # Trigger server-side sound effect (non-blocking, fire-and-forget)
     if sound:
         sound_events.trigger(sound)
     msg = {
         "type": "mario_response",
         "text": text,
+        # Full untruncated reply for the chat backlog ("what she meant to say").
+        # Falls back to the spoken text for short/canned sends.
+        "full_text": full_text if full_text is not None else text,
         "has_audio": audio is not None and len(audio) > 0,
         "sound_effect": sound,
         "emotion": emotion or emotion_system.current,
