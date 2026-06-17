@@ -856,8 +856,12 @@ class MarioDisplay:
         self._current_page = 0
         self._page_transition_alpha = 255
         self._page_transition_frame = 0
-        if text:
-            self.add_chat_message("mario", text)
+        # Do NOT log to the chat backlog here. set_mario_text shows EVERYTHING in
+        # the bubble — including system status ("Connecting…", "Waiting…", filler
+        # "Hmm, let me think…") — so logging here both double-logged real replies
+        # (main.py _on_mario_text already logs them) and spammed the backlog with
+        # status/"..." lines. _on_mario_text is the single source (filler-filtered,
+        # carries full_text).
 
     def sync_typewriter_to_audio(self, duration_seconds: float):
         """Adjust typewriter speed so text finishes slightly before audio ends.
