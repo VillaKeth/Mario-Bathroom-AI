@@ -11,3 +11,5 @@ prompt_rules: []
 # voice.pronunciation rule overrides an entry here on conflict.
 pronunciation:
   Hoppenstedt: Hoppenstead
+  # Deltarune cast (shot event) — spoken phonetically for every character.
+  Ralsei: Rallsay
