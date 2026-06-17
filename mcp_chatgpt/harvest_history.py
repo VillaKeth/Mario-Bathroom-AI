@@ -59,7 +59,7 @@ async def _download(page, src, dst: Path):
 async def run(account: str, limit: int, download: bool) -> None:
     pw = await async_playwright().start()
     ctx = await pw.chromium.launch_persistent_context(
-        profile_dir(account), channel="chrome", headless=False,
+        profile_dir("chatgpt", account), channel="chrome", headless=False,
         args=["--disable-blink-features=AutomationControlled"],
     )
     try:

@@ -17,7 +17,7 @@ from mcp_chatgpt.browser import DEFAULT_ACCOUNT, profile_dir
 
 
 async def main(account: str) -> None:
-    pdir = profile_dir(account)
+    pdir = profile_dir("chatgpt", account)
     os.makedirs(pdir, exist_ok=True)
     pw = await async_playwright().start()
     ctx = await pw.chromium.launch_persistent_context(
