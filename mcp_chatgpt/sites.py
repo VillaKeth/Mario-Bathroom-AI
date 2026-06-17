@@ -49,6 +49,39 @@ SITES = {
             "[data-testid='paragen-prefer-button']",
         ),
     ),
+    # SCAFFOLD — selectors are best-effort guesses; verify live against the
+    # logged-in site and fix before trusting (composer, send, assistant turn,
+    # the real generated-image src host, login/cap wording).
+    "grok": Site(
+        url="https://grok.com/",
+        composer="textarea, [contenteditable='true']",
+        send_button="button[type='submit'], button[aria-label*='Send' i]",
+        stop_button="button[aria-label*='Stop' i]",
+        assistant_turn="[data-testid*='message'], .message-bubble",
+        generated_image_markers=("assets.grok.com", "imggen", "grok-attachments"),
+        login_url_fragment="/sign-in",
+        challenge_text_markers=("Verify you are human", "Just a moment"),
+        usage_limit_markers=("rate limit", "try again later", "out of",
+                             "limit reached", "upgrade to"),
+        refusal_markers=("can't help with that", "i can't create"),
+    ),
+    # SCAFFOLD — verify live (Gemini uses a Quill div.ql-editor composer +
+    # <model-response> turns; confirm the real image host).
+    "gemini": Site(
+        url="https://gemini.google.com/app",
+        composer="div.ql-editor[contenteditable='true'], textarea",
+        send_button="button[aria-label*='Send' i], button.send-button",
+        stop_button="button[aria-label*='Stop' i]",
+        assistant_turn="model-response, .model-response-text",
+        generated_image_markers=("googleusercontent.com", "generativelanguage",
+                                 "lh3.google"),
+        login_url_fragment="accounts.google.com",
+        challenge_text_markers=("Verify it's you", "unusual traffic"),
+        usage_limit_markers=("you've reached your limit", "try again later",
+                             "limit for", "upgrade"),
+        refusal_markers=("i can't create", "i'm not able to generate",
+                         "can't help with that"),
+    ),
 }
 
 
