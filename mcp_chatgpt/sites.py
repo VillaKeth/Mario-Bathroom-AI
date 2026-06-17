@@ -20,6 +20,10 @@ class Site:
     refusal_markers: tuple = ()
     response_picker_markers: tuple = ()
     response_picker_buttons: tuple = ()
+    # Assistant-text substrings that mean "still generating" (lowercased match).
+    # For providers with no Stop button (gemini shows "Creating your image..."
+    # while the image renders) this keeps the wait loop from finishing early.
+    generating_text_markers: tuple = ()
 
 
 SITES = {
@@ -69,18 +73,21 @@ SITES = {
     # <model-response> turns; confirm the real image host).
     "gemini": Site(
         url="https://gemini.google.com/app",
-        composer="div.ql-editor[contenteditable='true'], textarea",
-        send_button="button[aria-label*='Send' i], button.send-button",
-        stop_button="button[aria-label*='Stop' i]",
-        assistant_turn="model-response, .model-response-text",
-        generated_image_markers=("googleusercontent.com", "generativelanguage",
-                                 "lh3.google"),
+        composer="div.ql-editor",
+        send_button="",                       # no Send button; submit via Enter
+        stop_button="",                       # no reliable Stop selector; rely on stability
+        assistant_turn="model-response",
+        # Gemini renders a generated image as a blob: URL (avatars are lh3.*, so
+        # markers must NOT match those). Verified live 2026-06-17.
+        generated_image_markers=("blob:",),
         login_url_fragment="accounts.google.com",
         challenge_text_markers=("Verify it's you", "unusual traffic"),
         usage_limit_markers=("you've reached your limit", "try again later",
                              "limit for", "upgrade"),
         refusal_markers=("i can't create", "i'm not able to generate",
                          "can't help with that"),
+        generating_text_markers=("creating your image", "creating image",
+                                 "generating", "working on", "let me create"),
     ),
 }
 

@@ -121,6 +121,14 @@ class ChatGPTSession:
         turns = await page.query_selector_all(self.site.assistant_turn)
         text = await turns[-1].inner_text() if turns else ""
         new_imgs = await self._new_generated_image_els(page, baseline)
+        # "Creating your image..." placeholder text means it's STILL working even
+        # with no Stop button — but ONLY while no image has appeared yet. Once the
+        # image is present we let the normal ready-check finish the wait, so a
+        # lingering placeholder doesn't loop us to the timeout.
+        if not generating and not new_imgs and self.site.generating_text_markers:
+            low = (text or "").lower()
+            if any(m in low for m in self.site.generating_text_markers):
+                generating = True
         ready = True
         for _src, img in new_imgs:
             ok = await page.evaluate("e => e.complete && e.naturalWidth > 0", img)
