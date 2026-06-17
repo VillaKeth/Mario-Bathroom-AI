@@ -768,7 +768,8 @@ class MarioDisplay:
                         }
                         prompt = game_prompts[event.key]
                         if self.on_keyboard_submit:
-                            self.add_chat_message("user", prompt)
+                            # Logged once via the server's user_message echo —
+                            # don't add locally too (was double-logging).
                             self.on_keyboard_submit(prompt)
                             self.set_subtitle(f"🎮 {prompt}")
                     elif self.keyboard_mode:
@@ -807,7 +808,7 @@ class MarioDisplay:
         """Handle keyboard input when in keyboard mode."""
         if event.key == pygame.K_RETURN:
             if self._keyboard_text.strip() and self.on_keyboard_submit:
-                self.add_chat_message("user", self._keyboard_text.strip())
+                # Logged once via the server's user_message echo (not locally too).
                 self.on_keyboard_submit(self._keyboard_text.strip())
                 self.subtitle_text = self._keyboard_text.strip()
                 self._keyboard_text = ""
