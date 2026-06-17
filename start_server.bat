@@ -58,5 +58,19 @@ echo   Health check: http://localhost:8765/health
 echo ===================================
 echo.
 cd /d "%~dp0server"
+
+REM Supervised loop: the /admin/restart endpoint (and the Control page's
+REM Restart button) drop a .restart_flag in the repo root and exit the server.
+REM When that flag is present we relaunch; otherwise we stop normally.
+:serverloop
 python main.py
+if exist "%~dp0.restart_flag" (
+    del "%~dp0.restart_flag" >nul 2>&1
+    echo.
+    echo [RESTART] Relaunching server in 2 seconds...
+    timeout /t 2 >nul
+    goto serverloop
+)
+echo.
+echo Server stopped (no restart flag).
 pause

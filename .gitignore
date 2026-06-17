@@ -36,6 +36,11 @@ server/voice_quality_test.py
 *.db-shm
 *.db-wal
 
+# Runtime control files / logs
+.restart_flag
+logs/
+_run_server.log
+
 # Test/experiment results
 server/data/ralph_refs/
 server/data/ralph_results/

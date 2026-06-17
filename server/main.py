@@ -1935,6 +1935,23 @@ async def friend_page():
     return HTMLResponse(html)
 
 
+_CONTROL_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "control.html")
+
+
+@app.get("/control")
+async def control_page():
+    """Serve the admin control panel (switch character / safe settings / restart).
+
+    No secrets are baked into the page — every action requires the admin key,
+    which the admin types in and which is stored only in their browser. Reachable
+    over the tunnel, but useless without the key."""
+    try:
+        with open(_CONTROL_HTML_PATH, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except Exception:
+        return HTMLResponse("<h1>control page missing</h1>", status_code=500)
+
+
 @app.post("/friend/say")
 async def friend_say(request_body: dict = {}):
     """Authenticated remote text input. Only drives the bot in 'remote' control
@@ -2440,6 +2457,106 @@ async def admin_switch_character(request_body: dict = {}):
     except Exception as e:
         logger.error(f"[ADMIN] Character switch failed: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@app.post("/admin/set_config")
+async def admin_set_config(request_body: dict = {}):
+    """Admin: write a small whitelist of SAFE settings to config.json.
+
+    Only the keys below are accepted, each range-checked, so a bad value sent
+    over the tunnel can't brick the server on its next boot. These take effect
+    on the next restart (use the Restart button)."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+
+    settings = request_body.get("settings") or {}
+    if not isinstance(settings, dict) or not settings:
+        return {"status": "error", "message": "No settings provided"}
+
+    def _num(v, lo, hi, kind):
+        try:
+            n = kind(v)
+        except (TypeError, ValueError):
+            raise ValueError("not a number")
+        if n < lo or n > hi:
+            raise ValueError(f"out of range {lo}..{hi}")
+        return n
+
+    # key -> coercer/validator. Anything not here is rejected.
+    whitelist = {
+        "llm_idle_enabled": lambda v: bool(v),
+        "llm_idle_chance": lambda v: _num(v, 0.0, 1.0, float),
+        "idle_interval_min_seconds": lambda v: _num(v, 1, 600, int),
+        "idle_interval_max_seconds": lambda v: _num(v, 1, 3600, int),
+    }
+    cleaned, rejected = {}, {}
+    for k, v in settings.items():
+        if k not in whitelist:
+            rejected[k] = "not an allowed setting"
+            continue
+        try:
+            cleaned[k] = whitelist[k](v)
+        except ValueError as e:
+            rejected[k] = str(e)
+    if rejected:
+        return {"status": "error", "message": "Invalid settings", "rejected": rejected}
+    if not cleaned:
+        return {"status": "error", "message": "No valid settings provided"}
+
+    cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+    try:
+        with open(cfg_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except Exception as e:
+        return {"status": "error", "message": f"config read failed: {e}"}
+    srv = cfg.setdefault("server", {})
+    # idle min must not exceed idle max (check merged values)
+    mn = cleaned.get("idle_interval_min_seconds", srv.get("idle_interval_min_seconds", 15))
+    mx = cleaned.get("idle_interval_max_seconds", srv.get("idle_interval_max_seconds", 90))
+    if mn > mx:
+        return {"status": "error", "message": "idle min must be <= idle max"}
+    srv.update(cleaned)
+    try:
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        return {"status": "error", "message": f"config write failed: {e}"}
+    logger.info(f"[ADMIN] set_config wrote: {cleaned}")
+    return {"status": "ok", "applied": cleaned, "note": "Saved. Restart to apply."}
+
+
+@app.post("/admin/restart")
+async def admin_restart(request_body: dict = {}):
+    """Admin: restart the whole server.
+
+    Gated by the API key AND a typed confirm ("RESTART") so it can't be
+    fat-fingered or casually abused over the public tunnel. Relies on the
+    supervised loop in start_server.bat: writing .restart_flag then exiting
+    makes the launcher relaunch the server. If the server was started some
+    other way, it will exit and NOT come back."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    if (request_body.get("confirm") or "").strip().upper() != "RESTART":
+        return {"status": "error", "message": "Type RESTART to confirm"}
+
+    repo_root = os.path.dirname(os.path.dirname(__file__))
+    flag = os.path.join(repo_root, ".restart_flag")
+    try:
+        with open(flag, "w", encoding="utf-8") as f:
+            f.write("restart")
+    except Exception as e:
+        return {"status": "error", "message": f"could not write restart flag: {e}"}
+
+    async def _do_restart():
+        # Let the HTTP response flush to the (possibly remote) client first.
+        await asyncio.sleep(1.5)
+        logger.info("[ADMIN] Restart requested — exiting for supervised relaunch")
+        os._exit(0)
+
+    asyncio.create_task(_do_restart())
+    return {"status": "ok", "message": "Restarting now — this page reconnects in ~30-60s."}
 
 
 _tts_semaphore = asyncio.Semaphore(_PERF["tts_concurrency"])
