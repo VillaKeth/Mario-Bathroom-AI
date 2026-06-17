@@ -85,6 +85,32 @@ async def main(provider: str, do_gen: bool) -> None:
                             "[class*='response' i]", "[class*='message' i]"]:
                     els = await page.query_selector_all(sel)
                     print(f"     {sel!r}: {len(els)}", flush=True)
+        if "--dltest" in sys.argv:
+            print("\n== DOWNLOAD TEST against an EXISTING generated image ==", flush=True)
+            target = None
+            for im in await page.query_selector_all("img"):
+                s = await im.get_attribute("src") or ""
+                if any(m in s for m in site.generated_image_markers):
+                    target = (s, im)
+                    break
+            if not target:
+                print("  no existing generated image found in view", flush=True)
+            else:
+                s, im = target
+                print(f"  src: {s[:90]}", flush=True)
+                # tier 1: context request
+                try:
+                    resp = await page.request.get(s)
+                    b = await resp.body() if resp.ok else b""
+                    print(f"  tier1 context.request: ok={resp.ok} bytes={len(b)}", flush=True)
+                except Exception as e:  # noqa: BLE001
+                    print(f"  tier1 context.request ERROR: {e}", flush=True)
+                # tier 3: element screenshot
+                try:
+                    shot = await im.screenshot()
+                    print(f"  tier3 element.screenshot: bytes={len(shot)}", flush=True)
+                except Exception as e:  # noqa: BLE001
+                    print(f"  tier3 element.screenshot ERROR: {e}", flush=True)
         print("\nPROBE DONE — leaving window open 8s", flush=True)
         await page.wait_for_timeout(8000)
     finally:
