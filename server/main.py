@@ -2715,26 +2715,31 @@ async def websocket_endpoint(ws: WebSocket):
     if ws not in _ws_clients:
         _ws_clients.append(ws)
     _active_ws = ws
-    logger.info(f"Client connected! (live /ws clients: {len(_ws_clients)})")
+    # First/only client => fresh session. If another client is already live, this
+    # is a stray/extra connection (an e2e test, a second tab) — do NOT reset or
+    # greet, or it would wipe the running party's conversation, game, and identity.
+    _is_primary = len(_ws_clients) == 1
+    logger.info(f"Client connected! (live /ws clients: {len(_ws_clients)}, primary={_is_primary})")
 
-    # Reset per-connection state (games, conversation, identity, etc.)
-    state_current["_active_game"] = None
-    state_current["_game_state"] = {}
-    state_current["conversation_history"] = []
-    state_current["_detected_mood"] = None
-    state_current["_sick_checkin_time"] = 0.0  # Track last sick follow-up
-    state_current["_last_user_msg_time"] = 0.0  # Track silence for sick check-ins
-    state_current["_name_from_parsing"] = False  # Reset name parsing flag
-    state_current["presence_phase"] = "IDLE"
-    state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
-    state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
-    state_current["_last_buffer_time"] = 0.0
-    state_current["speaker_name"] = None
-    state_current["speaker_id"] = None
-    state_current["current_visit_id"] = None
-    state_current["_user_request_active"] = False
-    state_current["_greeting_in_progress"] = False
-    state_current["_response_completed_time"] = 0.0  # Post-response cooldown for idle suppression
+    if _is_primary:
+        # Reset per-connection state (games, conversation, identity, etc.)
+        state_current["_active_game"] = None
+        state_current["_game_state"] = {}
+        state_current["conversation_history"] = []
+        state_current["_detected_mood"] = None
+        state_current["_sick_checkin_time"] = 0.0  # Track last sick follow-up
+        state_current["_last_user_msg_time"] = 0.0  # Track silence for sick check-ins
+        state_current["_name_from_parsing"] = False  # Reset name parsing flag
+        state_current["presence_phase"] = "IDLE"
+        state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
+        state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
+        state_current["_last_buffer_time"] = 0.0
+        state_current["speaker_name"] = None
+        state_current["speaker_id"] = None
+        state_current["current_visit_id"] = None
+        state_current["_user_request_active"] = False
+        state_current["_greeting_in_progress"] = False
+        state_current["_response_completed_time"] = 0.0  # Post-response cooldown for idle suppression
 
     # Send initial greeting in background (don't block the receive loop)
     async def _send_startup_greeting():
@@ -2800,7 +2805,9 @@ async def websocket_endpoint(ws: WebSocket):
                                     pose_hint="positive/excited_jump")
 
     _loop = asyncio.get_event_loop()
-    greeting_task = asyncio.create_task(_send_startup_greeting())
+    # Only the primary client gets the opening greeting; a stray/extra connection
+    # must not talk over or reset the live session.
+    greeting_task = asyncio.create_task(_send_startup_greeting()) if _is_primary else None
 
     # Start idle behavior loop
     idle_task = asyncio.create_task(_idle_loop(ws))
