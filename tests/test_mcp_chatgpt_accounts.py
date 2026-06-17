@@ -62,6 +62,18 @@ def test_exclude_advances_as_refusals_grow():
     assert pool.pick(exclude={"a", "b", "c"}) is None
 
 
+def test_is_available_tracks_caps():
+    clk = FakeClock()
+    pool = AccountPool(["a", "b"], clock=clk)
+    assert pool.is_available("a") is True
+    pool.mark_capped("a", 100)
+    assert pool.is_available("a") is False
+    assert pool.is_available("b") is True
+    clk.advance(101)
+    assert pool.is_available("a") is True      # cap elapsed → free again
+    assert pool.is_available("zzz") is False   # unknown account
+
+
 def test_exclude_with_caps_interaction():
     clk = FakeClock()
     pool = AccountPool(["a", "b"], clock=clk)

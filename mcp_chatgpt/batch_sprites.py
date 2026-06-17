@@ -167,10 +167,22 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
 
             print(f"GEN  [{idx:02d}] {rel}", flush=True)
             wait_rounds = 0
+            refusal_clears = 0      # times we've re-tried the refused (stochastic) set
             refused_here = set()    # accounts that guardrail-refused THIS sprite
             while True:
                 acct = pool.pick(exclude=refused_here)
                 if acct is None:
+                    # A refused account that's actually AVAILABLE (not capped) means
+                    # we'd otherwise wait hours for a slow account while a fast one
+                    # sits idle. Guardrail refusals are stochastic — clear them and
+                    # retry (bounded) rather than stalling for the next reset.
+                    if (refused_here and refusal_clears < 3
+                            and any(pool.is_available(a) for a in refused_here)):
+                        refusal_clears += 1
+                        print(f"RETRY [{idx:02d}] refused account still free — clearing "
+                              f"refusals, retry {refusal_clears}/3", flush=True)
+                        refused_here.clear()
+                        continue
                     # Nothing pickable: either every account refused this sprite,
                     # or the only un-refused ones are capped.
                     if len(refused_here) >= len(pool.accounts):

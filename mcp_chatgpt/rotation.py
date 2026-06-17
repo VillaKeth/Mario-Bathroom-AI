@@ -39,6 +39,10 @@ class AccountPool:
                 return a
         return None
 
+    def is_available(self, account):
+        """True if `account` exists and is not currently capped."""
+        return account in self._cap_until and self._cap_until[account] <= self._clock()
+
     def mark_capped(self, account, seconds):
         """Park `account` for `seconds` before it can be picked again."""
         self._cap_until[account] = self._clock() + max(0.0, seconds)
