@@ -141,6 +141,11 @@ class MarioWSClient:
                     if self.on_text_response:
                         self.on_text_response(data.get("text", ""), data)
 
+                elif msg_type == "user_message":
+                    # Guest's own line, echoed by the server for the chat backlog.
+                    if getattr(self, "on_user_message", None):
+                        self.on_user_message(data.get("text", ""))
+
                 elif msg_type == "audio_chunk":
                     # Sentence streaming: server sends audio_chunk JSON followed by binary audio
                     if DEBUG_WS:
