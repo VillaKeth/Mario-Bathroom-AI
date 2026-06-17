@@ -2377,12 +2377,17 @@ async def admin_switch_character(request_body: dict = {}):
     try:
         old_name = _character.name
         _character = CharacterLoader(characters_dir, char_name)
-        
+
         # Re-wire all modules (re-apply global rules + pronunciation too)
         import global_rules
         _g = global_rules.load_global_rules(os.path.join(characters_dir, "_shared"))
         mario_prompt.set_global_rules(_g["prompt_rules"])
         tts.set_pronunciation(global_rules.merge_pronunciation(_g["pronunciation"], _character.pronunciation))
+        # Re-point the voice clone at THIS character's reference clip + transcript.
+        # Without this the hot-swap keeps the previous character's voice (startup
+        # wires it at load; the switch path must do the same — main.py:719).
+        if hasattr(tts, "set_voice_config"):
+            tts.set_voice_config(_character.voice_config, _character.name)
         llm.set_character(_character.name, _character.display_name)
         safety_filter.set_character(_character.name, _character.display_name)
         mario_prompt.set_character(_character.name, _character.display_name, _character.description, _character.tagline)
