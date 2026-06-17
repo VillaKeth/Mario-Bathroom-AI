@@ -109,3 +109,9 @@ memory:
    memories: "mario_memories"
   vip_profiles_dir: "memories/vip_profiles/"
   lore_file: "memories/lore.yaml"
+safety:
+  # Uncensored like March: no profanity/topic deflection. Slurs still blocked
+  # (the bot speaks out loud in a room). See
+  # docs/superpowers/plans/2026-06-16-content-filter-uncensor-toggle.md
+  enabled: false
+  block_slurs: true
