@@ -3172,6 +3172,11 @@ class MarioDisplay:
         """Show memorial/shot event overlay — handles all phases."""
         self._memorial_active = True
         self._memorial_phase = phase
+        # Once we're past the countdown (take-a-shot / toast / music / recovery),
+        # drop the countdown number. Otherwise it's only hidden BEHIND the overlay
+        # and reappears as a stuck "1" the moment the overlay ends.
+        if phase != "countdown" and hasattr(self, "_countdown_text"):
+            self._countdown_text = None
         self._memorial_name = name
         self._memorial_text = text
         self._memorial_tone = tone
@@ -3483,6 +3488,8 @@ class MarioDisplay:
                     self._memorial_active = False
                     self._event_image = None
                     self._event_image_path = None
+                    if hasattr(self, "_countdown_text"):
+                        self._countdown_text = None
 
         except Exception as e:
             logger.debug(f"Memorial draw error: {e}")
