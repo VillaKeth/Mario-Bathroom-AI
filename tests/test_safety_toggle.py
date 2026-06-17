@@ -115,6 +115,16 @@ class TestBrevityAndCap:
         result = filter_response(long_text)
         assert 300 < len(result) <= 510
 
+    def test_cap_false_returns_uncapped_full_text(self):
+        # full_text for the chat backlog: the complete cleaned reply, not capped.
+        set_safety_config(True, True)
+        long_text = "Wahoo there friend. " * 60  # ~1200 chars
+        full = filter_response(long_text, cap=False)
+        capped = filter_response(long_text)
+        assert len(full) > 510          # uncapped keeps the whole thing
+        assert len(capped) <= 510       # default still caps (spoken text unchanged)
+        assert full.startswith("Wahoo there friend")
+
     def test_brevity_instruction_relaxed(self):
         from server import mario_prompt
         prompt = mario_prompt._character_system_prompt()

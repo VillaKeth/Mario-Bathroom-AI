@@ -131,8 +131,13 @@ def _character_break_patterns():
     ]
 
 
-def filter_response(text: str) -> str:
-    """Filter Mario's response for inappropriate content and LLM artifacts."""
+def filter_response(text: str, cap: bool = True) -> str:
+    """Filter the response for inappropriate content and LLM artifacts.
+
+    cap=True (default) enforces MAX_RESPONSE_CHARS — the spoken/displayed text.
+    cap=False skips only the length cap (all cleaning/filtering still applies),
+    yielding the full 'what she meant to say' text for the chat backlog.
+    """
     if not text:
         return text or ""
     original = text
@@ -175,9 +180,10 @@ def filter_response(text: str) -> str:
     for pat, repl in _character_break_patterns():
         text = re.sub(pat, repl, text)
 
-    # Enforce maximum response length — Mario should be punchy, not an essay writer
+    # Enforce maximum response length — the character should be punchy, not an essay writer.
+    # Skipped when cap=False so callers can capture the full untruncated reply.
     MAX_RESPONSE_CHARS = 500
-    if len(text) > MAX_RESPONSE_CHARS:
+    if cap and len(text) > MAX_RESPONSE_CHARS:
         # Try to cut at a sentence boundary
         truncated = text[:MAX_RESPONSE_CHARS]
         last_punct = max(truncated.rfind('.'), truncated.rfind('!'), truncated.rfind('?'))
