@@ -40,14 +40,19 @@ PROMPT_PREFIX = (
 
 # Runs in the MAIN venv (has rembg). Cuts background -> transparent RGBA PNG.
 CUT_SNIPPET = (
-    "import sys\n"
+    "import sys, io\n"
     "from pathlib import Path\n"
     "from PIL import Image\n"
-    "from rembg import remove\n"
+    "from rembg import remove, new_session\n"
     "src, dst = Path(sys.argv[1]), Path(sys.argv[2])\n"
     "dst.parent.mkdir(parents=True, exist_ok=True)\n"
-    "dst.write_bytes(remove(src.read_bytes()))\n"
-    "Image.open(dst).convert('RGBA').save(dst)\n"
+    # isnet-general-use + alpha matting keeps thin/pale parts (white gloves,
+    # sleeves) that the default u2net erases — matches character_creator's cut.
+    "sess = new_session('isnet-general-use')\n"
+    "out = remove(Image.open(io.BytesIO(src.read_bytes())), session=sess,\n"
+    "             alpha_matting=True, alpha_matting_foreground_threshold=240,\n"
+    "             alpha_matting_background_threshold=10, alpha_matting_erode_size=10)\n"
+    "out.convert('RGBA').save(dst)\n"
     "print('CUT_OK', dst)\n"
 )
 
