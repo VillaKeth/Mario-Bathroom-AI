@@ -877,6 +877,13 @@ class MarioClient:
                 logger.info("[SHOT_EVENT] Memorial flags cleared after recovery")
             threading.Thread(target=_clear_flag_recovery, daemon=True).start()
 
+        # A new event's announcement = a fresh start. Stop any music still
+        # playing from a PREVIOUS shot event so the old song doesn't play under
+        # the new announcement/countdown (the muddy overlap when you fire a
+        # second shot while the first song is still going).
+        if phase == "announcement" and self.audio_playback.is_music_playing:
+            self.audio_playback.stop_memorial_music(fadeout_ms=600)
+
         # Start/stop memorial music
         if phase == "music":
             # Use event-specific music_file if provided, fall back to lisa_webb_memorial.mp3
