@@ -72,3 +72,34 @@ class TestSafetyToggle:
     def test_everything_off_allows_slurs(self):
         set_safety_config(False, False)
         assert check_input("you r3tard")["safe"] is True
+
+
+class TestGuardrailInjection:
+    def teardown_method(self):
+        set_safety_config(True, True)
+
+    def _build_text(self):
+        from server import mario_prompt
+        pm = {"guardrails": {
+            "banned_topics": ["politics", "religion"],
+            "max_roasts_per_guest": 3,
+            "de_escalation_triggers": ["stop", "too far"],
+        }}
+        msgs = mario_prompt.build_context(phase_modifier=pm)
+        return " ".join(m["content"] for m in msgs)
+
+    def test_banned_topics_present_when_safety_on(self):
+        set_safety_config(True, True)
+        assert "BANNED TOPICS" in self._build_text()
+
+    def test_banned_topics_absent_when_safety_off(self):
+        set_safety_config(False, True)
+        assert "BANNED TOPICS" not in self._build_text()
+
+    def test_max_roasts_never_injected(self):
+        set_safety_config(True, True)
+        assert "Maximum roasts" not in self._build_text()
+
+    def test_de_escalation_kept_when_safety_off(self):
+        set_safety_config(False, True)
+        assert "de-escalate" in self._build_text()

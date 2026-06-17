@@ -320,16 +320,26 @@ def build_context(speaker_name=None, memories=None, event=None, phase_modifier=N
         # Inject guardrails as system message
         guardrails = phase_modifier.get("guardrails")
         if guardrails:
-            banned = guardrails.get("banned_topics", [])
-            max_roasts = guardrails.get("max_roasts_per_guest", 3)
+            # Import the sibling filter so it resolves to the SAME module instance
+            # both at runtime (modules loaded top-level → bare import) and under
+            # pytest (loaded as server.* → package import).
+            if __package__:
+                from server import safety_filter
+            else:
+                import safety_filter
             rails = []
-            if banned:
+            # BANNED TOPICS only when this character keeps content filtering on.
+            # Uncensored characters (safety.enabled: false) get no topic bans.
+            banned = guardrails.get("banned_topics", [])
+            if banned and safety_filter.is_safety_enabled():
                 rails.append(f"BANNED TOPICS (never mention): {', '.join(banned)}")
-            rails.append(f"Maximum roasts per guest: {max_roasts}")
+            # max_roasts dropped — it capped playful banter and fought dynamism.
+            # de-escalation kept: backing off when a guest taps out is basic courtesy.
             de_esc = guardrails.get("de_escalation_triggers", [])
             if de_esc:
                 rails.append(f"If guest says any of [{', '.join(de_esc)}], immediately de-escalate and be supportive")
-            messages.append({"role": "system", "content": f"[GUARDRAILS]: {'. '.join(rails)}."})
+            if rails:
+                messages.append({"role": "system", "content": f"[GUARDRAILS]: {'. '.join(rails)}."})
 
         # Inject obsession topic for Phase 3 UNHINGED
         obsession = phase_modifier.get("obsession_topic")
