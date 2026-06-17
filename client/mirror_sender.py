@@ -17,15 +17,19 @@ TAG_VIDEO = b"\x01"
 TAG_AUDIO = b"\x02"
 
 
-def encode_frame(rgb_bytes: bytes, size, max_width: int = 640, quality: int = 55) -> bytes:
-    """RGB pixel buffer -> downscaled JPEG bytes. Never upscales."""
+def encode_frame(rgb_bytes: bytes, size, max_width: int = 1920, quality: int = 92) -> bytes:
+    """RGB pixel buffer -> downscaled JPEG bytes. Never upscales.
+
+    LANCZOS + 4:4:4 subsampling (subsampling=0) keep text, edges, and March's
+    hair crisp at the higher resolution; optimize trims bytes for free.
+    """
     w, h = size
     img = Image.frombytes("RGB", (w, h), rgb_bytes)
     if w > max_width:
         new_h = max(1, int(h * max_width / w))
-        img = img.resize((max_width, new_h), Image.BILINEAR)
+        img = img.resize((max_width, new_h), Image.LANCZOS)
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=quality)
+    img.save(buf, format="JPEG", quality=quality, subsampling=0, optimize=True)
     return buf.getvalue()
 
 
@@ -34,7 +38,7 @@ class MirrorSender:
     tagged frames (latest-only) + audio (queued). Activated by the server's
     mirror_request signal via start()/stop()."""
 
-    def __init__(self, ingest_url: str, max_width: int = 640, quality: int = 55, fps: int = 10):
+    def __init__(self, ingest_url: str, max_width: int = 1920, quality: int = 92, fps: int = 10):
         self.ingest_url = ingest_url
         self.max_width = max_width
         self.quality = quality
