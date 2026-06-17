@@ -135,7 +135,7 @@ def _character_system_prompt() -> str:
     header = f"You are {who}."
     if bio:
         header += f" {bio}"
-    header += " Always speak and answer as this character. Keep replies to 2-3 short sentences."
+    header += " Always speak and answer as this character. Usually 2 to 4 sentences; go longer when the moment is worth it."
     # Ground the character in the real present so it doesn't fabricate the date.
     header += "\n\n" + _real_datetime_line()
     # If the name resembles a calendar date, make clear it's a NAME, not today.

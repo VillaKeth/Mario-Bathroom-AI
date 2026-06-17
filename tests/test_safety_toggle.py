@@ -103,3 +103,19 @@ class TestGuardrailInjection:
     def test_de_escalation_kept_when_safety_off(self):
         set_safety_config(False, True)
         assert "de-escalate" in self._build_text()
+
+
+class TestBrevityAndCap:
+    def teardown_method(self):
+        set_safety_config(True, True)
+
+    def test_cap_raised_above_300(self):
+        set_safety_config(True, True)
+        long_text = "Wahoo there friend. " * 60  # ~1200 chars, sentence-punctuated
+        result = filter_response(long_text)
+        assert 300 < len(result) <= 510
+
+    def test_brevity_instruction_relaxed(self):
+        from server import mario_prompt
+        prompt = mario_prompt._character_system_prompt()
+        assert "2-3 short sentences" not in prompt

@@ -176,7 +176,7 @@ def filter_response(text: str) -> str:
         text = re.sub(pat, repl, text)
 
     # Enforce maximum response length — Mario should be punchy, not an essay writer
-    MAX_RESPONSE_CHARS = 300
+    MAX_RESPONSE_CHARS = 500
     if len(text) > MAX_RESPONSE_CHARS:
         # Try to cut at a sentence boundary
         truncated = text[:MAX_RESPONSE_CHARS]
