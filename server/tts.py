@@ -1416,8 +1416,12 @@ def _preclean_tts_text(text: str) -> str:
     t = t.replace('—', ', ').replace('–', ', ')
     # Asterisks (action markers like *laughs*)
     t = t.replace('*', '')
-    # Parentheses → spoken aside: keep the words, drop the brackets. TTS can't
-    # voice "(" / ")", so they become a comma pause (how an aside sounds aloud).
+    # Parentheticals with no letters (bare dates/numbers/codes like "(07/03)" or
+    # "(2024)") aren't spoken asides — drop them entirely so the voice doesn't
+    # read out a code. Asides with real words fall through and are still spoken.
+    t = _re_tts.sub(r'\s*\([^A-Za-z()]*\)', '', t)
+    # Remaining parentheses → spoken aside: keep the words, drop the brackets. TTS
+    # can't voice "(" / ")", so they become a comma pause (how an aside sounds aloud).
     # NOTE: this only affects the SPOKEN text; the speech bubble keeps the
     # brackets for grammatical structure. (Artifacts cleaned just below.)
     t = t.replace('(', ', ').replace(')', ', ')

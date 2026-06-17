@@ -142,7 +142,9 @@ def _character_system_prompt() -> str:
     name_l = (who or "").lower()
     if any(m in name_l for m in _MONTH_WORDS):
         header += (f" Important: \"{who}\" is your NAME, not today's date — "
-                   f"never claim that today is \"{who}\" or that it is your namesake date.")
+                   f"never claim that today is \"{who}\" or that it is your namesake date. "
+                   f"Never gloss your name as a numeric date like \"07/03\" or \"03/07\" — "
+                   f"just use your name. If you ever state a real date, use US month/day order.")
     out = header + "\n\n" + _BASE_PROMPT_RULES
     # Global rules every character obeys (from characters/_shared/global_rules.yaml).
     if _GLOBAL_RULES:

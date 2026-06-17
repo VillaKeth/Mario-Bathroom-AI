@@ -23,6 +23,28 @@ def test_preclean_paren_leaves_no_comma_artifacts():
     assert "waves" in out and "friend" in out
 
 
+def test_preclean_drops_letterless_parenthetical_date():
+    # A bare date/number code is NOT a spoken aside — don't voice it.
+    out = tts._preclean_tts_text("Hi, I'm March 7th (07/03) nice to meet you")
+    assert "07/03" not in out                  # the code is not voiced
+    assert "(" not in out and ")" not in out
+    assert "March 7th" in out                  # the rest is intact
+    assert "nice to meet you" in out
+
+
+def test_preclean_drops_bare_year_parenthetical():
+    out = tts._preclean_tts_text("Born long ago (2024) somewhere")
+    assert "2024" not in out
+    assert "Born long ago" in out and "somewhere" in out
+
+
+def test_preclean_still_speaks_word_aside():
+    # An aside containing real words is still spoken (regression guard).
+    out = tts._preclean_tts_text("Smile (say cheese) now")
+    assert "say cheese" in out
+    assert "(" not in out and ")" not in out
+
+
 def test_preclean_emoji_before_capital_becomes_period():
     # Regression: an emoji used as a sentence separator was stripped to nothing,
     # producing run-on speech ("indie tunes What do you say"). A capitalized word
