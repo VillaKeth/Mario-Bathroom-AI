@@ -558,15 +558,26 @@ class MarioDisplay:
         self._font_small = pygame.font.Font(None, 22)
         self._font_title = pygame.font.Font(None, 32)
         self._font_input = pygame.font.Font(None, 32)
-        self._chat_title_font = pygame.font.SysFont("arial", 16, bold=True)
-        self._chat_msg_font = pygame.font.SysFont("arial", 13)
-        # Pre-cache bubble fonts — prefer a friendly font that fits Mario's personality
+        # Friendly UI font — Segoe UI *Regular* (system-ui on Windows), matching
+        # the web mirror. NOTE: pygame.font.match_font('segoeui') resolves to the
+        # LIGHT weight (segoeuil.ttf), which renders thin/weird — so prefer the
+        # explicit regular file and only fall back to match_font off-Windows.
         bubble_font_path = None
-        for font_name in ["segoeui", "calibri", "arial", "comicsansms"]:
-            match = pygame.font.match_font(font_name)
-            if match:
-                bubble_font_path = match
+        for _p in (r"C:\Windows\Fonts\segoeui.ttf",
+                   r"C:\Windows\Fonts\calibri.ttf",
+                   r"C:\Windows\Fonts\arial.ttf"):
+            if os.path.exists(_p):
+                bubble_font_path = _p
                 break
+        if not bubble_font_path:
+            for font_name in ["Segoe UI", "DejaVu Sans", "Arial", "calibri"]:
+                match = pygame.font.match_font(font_name)
+                if match:
+                    bubble_font_path = match
+                    break
+        self._chat_title_font = pygame.font.Font(bubble_font_path, 17)
+        self._chat_title_font.set_bold(True)
+        self._chat_msg_font = pygame.font.Font(bubble_font_path, 15)
         self._bubble_fonts = {
             size: pygame.font.Font(bubble_font_path, size)
             for size in range(14, 30, 2)  # 14, 16, 18, 20, 22, 24, 26, 28
