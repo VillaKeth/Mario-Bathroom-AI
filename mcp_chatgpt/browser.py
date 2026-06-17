@@ -5,7 +5,7 @@ import os
 
 from playwright.async_api import async_playwright, Page
 
-from mcp_chatgpt import selectors
+from mcp_chatgpt.sites import get_site
 from mcp_chatgpt.parsing import parse_thread_id, classify_page_state
 from mcp_chatgpt.stability import ProbeResult, WaitOutcome, wait_for_response
 
@@ -19,16 +19,20 @@ DEFAULT_ACCOUNT = "default"
 IMAGE_MAX_POLLS = 600       # ~300s at 0.5s
 
 
-def profile_dir(account: str = DEFAULT_ACCOUNT) -> str:
-    """Browser-profile directory for an account.
+def profile_dir(provider: str = "chatgpt", account: str = DEFAULT_ACCOUNT) -> str:
+    """Browser-profile dir for a (provider, account).
 
-    The default account reuses the base `profile/` dir so the original
-    single-account login keeps working; named accounts get an isolated subdir
-    under `profile/_accounts/<name>`.
+    chatgpt keeps the LEGACY paths (profile/ and profile/_accounts/<name>) so
+    existing logins survive the generalization. Other providers are namespaced
+    under profile/<provider>/(_accounts/<name>).
     """
+    if provider == "chatgpt":
+        base = PROFILE_DIR
+    else:
+        base = os.path.join(PROFILE_DIR, provider)
     if account == DEFAULT_ACCOUNT:
-        return PROFILE_DIR
-    return os.path.join(PROFILE_DIR, "_accounts", account)
+        return base
+    return os.path.join(base, "_accounts", account)
 
 
 class NotLoggedIn(RuntimeError):
@@ -40,7 +44,9 @@ class Challenge(RuntimeError):
 
 
 class ChatGPTSession:
-    def __init__(self) -> None:
+    def __init__(self, provider: str = "chatgpt") -> None:
+        self.provider = provider
+        self.site = get_site(provider)
         self._pw = None
         self._contexts: dict = {}            # account -> BrowserContext
         self._threads: dict[str, Page] = {}  # thread_id -> Page (uuid is globally unique)
@@ -55,12 +61,12 @@ class ChatGPTSession:
         ctx = self._contexts.get(account)
         if ctx is not None:
             return ctx
-        os.makedirs(profile_dir(account), exist_ok=True)
+        os.makedirs(profile_dir(self.provider, account), exist_ok=True)
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         if self._pw is None:
             self._pw = await async_playwright().start()
         ctx = await self._pw.chromium.launch_persistent_context(
-            profile_dir(account),
+            profile_dir(self.provider, account),
             channel="chrome",
             headless=False,
             args=["--disable-blink-features=AutomationControlled"],
@@ -70,10 +76,12 @@ class ChatGPTSession:
 
     async def _check_state(self, page: Page, account: str) -> None:
         body = await page.inner_text("body")
-        state = classify_page_state(page.url, body)
+        state = classify_page_state(page.url, body, self.site)
         if state == "login":
-            raise NotLoggedIn(f"account '{account}' not logged in — run: "
-                              f"python -m mcp_chatgpt._login_oneshot {account}")
+            raise NotLoggedIn(
+                f"account '{account}' not logged in for provider '{self.provider}' — run: "
+                f"python -m mcp_chatgpt._login_oneshot {self.provider} {account}"
+            )
         if state == "challenge":
             raise Challenge("solve challenge in the window, then retry")
 
@@ -86,7 +94,7 @@ class ChatGPTSession:
         out = []
         for img in await page.query_selector_all("img"):
             src = await img.get_attribute("src") or ""
-            if any(m in src for m in selectors.GENERATED_IMAGE_MARKERS):
+            if any(m in src for m in self.site.generated_image_markers):
                 out.append((src, img))
         return out
 
@@ -106,8 +114,11 @@ class ChatGPTSession:
         return out
 
     async def _probe(self, page: Page, baseline: set) -> ProbeResult:
-        generating = (await page.query_selector(selectors.STOP_BUTTON)) is not None
-        turns = await page.query_selector_all(selectors.ASSISTANT_TURN)
+        # Some providers (e.g. grok) have no Stop button — treat "no stop selector"
+        # as not-generating and let the wait loop rely on text/image stability.
+        generating = bool(self.site.stop_button) and \
+            (await page.query_selector(self.site.stop_button)) is not None
+        turns = await page.query_selector_all(self.site.assistant_turn)
         text = await turns[-1].inner_text() if turns else ""
         new_imgs = await self._new_generated_image_els(page, baseline)
         ready = True
@@ -116,11 +127,25 @@ class ChatGPTSession:
             ready = ready and bool(ok)
         return ProbeResult(generating, text, len(new_imgs), ready)
 
-    async def _download_images(self, page: Page, thread_id: str, baseline: set) -> list[str]:
-        new_imgs = await self._new_generated_image_els(page, baseline)
-        paths: list[str] = []
-        for i, (src, _img) in enumerate(new_imgs):
-            # Fetch bytes through the page (carries auth cookies), return base64.
+    async def _fetch_image_bytes(self, page: Page, src, img) -> bytes | None:
+        """Get a generated image's bytes, robust across providers (≥1KB or None).
+
+        Tiers: (1) the browser CONTEXT request — carries auth cookies and is NOT
+        subject to page CORS, so it works for cross-origin CDNs like grok's
+        assets.grok.com; (2) an in-page fetch — works when same-origin/CORS-open;
+        (3) a screenshot of the <img> element — always works (captures the
+        rendered pixels) when the bytes can't be fetched at all."""
+        # (1) context request (cookies, no CORS)
+        try:
+            resp = await page.request.get(src)
+            if resp.ok:
+                data = await resp.body()
+                if data and len(data) > 1000:
+                    return data
+        except Exception:  # noqa: BLE001
+            pass
+        # (2) in-page fetch → base64
+        try:
             b64 = await page.evaluate(
                 """async (url) => {
                     const r = await fetch(url);
@@ -131,9 +156,30 @@ class ChatGPTSession:
                 }""",
                 src,
             )
+            data = base64.b64decode(b64) if b64 else b""
+            if data and len(data) > 1000:
+                return data
+        except Exception:  # noqa: BLE001
+            pass
+        # (3) element screenshot (rendered pixels)
+        try:
+            data = await img.screenshot()
+            if data and len(data) > 1000:
+                return data
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+    async def _download_images(self, page: Page, thread_id: str, baseline: set) -> list[str]:
+        new_imgs = await self._new_generated_image_els(page, baseline)
+        paths: list[str] = []
+        for i, (src, img) in enumerate(new_imgs):
+            data = await self._fetch_image_bytes(page, src, img)
+            if not data:
+                continue   # couldn't get real bytes — skip (don't write an empty file)
             path = os.path.join(OUTPUT_DIR, f"{thread_id}_{i}.png")
             with open(path, "wb") as f:
-                f.write(base64.b64decode(b64))
+                f.write(data)
             paths.append(path)
             self._saved_srcs.add(src)   # never download this exact image again
         return paths
@@ -163,9 +209,9 @@ class ChatGPTSession:
             body = await page.inner_text("body")
         except Exception:  # noqa: BLE001
             return False
-        if not any(m in body.lower() for m in selectors.RESPONSE_PICKER_MARKERS):
+        if not any(m in body.lower() for m in self.site.response_picker_markers):
             return False
-        for sel in selectors.RESPONSE_PICKER_BUTTONS:
+        for sel in self.site.response_picker_buttons:
             try:
                 btn = await page.query_selector(sel)
                 if btn:
@@ -187,15 +233,21 @@ class ChatGPTSession:
         return outcome
 
     async def _type_and_send(self, page: Page, prompt: str) -> None:
-        await page.fill(selectors.COMPOSER, prompt)
-        await page.click(selectors.SEND_BUTTON)
+        await page.fill(self.site.composer, prompt)
+        # Submit: click the Send button if the site has one, else press Enter
+        # (grok/gemini-style composers submit on Enter, no Send button).
+        if self.site.send_button:
+            await page.click(self.site.send_button)
+        else:
+            await page.keyboard.press("Enter")
         # Wait for streaming to actually begin (Stop button appears) so the wait
-        # loop doesn't sample the blank pre-generation turn. Instant replies may
-        # finish before this fires — that's fine, the wait loop handles it.
-        try:
-            await page.wait_for_selector(selectors.STOP_BUTTON, timeout=15000)
-        except Exception:
-            pass
+        # loop doesn't sample the blank pre-generation turn. Sites without a Stop
+        # button skip this — the wait loop handles them via text/image stability.
+        if self.site.stop_button:
+            try:
+                await page.wait_for_selector(self.site.stop_button, timeout=15000)
+            except Exception:
+                pass
 
     async def _notice(self, page: Page) -> str:
         """Visible page text, captured only on a failed/empty generation so callers
@@ -218,7 +270,7 @@ class ChatGPTSession:
         async with self._lock:
             ctx = await self._ctx_for(account)
             page = await ctx.new_page()
-            await page.goto(selectors.URL, wait_until="domcontentloaded")
+            await page.goto(self.site.url, wait_until="domcontentloaded")
             await self._check_state(page, account)
             baseline = await self._generated_image_srcs(page) | self._saved_srcs
             await self._type_and_send(page, prompt)
@@ -288,11 +340,11 @@ class ChatGPTSession:
             self._pw = None
 
 
-_session: ChatGPTSession | None = None
+_sessions: dict = {}
 
 
-def get_session() -> ChatGPTSession:
-    global _session
-    if _session is None:
-        _session = ChatGPTSession()
-    return _session
+def get_session(provider: str = "chatgpt") -> "ChatGPTSession":
+    s = _sessions.get(provider)
+    if s is None:
+        s = _sessions[provider] = ChatGPTSession(provider)
+    return s

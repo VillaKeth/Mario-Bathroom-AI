@@ -1,8 +1,6 @@
 """Pure helpers — no playwright import, fully unit-testable."""
 import re
 
-from mcp_chatgpt import selectors
-
 _CONV_RE = re.compile(r"/c/([^/?#]+)")
 
 
@@ -12,13 +10,13 @@ def parse_thread_id(url: str) -> str | None:
     return m.group(1) if m else None
 
 
-def classify_page_state(url: str, body_text: str) -> str:
-    """Return one of: 'ok', 'login', 'challenge'."""
+def classify_page_state(url: str, body_text: str, site) -> str:
+    """Return one of: 'ok', 'login', 'challenge'. `site` is a sites.Site."""
     url = url or ""
     body = body_text or ""
-    if selectors.LOGIN_URL_FRAGMENT in url:
+    if site.login_url_fragment in url:
         return "login"
-    if any(marker in body for marker in selectors.CHALLENGE_TEXT_MARKERS):
+    if any(marker in body for marker in site.challenge_text_markers):
         return "challenge"
     return "ok"
 

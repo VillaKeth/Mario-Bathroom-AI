@@ -1,0 +1,93 @@
+"""Per-provider browser config — the ONLY place site DOM/markers differ.
+
+Adding a provider = one Site entry. Everything else (session, rotation, batch,
+cap handling) is provider-agnostic and reads from SITES[provider]. Verified live
+against each provider's DOM (chatgpt: 2026-06-15)."""
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Site:
+    url: str
+    composer: str
+    send_button: str
+    assistant_turn: str
+    generated_image_markers: tuple
+    login_url_fragment: str
+    challenge_text_markers: tuple
+    usage_limit_markers: tuple
+    stop_button: str = ""
+    refusal_markers: tuple = ()
+    response_picker_markers: tuple = ()
+    response_picker_buttons: tuple = ()
+
+
+SITES = {
+    "chatgpt": Site(
+        url="https://chatgpt.com/",
+        composer="#prompt-textarea",
+        send_button="[data-testid='send-button']",
+        stop_button="[data-testid='stop-button']",
+        assistant_turn="[data-message-author-role='assistant']",
+        generated_image_markers=("/backend-api/", "oaiusercontent.com"),
+        login_url_fragment="/auth/login",
+        challenge_text_markers=("Verify you are human", "Just a moment",
+                                "Checking your browser"),
+        usage_limit_markers=(
+            "You've reached", "you've hit", "usage limit", "limit reached",
+            "free plan limit", "limit resets", "plan limit for image",
+            "too many requests", "try again later", "rate limit", "come back later",
+        ),
+        refusal_markers=("may violate our guardrails", "violate our content policy",
+                         "can't help with that", "unable to generate"),
+        response_picker_markers=("which response do you prefer", "prefer this response",
+                                 "compare these responses"),
+        response_picker_buttons=(
+            "button:has-text('I prefer this response')",
+            "button:has-text('prefer this response')",
+            "button:has-text('Keep this response')",
+            "[data-testid='paragen-prefer-button']",
+        ),
+    ),
+    # SCAFFOLD — selectors are best-effort guesses; verify live against the
+    # logged-in site and fix before trusting (composer, send, assistant turn,
+    # the real generated-image src host, login/cap wording).
+    "grok": Site(
+        url="https://grok.com/",
+        composer="[contenteditable='true']",
+        send_button="",                       # no Send button; submit via Enter
+        stop_button="button[aria-label*='Stop' i]",
+        assistant_turn="[data-testid*='message'], .message-bubble",
+        generated_image_markers=("assets.grok.com", "imggen", "grok-attachments"),
+        login_url_fragment="/sign-in",
+        challenge_text_markers=("Verify you are human", "Just a moment"),
+        usage_limit_markers=("rate limit", "try again later", "out of",
+                             "limit reached", "upgrade to"),
+        refusal_markers=("can't help with that", "i can't create"),
+    ),
+    # SCAFFOLD — verify live (Gemini uses a Quill div.ql-editor composer +
+    # <model-response> turns; confirm the real image host).
+    "gemini": Site(
+        url="https://gemini.google.com/app",
+        composer="div.ql-editor[contenteditable='true'], textarea",
+        send_button="button[aria-label*='Send' i], button.send-button",
+        stop_button="button[aria-label*='Stop' i]",
+        assistant_turn="model-response, .model-response-text",
+        generated_image_markers=("googleusercontent.com", "generativelanguage",
+                                 "lh3.google"),
+        login_url_fragment="accounts.google.com",
+        challenge_text_markers=("Verify it's you", "unusual traffic"),
+        usage_limit_markers=("you've reached your limit", "try again later",
+                             "limit for", "upgrade"),
+        refusal_markers=("i can't create", "i'm not able to generate",
+                         "can't help with that"),
+    ),
+}
+
+
+def get_site(provider: str) -> Site:
+    """Return the Site for a provider, or raise KeyError with the known list."""
+    try:
+        return SITES[provider]
+    except KeyError:
+        raise KeyError(f"unknown provider {provider!r}; known: {sorted(SITES)}")

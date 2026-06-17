@@ -26,7 +26,6 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:           # allow running as a plain script file
     sys.path.insert(0, str(ROOT))
 
-from mcp_chatgpt import selectors  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.browser import get_session  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.parsing import parse_reset_seconds  # noqa: E402 (after sys.path setup)
 from mcp_chatgpt.rotation import AccountPool  # noqa: E402 (after sys.path setup)
@@ -131,13 +130,13 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
         msg = ((resp.get("text") or "") + "\n" + (resp.get("notice") or "")).strip()
         if imgs:
             return imgs[0], "ok", msg, thread_id
-        if any(m.lower() in msg.lower() for m in selectors.USAGE_LIMIT_MARKERS):
+        if any(m.lower() in msg.lower() for m in session.site.usage_limit_markers):
             return None, "cap", msg, thread_id
         print(f"     retry attempt {attempt} blocked: {msg[:60]!r}", flush=True)
     return None, "refused", msg, thread_id
 
 
-async def run(character: str, start: int, force: bool, regen: bool, accounts: list,
+async def run(provider: str, character: str, start: int, force: bool, regen: bool, accounts: list,
               delay: float, cap_fallback: float, max_cap_waits: int) -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
@@ -145,10 +144,10 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
     # after a cap resumes instead of redoing finished ones.
     manifest = char_dir / ".regen_done.txt"
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
-    session = get_session()
+    session = get_session(provider)
     pool = AccountPool(accounts)
     threads: dict = {}          # account -> persistent thread_id (one chat each)
-    print(f"ACCOUNTS rotating: {', '.join(pool.accounts)}", flush=True)
+    print(f"PROVIDER {provider} | ACCOUNTS rotating: {', '.join(pool.accounts)}", flush=True)
     done, skipped, failed = [], [], []
     capped_out = False
 
@@ -302,6 +301,8 @@ async def run(character: str, start: int, force: bool, regen: bool, accounts: li
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
+    ap.add_argument("--provider", default="chatgpt",
+                    help="browser provider: chatgpt | grok | gemini")
     ap.add_argument("--character", default="rudi")
     ap.add_argument("--start", type=int, default=1)
     ap.add_argument("--force", action="store_true", help="(re)generate every sprite, ignore manifest + existing")
@@ -319,5 +320,5 @@ if __name__ == "__main__":
                     help="give up a sprite after this many all-accounts-capped waits")
     a = ap.parse_args()
     accounts = [s.strip() for s in a.accounts.split(",") if s.strip()] or [a.account]
-    asyncio.run(run(a.character, a.start, a.force, a.regen, accounts, a.delay,
+    asyncio.run(run(a.provider, a.character, a.start, a.force, a.regen, accounts, a.delay,
                     a.cap_fallback, a.max_cap_waits))

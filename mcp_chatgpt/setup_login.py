@@ -12,12 +12,12 @@ import sys
 
 from playwright.async_api import async_playwright
 
-from mcp_chatgpt import selectors
+from mcp_chatgpt.sites import get_site
 from mcp_chatgpt.browser import DEFAULT_ACCOUNT, profile_dir
 
 
 async def main(account: str) -> None:
-    pdir = profile_dir(account)
+    pdir = profile_dir("chatgpt", account)
     os.makedirs(pdir, exist_ok=True)
     pw = await async_playwright().start()
     ctx = await pw.chromium.launch_persistent_context(
@@ -25,7 +25,7 @@ async def main(account: str) -> None:
         args=["--disable-blink-features=AutomationControlled"],
     )
     page = ctx.pages[0] if ctx.pages else await ctx.new_page()
-    await page.goto(selectors.URL, wait_until="domcontentloaded")
+    await page.goto(get_site("chatgpt").url, wait_until="domcontentloaded")
     print(f"Log into ChatGPT [{account}] in the opened window.")
     print("When you can see the chat box, come back here and press Enter.")
     await asyncio.get_event_loop().run_in_executor(None, input)

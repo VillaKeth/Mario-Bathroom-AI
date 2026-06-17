@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from playwright.async_api import async_playwright  # noqa: E402
-from mcp_chatgpt import selectors  # noqa: E402
+from mcp_chatgpt.sites import get_site  # noqa: E402
 from mcp_chatgpt.browser import profile_dir, OUTPUT_DIR  # noqa: E402
 
 HARVEST_DIR = Path(OUTPUT_DIR) / "harvest"
@@ -30,7 +30,7 @@ async def _gen_image_srcs(page):
     out = []
     for img in await page.query_selector_all("img"):
         src = await img.get_attribute("src") or ""
-        if any(m in src for m in selectors.GENERATED_IMAGE_MARKERS):
+        if any(m in src for m in get_site("chatgpt").generated_image_markers):
             out.append(src)
     # de-dupe, keep order
     seen, uniq = set(), []
@@ -59,12 +59,12 @@ async def _download(page, src, dst: Path):
 async def run(account: str, limit: int, download: bool) -> None:
     pw = await async_playwright().start()
     ctx = await pw.chromium.launch_persistent_context(
-        profile_dir(account), channel="chrome", headless=False,
+        profile_dir("chatgpt", account), channel="chrome", headless=False,
         args=["--disable-blink-features=AutomationControlled"],
     )
     try:
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
-        await page.goto(selectors.URL, wait_until="domcontentloaded")
+        await page.goto(get_site("chatgpt").url, wait_until="domcontentloaded")
         await page.wait_for_timeout(4000)
 
         # Collect conversation links from the sidebar (scroll to load more).

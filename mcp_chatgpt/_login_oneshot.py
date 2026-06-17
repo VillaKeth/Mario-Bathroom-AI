@@ -1,8 +1,8 @@
 """One-shot login capture: open Chrome on an account's persistent profile, wait
 until the user closes the window, then exit (profile saved). No terminal input.
 
-Run:  mcp_chatgpt/venv/Scripts/python.exe -m mcp_chatgpt._login_oneshot [account]
-      (account defaults to "default"; use e.g. "work" for a second account)
+Run:  mcp_chatgpt/venv/Scripts/python.exe -m mcp_chatgpt._login_oneshot [provider] [account]
+      (provider defaults to "chatgpt"; account defaults to "default"; use e.g. "work" for a second account)
 """
 import asyncio
 import os
@@ -10,12 +10,12 @@ import sys
 
 from playwright.async_api import async_playwright
 
-from mcp_chatgpt import selectors
 from mcp_chatgpt.browser import DEFAULT_ACCOUNT, profile_dir
+from mcp_chatgpt.sites import get_site
 
 
-async def main(account: str) -> None:
-    pdir = profile_dir(account)
+async def main(provider: str, account: str) -> None:
+    pdir = profile_dir(provider, account)
     os.makedirs(pdir, exist_ok=True)
     pw = await async_playwright().start()
     ctx = await pw.chromium.launch_persistent_context(
@@ -23,8 +23,8 @@ async def main(account: str) -> None:
         args=["--disable-blink-features=AutomationControlled"],
     )
     page = ctx.pages[0] if ctx.pages else await ctx.new_page()
-    await page.goto(selectors.URL, wait_until="domcontentloaded")
-    print(f"BROWSER_OPEN [{account}]: log into ChatGPT, then CLOSE the window.", flush=True)
+    await page.goto(get_site(provider).url, wait_until="domcontentloaded")
+    print(f"BROWSER_OPEN [{provider}/{account}]: log in, then CLOSE the window.", flush=True)
 
     closed = asyncio.Event()
     ctx.on("close", lambda: closed.set())
@@ -41,5 +41,6 @@ async def main(account: str) -> None:
 
 
 if __name__ == "__main__":
-    account = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_ACCOUNT
-    asyncio.run(main(account))
+    provider = sys.argv[1] if len(sys.argv) > 1 else "chatgpt"
+    account = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_ACCOUNT
+    asyncio.run(main(provider, account))
