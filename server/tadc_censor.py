@@ -12,7 +12,7 @@ independent tier, regardless of this module.
 import re
 from dataclasses import dataclass
 
-from safety_filter import _normalize_unicode  # reuse homoglyph/zero-width normalizer (DRY)
+from safety_filter import normalize_unicode  # reuse homoglyph/zero-width normalizer (DRY)
 
 # Profanity to bleep — the swear subset of safety_filter.CONTENT_PATTERNS plus
 # common compounds. \b...\b word boundaries make ordering irrelevant for
@@ -50,6 +50,8 @@ def is_enabled() -> bool:
 
 
 def set_character(name: str, display_name: str):
+    # Stored names are reserved for future logging/formatting; required by the
+    # startup pattern so all server modules expose a consistent set_character API.
     global _CHARACTER_NAME, _CHARACTER_DISPLAY_NAME
     if name:
         _CHARACTER_NAME = name
@@ -61,12 +63,16 @@ def censor(text: str) -> CensorResult:
     """Block swears for display, strip them from TTS. Pure; never raises."""
     if not text:
         return CensorResult(display=text or "", tts=text or "", count=0)
-    norm = _normalize_unicode(text)
+    norm = normalize_unicode(text)
     count = len(_SWEAR_RE.findall(norm))
     if not count:
-        return CensorResult(display=text, tts=text, count=0)
+        return CensorResult(display=norm, tts=norm, count=0)
     display = _SWEAR_RE.sub(_BLOCK, norm)
-    # Remove from audio; ', ' keeps a natural pause. _preclean_tts_text downstream
-    # collapses any resulting double commas.
-    tts = _SWEAR_RE.sub(", ", norm)
+    # Strip swears from the audio entirely (the bleep SFX + mouth bar carry the
+    # censorship). Clean up whitespace/comma artifacts left by the removal so the
+    # line still reads naturally even before _preclean_tts_text runs downstream.
+    tts = _SWEAR_RE.sub(" ", norm)
+    tts = re.sub(r"\s+", " ", tts)                # collapse whitespace
+    tts = re.sub(r"\s*,(?:\s*,)+", ",", tts)       # collapse comma runs from removed swears
+    tts = re.sub(r"^[\s,]+", "", tts).strip()      # drop leading/trailing comma+space
     return CensorResult(display=display, tts=tts, count=count)

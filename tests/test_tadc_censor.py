@@ -45,3 +45,21 @@ def test_enabled_gate_defaults_off_and_toggles():
     tadc_censor.set_enabled(True)
     assert tadc_censor.is_enabled() is True
     tadc_censor.set_enabled(False)  # reset for other tests
+
+
+def test_tts_sentence_leading_swear_has_no_comma_artifacts():
+    r = tadc_censor.censor("fuck, that was wild")
+    assert r.tts == "that was wild"
+    assert ", ," not in r.tts and not r.tts.startswith(",")
+
+
+def test_tts_adjacent_swears_collapse_to_empty():
+    r = tadc_censor.censor("shit fuck")
+    assert r.count == 2
+    assert r.tts == ""
+
+
+def test_censor_runs_regardless_of_enabled_flag():
+    # censor() does not gate on _ENABLED; the caller checks is_enabled() first.
+    tadc_censor.set_enabled(False)
+    assert tadc_censor.censor("fuck").count == 1

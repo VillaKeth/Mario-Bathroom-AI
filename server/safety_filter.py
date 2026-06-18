@@ -118,6 +118,8 @@ def _normalize_unicode(text: str) -> str:
     text = ''.join(c for c in text if unicodedata.category(c) not in ('Cf',) and c not in ('\u200b', '\u200c', '\u200d', '\ufeff'))
     return text
 
+normalize_unicode = _normalize_unicode  # public alias for cross-module importers
+
 
 def _character_break_patterns():
     character_name = (_CHARACTER_NAME or _CHARACTER_DISPLAY_NAME or "this character").strip().title()
