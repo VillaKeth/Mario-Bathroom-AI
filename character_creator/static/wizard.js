@@ -134,7 +134,15 @@ class WizardUI {
         this.availableModels = [];
         this.edgeVoices = [];
         this.spriteTaskId = null;
-        
+
+        // Fine-tune voice state
+        this._ftCanFinetune = false;          // true if GPU detected
+        this._ftPicks = [];                   // [{edit_id, url, title, regions:[{start,end}]}]
+        this._ftVoiceEditor = null;           // active VoiceEditor instance
+        this._ftCurrentIdx = -1;             // index in _ftPicks being edited in modal
+        this._ftTrainPollTimer = null;        // setInterval handle for training poll
+        this._ftResults = [];                 // last search results
+
         // Debounced handlers
         this.debouncedNameLookup = debounce(this.lookupKnownCharacter.bind(this), 500);
     }
@@ -362,14 +370,26 @@ class WizardUI {
             case 1: // Personality (always valid, skippable)
                 return true;
                 
-            case 2: // Voice
+            case 2: { // Voice
                 const hasEdgeVoice = this.state.get('edge_voice');
                 const hasAudio = this.state.get('audio_path');
-                if (!hasEdgeVoice && !hasAudio) {
-                    showToast('Please select an Edge TTS voice or upload reference audio', 'warning');
+                const hasFtTrained = this.state.get('ft_trained', false);
+                // Block if training is in progress but not yet done
+                if (this._ftTrainPollTimer !== null) {
+                    showToast('Voice training is still in progress — please wait until it finishes.', 'warning');
+                    return false;
+                }
+                if (!hasEdgeVoice && !hasAudio && !hasFtTrained) {
+                    // On the GPU branch, nudge toward the fine-tune flow
+                    if (this._ftCanFinetune) {
+                        showToast('Search for a voice clip above and click Build & Train, or select an Edge TTS fallback voice below.', 'warning');
+                    } else {
+                        showToast('Please select an Edge TTS voice or upload reference audio', 'warning');
+                    }
                     return false;
                 }
                 return true;
+            }
                 
             case 3: // Appearance (always valid, skippable)
                 return true;
@@ -680,6 +700,43 @@ class WizardUI {
         await this.loadVoiceEngines();
         await this.loadEdgeVoices();
         this.restorePronunciationRules();
+        await this._initFineTuneBranch();
+    }
+
+    async _initFineTuneBranch() {
+        const ftSection = document.getElementById('voice-finetune-section');
+        const noGpuNote = document.getElementById('voice-no-gpu-note');
+        // Legacy zero-shot cards remain visible in all cases; we only add/hide the GPU branch
+        try {
+            const data = await api('GET', '/api/voice/can_finetune');
+            this._ftCanFinetune = !!data.ok;
+            if (data.ok) {
+                ftSection.style.display = 'block';
+                noGpuNote.style.display = 'none';
+                const vramNote = document.getElementById('voice-ft-vram-note');
+                if (vramNote && data.vram_gb) {
+                    vramNote.textContent = `GPU detected: ${data.vram_gb} GB VRAM.`;
+                }
+                // Pre-fill search box from known character search terms
+                const terms = this.state.get('voice_search_terms');
+                const charName = this.state.get('char_name');
+                const ftSearchBox = document.getElementById('voice-ft-search-query');
+                if (ftSearchBox && !ftSearchBox.value) {
+                    ftSearchBox.value = terms || (charName ? charName + ' voice lines' : '');
+                }
+                // Restore any previously saved picks
+                this._ftPicks = this.state.get('ft_picks', []);
+                this._ftRenderTray();
+            } else {
+                ftSection.style.display = 'none';
+                noGpuNote.style.display = 'block';
+            }
+        } catch (e) {
+            // If endpoint fails, silently keep the no-GPU fallback path visible
+            console.warn('can_finetune probe failed:', e);
+            ftSection.style.display = 'none';
+            noGpuNote.style.display = 'block';
+        }
     }
     
     async loadVoiceEngines() {
@@ -1087,6 +1144,356 @@ class WizardUI {
         }
     }
     
+    // ================================
+    // Step 2: Fine-Tune Voice (GPU branch)
+    // ================================
+
+    /** Search YouTube for clips and render result cards in the GPU branch. */
+    async ftSearchVoice() {
+        const statusEl = document.getElementById('voice-ft-search-status');
+        const resultsEl = document.getElementById('voice-ft-results');
+        const qbox = document.getElementById('voice-ft-search-query');
+        const query = (qbox && qbox.value.trim()) || '';
+        if (!query) {
+            showToast('Enter a search term', 'error');
+            return;
+        }
+        try {
+            if (statusEl) statusEl.textContent = `Searching YouTube for "${query}"…`;
+            if (resultsEl) resultsEl.innerHTML = '';
+            const data = await api('POST', '/api/voice/search', { query, max_results: 6 });
+            if (!data.available) {
+                showToast('YouTube search unavailable (yt-dlp missing). Upload a clip instead.', 'error');
+                if (statusEl) statusEl.textContent = '';
+                return;
+            }
+            if (!data.results || !data.results.length) {
+                if (statusEl) statusEl.textContent = 'No results. Try a different search.';
+                return;
+            }
+            this._ftResults = data.results;
+            if (statusEl) statusEl.textContent = `Found ${data.results.length} clips — click Add to mark voice regions.`;
+            this._ftRenderResults(data.results);
+        } catch (e) {
+            showToast(`Voice search failed: ${e.message}`, 'error');
+            if (statusEl) statusEl.textContent = '';
+        }
+    }
+
+    /** Render search results in the GPU-branch results container. */
+    _ftRenderResults(results) {
+        const el = document.getElementById('voice-ft-results');
+        if (!el) return;
+        el.innerHTML = results.map((r, i) => {
+            const alreadyAdded = this._ftPicks.some(p => p.url === r.url);
+            return `
+            <div class="result-item" style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;padding:0.5rem;border:1px solid var(--border-color,#333);border-radius:8px;margin-bottom:0.4rem">
+                <div style="flex:1;min-width:0">
+                    <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</strong>
+                    <p style="margin:0.2rem 0 0;font-size:0.8rem;color:var(--text-muted)">
+                        ${r.duration ? Math.round(r.duration) + 's' : 'unknown duration'}
+                        &mdash; <a href="${r.url}" target="_blank" style="font-size:0.78rem">watch ↗</a>
+                    </p>
+                </div>
+                <button class="btn btn-sm btn-primary" id="ft-add-btn-${i}"
+                        ${alreadyAdded ? 'disabled' : ''}
+                        onclick="wizard._ftAddClip(${i})">
+                    ${alreadyAdded ? 'Added' : '➕ Add'}
+                </button>
+            </div>`;
+        }).join('');
+    }
+
+    /** Download full audio for one search result and open the region editor modal. */
+    async _ftAddClip(resultIdx) {
+        const r = (this._ftResults || [])[resultIdx];
+        if (!r) return;
+        if (this._ftPicks.some(p => p.url === r.url)) {
+            showToast('Already added', 'info');
+            return;
+        }
+
+        const btn = document.getElementById(`ft-add-btn-${resultIdx}`);
+        if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
+
+        try {
+            showToast('Downloading clip for editing…', 'info');
+            const data = await api('POST', '/api/voice/download_full_for_edit', { url: r.url });
+            // Add to picks with empty regions to start
+            this._ftPicks.push({ edit_id: data.edit_id, url: r.url, title: r.title, regions: [] });
+            const pickIdx = this._ftPicks.length - 1;
+            this.state.set('ft_picks', this._ftPicks);
+            this._ftRenderTray();
+            if (btn) { btn.textContent = 'Added'; }
+            // Re-render results to mark button as added
+            this._ftRenderResults(this._ftResults);
+            // Open editor immediately so user can mark regions right away
+            this._ftOpenModal(pickIdx, data.url);
+        } catch (e) {
+            showToast(`Download failed: ${e.message}`, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = '➕ Add'; }
+        }
+    }
+
+    /** Open the VoiceEditor modal for pick at index pickIdx. */
+    _ftOpenModal(pickIdx, audioUrl) {
+        const overlay = document.getElementById('voice-ft-modal-overlay');
+        const container = document.getElementById('voice-ft-editor-container');
+        const titleEl = document.getElementById('voice-ft-modal-title');
+        if (!overlay || !container) return;
+
+        // Destroy any existing editor
+        if (this._ftVoiceEditor) {
+            this._ftVoiceEditor.destroy();
+            this._ftVoiceEditor = null;
+        }
+
+        const pick = this._ftPicks[pickIdx];
+        if (!pick) return;
+
+        this._ftCurrentIdx = pickIdx;
+        if (titleEl) titleEl.textContent = `Edit: ${pick.title}`;
+
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+
+        // The audioUrl passed in may be a relative server path
+        const url = audioUrl || pick._audioUrl || '';
+        if (url) {
+            pick._audioUrl = url; // cache for re-open
+        }
+
+        if (typeof VoiceEditor !== 'undefined' && url) {
+            try {
+                this._ftVoiceEditor = new VoiceEditor(container, url);
+            } catch (e) {
+                container.innerHTML = `<p class="help-text" style="color:var(--color-red)">Could not load waveform editor: ${e.message}</p>`;
+                console.error('VoiceEditor init failed:', e);
+            }
+        } else {
+            container.innerHTML = '<p class="help-text">Waveform editor unavailable — regions saved as empty (full clip will be used).</p>';
+        }
+    }
+
+    /** Re-open the modal for an existing pick (from tray "Edit" button). */
+    _ftEditPick(pickIdx) {
+        const pick = this._ftPicks[pickIdx];
+        if (!pick) return;
+        this._ftOpenModal(pickIdx, pick._audioUrl || '');
+    }
+
+    /** Close the modal and save whatever regions the editor currently has. */
+    ftCloseModal() {
+        this.ftSaveRegions();
+        const overlay = document.getElementById('voice-ft-modal-overlay');
+        if (overlay) overlay.style.display = 'none';
+        document.body.style.overflow = '';
+        if (this._ftVoiceEditor) {
+            this._ftVoiceEditor.destroy();
+            this._ftVoiceEditor = null;
+        }
+        this._ftCurrentIdx = -1;
+    }
+
+    /** Persist the current editor's regions back into _ftPicks and update tray. */
+    ftSaveRegions() {
+        if (this._ftCurrentIdx < 0 || !this._ftPicks[this._ftCurrentIdx]) return;
+        if (this._ftVoiceEditor) {
+            const regions = this._ftVoiceEditor.getRegions();
+            this._ftPicks[this._ftCurrentIdx].regions = regions;
+            this.state.set('ft_picks', this._ftPicks);
+        }
+        this._ftRenderTray();
+    }
+
+    /** Remove a pick from the tray. */
+    _ftRemovePick(pickIdx) {
+        this._ftPicks.splice(pickIdx, 1);
+        this.state.set('ft_picks', this._ftPicks);
+        this._ftRenderTray();
+        // Re-render results to re-enable the add button
+        if (this._ftResults && this._ftResults.length) {
+            this._ftRenderResults(this._ftResults);
+        }
+    }
+
+    /** Render the tray of added clips with their region counts and total seconds. */
+    _ftRenderTray() {
+        const trayEl = document.getElementById('voice-ft-tray');
+        const trayCard = document.getElementById('voice-ft-tray-card');
+        const trayNote = document.getElementById('voice-ft-tray-note');
+        if (!trayEl) return;
+
+        if (!this._ftPicks.length) {
+            if (trayCard) trayCard.style.display = 'none';
+            return;
+        }
+        if (trayCard) trayCard.style.display = 'block';
+
+        // Compute total seconds
+        let totalSecs = 0;
+        for (const p of this._ftPicks) {
+            if (p.regions && p.regions.length) {
+                for (const r of p.regions) {
+                    totalSecs += (r.end - r.start);
+                }
+            }
+        }
+
+        if (trayNote) {
+            const secStr = totalSecs > 0 ? `${Math.round(totalSecs)}s selected` : '0s selected';
+            const warn = totalSecs < 60 && totalSecs > 0 ? ' ⚠️ More audio = better voice. Aim for 60s+.' : '';
+            const noRegions = totalSecs === 0 ? ' No regions marked — full clips will be used.' : '';
+            trayNote.textContent = secStr + warn + noRegions;
+        }
+
+        trayEl.innerHTML = this._ftPicks.map((p, i) => {
+            const regionCount = (p.regions || []).length;
+            const regionSecs = (p.regions || []).reduce((a, r) => a + (r.end - r.start), 0);
+            return `
+            <div style="border:1px solid var(--border-color,#333);border-radius:8px;padding:0.5rem 0.7rem;margin-bottom:0.4rem;display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
+                <div style="flex:1;min-width:0">
+                    <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem">${p.title}</strong>
+                    <span style="font-size:0.75rem;color:var(--text-muted)">
+                        ${regionCount > 0 ? regionCount + ' region(s), ' + Math.round(regionSecs) + 's' : 'no regions — full clip'}
+                    </span>
+                </div>
+                <div style="display:flex;gap:0.4rem;flex-shrink:0">
+                    <button class="btn btn-sm btn-secondary" onclick="wizard._ftEditPick(${i})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="wizard._ftRemovePick(${i})">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    /**
+     * Build dataset and kick off training.
+     * Switches to the blocking training screen and polls every 10s.
+     */
+    async ftBuildAndTrain() {
+        const charName = this.state.get('char_name');
+        if (!charName) {
+            showToast('Enter a character name first (Step 1).', 'error');
+            return;
+        }
+        if (!this._ftPicks.length) {
+            showToast('Add at least one voice clip before training.', 'error');
+            return;
+        }
+
+        // Build picks payload
+        const picks = this._ftPicks.map(p => ({
+            edit_id: p.edit_id,
+            regions: (p.regions && p.regions.length) ? p.regions : []
+        }));
+
+        // Show training screen
+        const trayCard = document.getElementById('voice-ft-tray-card');
+        const searchCard = document.getElementById('voice-ft-search-card');
+        const trainingCard = document.getElementById('voice-ft-training-card');
+        const fillEl = document.getElementById('voice-ft-train-fill');
+        const statusEl = document.getElementById('voice-ft-train-status');
+        const detailEl = document.getElementById('voice-ft-train-detail');
+        const fallbackBtn = document.getElementById('voice-ft-fallback-btn');
+
+        if (trayCard) trayCard.style.display = 'none';
+        if (searchCard) searchCard.style.display = 'none';
+        if (trainingCard) trainingCard.style.display = 'block';
+        if (statusEl) statusEl.textContent = 'Building dataset…';
+        if (fillEl) fillEl.style.width = '5%';
+
+        try {
+            // Build dataset
+            const buildData = await api('POST', '/api/voice/build_dataset', { char: charName, picks });
+            if (statusEl) statusEl.textContent = `Dataset built: ${buildData.segments} segment(s), ~${Math.round(buildData.seconds)}s. Starting training…`;
+            if (fillEl) fillEl.style.width = '10%';
+
+            // Start training
+            await api('POST', '/api/voice/train', { char: charName });
+            if (statusEl) statusEl.textContent = 'Training started. Polling for progress…';
+
+            // Poll every 10 seconds
+            this._ftTrainPollTimer = setInterval(() => {
+                this._ftPollTraining(charName);
+            }, 10000);
+
+            // First poll immediately
+            this._ftPollTraining(charName);
+
+        } catch (e) {
+            showToast(`Training failed to start: ${e.message}`, 'error');
+            if (statusEl) statusEl.textContent = `Error: ${e.message}`;
+            if (fillEl) fillEl.style.width = '0%';
+            if (fallbackBtn) fallbackBtn.style.display = 'inline-block';
+            // Show search/tray cards again
+            if (searchCard) searchCard.style.display = 'block';
+            if (trayCard) trayCard.style.display = 'block';
+            if (trainingCard) trainingCard.style.display = 'none';
+        }
+    }
+
+    /** Poll training status and update the progress bar. */
+    async _ftPollTraining(charName) {
+        const fillEl = document.getElementById('voice-ft-train-fill');
+        const statusEl = document.getElementById('voice-ft-train-status');
+        const detailEl = document.getElementById('voice-ft-train-detail');
+        const fallbackBtn = document.getElementById('voice-ft-fallback-btn');
+
+        try {
+            const data = await api('GET', `/api/voice/train_status?char=${encodeURIComponent(charName)}`);
+
+            if (data.error) {
+                clearInterval(this._ftTrainPollTimer);
+                this._ftTrainPollTimer = null;
+                if (statusEl) statusEl.textContent = `Training error: ${data.error}`;
+                if (fallbackBtn) fallbackBtn.style.display = 'inline-block';
+                return;
+            }
+
+            // Update progress bar
+            const pct = data.pct != null ? data.pct : 0;
+            if (fillEl) fillEl.style.width = `${pct}%`;
+
+            // Build status text
+            let stageLine = data.stage || '';
+            if (data.epoch != null && data.total != null) {
+                stageLine += ` — epoch ${data.epoch}/${data.total}`;
+            }
+            if (statusEl) statusEl.textContent = stageLine || 'Training…';
+            if (detailEl) detailEl.textContent = pct ? `${Math.round(pct)}% complete` : '';
+
+            if (data.done) {
+                clearInterval(this._ftTrainPollTimer);
+                this._ftTrainPollTimer = null;
+                this.state.set('ft_trained', true);
+                if (fillEl) fillEl.style.width = '100%';
+                if (statusEl) statusEl.textContent = 'Voice training complete!';
+                if (detailEl) detailEl.textContent = 'You can now proceed to the next step.';
+                showToast('Voice model trained successfully!', 'success');
+            }
+        } catch (e) {
+            // Network hiccup — keep polling, but log it
+            console.warn('Train status poll error:', e);
+        }
+    }
+
+    /** Fall back to Edge TTS path and hide the training screen. */
+    ftFallbackToEdge() {
+        if (this._ftTrainPollTimer !== null) {
+            clearInterval(this._ftTrainPollTimer);
+            this._ftTrainPollTimer = null;
+        }
+        const trainingCard = document.getElementById('voice-ft-training-card');
+        const searchCard = document.getElementById('voice-ft-search-card');
+        const trayCard = document.getElementById('voice-ft-tray-card');
+        if (trainingCard) trainingCard.style.display = 'none';
+        if (searchCard) searchCard.style.display = 'block';
+        if (trayCard && this._ftPicks.length) trayCard.style.display = 'block';
+        showToast('Switched to quick voice (Edge TTS). Select a voice below.', 'info');
+        const edgeCard = document.getElementById('voice-autofind-card');
+        if (edgeCard) edgeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     addPronunciation() {
         const container = document.getElementById('pronunciation-rules');
         const row = document.createElement('div');

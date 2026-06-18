@@ -194,6 +194,63 @@
                     </div>
                 </div>
 
+                <!-- GPU fine-tune branch (shown when can_finetune === true) -->
+                <div id="voice-finetune-section" style="display:none">
+
+                    <div class="card" id="voice-ft-search-card">
+                        <h3>🎯 Fine-Tune Voice (GPU detected)</h3>
+                        <p class="help-text">Search YouTube for clips of your character, mark the exact seconds where only they speak, then train a faithful voice model. Takes ~1–2 hours once you hit Build &amp; Train.</p>
+                        <p class="help-text" id="voice-ft-vram-note"></p>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1">
+                                <label for="voice-ft-search-query">Search</label>
+                                <input type="text" id="voice-ft-search-query" placeholder="e.g. Jax Amazing Digital Circus voice lines">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="wizard.ftSearchVoice()">🔎 Search</button>
+                        <p class="help-text" id="voice-ft-search-status"></p>
+                        <div id="voice-ft-results" style="margin-top:0.75rem"></div>
+                    </div>
+
+                    <!-- Selected-clips tray -->
+                    <div class="card" id="voice-ft-tray-card" style="display:none">
+                        <h3>Selected Clips</h3>
+                        <p class="help-text" id="voice-ft-tray-note"></p>
+                        <div id="voice-ft-tray"></div>
+                        <button class="btn btn-primary btn-lg" style="margin-top:0.75rem" onclick="wizard.ftBuildAndTrain()">
+                            🚀 Build &amp; Train
+                        </button>
+                    </div>
+
+                    <!-- Blocking training screen (hidden until train starts) -->
+                    <div class="card" id="voice-ft-training-card" style="display:none">
+                        <h3>Training Voice Model</h3>
+                        <p class="help-text" style="font-size:0.95rem;margin-bottom:0.75rem">
+                            Training a faithful voice — this takes ~1–2 hours. Keep this window open.
+                        </p>
+                        <div class="progress-bar-horizontal" style="margin-bottom:0.5rem">
+                            <div class="progress-fill" id="voice-ft-train-fill" style="width:0%"></div>
+                        </div>
+                        <p id="voice-ft-train-status" class="help-text"></p>
+                        <p id="voice-ft-train-detail" class="help-text" style="font-size:0.8rem;color:var(--text-muted)"></p>
+                        <button class="btn btn-secondary" id="voice-ft-fallback-btn" style="display:none;margin-top:0.75rem"
+                                onclick="wizard.ftFallbackToEdge()">
+                            Use a quick voice instead
+                        </button>
+                    </div>
+
+                </div>
+                <!-- /GPU fine-tune branch -->
+
+                <!-- No-GPU note (shown when can_finetune === false) -->
+                <div id="voice-no-gpu-note" style="display:none">
+                    <div class="card" style="border-color:var(--color-yellow,#f5c842)">
+                        <p style="margin:0;font-size:0.88rem">
+                            ⚡ Fine-tune needs a GPU — using a quick voice instead. You can always retrain later on a GPU machine.
+                        </p>
+                    </div>
+                </div>
+
                 <div class="card" id="voice-autofind-card">
                     <h3>🔎 Auto-find Voice (Recommended)</h3>
                     <p class="help-text">Pull a real clip of your character straight from YouTube &mdash; nothing to record. We download it, transcribe it locally with Whisper, and clone the voice with Fish Speech / GPT-SoVITS.</p>
@@ -531,6 +588,26 @@
     <!-- Toast Container -->
     <div id="toast-container" aria-live="assertive"></div>
 
+    <!-- Voice-editor modal (reused for each fine-tune clip) -->
+    <div id="voice-ft-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;overflow-y:auto">
+        <div style="max-width:700px;margin:3rem auto;background:var(--bg-card,#1a1a2e);border:1px solid var(--border-color,#333);border-radius:12px;padding:1.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem">
+                <div>
+                    <h3 id="voice-ft-modal-title" style="margin:0 0 0.25rem">Edit Clip</h3>
+                    <p class="help-text" style="margin:0;font-size:0.8rem">Drag on the waveform or click "+ Add Region" to mark sections where <strong>only your character speaks</strong>. Avoid music, other voices, or silence.</p>
+                </div>
+                <button class="btn btn-secondary btn-sm" style="margin-left:1rem;flex-shrink:0" onclick="wizard.ftCloseModal()">Close</button>
+            </div>
+            <div id="voice-ft-editor-container" style="min-height:120px"></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+                <button class="btn btn-primary" onclick="wizard.ftSaveRegions()">Save Regions</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/vendor/wavesurfer.min.js"></script>
+    <script src="/static/vendor/wavesurfer.regions.min.js"></script>
+    <script src="/static/voice_editor.js"></script>
     <script src="/static/wizard.js"></script>
 </body>
 </html>
