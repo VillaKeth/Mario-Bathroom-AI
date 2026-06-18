@@ -4962,17 +4962,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         "love": "emotion/happy", "think": "idle/think",
                         "cry": "emotion/sad", "anger": "emotion/angry"}
             analyzed["pose_hint"] = pose_map.get(reaction, "")
-    censored = False
-    if tadc_censor.is_enabled():
-        _d = tadc_censor.censor(analyzed.get("display_text", ""))
-        _t = tadc_censor.censor(analyzed.get("tts_text", ""))
-        analyzed["display_text"] = _d.display
-        analyzed["tts_text"] = _t.tts
-        if analyzed.get("full_text"):
-            analyzed["full_text"] = tadc_censor.censor(analyzed["full_text"]).display
-        censored = (_d.count + _t.count) > 0
-        if censored:
-            logger.info(f"[TADC] censored {_d.count} swear(s) in response")
+    censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
+    if censored:
+        logger.info("[TADC] censored swear(s) in response")
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
     # Trim BEFORE appending to stay within limit — compress dropped messages

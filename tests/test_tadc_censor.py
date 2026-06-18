@@ -89,14 +89,17 @@ def test_character_loader_franchise_defaults_empty(tmp_path):
     assert c.franchise == ""
 
 
-def test_pipeline_contract_blocks_and_flags():
-    import tadc_censor as tc
-    tc.set_enabled(True)
+def test_censor_analyzed_blocks_strips_and_flags():
     analyzed = {"display_text": "you little shit", "tts_text": "you little shit", "full_text": "you little shit"}
-    d = tc.censor(analyzed["display_text"]); t = tc.censor(analyzed["tts_text"])
-    analyzed["display_text"], analyzed["tts_text"] = d.display, t.tts
-    censored = (d.count + t.count) > 0
+    censored = tadc_censor.censor_analyzed(analyzed)
     assert censored is True
     assert "████" in analyzed["display_text"]
+    assert "████" in analyzed["full_text"]
     assert "shit" not in analyzed["tts_text"].lower()
-    tc.set_enabled(False)
+
+
+def test_censor_analyzed_clean_text_no_flag():
+    analyzed = {"display_text": "hello there", "tts_text": "hello there", "full_text": "hello there"}
+    assert tadc_censor.censor_analyzed(analyzed) is False
+    assert analyzed["display_text"] == "hello there"
+    assert analyzed["tts_text"] == "hello there"

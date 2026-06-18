@@ -66,7 +66,10 @@ def censor(text: str) -> CensorResult:
     norm = normalize_unicode(text)
     count = len(_SWEAR_RE.findall(norm))
     if not count:
-        return CensorResult(display=norm, tts=norm, count=0)
+        # Clean text passes through UNCHANGED so the TTS cache key (computed from
+        # the untouched string downstream) stays stable — returning the normalized
+        # form here would make every censor-enabled response miss the precache.
+        return CensorResult(display=text, tts=text, count=0)
     display = _SWEAR_RE.sub(_BLOCK, norm)
     # Strip swears from the audio entirely (the bleep SFX + mouth bar carry the
     # censorship). Clean up whitespace/comma artifacts left by the removal so the
@@ -76,3 +79,17 @@ def censor(text: str) -> CensorResult:
     tts = re.sub(r"\s*,(?:\s*,)+", ",", tts)       # collapse comma runs from removed swears
     tts = re.sub(r"^[\s,]+", "", tts).strip()      # drop leading/trailing comma+space
     return CensorResult(display=display, tts=tts, count=count)
+
+
+def censor_analyzed(analyzed: dict) -> bool:
+    """Censor an analyzed-response dict IN PLACE. Blocks swears in display_text
+    and full_text (speech bubble + chat backlog) and strips them from tts_text so
+    synthesis never voices them. Returns True if anything was censored. Safe on
+    missing keys. Caller should gate on is_enabled() before calling."""
+    d = censor(analyzed.get("display_text", ""))
+    t = censor(analyzed.get("tts_text", ""))
+    analyzed["display_text"] = d.display
+    analyzed["tts_text"] = t.tts
+    if analyzed.get("full_text"):
+        analyzed["full_text"] = censor(analyzed["full_text"]).display
+    return (d.count + t.count) > 0
