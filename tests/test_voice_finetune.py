@@ -19,6 +19,34 @@ def test_parse_status_done_on_marker():
     assert st["done"] is True
 
 
+def test_parse_status_s1_phase_reset_pct_is_sane():
+    """When s1_train is in the log and the epoch counter has reset for the GPT
+    phase, seen must be total_s2 + min(epoch, total_s1) — never over-counting
+    past total_s1. With total_s2=8, total_s1=4, an s1 'Epoch: 2' => seen=10,
+    total=12 => pct around 83 (and strictly < 100 until done)."""
+    log = (
+        '$ "py" -s GPT_SoVITS/s1_train.py --config_file "TEMP/tmp_s1.yaml"\n'
+        "INFO:pomni:====> Epoch: 2\n"
+    )
+    st = vf.parse_training_status(log, total_s2=8, total_s1=4)
+    assert st["stage"] == "s1"
+    assert st["done"] is False
+    # seen = 8 + min(2, 4) = 10; pct = int(100*10/12) = 83
+    assert st["pct"] == 83
+
+
+def test_parse_status_s1_epoch_overshoot_caps_at_total_s1():
+    """A bogus high s1 epoch (e.g. resume artifact) must not push seen past total."""
+    log = (
+        "GPT_SoVITS/s1_train.py\n"
+        "====> Epoch: 99\n"
+    )
+    st = vf.parse_training_status(log, total_s2=8, total_s1=4)
+    assert st["stage"] == "s1"
+    # seen capped at total_s2 + total_s1 = 12; pct capped at 99 (not done)
+    assert st["pct"] == 99
+
+
 def test_can_finetune_false_without_cuda(monkeypatch):
     monkeypatch.setattr(vf, "_gpu_vram_gb", lambda: 0.0)
     monkeypatch.setattr(vf, "_sovits_installed", lambda: True)
@@ -74,6 +102,54 @@ def test_build_dataset_from_picks_cuts_regions(tmp_path, monkeypatch):
         char_root=str(tmp_path))
     assert n >= 1
     assert (tmp_path / "testc" / "voice" / "dataset" / "testc.list").exists()
+
+
+def test_build_dataset_stages_in_draft_root_not_characters(tmp_path, monkeypatch):
+    """FIX 1: with char_root pointed at a draft root, the dataset .list must be
+    written under <draft_root>/<char>/voice/dataset/ — and NOTHING under the repo
+    characters/ dir. This is what lets _move_staged_files merge it at finalize
+    instead of colliding with build_character."""
+    import wave, struct, math
+    wavp = tmp_path / "edit_v1.wav"
+    with wave.open(str(wavp), "w") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(32000)
+        for i in range(32000 * 4):
+            w.writeframes(struct.pack("<h", int(8000 * math.sin(i / 20))))
+    monkeypatch.setattr("character_creator.voice_transcribe.transcribe_file",
+                        lambda p, **k: {"text": "hello there", "language": "en"})
+
+    draft_root = tmp_path / "_drafts"
+    vf.build_dataset_from_picks("draftchar", [{"edit_wav": str(wavp),
+        "regions": [{"start": 0.2, "end": 3.2}]}], char_root=str(draft_root))
+
+    # .list lives under the DRAFT tree
+    assert (draft_root / "draftchar" / "voice" / "dataset" / "draftchar.list").exists()
+    # and the real repo characters/ dir was NOT touched for this char
+    repo_char = os.path.join(vf._CHARS_DIR, "draftchar")
+    assert not os.path.exists(repo_char), (
+        f"build_dataset must not write into repo characters/ ({repo_char})"
+    )
+
+
+def test_guard_sees_finetuned_model_in_draft_yaml(tmp_path):
+    """FIX 1 + earlier guard: training_status with a draft char_root patches the
+    DRAFT character.yaml with finetuned_model, so the prepare_voice_artifacts
+    guard (which reads char_dir/character.yaml after the merge) actually fires."""
+    import yaml
+    draft_root = tmp_path / "_drafts"
+    cdir = draft_root / "dchar" / "voice"
+    cdir.mkdir(parents=True)
+    (draft_root / "dchar" / "character.yaml").write_text(
+        "identity:\n  name: dchar\nvoice:\n  preferred_engine: edge\n", encoding="utf-8")
+    (cdir / "finetune.log").write_text(
+        "====> Epoch: 4\n[ft] DONE -> /x/GPT_SoVITS_Dchar\n", encoding="utf-8")
+
+    st = vf.training_status("dchar", char_root=str(draft_root))
+    assert st["done"] is True
+    data = yaml.safe_load((draft_root / "dchar" / "character.yaml").read_text())
+    assert data["voice"]["finetuned_model"], "draft yaml must carry finetuned_model"
+    # the repo characters/ yaml for this char must not exist (nothing leaked out)
+    assert not os.path.exists(os.path.join(vf._CHARS_DIR, "dchar"))
 
 
 # ─── Guard: prepare_voice_artifacts must not clobber a fine-tuned voice ───────

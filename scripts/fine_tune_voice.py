@@ -24,6 +24,14 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.join(BASE, "gpt_sovits_repo")
 PYEXE = sys.executable  # must be gpt_sovits_env python
 
+# Root that holds <char>/voice/dataset/<char>.list and <char>/voice/reference_audio.wav.
+# The wizard stages these under character_creator/_drafts/<char>/ and exports
+# FT_CHAR_ROOT so this headless run reads them from the draft tree (which is later
+# merged into characters/<char>/). Defaults to the repo characters/ dir for direct
+# CLI runs. The trained model is always collected into the GLOBAL mario_models_new/
+# dir below, independent of this root.
+CHAR_ROOT = os.environ.get("FT_CHAR_ROOT") or os.path.join(BASE, "characters")
+
 VERSION = "v2"
 IS_HALF = os.environ.get("FT_IS_HALF", "False")  # P1000: fp32
 GPU = os.environ.get("FT_GPU", "0")
@@ -57,7 +65,7 @@ def run(cmd, env):
 def main():
     char = sys.argv[1] if len(sys.argv) > 1 else "jax"
     exp = char  # exp_name
-    list_path = os.path.join(BASE, "characters", char, "voice", "dataset", f"{char}.list")
+    list_path = os.path.join(CHAR_ROOT, char, "voice", "dataset", f"{char}.list")
     if not os.path.exists(list_path):
         raise SystemExit(f"[ft] dataset list missing: {list_path} — run build_voice_dataset.py first")
     opt_dir = f"logs/{exp}"  # relative to REPO
@@ -184,7 +192,7 @@ def main():
     if a:
         shutil.copy(a, os.path.join(out, os.path.basename(a)))
     # bundle a clean 3-10s reference for inference
-    ref = os.path.join(BASE, "characters", char, "voice", "reference_audio.wav")
+    ref = os.path.join(CHAR_ROOT, char, "voice", "reference_audio.wav")
     if os.path.exists(ref):
         shutil.copy(ref, os.path.join(out, f"{char}_ref.wav"))
     print(f"[ft] DONE -> {out}\n[ft] contents: {os.listdir(out)}", flush=True)

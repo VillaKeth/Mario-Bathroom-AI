@@ -4,6 +4,7 @@ Serves a 6-step browser wizard for creating AI characters.
 Run standalone: python -m character_creator.server
 """
 import os
+import re
 import sys
 import json
 import logging
@@ -228,6 +229,23 @@ async def voice_download_multi(body: dict):
 # before the server restarts; the underlying .wav files persist on disk.
 _edit_cache: dict = {}
 
+# Path-traversal guards. A character name only ever becomes a sub-directory
+# under _drafts/<char> or characters/<char>, so it must be a bare slug; an
+# edit_id only ever becomes <cache>/<edit_id>.wav, so it must be hex/uuid-ish.
+_CHAR_NAME_RE = re.compile(r"^[a-z0-9_]+$")
+_EDIT_ID_RE = re.compile(r"^[0-9a-f-]{8,36}$")
+
+# Parent dir under which every wizard step stages a character's draft tree.
+# build_dataset_from_picks / start_training / training_status join <char> onto
+# this, so the dataset, finetune.log and the on-done character.yaml patch all
+# land in _drafts/<char>/... and get merged by _move_staged_files at finalize.
+_DRAFTS_DIR = os.path.join(os.path.dirname(__file__), "_drafts")
+
+
+def _norm_char(name: str) -> str:
+    """Normalize a character name the way every endpoint does (lower + underscore)."""
+    return (name or "").lower().replace(" ", "_")
+
 
 @app.get("/api/voice/can_finetune")
 async def voice_can_finetune():
@@ -245,14 +263,16 @@ async def voice_download_full_for_edit(body: dict):
     """
     from character_creator import voice_finder
     url = (body.get("url") or "").strip()
-    char_name = (body.get("character_name") or "").lower().replace(" ", "_")
+    char_name = _norm_char(body.get("character_name"))
     if not url or not char_name:
         return {"success": False, "error": "Missing url or character_name"}
+    if not _CHAR_NAME_RE.match(char_name):
+        return {"success": False, "error": "invalid character name"}
     if not voice_finder.is_available():
         return {"success": False, "error": "yt-dlp not installed. Run setup.bat."}
 
     edit_id = str(uuid.uuid4())[:12]
-    cache_dir = os.path.join(os.path.dirname(__file__), "_drafts", char_name, "voice", "_edit_cache")
+    cache_dir = os.path.join(_DRAFTS_DIR, char_name, "voice", "_edit_cache")
     os.makedirs(cache_dir, exist_ok=True)
     out_path = os.path.join(cache_dir, f"{edit_id}.wav")
 
@@ -268,15 +288,15 @@ async def voice_download_full_for_edit(body: dict):
 async def voice_serve_edit_cache(edit_id: str):
     """Serve a cached edit wav so the browser waveform editor can load it."""
     from fastapi.responses import Response
+    # Reject anything that isn't a plain hex/uuid id before it can be used in a
+    # path (defends the on-disk fallback lookup against traversal).
+    if not _EDIT_ID_RE.match(edit_id or ""):
+        return Response(status_code=404)
     entry = _edit_cache.get(edit_id)
     if not entry or not os.path.isfile(entry["path"]):
-        # Try to locate the file on disk in case of server restart
-        # (edit_id is part of the filename so we can search for it)
         return Response(status_code=404)
-    with open(entry["path"], "rb") as f:
-        data = f.read()
-    return Response(content=data, media_type="audio/wav",
-                    headers={"Content-Disposition": f'inline; filename="{edit_id}.wav"'})
+    return FileResponse(entry["path"], media_type="audio/wav",
+                        headers={"Content-Disposition": f'inline; filename="{edit_id}.wav"'})
 
 
 def _wav_duration_seconds(wav_path: str) -> float:
@@ -305,24 +325,28 @@ async def voice_build_dataset(body: dict):
     Returns: {segments, seconds}
     """
     from character_creator import voice_finetune
-    char = (body.get("char") or "").lower().replace(" ", "_")
+    char = _norm_char(body.get("char"))
     picks_raw = body.get("picks") or []
     if not char or not picks_raw:
         return {"success": False, "error": "Missing char or picks"}
+    if not _CHAR_NAME_RE.match(char):
+        return {"success": False, "error": "invalid character name"}
+
+    cache_dir = os.path.join(_DRAFTS_DIR, char, "voice", "_edit_cache")
 
     # Resolve edit_id -> absolute wav path for each pick
     resolved_picks = []
     for pick in picks_raw:
         edit_wav = (pick.get("edit_wav") or "").strip()
         edit_id = (pick.get("edit_id") or "").strip()
-        if not edit_wav and edit_id:
+        # Only honor an edit_id that is a clean hex/uuid token — anything else
+        # could escape the cache dir via path traversal.
+        if not edit_wav and edit_id and _EDIT_ID_RE.match(edit_id):
             entry = _edit_cache.get(edit_id)
             if entry:
                 edit_wav = entry["path"]
             else:
-                # edit_id not in memory — build likely path from char in body
-                cache_dir = os.path.join(os.path.dirname(__file__), "_drafts",
-                                         char, "voice", "_edit_cache")
+                # edit_id not in memory — rebuild path inside the draft cache dir
                 candidate = os.path.join(cache_dir, f"{edit_id}.wav")
                 if os.path.isfile(candidate):
                     edit_wav = candidate
@@ -331,28 +355,28 @@ async def voice_build_dataset(body: dict):
             "regions": pick.get("regions") or [],
         })
 
+    # Stage the dataset under the DRAFT tree (_drafts/<char>/...) so it merges
+    # into characters/<char>/ at finalize instead of colliding with build_character.
     segments = await asyncio.to_thread(
-        voice_finetune.build_dataset_from_picks, char, resolved_picks
+        voice_finetune.build_dataset_from_picks, char, resolved_picks, _DRAFTS_DIR
     )
 
-    # Sum up the durations of produced segments for the UI progress display.
-    # Use the draft dir (default char_root = characters/) or _drafts depending
-    # on context; voice_finetune uses _CHARS_DIR (repo characters/) by default.
-    import os as _os
-    from character_creator import voice_finetune as _vf
-    seg_dir = _os.path.join(_vf._CHARS_DIR, char, "voice", "dataset", "segments")
+    # Sum up the durations of produced segments for the UI progress display
+    # (segments live in the draft dataset dir; fall back to raw/ if slicing was
+    # skipped).
+    ds_dir = os.path.join(_DRAFTS_DIR, char, "voice", "dataset")
     total_secs = 0.0
-    if _os.path.isdir(seg_dir):
-        for fn in _os.listdir(seg_dir):
+    seg_dir = os.path.join(ds_dir, "segments")
+    if os.path.isdir(seg_dir):
+        for fn in os.listdir(seg_dir):
             if fn.lower().endswith(".wav"):
-                total_secs += _wav_duration_seconds(_os.path.join(seg_dir, fn))
-    # If segments dir is empty (raw-pieces fallback), check raw/ dir
+                total_secs += _wav_duration_seconds(os.path.join(seg_dir, fn))
     if total_secs == 0.0:
-        raw_dir = _os.path.join(_vf._CHARS_DIR, char, "voice", "dataset", "raw")
-        if _os.path.isdir(raw_dir):
-            for fn in _os.listdir(raw_dir):
+        raw_dir = os.path.join(ds_dir, "raw")
+        if os.path.isdir(raw_dir):
+            for fn in os.listdir(raw_dir):
                 if fn.lower().endswith(".wav"):
-                    total_secs += _wav_duration_seconds(_os.path.join(raw_dir, fn))
+                    total_secs += _wav_duration_seconds(os.path.join(raw_dir, fn))
 
     return {"success": True, "segments": segments, "seconds": round(total_secs, 1)}
 
@@ -365,10 +389,14 @@ async def voice_train(body: dict):
     Returns: {started, log, already_running}
     """
     from character_creator import voice_finetune
-    char = (body.get("char") or "").lower().replace(" ", "_")
+    char = _norm_char(body.get("char"))
     if not char:
         return {"success": False, "error": "Missing char"}
-    result = await asyncio.to_thread(voice_finetune.start_training, char)
+    if not _CHAR_NAME_RE.match(char):
+        return {"success": False, "error": "invalid character name"}
+    # Stage finetune.log / finetune.pid in the draft tree (the dataset built by
+    # build_dataset lives there too, and fine_tune_voice.py reads it via FT_CHAR_ROOT).
+    result = await asyncio.to_thread(voice_finetune.start_training, char, _DRAFTS_DIR)
     return {**result, "success": True}
 
 
@@ -380,10 +408,14 @@ async def voice_train_status(char: str = ""):
     Returns: {stage, epoch, total, pct, done, log}
     """
     from character_creator import voice_finetune
-    char = char.lower().replace(" ", "_")
+    char = _norm_char(char)
     if not char:
         return {"success": False, "error": "Missing char query parameter"}
-    result = await asyncio.to_thread(voice_finetune.training_status, char)
+    if not _CHAR_NAME_RE.match(char):
+        return {"success": False, "error": "invalid character name"}
+    # Read the draft finetune.log and patch the draft character.yaml on done, so
+    # the finetuned_model key is present before _move_staged_files merges it.
+    result = await asyncio.to_thread(voice_finetune.training_status, char, _DRAFTS_DIR)
     return {**result, "success": True}
 
 

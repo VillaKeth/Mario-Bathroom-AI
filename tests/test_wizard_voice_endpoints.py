@@ -209,3 +209,153 @@ def test_train_status_success(monkeypatch):
     assert data.get("success") is True
     assert data["stage"] == "s2"
     assert data["done"] is False
+
+
+# ─── FIX 1: endpoints must stage fine-tune artifacts under the DRAFT tree ──────
+
+def _drafts_root():
+    return os.path.join(os.path.dirname(_srv.__file__), "_drafts")
+
+
+def test_build_dataset_passes_draft_char_root(monkeypatch, tmp_path):
+    """build_dataset must call build_dataset_from_picks with char_root pointing at
+    the _drafts dir, so the dataset stages in the draft tree (NOT repo characters/)."""
+    import character_creator.voice_finetune as finetune_mod
+
+    captured = {}
+
+    def fake_build(char, picks, char_root=None):
+        captured["char"] = char
+        captured["char_root"] = char_root
+        return 3
+
+    monkeypatch.setattr(finetune_mod, "build_dataset_from_picks", fake_build)
+
+    fake_wav = str(tmp_path / "edit_audio.wav")
+    with open(fake_wav, "wb") as f:
+        f.write(b"\x00" * 200)
+    _srv._edit_cache["did000001"] = {"path": fake_wav, "char": "draftc"}
+
+    resp = _CLIENT.post("/api/voice/build_dataset", json={
+        "char": "draftc",
+        "picks": [{"edit_id": "did000001", "regions": [{"start": 0.0, "end": 2.0}]}],
+    })
+    assert resp.status_code == 200
+    assert resp.json().get("success") is True
+    assert captured["char_root"] == _drafts_root(), (
+        f"expected draft root {_drafts_root()}, got {captured['char_root']}"
+    )
+
+
+def test_train_passes_draft_char_root(monkeypatch):
+    """train must call start_training with char_root = _drafts so finetune.log/pid
+    stage in the draft tree."""
+    import character_creator.voice_finetune as finetune_mod
+    captured = {}
+    monkeypatch.setattr(finetune_mod, "start_training",
+                        lambda char, char_root=None: captured.update(
+                            char=char, char_root=char_root) or {
+                            "started": True, "log": "x", "already_running": False})
+    resp = _CLIENT.post("/api/voice/train", json={"char": "draftc"})
+    assert resp.status_code == 200
+    assert resp.json().get("success") is True
+    assert captured["char_root"] == _drafts_root()
+
+
+def test_train_status_passes_draft_char_root(monkeypatch):
+    """train_status must call training_status with char_root = _drafts so the
+    on-done yaml patch lands on the draft character.yaml."""
+    import character_creator.voice_finetune as finetune_mod
+    captured = {}
+    monkeypatch.setattr(finetune_mod, "training_status",
+                        lambda char, char_root=None: captured.update(
+                            char=char, char_root=char_root) or {
+                            "stage": "s2", "epoch": 1, "total": 12, "pct": 8,
+                            "done": False, "log": "x"})
+    resp = _CLIENT.get("/api/voice/train_status?char=draftc")
+    assert resp.status_code == 200
+    assert resp.json().get("success") is True
+    assert captured["char_root"] == _drafts_root()
+
+
+# ─── FIX 2: path-traversal validation on char / edit_id ───────────────────────
+
+def test_build_dataset_rejects_bad_char(monkeypatch):
+    """A char that escapes the draft tree must be rejected and nothing built."""
+    import character_creator.voice_finetune as finetune_mod
+    called = {"n": 0}
+    monkeypatch.setattr(finetune_mod, "build_dataset_from_picks",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1) or 1)
+    resp = _CLIENT.post("/api/voice/build_dataset", json={
+        "char": "../../evil",
+        "picks": [{"edit_id": "abc", "regions": [{"start": 0.0, "end": 1.0}]}],
+    })
+    assert resp.status_code == 200
+    assert resp.json().get("success") is False
+    assert called["n"] == 0, "build_dataset_from_picks must not run for a bad char"
+
+
+def test_train_rejects_bad_char(monkeypatch):
+    import character_creator.voice_finetune as finetune_mod
+    called = {"n": 0}
+    monkeypatch.setattr(finetune_mod, "start_training",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1) or {})
+    resp = _CLIENT.post("/api/voice/train", json={"char": "../evil"})
+    assert resp.status_code == 200
+    assert resp.json().get("success") is False
+    assert called["n"] == 0
+
+
+def test_train_status_rejects_bad_char(monkeypatch):
+    import character_creator.voice_finetune as finetune_mod
+    called = {"n": 0}
+    monkeypatch.setattr(finetune_mod, "training_status",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1) or {})
+    resp = _CLIENT.get("/api/voice/train_status?char=..%2f..%2fevil")
+    assert resp.status_code == 200
+    assert resp.json().get("success") is False
+    assert called["n"] == 0
+
+
+def test_download_full_for_edit_rejects_bad_char(monkeypatch):
+    """download_full_for_edit must reject a traversal char before touching disk."""
+    import character_creator.voice_finder as vfdr
+    monkeypatch.setattr(vfdr, "is_available", lambda: True)
+    called = {"n": 0}
+    monkeypatch.setattr(vfdr, "download_full",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1) or "x")
+    resp = _CLIENT.post("/api/voice/download_full_for_edit",
+                        json={"url": "https://youtube.com/watch?v=abc",
+                              "character_name": "../../evil"})
+    assert resp.status_code == 200
+    assert resp.json().get("success") is False
+    assert called["n"] == 0
+
+
+def test_edit_cache_serve_rejects_bad_edit_id():
+    """A traversal edit_id must 404 (never resolve to a path outside the cache)."""
+    resp = _CLIENT.get("/api/voice/edit_cache/..%2f..%2fconfig")
+    assert resp.status_code == 404
+
+
+def test_build_dataset_rejects_bad_edit_id_in_pick(monkeypatch, tmp_path):
+    """An edit_id with traversal chars inside a pick must not resolve to a path
+    outside the draft cache dir (no edit_wav set from it)."""
+    import character_creator.voice_finetune as finetune_mod
+    captured = {}
+
+    def fake_build(char, picks, char_root=None):
+        captured["picks"] = picks
+        return 0
+
+    monkeypatch.setattr(finetune_mod, "build_dataset_from_picks", fake_build)
+    resp = _CLIENT.post("/api/voice/build_dataset", json={
+        "char": "goodchar",
+        "picks": [{"edit_id": "../../../etc/passwd", "regions": [{"start": 0.0, "end": 1.0}]}],
+    })
+    assert resp.status_code == 200
+    # The bad edit_id must not have been turned into a usable edit_wav path
+    picks = captured.get("picks") or [{}]
+    assert picks[0].get("edit_wav", "") == "", (
+        "a traversal edit_id must not resolve to an edit_wav path"
+    )

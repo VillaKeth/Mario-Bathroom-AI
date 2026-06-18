@@ -226,6 +226,13 @@ def start_training(char: str, char_root: str = None) -> dict:
     env["FT_S2_EPOCHS"] = "8"
     env["FT_S1_EPOCHS"] = "4"
     env["PYTHONIOENCODING"] = "utf-8"
+    # Tell fine_tune_voice.py which root the dataset + reference were staged
+    # under. The wizard stages in character_creator/_drafts/<char>/..., so the
+    # subprocess must read its <char>.list and reference_audio.wav from there
+    # (not the default repo characters/<char>/). Omitting it keeps the legacy
+    # characters/ behavior for direct CLI runs.
+    if char_root is not None:
+        env["FT_CHAR_ROOT"] = os.path.abspath(char_root)
 
     log_fh = open(log_path, "w", encoding="utf-8")
 
@@ -352,11 +359,11 @@ def parse_training_status(log: str, total_s2: int = 8, total_s1: int = 4) -> dic
 
     total = total_s2 + total_s1
     if in_s1:
-        # epoch counter may reset to 1 for s1, or continue from s2 epoch count;
-        # use whichever interpretation gives a larger seen count.
-        seen_continuing = epoch  # epoch counter runs straight through
-        seen_reset = total_s2 + max(0, epoch)  # epoch reset to 1 inside s1
-        seen = max(seen_continuing, seen_reset)
+        # The GPT (s1) trainer resets its epoch counter to 1, so the epoch we see
+        # in the log is progress WITHIN s1. Count the s2 phase as fully done and
+        # add the s1 epoch, clamped so a resume artifact (epoch > total_s1) can't
+        # over-count past the total.
+        seen = total_s2 + min(max(0, epoch), total_s1)
     else:
         seen = epoch
 

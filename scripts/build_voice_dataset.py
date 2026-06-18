@@ -171,6 +171,10 @@ def transcribe_and_write_list(char: str, seg_paths: list, list_path: str) -> int
         text = (tr.get("text") or "").strip()
         if not text:
             continue
+        # Intentional change: the .list language column is the whisper-DETECTED
+        # language (was hardcoded "en"). GPT-SoVITS phonemizes per-line by this
+        # tag, so detection gives correct phonemes for non-English clips; "en"
+        # only remains as the fallback when detection is empty.
         lang = (tr.get("language") or "en") or "en"
         lines.append(f"{os.path.abspath(p)}|{char}|{lang}|{text}")
         if (i + 1) % 10 == 0:
