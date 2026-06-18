@@ -296,6 +296,9 @@ class MarioDisplay:
         self._last_response_time = 0
         self._visitor_count = 0
         self._speaking = False
+        self._censor_active = False
+        self._censor_bar = None          # lazy-loaded transparent PNG (see _draw_mario)
+        self._censor_bar_loaded = False  # guard so we only attempt the load once
 
         # Emotion badge pop animation
         self._emotion_badge_scale = 1.0
@@ -2472,6 +2475,27 @@ class MarioDisplay:
             self._screen.blit(faded, (cx, cy))
         else:
             self._screen.blit(display_sprite, (cx, cy))
+
+        # TADC mouth censor bar — only while actively speaking a censored line.
+        if getattr(self, "_censor_active", False) and self._speaking and display_sprite:
+            if not self._censor_bar_loaded:
+                self._censor_bar_loaded = True
+                import os as _os
+                _bar = _os.path.join(_os.path.dirname(__file__), "assets", "censor_bar.png")
+                try:
+                    self._censor_bar = pygame.image.load(_bar).convert_alpha() if _os.path.exists(_bar) else None
+                except Exception:
+                    self._censor_bar = None
+            sw, sh = display_sprite.get_width(), display_sprite.get_height()
+            bar_w = int(sw * 0.45)
+            by = cy + int(sh * 0.40)          # ~mouth height (fixed default; tune per char later)
+            bx = cx + sw // 2 - bar_w // 2
+            if self._censor_bar:
+                scaled = pygame.transform.smoothscale(
+                    self._censor_bar, (bar_w, max(1, int(bar_w * self._censor_bar.get_height() / self._censor_bar.get_width()))))
+                self._screen.blit(scaled, (bx, by - scaled.get_height() // 2))
+            else:
+                pygame.draw.rect(self._screen, (0, 0, 0), (bx, by, bar_w, max(8, int(sh * 0.07))), border_radius=4)
 
     @staticmethod
     def _ease_in_out(t: float) -> float:

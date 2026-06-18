@@ -326,6 +326,10 @@ class MarioClient:
             if sfx_name:
                 self.sfx.play(sfx_name)
 
+            if metadata.get("censor"):
+                self.sfx.play("censor")
+                self.display._censor_active = True
+
             emotion = metadata.get("emotion")
             if emotion:
                 self.display.set_emotion(emotion)
@@ -460,6 +464,7 @@ class MarioClient:
     def _clear_speaking_state(self):
         """Clear speaking state after audio finishes."""
         self.display._speaking = False
+        self.display._censor_active = False
         self.display.set_state(STATE_IDLE)
         
         # Clear closed captions
