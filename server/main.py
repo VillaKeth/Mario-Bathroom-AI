@@ -3191,10 +3191,12 @@ async def _generate_llm_idle() -> dict | None:
             if recent:
                 ctx.append({"role": "system", "content": f"Recent guest topics: {', '.join(r[:40] for r in recent)}"})
 
-        # Add time/phase context
+        # Add time/phase context. NOTE: deliberately NO "as {name}" framing here —
+        # that cued the LLM to announce itself with a meta wink ("As March 7th
+        # (just kidding, I'm just saying it because you asked)..."). The system
+        # prompt already establishes identity; the user turn just asks for a thought.
         hour = time.localtime().tm_hour
-        _idle_char_name = _character.display_name if _character else "Mario"
-        ctx.append({"role": "user", "content": f"It's {hour}:00. Say something random as {_idle_char_name}."})
+        ctx.append({"role": "user", "content": f"It's {hour}:00. Say one short, spontaneous thought out loud."})
 
         llm_response = await asyncio.wait_for(
             llm.generate_response(ctx, model=llm_router.get_model(llm_router.classify("idle", response_type="casual"))),
@@ -3205,6 +3207,11 @@ async def _generate_llm_idle() -> dict | None:
         # Strip any JSON metadata the LLM may have appended
         text = re.sub(r'\{[^}]*"emotion"[^}]*\}', '', text).strip()
         text = re.sub(r'\{[^}]*"energy"[^}]*\}', '', text).strip()
+        # Idle chatter bypasses the normal response pipeline, so run it through
+        # the same filter — strips AI self-references and roleplay-disclaimer
+        # asides ("(just kidding, I'm just saying it because you asked)") that
+        # would otherwise be spoken verbatim. Defense-in-depth behind the prompt fix.
+        text = filter_response(text)
         emotion = llm_response.get("emotion", "happy")
         if text and len(text) > 5:
             logger.info(f"[LLM_IDLE] Generated: '{text[:60]}' emotion={emotion}")

@@ -129,8 +129,14 @@ def _character_break_patterns():
         (r"(?i)\bmy (?:training|programming|algorithms?|neural network)\b", "my perspective"),
         (r"(?i)\bOpenAI|Anthropic|Google AI|Meta AI|GPT-?\d|Claude|Llama|Mistral\b", "my usual style"),
         # Strip roleplay-disclaimer asides — the LLM winking at the audience, e.g.
-        # "(I'm just playing along)", "(playing around)", "(I'm not really March)".
-        (r"(?i)\s*\([^)]*\b(?:playing along|playing around|just playing|i'?m not really|not actually|pretending to be|role-?play)\b[^)]*\)", ""),
+        # "(I'm just playing along)", "(playing around)", "(I'm not really March)",
+        # "(just kidding, I'm just saying it because you asked me to!)", "(if you say so)".
+        # Only matches inside parentheses, so genuine "just kidding!" banter outside
+        # parens is untouched.
+        (r"(?i)\s*\([^)]*\b(?:playing along|playing around|just play(?:ing)?|play along|"
+         r"i'?m not really|i'?m not actually|i'?m not the real|not actually|pretending to be|"
+         r"role-?play|just kidding|because you (?:asked|told)|you (?:asked|told) me to|"
+         r"if you say so)\b[^)]*\)", ""),
     ]
 
 

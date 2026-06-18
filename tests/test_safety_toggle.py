@@ -2,7 +2,7 @@
 import os
 
 from shared.character_loader import CharacterLoader
-from server.safety_filter import filter_response, check_input, set_safety_config
+from server.safety_filter import filter_response, check_input, set_safety_config, set_character
 
 
 def _write_char(tmp_path, name, extra_yaml=""):
@@ -136,3 +136,53 @@ class TestMarchCharacterConfig:
         char = CharacterLoader("characters", "march7th")
         assert char.safety_enabled is False
         assert char.safety_block_slurs is True
+
+
+class TestRoleplayDisclaimerStripping:
+    """The LLM winking at the audience mid-line — 'As March 7th (just kidding,
+    I'm just saying it because you asked me to!)' — must be stripped even for an
+    uncensored character (the strip runs regardless of safety toggle)."""
+
+    def setup_method(self):
+        set_safety_config(False, True)      # March's config: content off, slurs on
+        set_character("march7th", "March 7th")
+
+    def teardown_method(self):
+        set_safety_config(True, True)
+        set_character("assistant", "Assistant")
+
+    def test_strips_because_you_asked_aside(self):
+        # The exact leak observed in the idle log.
+        out = filter_response(
+            "As March 7th (just kidding, I'm just saying it because you asked me to!), "
+            "squirrels are doing parkour."
+        )
+        low = out.lower()
+        assert "because you asked" not in low
+        assert "just saying" not in low
+        assert "just kidding" not in low
+        assert "squirrels are doing parkour" in low   # real content survives
+
+    def test_strips_just_kidding_identity_aside(self):
+        out = filter_response("I'm totally March 7th (just kidding!) and ready to party.")
+        assert "just kidding" not in out.lower()
+        assert "ready to party" in out.lower()
+
+    def test_strips_if_you_say_so_aside(self):
+        out = filter_response("Sure, I'm March 7th (if you say so) — let's dance.")
+        assert "if you say so" not in out.lower()
+        assert "let's dance" in out.lower()
+
+    def test_strips_you_told_me_to_aside(self):
+        out = filter_response("I'm March 7th (you told me to say that), now where were we?")
+        assert "you told me to" not in out.lower()
+
+    def test_regression_still_strips_playing_along(self):
+        out = filter_response("I'm March 7th (just playing along) here at the party.")
+        assert "playing along" not in out.lower()
+        assert "at the party" in out.lower()
+
+    def test_genuine_parenthetical_banter_survives(self):
+        # A non-meta aside must NOT be stripped — only audience-winking disclaimers.
+        out = filter_response("The cake (chocolate, my favorite) is amazing!")
+        assert "chocolate" in out.lower()
