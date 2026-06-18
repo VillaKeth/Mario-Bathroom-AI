@@ -30,6 +30,34 @@ def test_can_finetune_true_with_gpu_and_env(monkeypatch):
     assert vf.can_finetune()["ok"] is True
 
 
+def test_training_status_patches_yaml_on_done(tmp_path):
+    import yaml
+    cdir = tmp_path / "testc" / "voice"
+    cdir.mkdir(parents=True)
+    (tmp_path / "testc" / "character.yaml").write_text(
+        "identity:\n  name: testc\nvoice:\n  preferred_engine: edge\n", encoding="utf-8")
+    (cdir / "finetune.log").write_text(
+        "====> Epoch: 4\n[ft] DONE -> /x/GPT_SoVITS_Testc\n", encoding="utf-8")
+    st = vf.training_status("testc", char_root=str(tmp_path))
+    assert st["done"] is True
+    data = yaml.safe_load((tmp_path / "testc" / "character.yaml").read_text())
+    assert data["voice"]["preferred_engine"] == "sovits"
+    assert "finetuned_model" in data["voice"]
+
+
+def test_start_training_idempotent_with_pidfile(tmp_path):
+    """start_training must not double-start if a pidfile already claims a live PID."""
+    import os
+    cdir = tmp_path / "testc" / "voice"
+    cdir.mkdir(parents=True)
+    # Write a pidfile claiming the current (test runner) PID — which is definitely alive.
+    pid = os.getpid()
+    (cdir / "finetune.pid").write_text(str(pid), encoding="utf-8")
+    result = vf.start_training("testc", char_root=str(tmp_path))
+    assert result["already_running"] is True
+    assert result["started"] is False
+
+
 def test_build_dataset_from_picks_cuts_regions(tmp_path, monkeypatch):
     # fixture: a 6s sine wav; one pick with two regions
     import wave, struct, math
