@@ -5,6 +5,7 @@ import wave
 import logging
 import threading
 import queue
+from collections import deque
 import numpy as np
 import sounddevice as sd
 import pygame
@@ -12,6 +13,25 @@ import pygame
 DEBUG_PLAYBACK = True
 DEBUG_AUDIO = True
 logger = logging.getLogger(__name__)
+
+
+def analyze_wav(wav_bytes: bytes) -> dict:
+    """Pure: extract sample_rate, duration, peak, rms, engine_guess from WAV bytes."""
+    with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+        sr = wf.getframerate()
+        n = wf.getnframes()
+        sw = wf.getsampwidth()
+        ch = wf.getnchannels()
+        frames = wf.readframes(n)
+    dtype = np.int16 if sw == 2 else np.int32
+    norm = 32767.0 if sw == 2 else 2147483647.0
+    audio = np.frombuffer(frames, dtype=dtype).astype(np.float32) / norm
+    peak = float(np.max(np.abs(audio))) if audio.size else 0.0
+    rms = float(np.sqrt(np.mean(audio ** 2))) if audio.size else 0.0
+    dur = (n / float(sr)) if sr else 0.0
+    engine = "sovits" if sr == 32000 else ("edge" if sr in (22050, 24000) else f"other({sr})")
+    return {"sample_rate": sr, "channels": ch, "duration_s": round(dur, 3),
+            "peak": round(peak, 4), "rms": round(rms, 4), "engine_guess": engine}
 
 
 class AudioPlayback:
@@ -24,6 +44,23 @@ class AudioPlayback:
         self._actively_playing = False
         self._lock = threading.Lock()
         self._gain = 1.0  # Volume multiplier (0.0 - 2.0)
+        self._clip_ring = deque(maxlen=50)   # debug MCP: last played clips
+        self._ring_lock = threading.Lock()
+
+    def _record_clip(self, wav_bytes: bytes, text: str = "", played_ok: bool = True):
+        """Record a played clip into the debug ring (analyzed + paired with text)."""
+        try:
+            info = analyze_wav(wav_bytes)
+        except Exception as e:
+            info = {"error": str(e)}
+        info.update({"text": text or "", "played_ok": played_ok, "bytes": len(wav_bytes or b"")})
+        with self._ring_lock:
+            self._clip_ring.append(info)
+
+    def audio_log_snapshot(self, n: int = 10):
+        """Return the last n played-clip records (debug MCP)."""
+        with self._ring_lock:
+            return list(self._clip_ring)[-n:]
 
     def start(self):
         """Start the playback worker thread."""
@@ -53,15 +90,16 @@ class AudioPlayback:
         if self._thread:
             self._thread.join(timeout=2.0)
 
-    def play(self, wav_bytes: bytes, on_start=None):
+    def play(self, wav_bytes: bytes, on_start=None, text=None):
         """Queue WAV audio bytes for playback. on_start (optional) is called the
         moment this clip actually begins playing — used to sync the countdown
-        visual to the spoken number instead of to message arrival."""
+        visual to the spoken number instead of to message arrival. text (optional)
+        is the spoken text, recorded into the debug clip ring for verification."""
         if not wav_bytes or len(wav_bytes) < 44:
             if DEBUG_PLAYBACK:
                 logger.warning(f"[DEBUG_PLAYBACK] play: invalid audio ({len(wav_bytes) if wav_bytes else 0} bytes), skipping")
             return
-        self._play_queue.put((wav_bytes, on_start))
+        self._play_queue.put((wav_bytes, on_start, text))
 
     def clear(self):
         """Interrupt current playback and drain the queue (for self-interruption).
@@ -142,22 +180,24 @@ class AudioPlayback:
             except queue.Empty:
                 continue
 
-            # Items are (wav_bytes, on_start); tolerate a bare buffer too.
+            # Items are (wav_bytes, on_start, text); tolerate older shapes too.
             if isinstance(item, tuple):
-                wav_bytes, on_start = item
+                wav_bytes = item[0]
+                on_start = item[1] if len(item) > 1 else None
+                text = item[2] if len(item) > 2 else None
             else:
-                wav_bytes, on_start = item, None
+                wav_bytes, on_start, text = item, None, None
             try:
                 if on_start:
                     try:
                         on_start()
                     except Exception as cb_e:
                         logger.error(f"[DEBUG_PLAYBACK] on_start callback error: {cb_e}")
-                self._play_wav(wav_bytes)
+                self._play_wav(wav_bytes, text=text)
             except Exception as e:
                 logger.error(f"[DEBUG_PLAYBACK] _worker: playback error: {e}")
 
-    def _play_wav(self, wav_bytes: bytes):
+    def _play_wav(self, wav_bytes: bytes, text=None):
         """Play a WAV byte buffer."""
         if DEBUG_PLAYBACK:
             logger.info(f"[DEBUG_PLAYBACK] _play_wav: playing {len(wav_bytes)} bytes")
@@ -198,9 +238,11 @@ class AudioPlayback:
 
             if DEBUG_PLAYBACK:
                 logger.info("[DEBUG_PLAYBACK] _play_wav: done")
+            self._record_clip(wav_bytes, text=text, played_ok=True)
 
         except Exception as e:
             logger.error(f"[DEBUG_PLAYBACK] _play_wav: error: {e}")
+            self._record_clip(wav_bytes, text=text, played_ok=False)
         finally:
             with self._lock:
                 self._actively_playing = False
