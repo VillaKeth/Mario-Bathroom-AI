@@ -220,6 +220,173 @@ async def voice_download_multi(body: dict):
             "errors": errors}
 
 
+
+# ─── Voice Fine-Tune Endpoints ────────────────────────────────────────────────
+
+# In-memory map: edit_id -> {"path": abs_wav_path, "char": char_name}
+# Survives as long as the server process is alive.  Clients must download
+# before the server restarts; the underlying .wav files persist on disk.
+_edit_cache: dict = {}
+
+
+@app.get("/api/voice/can_finetune")
+async def voice_can_finetune():
+    """Return hardware / dependency readiness for GPT-SoVITS fine-tuning."""
+    from character_creator import voice_finetune
+    return voice_finetune.can_finetune()
+
+
+@app.post("/api/voice/download_full_for_edit")
+async def voice_download_full_for_edit(body: dict):
+    """Download a full video's audio into an edit cache and return a browser URL.
+
+    Body: {url, character_name}
+    Returns: {edit_id, url}  — url is served by GET /api/voice/edit_cache/{edit_id}
+    """
+    from character_creator import voice_finder
+    url = (body.get("url") or "").strip()
+    char_name = (body.get("character_name") or "").lower().replace(" ", "_")
+    if not url or not char_name:
+        return {"success": False, "error": "Missing url or character_name"}
+    if not voice_finder.is_available():
+        return {"success": False, "error": "yt-dlp not installed. Run setup.bat."}
+
+    edit_id = str(uuid.uuid4())[:12]
+    cache_dir = os.path.join(os.path.dirname(__file__), "_drafts", char_name, "voice", "_edit_cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    out_path = os.path.join(cache_dir, f"{edit_id}.wav")
+
+    wav_path = await asyncio.to_thread(voice_finder.download_full, url, out_path)
+    if not wav_path:
+        return {"success": False, "error": "Download failed (clip unavailable or yt-dlp error)"}
+
+    _edit_cache[edit_id] = {"path": wav_path, "char": char_name}
+    return {"success": True, "edit_id": edit_id, "url": f"/api/voice/edit_cache/{edit_id}"}
+
+
+@app.get("/api/voice/edit_cache/{edit_id}")
+async def voice_serve_edit_cache(edit_id: str):
+    """Serve a cached edit wav so the browser waveform editor can load it."""
+    from fastapi.responses import Response
+    entry = _edit_cache.get(edit_id)
+    if not entry or not os.path.isfile(entry["path"]):
+        # Try to locate the file on disk in case of server restart
+        # (edit_id is part of the filename so we can search for it)
+        return Response(status_code=404)
+    with open(entry["path"], "rb") as f:
+        data = f.read()
+    return Response(content=data, media_type="audio/wav",
+                    headers={"Content-Disposition": f'inline; filename="{edit_id}.wav"'})
+
+
+def _wav_duration_seconds(wav_path: str) -> float:
+    """Return the duration of a wav file in seconds (0.0 on error)."""
+    try:
+        import wave as _wave
+        with _wave.open(wav_path, "rb") as w:
+            return w.getnframes() / float(w.getframerate())
+    except Exception:
+        # Fall back to byte-size estimate (16-bit mono, 22050 Hz)
+        try:
+            return max(0.0, os.path.getsize(wav_path) / (22050 * 2))
+        except OSError:
+            return 0.0
+
+
+@app.post("/api/voice/build_dataset")
+async def voice_build_dataset(body: dict):
+    """Cut user-picked regions, slice, transcribe and write the .list manifest.
+
+    Body: {
+        char: str,
+        picks: [{edit_id?: str, edit_wav?: str,
+                 regions: [{start: float, end: float}]}]
+    }
+    Returns: {segments, seconds}
+    """
+    from character_creator import voice_finetune
+    char = (body.get("char") or "").lower().replace(" ", "_")
+    picks_raw = body.get("picks") or []
+    if not char or not picks_raw:
+        return {"success": False, "error": "Missing char or picks"}
+
+    # Resolve edit_id -> absolute wav path for each pick
+    resolved_picks = []
+    for pick in picks_raw:
+        edit_wav = (pick.get("edit_wav") or "").strip()
+        edit_id = (pick.get("edit_id") or "").strip()
+        if not edit_wav and edit_id:
+            entry = _edit_cache.get(edit_id)
+            if entry:
+                edit_wav = entry["path"]
+            else:
+                # edit_id not in memory — build likely path from char in body
+                cache_dir = os.path.join(os.path.dirname(__file__), "_drafts",
+                                         char, "voice", "_edit_cache")
+                candidate = os.path.join(cache_dir, f"{edit_id}.wav")
+                if os.path.isfile(candidate):
+                    edit_wav = candidate
+        resolved_picks.append({
+            "edit_wav": edit_wav,
+            "regions": pick.get("regions") or [],
+        })
+
+    segments = await asyncio.to_thread(
+        voice_finetune.build_dataset_from_picks, char, resolved_picks
+    )
+
+    # Sum up the durations of produced segments for the UI progress display.
+    # Use the draft dir (default char_root = characters/) or _drafts depending
+    # on context; voice_finetune uses _CHARS_DIR (repo characters/) by default.
+    import os as _os
+    from character_creator import voice_finetune as _vf
+    seg_dir = _os.path.join(_vf._CHARS_DIR, char, "voice", "dataset", "segments")
+    total_secs = 0.0
+    if _os.path.isdir(seg_dir):
+        for fn in _os.listdir(seg_dir):
+            if fn.lower().endswith(".wav"):
+                total_secs += _wav_duration_seconds(_os.path.join(seg_dir, fn))
+    # If segments dir is empty (raw-pieces fallback), check raw/ dir
+    if total_secs == 0.0:
+        raw_dir = _os.path.join(_vf._CHARS_DIR, char, "voice", "dataset", "raw")
+        if _os.path.isdir(raw_dir):
+            for fn in _os.listdir(raw_dir):
+                if fn.lower().endswith(".wav"):
+                    total_secs += _wav_duration_seconds(_os.path.join(raw_dir, fn))
+
+    return {"success": True, "segments": segments, "seconds": round(total_secs, 1)}
+
+
+@app.post("/api/voice/train")
+async def voice_train(body: dict):
+    """Spawn a detached GPT-SoVITS fine-tune job for the given character.
+
+    Body: {char}
+    Returns: {started, log, already_running}
+    """
+    from character_creator import voice_finetune
+    char = (body.get("char") or "").lower().replace(" ", "_")
+    if not char:
+        return {"success": False, "error": "Missing char"}
+    result = await asyncio.to_thread(voice_finetune.start_training, char)
+    return {**result, "success": True}
+
+
+@app.get("/api/voice/train_status")
+async def voice_train_status(char: str = ""):
+    """Return parsed training progress for *char* by reading finetune.log.
+
+    Query param: char=<character_name>
+    Returns: {stage, epoch, total, pct, done, log}
+    """
+    from character_creator import voice_finetune
+    char = char.lower().replace(" ", "_")
+    if not char:
+        return {"success": False, "error": "Missing char query parameter"}
+    result = await asyncio.to_thread(voice_finetune.training_status, char)
+    return {**result, "success": True}
+
+
 @app.get("/api/event-config")
 async def get_event_config():
     """Read the party/event metadata shown on the client banner."""
