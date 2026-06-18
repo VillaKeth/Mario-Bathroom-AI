@@ -20,6 +20,7 @@ voice:
   prompt_text: This is a dream and I should just play along until I wake up, right?
     Is that all there is that wait. What's that wait wait?
   prompt_lang: en
+  finetuned_model: GPT_SoVITS_Pomni (s2=e8, s1=e4, trained 2026-06-18)
 visuals:
   visual_description: Pomni from The Amazing Digital Circus, a small humanoid jester
     girl with completely white skin and a round white face, tiny pink blush marks
