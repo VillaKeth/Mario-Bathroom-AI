@@ -128,6 +128,9 @@ def _character_break_patterns():
         (r"(?i)\bI was (?:trained|programmed|created) (?:by|to)\b", "I was made to"),
         (r"(?i)\bmy (?:training|programming|algorithms?|neural network)\b", "my perspective"),
         (r"(?i)\bOpenAI|Anthropic|Google AI|Meta AI|GPT-?\d|Claude|Llama|Mistral\b", "my usual style"),
+        # Strip roleplay-disclaimer asides — the LLM winking at the audience, e.g.
+        # "(I'm just playing along)", "(playing around)", "(I'm not really March)".
+        (r"(?i)\s*\([^)]*\b(?:playing along|playing around|just playing|i'?m not really|not actually|pretending to be|role-?play)\b[^)]*\)", ""),
     ]
 
 

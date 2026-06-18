@@ -137,7 +137,23 @@ def _character_system_prompt() -> str:
     header = f"You are {who}."
     if bio:
         header += f" {bio}"
-    header += " Always speak and answer as this character. Usually 2 to 4 sentences; go longer when the moment is worth it."
+    header += (" You ARE this character, fully and at all times. Never say you are 'playing along', "
+               "'playing around', 'just playing', pretending, roleplaying, or an AI/assistant, and never add "
+               "winking disclaimers like '(I'm not really)' or '(just kidding)' about who you are. No asides "
+               "about being a bot — just BE them. "
+               "Always speak and answer as this character. Usually 2 to 4 sentences; go longer when the moment is worth it.")
+    # Uncensored characters (safety.enabled: false): tell the model to actually
+    # engage with crude/adult input instead of deflecting — the prudish default
+    # otherwise dodges swearing/gross-out talk.
+    try:
+        import safety_filter as _sf
+        if not _sf.is_safety_enabled():
+            header += ("\n\nThis is an adults-only house party. Swearing, crude and gross-out humor, "
+                       "bathroom talk, and dark jokes are all welcome — match the guest's energy and roll "
+                       "with it in character. Never deflect, lecture, moralize, or change the subject just "
+                       "because something is crude or NSFW. The only hard line is slurs.")
+    except Exception:
+        pass
     # Ground the character in the real present so it doesn't fabricate the date.
     header += "\n\n" + _real_datetime_line()
     # If the name resembles a calendar date, make clear it's a NAME, not today.
