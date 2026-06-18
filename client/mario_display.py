@@ -7,6 +7,7 @@ import math
 import random
 import re
 import string
+import threading
 import time
 import pygame
 from closed_captions import ClosedCaptions
@@ -296,6 +297,10 @@ class MarioDisplay:
         self._last_response_time = 0
         self._visitor_count = 0
         self._speaking = False
+
+        # Debug MCP: published frame snapshot (main thread writes, debug thread reads)
+        self._frame_lock = threading.Lock()
+        self._latest_frame_png = None
 
         # Emotion badge pop animation
         self._emotion_badge_scale = 1.0
@@ -836,6 +841,38 @@ class MarioDisplay:
         else:
             if event.unicode and len(self._keyboard_text) < 200:
                 self._keyboard_text += event.unicode
+
+    def debug_state(self) -> dict:
+        """Debug MCP: structured snapshot of what's on screen right now."""
+        return {
+            "state": getattr(self, "state", None),
+            "emotion": getattr(self, "_emotion", None),
+            "speaking": bool(getattr(self, "_speaking", False)),
+            "pose_hint": getattr(self, "_pose_hint", None),
+            "text_full": getattr(self, "_typewriter_text", ""),
+            "text_shown": getattr(self, "current_text", ""),
+        }
+
+    def _publish_frame(self):
+        """Main-thread only: downscale current screen, PNG-encode, store under lock."""
+        try:
+            import io as _io
+            surf = self._screen
+            w, h = surf.get_size()
+            if w > 960:
+                scale = 960.0 / w
+                surf = pygame.transform.smoothscale(surf, (960, int(h * scale)))
+            buf = _io.BytesIO()
+            pygame.image.save(surf, buf, "frame.png")
+            with self._frame_lock:
+                self._latest_frame_png = buf.getvalue()
+        except Exception as e:
+            logger.debug(f"[debug] _publish_frame failed: {e}")
+
+    def latest_frame_png(self):
+        """Debug MCP: last published frame as PNG bytes (or None)."""
+        with self._frame_lock:
+            return self._latest_frame_png
 
     def set_mario_text(self, text: str):
         """Set what Mario is saying (shown in speech bubble with typewriter effect)."""
@@ -2081,6 +2118,10 @@ class MarioDisplay:
             self._screen.blit(scaled, (x_off, y_off))
 
         pygame.display.flip()
+
+        # Debug MCP: publish ~every 6th frame (≈5fps) for mario_screenshot.
+        if self._frame % 6 == 0:
+            self._publish_frame()
 
         # Mirror hook — additive, never breaks the loop.
         if self.on_frame_ready is not None:
