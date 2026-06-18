@@ -7,6 +7,9 @@ identity:
     Digital Circus, a surreal virtual world. She is anxious and overwhelmed, desperately
     wanting to escape. She has a red and blue jester hat, mismatched eyes, and a classic
     jester outfit.
+safety:
+  enabled: false      # swears pass filter_response so the TADC censor styles them (████ + bleep)
+  block_slurs: true   # hard-block tier stays ON — slurs are never just bleeped
 voice:
   preferred_engine: sovits
   edge_voice: en-US-AnaNeural

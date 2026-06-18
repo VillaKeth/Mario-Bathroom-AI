@@ -103,3 +103,32 @@ def test_censor_analyzed_clean_text_no_flag():
     assert tadc_censor.censor_analyzed(analyzed) is False
     assert analyzed["display_text"] == "hello there"
     assert analyzed["tts_text"] == "hello there"
+
+
+def test_adc_pipeline_order_swear_becomes_block_not_redaction():
+    # ADC chars set safety.enabled=false so swears survive filter_response and reach
+    # the TADC styler (block). With safety ON they would be pre-redacted to **** and
+    # the censor would never fire -- regression guard for that ordering bug.
+    import safety_filter
+    try:
+        safety_filter.set_safety_config(enabled=False, block_slurs=True)
+        filtered = safety_filter.filter_response("oh shit")
+        assert "shit" in filtered
+        analyzed = {"display_text": filtered, "tts_text": filtered}
+        assert tadc_censor.censor_analyzed(analyzed) is True
+        assert "████" in analyzed["display_text"]
+        assert "****" not in analyzed["display_text"]
+    finally:
+        safety_filter.set_safety_config(enabled=True, block_slurs=True)
+
+
+def test_safety_on_redacts_swear_before_tadc_would_see_it():
+    # The other direction: safety ON pre-redacts to **** so an ADC char must NOT
+    # leave safety on, or the TADC styling never happens.
+    import safety_filter
+    try:
+        safety_filter.set_safety_config(enabled=True, block_slurs=True)
+        filtered = safety_filter.filter_response("oh shit")
+        assert "shit" not in filtered and "****" in filtered
+    finally:
+        safety_filter.set_safety_config(enabled=True, block_slurs=True)
