@@ -46,6 +46,7 @@ import recognition_fusion
 import memory
 import mario_prompt
 import safety_filter
+import tadc_censor
 from mario_prompt import PHASE_PROMPTS, _infer_guest_type, GUEST_TYPE_HINTS
 import tts_router as tts_router_mod
 from fish_speech_tts import FishSpeechTTS
@@ -730,6 +731,10 @@ async def lifespan(app: FastAPI):
     llm.set_character(_character.name, _character.display_name)
     safety_filter.set_character(_character.name, _character.display_name)
     safety_filter.set_safety_config(_character.safety_enabled, _character.safety_block_slurs)
+    tadc_censor.set_character(_character.name, _character.display_name)
+    tadc_censor.set_enabled(_character.franchise == "digital_circus")
+    logger.info(f"[TADC] swear censor {'ON' if tadc_censor.is_enabled() else 'OFF'} "
+                f"(franchise={_character.franchise or 'none'})")
     logger.info(
         f"[CHARACTER] Safety: content_filter="
         f"{'ON' if _character.safety_enabled else 'OFF'}, "
@@ -2470,6 +2475,10 @@ async def admin_switch_character(request_body: dict = {}):
         llm.set_character(_character.name, _character.display_name)
         safety_filter.set_character(_character.name, _character.display_name)
         safety_filter.set_safety_config(_character.safety_enabled, _character.safety_block_slurs)
+        tadc_censor.set_character(_character.name, _character.display_name)
+        tadc_censor.set_enabled(_character.franchise == "digital_circus")
+        logger.info(f"[TADC] swear censor {'ON' if tadc_censor.is_enabled() else 'OFF'} "
+                    f"(franchise={_character.franchise or 'none'})")
         logger.info(
             f"[CHARACTER] Safety: content_filter="
             f"{'ON' if _character.safety_enabled else 'OFF'}, "
@@ -4953,6 +4962,17 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         "love": "emotion/happy", "think": "idle/think",
                         "cry": "emotion/sad", "anger": "emotion/angry"}
             analyzed["pose_hint"] = pose_map.get(reaction, "")
+    censored = False
+    if tadc_censor.is_enabled():
+        _d = tadc_censor.censor(analyzed.get("display_text", ""))
+        _t = tadc_censor.censor(analyzed.get("tts_text", ""))
+        analyzed["display_text"] = _d.display
+        analyzed["tts_text"] = _t.tts
+        if analyzed.get("full_text"):
+            analyzed["full_text"] = tadc_censor.censor(analyzed["full_text"]).display
+        censored = (_d.count + _t.count) > 0
+        if censored:
+            logger.info(f"[TADC] censored {_d.count} swear(s) in response")
     logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
     # Trim BEFORE appending to stay within limit — compress dropped messages
@@ -5067,6 +5087,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         sound=game_sound, emotion=response_emotion or emotion_system.current,
                         pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
                         particle_effect=particle, full_text=analyzed.get("full_text"),
+                        censor=censored,
                         chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
                     streamed = True
 
@@ -5126,7 +5147,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         await send_response(ws, analyzed["display_text"], response_audio,
             sound=game_sound, emotion=response_emotion or emotion_system.current,
             pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
-            particle_effect=particle, full_text=analyzed.get("full_text"))
+            particle_effect=particle, full_text=analyzed.get("full_text"),
+            censor=censored)
 
     # Track response time with breakdown
     _timing["tts_ms"] = int((time.time() - _t_tts) * 1000)
@@ -6152,7 +6174,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         particle_effect: str = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None, is_idle: bool = False,
-                        full_text: str = None):
+                        full_text: str = None, censor: bool = False):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
@@ -6182,6 +6204,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["response_time"] = round(response_time, 1)
     if particle_effect:
         msg["particle_effect"] = particle_effect
+    if censor:
+        msg["censor"] = True
     # Sentence streaming metadata
     if chunk_index is not None:
         msg["chunk_index"] = chunk_index

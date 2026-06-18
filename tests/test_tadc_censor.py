@@ -87,3 +87,16 @@ def test_character_loader_franchise_defaults_empty(tmp_path):
     }), encoding="utf-8")
     c = CharacterLoader(str(tmp_path / "characters"), "plainc")
     assert c.franchise == ""
+
+
+def test_pipeline_contract_blocks_and_flags():
+    import tadc_censor as tc
+    tc.set_enabled(True)
+    analyzed = {"display_text": "you little shit", "tts_text": "you little shit", "full_text": "you little shit"}
+    d = tc.censor(analyzed["display_text"]); t = tc.censor(analyzed["tts_text"])
+    analyzed["display_text"], analyzed["tts_text"] = d.display, t.tts
+    censored = (d.count + t.count) > 0
+    assert censored is True
+    assert "████" in analyzed["display_text"]
+    assert "shit" not in analyzed["tts_text"].lower()
+    tc.set_enabled(False)
