@@ -38,6 +38,58 @@ DEBUG_AUDIO = True
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-client")
 
+# Debug MCP: in-memory client log ring (client stdout otherwise only hits the
+# console). Tailed via the client debug server's /log when MARIO_DEBUG=1.
+from collections import deque as _deque
+_CLIENT_LOG_RING = _deque(maxlen=3000)
+
+
+class _ClientRingHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            _CLIENT_LOG_RING.append({"msg": record.getMessage(), "level": record.levelname, "name": record.name})
+        except Exception:
+            pass
+
+
+logging.getLogger().addHandler(_ClientRingHandler())
+
+
+class _DebugProvider:
+    """Adapts MarioClient to the client/debug_server route() provider interface."""
+
+    def __init__(self, client):
+        self._c = client
+
+    def debug_state(self):
+        return self._c.display.debug_state()
+
+    def audio_log_snapshot(self, n=10):
+        return self._c.audio_playback.audio_log_snapshot(n=n)
+
+    def log_snapshot(self, n=200, grep="", level="DEBUG"):
+        items = list(_CLIENT_LOG_RING)
+        if grep:
+            g = grep.lower()
+            items = [l for l in items if g in l["msg"].lower()]
+        return items[-n:]
+
+    def latest_frame_png(self):
+        return self._c.display.latest_frame_png()
+
+    def inject_frame_b64(self, b64):
+        try:
+            import base64 as _b64
+            import numpy as _np
+            import cv2
+            raw = _np.frombuffer(_b64.b64decode(b64), _np.uint8)
+            frame = cv2.imdecode(raw, cv2.IMREAD_COLOR)
+        except Exception as e:
+            return {"error": f"decode failed: {e}"}
+        if frame is None:
+            return {"error": "could not decode image"}
+        return self._c.presence.inject_frame(frame)
+
 if _full_config:
     logger.info(f"Loaded config from {CONFIG_PATH}")
 
@@ -174,6 +226,13 @@ class MarioClient:
             logger.warning("No microphone available — audio capture disabled")
             self.display.set_subtitle("⚠ No microphone detected")
         self.audio_playback.start()
+
+        # Debug MCP surface (only starts when MARIO_DEBUG=1; binds 127.0.0.1)
+        try:
+            from debug_server import start_debug_server
+            self._debug_srv = start_debug_server(_DebugProvider(self))
+        except Exception as _e:
+            logger.debug(f"[debug] debug server not started: {_e}")
 
         # Start presence detection
         if self.presence and not self.presence.start():
@@ -442,7 +501,7 @@ class MarioClient:
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Audio chunk {chunk_idx}/{total} ({len(wav_bytes)} bytes, is_last={is_last})")
         # Queue the chunk — AudioPlayback plays them sequentially
-        self.audio_playback.play(wav_bytes)
+        self.audio_playback.play(wav_bytes, text=getattr(self.display, "_typewriter_text", ""))
         self.mirror.send_audio(wav_bytes)   # tee streaming chunk to remote viewers
         # Keep speaking state active; extend echo cancellation window
         duration = max(0.5, len(wav_bytes) / 48000)
