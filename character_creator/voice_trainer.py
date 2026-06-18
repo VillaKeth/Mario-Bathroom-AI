@@ -149,7 +149,33 @@ def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
     If a reference clip is present, transcribe it locally and record modular
     per-character voice config so BOTH GPT-SoVITS and Fish Speech can clone it
     zero-shot (lets the user A/B them). Edge TTS stays as the fallback.
+
+    Guard: if the character already has a fine-tuned voice (voice.finetuned_model
+    is set in character.yaml), skip all preparation so the trained voice is never
+    overwritten by a fresh zero-shot or edge artifact.
     """
+    import yaml as _yaml
+
+    yaml_path = os.path.join(char_dir, "character.yaml")
+    if os.path.exists(yaml_path):
+        try:
+            _data = _yaml.safe_load(open(yaml_path, encoding="utf-8")) or {}
+            if _data.get("voice", {}).get("finetuned_model"):
+                logger.info(
+                    "[voice] Skipping prepare_voice_artifacts — "
+                    "voice.finetuned_model already set in character.yaml; "
+                    "trained voice will not be overwritten."
+                )
+                return {
+                    "skipped_finetuned": True,
+                    "finetuned_model": _data["voice"]["finetuned_model"],
+                    "engine": _data["voice"].get("preferred_engine", "sovits"),
+                    "artifacts_ready": True,
+                    "errors": [],
+                }
+        except Exception as e:  # noqa: BLE001 — never block on guard error
+            logger.warning(f"[voice] Could not read character.yaml for finetune guard: {e}")
+
     from character_creator import voice_transcribe
 
     voice_dir = os.path.join(char_dir, "voice")

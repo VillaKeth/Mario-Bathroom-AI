@@ -1,6 +1,7 @@
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from character_creator import voice_finetune as vf
+from character_creator import voice_trainer
 
 
 def test_parse_status_reads_epoch_and_stage():
@@ -73,3 +74,76 @@ def test_build_dataset_from_picks_cuts_regions(tmp_path, monkeypatch):
         char_root=str(tmp_path))
     assert n >= 1
     assert (tmp_path / "testc" / "voice" / "dataset" / "testc.list").exists()
+
+
+# ─── Guard: prepare_voice_artifacts must not clobber a fine-tuned voice ───────
+
+def _make_char_dir(tmp_path, *, finetuned: bool):
+    """Helper: create a minimal character dir with or without finetuned_model."""
+    char_dir = tmp_path / "mychar"
+    voice_dir = char_dir / "voice"
+    voice_dir.mkdir(parents=True)
+    # reference audio >1 KB so voice_trainer considers it real
+    (voice_dir / "reference_audio.wav").write_bytes(b"RIFF" + b"\x00" * 4096)
+    voice_block = "  preferred_engine: sovits\n"
+    if finetuned:
+        voice_block += '  finetuned_model: "GPT_SoVITS_Mychar (s2=e8, s1=e4)"\n'
+    (char_dir / "character.yaml").write_text(
+        f"identity:\n  name: mychar\nvoice:\n{voice_block}",
+        encoding="utf-8",
+    )
+    return str(char_dir)
+
+
+def test_prepare_voice_skipped_when_finetuned_model_exists(tmp_path, monkeypatch):
+    """When voice.finetuned_model is already set, prepare_voice_artifacts must
+    return early without calling _patch_character_voice_yaml (i.e. without
+    touching the trained voice config)."""
+    import yaml
+
+    char_dir = _make_char_dir(tmp_path, finetuned=True)
+
+    patch_calls = []
+    monkeypatch.setattr(voice_trainer, "_patch_character_voice_yaml",
+                        lambda d, u: patch_calls.append((d, u)))
+
+    result = voice_trainer.prepare_voice_artifacts(
+        {"preferred_engine": "sovits"}, char_dir
+    )
+
+    # Guard must have fired — no patching of the voice YAML
+    assert patch_calls == [], (
+        "prepare_voice_artifacts must NOT call _patch_character_voice_yaml when "
+        "finetuned_model is already set; it would overwrite the trained voice."
+    )
+    # Result carries a hint that the call was skipped
+    assert result.get("skipped_finetuned") is True
+
+
+def test_prepare_voice_runs_normally_without_finetuned_model(tmp_path, monkeypatch):
+    """When voice.finetuned_model is NOT set, prepare_voice_artifacts runs its
+    normal pipeline (i.e. _patch_character_voice_yaml IS called)."""
+    from character_creator import voice_transcribe
+
+    char_dir = _make_char_dir(tmp_path, finetuned=False)
+
+    monkeypatch.setattr(
+        voice_transcribe, "transcribe_file",
+        lambda p, **k: {"text": "hello", "language": "en"},
+    )
+
+    patch_calls = []
+    real_patch = voice_trainer._patch_character_voice_yaml
+
+    def spy_patch(d, u):
+        patch_calls.append((d, u))
+        real_patch(d, u)
+
+    monkeypatch.setattr(voice_trainer, "_patch_character_voice_yaml", spy_patch)
+
+    voice_trainer.prepare_voice_artifacts({"preferred_engine": "sovits"}, char_dir)
+
+    assert len(patch_calls) >= 1, (
+        "prepare_voice_artifacts must still call _patch_character_voice_yaml "
+        "when no finetuned_model is present."
+    )
