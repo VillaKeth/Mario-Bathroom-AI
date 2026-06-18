@@ -59,6 +59,26 @@ class PresenceDetector:
             logger.warning(f"[DEBUG_PRESENCE] Person detection init failed: {e}")
             self.person_detector = None
 
+    def inject_frame(self, frame) -> dict:
+        """Debug MCP: simulate the webcam seeing `frame` (numpy BGR image). Runs
+        detection and fires the same callbacks the live loop fires. Returns a summary."""
+        result = {"people": 0, "faces": 0}
+        det = getattr(self, "person_detector", None)
+        if det is None:
+            result["error"] = "person detection not enabled"
+            return result
+        try:
+            people = det.detect_people(frame)
+            result["people"] = len(people)
+            result["faces"] = sum(1 for p in people if getattr(p, "face_encoding", None) is not None)
+            if people and self.on_person_detected:
+                self.on_person_detected(people)
+            if people and self.on_enter:
+                self.on_enter()
+        except Exception as e:
+            result["error"] = str(e)
+        return result
+
     def start(self):
         """Start presence detection."""
         if DEBUG_PRESENCE:
