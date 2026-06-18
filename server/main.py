@@ -15,9 +15,11 @@ Handles all heavy AI processing:
 import asyncio
 import base64
 import gc
+import io
 import json
 import logging
 import os
+import wave
 import random
 import re
 import time
@@ -84,6 +86,14 @@ import mirror as mirror_relay
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
+
+# Debug MCP surface (off unless MARIO_DEBUG=1). The log ring captures all module
+# logs into memory so the mario-debug MCP can tail them (server stdout otherwise
+# only goes to the console). See mcp_mario_debug/ and docs/superpowers/specs.
+import debug_ring as _debug_ring_mod
+DEBUG_ENABLED = os.environ.get("MARIO_DEBUG", "") == "1"
+_LOG_RING = _debug_ring_mod.LogRing(maxlen=3000)
+logging.getLogger().addHandler(_LOG_RING.handler())
 
 # Server start time for uptime tracking
 _SERVER_START_TIME = time.time()
@@ -1968,6 +1978,38 @@ async def admin_simulate_text(request_body: dict = {}):
     if api_key and request_body.get("api_key") != api_key:
         return {"status": "error", "message": "Invalid API key"}
     return await _dispatch_user_text(request_body.get("text", ""))
+
+
+@app.get("/debug/log")
+async def debug_log(n: int = 200, grep: str = "", level: str = "DEBUG"):
+    """Debug MCP: tail the in-memory server log ring. Off unless MARIO_DEBUG=1."""
+    if not DEBUG_ENABLED:
+        return {"status": "error", "message": "debug disabled (set MARIO_DEBUG=1)"}
+    return {"status": "ok", "lines": _LOG_RING.snapshot(n=n, grep=grep, level=level)}
+
+
+@app.post("/admin/inject_audio")
+async def admin_inject_audio(request_body: dict = {}):
+    """Simulate a guest SPEAKING: a base64 WAV -> STT -> normal reply pipeline."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    b64 = request_body.get("wav_b64") or ""
+    try:
+        wav_bytes = base64.b64decode(b64)
+    except Exception as e:
+        return {"status": "error", "message": f"bad base64: {e}"}
+    try:
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+            sr = wf.getframerate()
+            pcm = wf.readframes(wf.getnframes())
+    except Exception as e:
+        return {"status": "error", "message": f"bad wav: {e}"}
+    text = stt.transcribe(pcm, sr)
+    if not text:
+        return {"status": "ok", "transcript": "", "note": "STT returned empty"}
+    await _dispatch_user_text(text)
+    return {"status": "ok", "transcript": text}
 
 
 _FRIEND_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "friend.html")
