@@ -148,6 +148,41 @@ def filter_by_pitch(seg_paths: list[str], f0_min: float, f0_max: float,
     return kept
 
 
+def transcribe_and_write_list(char: str, seg_paths: list, list_path: str) -> int:
+    """Transcribe *seg_paths* and write the GPT-SoVITS manifest at *list_path*.
+
+    Format per line: ``<abs_wav_path>|<char>|<lang>|<text>``
+
+    Returns the count of usable (non-empty transcript) segments written.
+    This function is importable so other modules (e.g. voice_finetune) can call
+    it without duplicating the transcribe loop.
+    """
+    import character_creator.voice_transcribe as _vt  # import module, not name — respects monkeypatch
+    import wave as _wave
+    os.makedirs(os.path.dirname(list_path), exist_ok=True)
+    lines = []
+    total_dur = 0.0
+    for i, p in enumerate(seg_paths):
+        try:
+            w = _wave.open(p); total_dur += w.getnframes() / w.getframerate(); w.close()
+        except Exception:
+            pass
+        tr = _vt.transcribe_file(p, model_size="base")
+        text = (tr.get("text") or "").strip()
+        if not text:
+            continue
+        lang = (tr.get("language") or "en") or "en"
+        lines.append(f"{os.path.abspath(p)}|{char}|{lang}|{text}")
+        if (i + 1) % 10 == 0:
+            print(f"[dataset] transcribed {i+1}/{len(seg_paths)}", flush=True)
+
+    with open(list_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + ("\n" if lines else ""))
+    print(f"[dataset] DONE: {len(lines)} usable segments, "
+          f"{total_dur:.0f}s total audio -> {list_path}", flush=True)
+    return len(lines)
+
+
 def main():
     char = sys.argv[1] if len(sys.argv) > 1 else "jax"
     ds = os.path.join(BASE, "characters", char, "voice", "dataset")
@@ -183,28 +218,7 @@ def main():
         all_segs = filter_by_energy(all_segs, lo_pct, hi_pct)
         print(f"[dataset] {len(all_segs)} segments after energy filter", flush=True)
 
-    # Transcribe each segment locally
-    from character_creator.voice_transcribe import transcribe_file
-    lines = []
-    total_dur = 0.0
-    for i, p in enumerate(all_segs):
-        try:
-            import wave
-            w = wave.open(p); total_dur += w.getnframes() / w.getframerate(); w.close()
-        except Exception:
-            pass
-        tr = transcribe_file(p, model_size="base")
-        text = (tr.get("text") or "").strip()
-        if not text:
-            continue
-        lines.append(f"{os.path.abspath(p)}|{char}|en|{text}")
-        if (i + 1) % 10 == 0:
-            print(f"[dataset] transcribed {i+1}/{len(all_segs)}", flush=True)
-
-    with open(list_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-    print(f"[dataset] DONE: {len(lines)} usable segments, "
-          f"{total_dur:.0f}s total audio -> {list_path}", flush=True)
+    transcribe_and_write_list(char, all_segs, list_path)
 
 
 if __name__ == "__main__":

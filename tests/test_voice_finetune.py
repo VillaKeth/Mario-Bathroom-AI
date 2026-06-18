@@ -28,3 +28,20 @@ def test_can_finetune_true_with_gpu_and_env(monkeypatch):
     monkeypatch.setattr(vf, "_gpu_vram_gb", lambda: 6.0)
     monkeypatch.setattr(vf, "_sovits_installed", lambda: True)
     assert vf.can_finetune()["ok"] is True
+
+
+def test_build_dataset_from_picks_cuts_regions(tmp_path, monkeypatch):
+    # fixture: a 6s sine wav; one pick with two regions
+    import wave, struct, math
+    wavp = tmp_path / "edit_v1.wav"
+    with wave.open(str(wavp), "w") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(32000)
+        for i in range(32000*6):
+            w.writeframes(struct.pack("<h", int(8000*math.sin(i/20))))
+    monkeypatch.setattr("character_creator.voice_transcribe.transcribe_file",
+                        lambda p, **k: {"text": "hello there", "language": "en"})
+    n = vf.build_dataset_from_picks("testc", [{"edit_wav": str(wavp),
+        "regions": [{"start": 0.5, "end": 3.0}, {"start": 3.5, "end": 5.5}]}],
+        char_root=str(tmp_path))
+    assert n >= 1
+    assert (tmp_path / "testc" / "voice" / "dataset" / "testc.list").exists()

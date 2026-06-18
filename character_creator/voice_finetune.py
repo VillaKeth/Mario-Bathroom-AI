@@ -73,6 +73,89 @@ def can_finetune() -> dict:
     return {"ok": ok, "vram_gb": vram, "sovits": sovits, "reason": reason}
 
 
+_CHARS_DIR = os.path.join(BASE, "characters")
+
+
+def build_dataset_from_picks(char: str, picks: list, char_root: str = None) -> int:
+    """Cut user-picked regions from audio, slice into segments, transcribe, write .list.
+
+    Args:
+        char:      Character name (e.g. "sparkle_hsr").
+        picks:     List of pick dicts, each with keys:
+                     "edit_wav"  — path to the full downloaded wav
+                     "regions"   — list of {"start": float, "end": float} in seconds
+        char_root: Root directory under which ``<char>/voice/dataset/`` is created.
+                   Defaults to the repo ``characters/`` directory.
+
+    Returns:
+        Count of usable segments (int) written to the .list manifest.
+
+    Directory layout produced:
+        <char_root>/<char>/voice/dataset/raw/       — region cuts (from cut_sections)
+        <char_root>/<char>/voice/dataset/segments/  — silence-sliced pieces (if slicer2 avail)
+        <char_root>/<char>/voice/dataset/<char>.list — GPT-SoVITS manifest
+    """
+    import shutil
+    from character_creator import voice_finder
+
+    root = char_root if char_root is not None else _CHARS_DIR
+    ds = os.path.join(root, char, "voice", "dataset")
+    raw_dir = os.path.join(ds, "raw")
+    seg_dir = os.path.join(ds, "segments")
+    list_path = os.path.join(ds, f"{char}.list")
+
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(seg_dir, exist_ok=True)
+
+    # Step 1 — cut the user-picked regions out of each source wav.
+    raw_pieces = []
+    for idx, pick in enumerate(picks):
+        edit_wav = pick.get("edit_wav", "")
+        regions = pick.get("regions", [])
+        if not edit_wav or not os.path.exists(edit_wav) or not regions:
+            continue
+        base = f"pick{idx:02d}"
+        try:
+            pieces = voice_finder.cut_sections(edit_wav, regions, raw_dir, base)
+        except Exception as exc:
+            # ffmpeg unavailable or failed — copy the full wav as a single raw piece
+            print(f"[finetune] cut_sections failed ({exc}), using full wav as fallback", flush=True)
+            dst = os.path.join(raw_dir, f"{base}_full.wav")
+            try:
+                shutil.copy2(edit_wav, dst)
+                pieces = [dst]
+            except Exception:
+                pieces = []
+        print(f"[finetune] pick{idx}: {len(pieces)} raw piece(s)", flush=True)
+        raw_pieces.extend(pieces)
+
+    if not raw_pieces:
+        print("[finetune] no raw pieces; writing empty .list", flush=True)
+        os.makedirs(os.path.dirname(list_path), exist_ok=True)
+        open(list_path, "w").close()
+        return 0
+
+    # Step 2 — silence-slice each raw piece into 3-10s training segments.
+    # slicer2 lives in gpt_sovits_repo; if unavailable, treat raw pieces as segments.
+    all_segs = []
+    try:
+        sys.path.insert(0, os.path.join(BASE, "gpt_sovits_repo"))
+        sys.path.insert(0, os.path.join(BASE, "gpt_sovits_repo", "tools"))
+        from scripts.build_voice_dataset import slice_audio
+        for rp in raw_pieces:
+            segs = slice_audio(rp, seg_dir, char)
+            print(f"[finetune] sliced {os.path.basename(rp)} -> {len(segs)} segment(s)", flush=True)
+            all_segs.extend(segs)
+    except Exception as exc:
+        # slicer2 / numpy / soundfile not available — use raw cuts directly as segments
+        print(f"[finetune] slice_audio unavailable ({exc}); using raw pieces as segments", flush=True)
+        all_segs = list(raw_pieces)
+
+    # Step 3 — transcribe segments and write the GPT-SoVITS .list manifest.
+    from scripts.build_voice_dataset import transcribe_and_write_list
+    return transcribe_and_write_list(char, all_segs, list_path)
+
+
 def parse_training_status(log: str, total_s2: int = 8, total_s1: int = 4) -> dict:
     """Parse accumulated subprocess log output and return training progress.
 
