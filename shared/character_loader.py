@@ -49,6 +49,9 @@ class CharacterLoader:
         identity = self._config["identity"]
         self.name: str = identity["name"]
         self.display_name: str = identity.get("display_name", self.name)
+        # Franchise group (e.g. "digital_circus") — drives franchise-wide
+        # behaviors like TADC swear censoring. Normalized lower/stripped.
+        self.franchise: str = (identity.get("franchise") or "").strip().lower()
         self.tagline: str = identity.get("tagline", "")
         self.description: str = identity.get("description", "")
         self.character_dir: str = str(self._char_dir)

@@ -63,3 +63,27 @@ def test_censor_runs_regardless_of_enabled_flag():
     # censor() does not gate on _ENABLED; the caller checks is_enabled() first.
     tadc_censor.set_enabled(False)
     assert tadc_censor.censor("fuck").count == 1
+
+
+def test_character_loader_exposes_franchise(tmp_path):
+    import yaml as _yaml
+    from shared.character_loader import CharacterLoader
+    cdir = tmp_path / "characters" / "testc"
+    cdir.mkdir(parents=True)
+    (cdir / "character.yaml").write_text(_yaml.dump({
+        "identity": {"name": "Testc", "display_name": "Testc", "franchise": "Digital_Circus"},
+    }), encoding="utf-8")
+    c = CharacterLoader(str(tmp_path / "characters"), "testc")
+    assert c.franchise == "digital_circus"   # normalized lower/stripped
+
+
+def test_character_loader_franchise_defaults_empty(tmp_path):
+    import yaml as _yaml
+    from shared.character_loader import CharacterLoader
+    cdir = tmp_path / "characters" / "plainc"
+    cdir.mkdir(parents=True)
+    (cdir / "character.yaml").write_text(_yaml.dump({
+        "identity": {"name": "Plainc", "display_name": "Plainc"},
+    }), encoding="utf-8")
+    c = CharacterLoader(str(tmp_path / "characters"), "plainc")
+    assert c.franchise == ""
