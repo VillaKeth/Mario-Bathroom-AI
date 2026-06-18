@@ -251,6 +251,19 @@ class SoundEffects:
             (698, 0.15), (659, 0.3),
         ], volume=0.25)
 
+        # Censor bleep for TADC swear-censoring (Digital Circus characters). Prefer
+        # a real wav if present, else a short synth beep so it's never silent.
+        import os as _os
+        _censor_wav = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "assets", "sfx", "censor.wav")
+        try:
+            if _os.path.exists(_censor_wav):
+                import pygame.mixer as _mx
+                self._sounds["censor"] = _mx.Sound(_censor_wav)
+            else:
+                self._sounds["censor"] = self._make_tone(1000, 0.25, volume=0.4, wave_type="square")
+        except Exception as _e:
+            logger.warning(f"[DEBUG_SFX] censor sound init failed: {_e}")
+
     def load_character_overrides(self, sfx_dir: str):
         """Load per-character WAVs that override the synthesized defaults.
 
