@@ -39,6 +39,23 @@ def test_empty_text():
     assert r.count == 0 and r.display == "" and r.tts == ""
 
 
+def test_inflected_swears_caught():
+    # past-tense / plural / -y forms must bleep too (regression: "fucked" leaked
+    # because the word list had "fuck" but \b...\b only matched the exact stem)
+    r = tadc_censor.censor("oh shit that is fucked, you bitches are pissed")
+    assert r.count == 4
+    assert "fucked" not in r.tts.lower()
+    assert "bitches" not in r.tts.lower()
+    assert "pissed" not in r.tts.lower()
+
+
+def test_no_false_positive_on_innocent_words():
+    # swear stems must not fire inside innocent words (class/passes/glass)
+    r = tadc_censor.censor("the class passes the glass case")
+    assert r.count == 0
+    assert r.display == "the class passes the glass case"
+
+
 def test_enabled_gate_defaults_off_and_toggles():
     tadc_censor.set_enabled(False)
     assert tadc_censor.is_enabled() is False

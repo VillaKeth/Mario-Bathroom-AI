@@ -19,12 +19,18 @@ from safety_filter import normalize_unicode  # reuse homoglyph/zero-width normal
 # compounds ('shit' won't match inside 'bullshit'), but we still list compounds
 # so they're caught as single blocks.
 _SWEARS = [
-    "motherfucker", "motherfuckin", "bullshit", "asshole", "dumbass", "jackass",
-    "dipshit", "dickhead", "fucker", "fuckin", "fucking", "fuck", "shit",
-    "bitch", "bastard", "dammit", "damn", "dick", "cock", "pussy", "ass",
-    "piss", "crap",
+    "motherfucker", "motherfuckin", "motherfucking", "bullshit", "goddamnit",
+    "goddamn", "asshole", "dumbass", "jackass", "dipshit", "dickhead", "fucker",
+    "fuckin", "fucking", "fuck", "shitting", "shit", "bitch", "bastard",
+    "dammit", "damn", "dick", "cock", "pussy", "ass", "piss", "crap",
 ]
-_SWEAR_RE = re.compile(r"\b(?:" + "|".join(_SWEARS) + r")\b", re.IGNORECASE)
+# Optional inflection suffix so each stem ALSO catches its common forms without a
+# whack-a-mole word list: fuck -> fucked/fucks, shit -> shits/shitty, piss ->
+# pissed/pissing, bitch -> bitches, ass -> asses. \b...\b still anchors so the
+# stem can't match mid-word ('ass' won't fire inside 'class'/'passes').
+_SWEAR_RE = re.compile(
+    r"\b(?:" + "|".join(_SWEARS) + r")(?:es|s|ed|ing|er|ers|y)?\b", re.IGNORECASE
+)
 
 _BLOCK = "████"  # U+2588 FULL BLOCK ×4 — the bubble censor mark
 
