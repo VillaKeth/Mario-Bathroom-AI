@@ -65,11 +65,23 @@ async def main(provider: str, do_gen: bool) -> None:
             if not composer:
                 print("  NO COMPOSER FOUND — fix selector first", flush=True)
             else:
+                custom = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--prompt=")), None)
+                prompt = custom or "Generate an image of a single red apple on a plain white background"
+                print(f"  prompt: {prompt[:90]!r}", flush=True)
                 await composer.click()
-                await page.keyboard.type("Generate an image of a single red apple on a plain white background")
+                await page.keyboard.type(prompt)
                 await page.wait_for_timeout(500)
                 await page.keyboard.press("Enter")
                 print("  sent. waiting 60s for the image...", flush=True)
+                await page.wait_for_timeout(5000)
+                # capture the assistant text early (catches a refusal vs a draw)
+                try:
+                    ts = await page.query_selector_all(site.assistant_turn)
+                    if ts:
+                        print(f"  early text: {(await ts[-1].inner_text())[:120]!r}", flush=True)
+                except Exception:  # noqa: BLE001
+                    pass
+                await page.wait_for_timeout(55000)
                 await page.wait_for_timeout(60000)
                 imgs = await page.query_selector_all("img")
                 print(f"  <img> count: {len(imgs)}", flush=True)
