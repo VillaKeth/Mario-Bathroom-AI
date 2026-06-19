@@ -437,11 +437,12 @@ class MarioClient:
         # If a countdown number is pending, reveal it exactly when this clip
         # starts playing — so the visual countdown is driven by the audio.
         pending = getattr(self, "_pending_countdown_number", None)
+        _spoken = getattr(self.display, "_typewriter_text", "")
         if pending is not None:
             self._pending_countdown_number = None
-            self.audio_playback.play(wav_bytes, on_start=(lambda n=pending: self.display.set_countdown(n)))
+            self.audio_playback.play(wav_bytes, on_start=(lambda n=pending: self.display.set_countdown(n)), text=_spoken)
         else:
-            self.audio_playback.play(wav_bytes)
+            self.audio_playback.play(wav_bytes, text=_spoken)
         self.mirror.send_audio(wav_bytes)   # tee to remote viewers (no-op if inactive)
         # Track when playback finishes for echo cancellation
         # 48000 = 24kHz sample rate × 2 bytes/sample (16-bit mono PCM)
