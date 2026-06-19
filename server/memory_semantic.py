@@ -119,7 +119,7 @@ def store_memory(person_id: int, text: str, memory_type: str = "fact",
         metadata: Optional extra metadata
     """
     if not _client or not text or len(text.strip()) < 3:
-        return
+        return False
 
     point_id = _deterministic_id(text, person_id)
 
@@ -133,9 +133,10 @@ def store_memory(person_id: int, text: str, memory_type: str = "fact",
             ids=[point_id],
         )
         if existing:
-            if DEBUG_MEMORY:
-                logger.info(f"[DEBUG_MEMORY] store_memory: duplicate skipped for person={person_id}")
-            return
+            # Duplicate — expected on every idempotent re-ingest of lore/VIP at
+            # startup. Stay silent (callers summarize counts); the old per-skip
+            # info log spammed hundreds of lines per boot.
+            return False
     except Exception:
         pass  # Point doesn't exist — proceed to insert
 
@@ -160,8 +161,10 @@ def store_memory(person_id: int, text: str, memory_type: str = "fact",
         )
         if DEBUG_MEMORY:
             logger.info(f"[DEBUG_MEMORY] store_memory: stored '{text[:50]}' for person={person_id}")
+        return True
     except Exception as e:
         logger.error(f"store_memory failed: {e}")
+        return False
 
 
 def search_memories(query: str, person_id: int | None = None,

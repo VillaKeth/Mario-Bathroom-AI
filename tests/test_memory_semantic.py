@@ -65,6 +65,18 @@ class TestStoreMemory:
         stats = sem.get_collection_stats()
         assert stats["total_points"] == 1
 
+    def test_store_returns_true_then_false_on_duplicate(self):
+        """store_memory reports True on first store, False on a deduped repeat — so
+        callers (lore/VIP ingest) can summarize instead of logging one line each."""
+        _init()
+        assert sem.store_memory(1, "I love pizza", memory_type="fact") is True
+        assert sem.store_memory(1, "I love pizza", memory_type="fact") is False
+
+    def test_store_returns_false_for_ignored_short_text(self):
+        """Too-short / empty text returns False (not stored)."""
+        _init()
+        assert sem.store_memory(1, "ab", memory_type="fact") is False
+
     def test_store_different_people(self):
         """Different person_ids produce separate points even with same text."""
         _init()

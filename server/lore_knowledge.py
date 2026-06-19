@@ -27,17 +27,21 @@ LORE_TOP_K = 5
 def ingest_lore_facts(facts) -> int:
     """Embed + store each fact under LORE_PERSON_ID. Idempotent (Qdrant dedupes
     by deterministic id). Returns the number of facts attempted."""
-    n = 0
+    n = new = 0
     for fact in facts or []:
         fact = (fact or "").strip()
         if len(fact) < 3:
             continue
         try:
-            memory_semantic.store_memory(LORE_PERSON_ID, fact, memory_type="hsr_lore")
+            if memory_semantic.store_memory(LORE_PERSON_ID, fact, memory_type="hsr_lore"):
+                new += 1
             n += 1
         except Exception as e:
             if DEBUG_LORE:
                 print(f"[lore] store failed: {e}")
+    if DEBUG_LORE and n:
+        # One summary line instead of a per-fact "duplicate skipped" spam at boot.
+        print(f"[lore] ingested {n} facts ({new} new, {n - new} already present)")
     return n
 
 
