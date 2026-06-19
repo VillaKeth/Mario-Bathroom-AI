@@ -385,6 +385,14 @@ class MarioClient:
             if sfx_name:
                 self.sfx.play(sfx_name)
 
+            # Set the censor state from THIS line's metadata every time (not just
+            # when True) so a clean line authoritatively clears any leftover flag
+            # from a prior censored line, regardless of audio-cleanup thread timing.
+            _censor_on = bool(metadata.get("censor"))
+            self.display._censor_active = _censor_on
+            if _censor_on:
+                self.sfx.play("censor")
+
             emotion = metadata.get("emotion")
             if emotion:
                 self.display.set_emotion(emotion)
@@ -520,6 +528,7 @@ class MarioClient:
     def _clear_speaking_state(self):
         """Clear speaking state after audio finishes."""
         self.display._speaking = False
+        self.display._censor_active = False
         self.display.set_state(STATE_IDLE)
         
         # Clear closed captions
