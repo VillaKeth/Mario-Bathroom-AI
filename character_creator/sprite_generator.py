@@ -640,12 +640,20 @@ async def _generate_openai_image(prompt: str, key: str, portrait: bool = True) -
     return None
 
 
-async def _generate_gemini_image(prompt: str, key: str) -> bytes | None:
-    """Google Gemini image output (gemini-2.5-flash-image)."""
+async def _generate_gemini_image(prompt: str, key: str, ref_b64: str | None = None) -> bytes | None:
+    """Google Gemini image output (gemini-2.5-flash-image).
+
+    Optional ref_b64 (base64 PNG) is sent alongside the prompt as an inline image
+    so the model matches an exact character design/palette instead of guessing
+    from text — the fix for prompt-only color drift (e.g. Pomni rendering red)."""
     import base64
     url = ("https://generativelanguage.googleapis.com/v1beta/models/"
            "gemini-2.5-flash-image:generateContent")
-    payload = {"contents": [{"parts": [{"text": prompt}]}],
+    parts = []
+    if ref_b64:
+        parts.append({"inlineData": {"mimeType": "image/png", "data": ref_b64}})
+    parts.append({"text": prompt})
+    payload = {"contents": [{"parts": parts}],
                "generationConfig": {"responseModalities": ["IMAGE"]}}
     headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
     try:
@@ -721,7 +729,7 @@ async def _run_backend(name: str, prompt: str, cfg: dict, portrait: bool = True)
     if name == "openai":
         return await _generate_openai_image(prompt, cfg.get("openai_key", ""), portrait)
     if name == "gemini":
-        return await _generate_gemini_image(prompt, cfg.get("gemini_key", ""))
+        return await _generate_gemini_image(prompt, cfg.get("gemini_key", ""), cfg.get("_ref_image_b64"))
     if name == "huggingface":
         return await _generate_huggingface(prompt, cfg.get("hf_token", ""))
     if name == "a1111":

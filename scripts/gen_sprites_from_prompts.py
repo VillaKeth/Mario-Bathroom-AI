@@ -36,7 +36,7 @@ def parse_blocks(path: str):
     return [(m.group(2).strip(), m.group(3).strip()) for m in _BLOCK.finditer(text)]
 
 
-async def run(char: str, backend: str, force: bool, delay: float) -> None:
+async def run(char: str, backend: str, force: bool, delay: float, ref: str = "") -> None:
     cdir = os.path.join(BASE, "characters", char)
     sheet = os.path.join(cdir, "sprite_prompts.txt")
     if not os.path.isfile(sheet):
@@ -47,6 +47,17 @@ async def run(char: str, backend: str, force: bool, delay: float) -> None:
     cfg = sg.load_sprite_config()
     if backend:
         cfg = {**cfg, "backend": backend}     # pin the lead backend (e.g. huggingface = free flux)
+    # Reference image (gemini multimodal): base64 it into cfg so _generate_gemini_image
+    # sends it inline, and prefix every prompt to copy the reference's exact colors.
+    ref_prefix = ""
+    if ref:
+        import base64
+        with open(ref, "rb") as f:
+            cfg["_ref_image_b64"] = base64.b64encode(f.read()).decode()
+        ref_prefix = ("Use the attached reference image as the EXACT same character — copy her "
+                      "colors, hat, eyes, outfit and design precisely, do not recolor her. "
+                      "Keep that identical character and only change the pose/expression to: ")
+        print(f"REF: {ref} loaded ({len(cfg['_ref_image_b64'])//1024}KB b64) — color-locked to reference", flush=True)
     print(f"GEN {char}: {len(blocks)} sprites, backend order: {sg._backend_order(cfg)}", flush=True)
 
     done = skip = fail = 0
@@ -59,7 +70,7 @@ async def run(char: str, backend: str, force: bool, delay: float) -> None:
         os.makedirs(os.path.dirname(out), exist_ok=True)
         img = used = None
         for b in sg._backend_order(cfg):
-            img = await sg._run_backend(b, prompt, cfg, portrait=True)
+            img = await sg._run_backend(b, ref_prefix + prompt, cfg, portrait=True)
             if img:
                 used = b
                 break
@@ -82,5 +93,6 @@ if __name__ == "__main__":
     ap.add_argument("--backend", default="", help="pin lead backend (huggingface/pollinations/gemini/...)")
     ap.add_argument("--force", action="store_true", help="regenerate even if the sprite exists")
     ap.add_argument("--delay", type=float, default=3.0, help="seconds between sprites")
+    ap.add_argument("--ref", default="", help="reference image path; gemini multimodal color-lock")
     a = ap.parse_args()
-    asyncio.run(run(a.character, a.backend, a.force, a.delay))
+    asyncio.run(run(a.character, a.backend, a.force, a.delay, a.ref))
