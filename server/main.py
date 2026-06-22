@@ -3842,7 +3842,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     # Special commands
     _t_cmd = time.time()
-    response_text = await _handle_special_commands(text)
+    # 20 Questions: answer yes/no questions with the LLM (Mario knows the secret).
+    # Returns None for hint/guess/quit so the normal game flow still handles those.
+    response_text = await _answer_twenty_questions(text)
+    if response_text is None:
+        response_text = await _handle_special_commands(text)
     _timing["commands_ms"] = int((time.time() - _t_cmd) * 1000)
     if response_text is not None:
         logger.info(f"[DEBUG_PIPELINE] Special command intercepted: '{text[:50]}' → '{response_text[:80]}'")
@@ -5366,6 +5370,74 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
                     f"(below party floor, no face confirm)")
 
     await _generate_and_send_response(ws, transcript, source="audio", start_time=_response_start)
+
+
+async def _answer_twenty_questions(transcript: str) -> str | None:
+    """Real 20-Questions answering: Mario SECRETLY knows the answer and the LLM
+    answers each yes/no question truthfully — instead of the old dumb keyword match
+    that said 'Hmm, not exactly!' to everything. Returns None for hint / exact-guess
+    / quit / game-switch so the normal game flow (command_handlers + game_handlers)
+    handles those cases unchanged."""
+    if state_current.get("_active_game") != "twenty_questions":
+        return None
+    gs = state_current.get("_game_state") or {}
+    answer = (gs.get("answer") or "").strip()
+    if not answer:
+        return None
+    lower = transcript.lower().strip()
+    # Hand these back to the normal game flow:
+    if "hint" in lower or answer.lower() in lower:
+        return None
+    if any(k in lower for k in ("give up", "giveup", "i give up", "quit",
+                                "stop playing", "stop game", "what is it",
+                                "what was it", "tell me the answer")):
+        return None
+    if any(k in lower for k in ("trivia", "truth or dare", "rock paper scissors",
+                                "simon says", "would you rather", "riddle",
+                                "word chain", "karaoke", "hangman", "hot take",
+                                "never have i ever", "rapid fire", "story",
+                                "joke", "dance", "song")):
+        return None
+    # Only answer things that look like a yes/no question
+    if "?" not in transcript and not any(lower.startswith(p) for p in (
+            "is ", "are ", "am ", "was ", "were ", "do ", "does ", "did ",
+            "can ", "could ", "would ", "will ", "has ", "have ", "had ",
+            "should ", "might ")):
+        return None
+
+    gs["questions_left"] = int(gs.get("questions_left", 1)) - 1
+    ql = gs["questions_left"]
+    sys_prompt = (
+        f'You are Mario hosting 20 Questions at a party. You are SECRETLY thinking '
+        f'of: "{answer}" (category: {gs.get("category", "thing")}). The player just '
+        f'asked a yes-or-no question. Reply in ONE short line: start with a clear Yes '
+        f'or No that is TRUTHFUL about "{answer}", then a tiny playful Mario reaction. '
+        f'NEVER say, spell, or directly hint the word "{answer}". Under 15 words.'
+    )
+    try:
+        _r = await asyncio.wait_for(
+            llm.generate_response(
+                [{"role": "system", "content": sys_prompt},
+                 {"role": "user", "content": transcript}],
+                transcript,
+                model=llm_router.get_model(
+                    llm_router.classify(transcript, response_type="casual")),
+            ),
+            timeout=float(GAME_CONFIG["llm_timeout"]),
+        )
+        reply = (_r.get("text") or "").strip()
+    except Exception as e:
+        logger.warning(f"[20Q] LLM yes/no answer failed: {e}")
+        reply = "Hmm, good question!"
+    if not reply:
+        reply = "Hmm, good question!"
+
+    if ql <= 0:
+        state_current["_active_game"] = None
+        state_current["_game_state"] = {}
+        emotion_system.current = Emotion.MISCHIEVOUS
+        return f"{reply} And that was your last question! Time's up, it was {answer}! Ha ha!"
+    return f"{reply} {ql} questions left, or say hint or give up!"
 
 
 async def _handle_special_commands(transcript: str) -> str:
