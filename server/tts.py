@@ -1404,6 +1404,14 @@ def _preclean_tts_text(text: str) -> str:
     t = text
     # Spell out abbreviations first, so their period isn't treated as a sentence end.
     t = _expand_tts_abbreviations(t)
+    # Code must NOT be read aloud symbol-by-symbol (the screenshot FizzBuzz problem).
+    # Strip fenced ```...``` blocks (say a short note instead) and inline `code`
+    # backticks. SPOKEN text only — the speech bubble keeps the full code.
+    t = _re_tts.sub(r'```[\s\S]*?```', ' Here is the code, up on the screen! ', t)
+    t = _re_tts.sub(r'`+', '', t)
+    # "'cause" -> "because" — apostrophe-stripping downstream would otherwise leave
+    # "cause", which the model voices as "kawz" (reason), not "because".
+    t = _re_tts.sub(r"'cause\b", "because", t, flags=_re_tts.IGNORECASE)
     # Ellipsis variants → natural pause (comma + space)
     t = t.replace('…', ', ')                       # Smart ellipsis
     t = _re_tts.sub(r'\.{3,}', ', ', t)            # Three+ dots → pause
@@ -1432,7 +1440,7 @@ def _preclean_tts_text(text: str) -> str:
     _EMOJI = (r'[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF'
               r'♀-♂←-⇿⌀-⏿️‍]')
     t = _re_tts.sub(r'(\w)\s*' + _EMOJI + r'+\s*([A-Z])', r'\1. \2', t)
-    t = _re_tts.sub(_EMOJI + r'+', '', t)
+    t = _re_tts.sub(_EMOJI + r'+', ' ', t)  # space (not '') so "party🎉time" -> "party time"
     # Clean up resulting artifacts: leading commas, double commas, etc.
     t = _re_tts.sub(r'^[\s,]+', '', t)             # Leading whitespace/commas
     t = _re_tts.sub(r',\s*,', ',', t)              # Double commas
