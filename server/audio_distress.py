@@ -327,8 +327,10 @@ def detect_distress(audio_bytes: bytes, sample_rate: int = 16000) -> dict:
         if spectral_distress and is_mostly_speech:
             spectral_distress = False
 
-        # Either detector triggers = distress
-        is_distress = panns_distress or spectral_distress
+        # PANNs (trained model) OR spectral — but spectral ALONE false-triggers on
+        # ambient party noise (high flatness + bursty), so require at least some
+        # corroborating PANNs distress signal. Stops room noise reading as vomiting.
+        is_distress = panns_distress or (spectral_distress and combined >= 0.10)
 
         # Get top 5 detected classes for debugging
         top_indices = np.argsort(probs)[-5:][::-1]

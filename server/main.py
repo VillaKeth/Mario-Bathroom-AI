@@ -3824,10 +3824,20 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         emotion_system.intensity = random.uniform(0.6, 0.95)
         logger.info(f"[MOOD_SWING] Random mood swing to {swing}!")
 
+    # Auto-recover a stale "sick" mood: distress latches _detected_mood to "sick"
+    # and otherwise only a recovery phrase clears it, so a false/accidental trigger
+    # (e.g. ambient noise) would trap every later message in vomit-comfort routing.
+    if (state_current.get("_detected_mood") == "sick"
+            and time.time() - state_current.get("_sick_set_time", 0.0) > 180.0):
+        state_current["_detected_mood"] = None
+        logger.info("[SENTIMENT] Sick mood timed out (180s) — cleared")
+
     # Sentiment detection
     mood = detect_sentiment(text)
     if mood and mood != state_current.get("_detected_mood"):
         state_current["_detected_mood"] = mood
+        if mood == "sick":
+            state_current["_sick_set_time"] = time.time()
         logger.info(f"[SENTIMENT] Detected mood shift: {mood}")
 
     # Special commands
@@ -5265,6 +5275,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
             if time.time() - last_checkin >= 20.0:
                 try:
                     state_current["_detected_mood"] = "sick"
+                    state_current["_sick_set_time"] = time.time()
                     analyzed = analyze_text(_comfort)
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     await send_response(ws, analyzed["display_text"], audio,
