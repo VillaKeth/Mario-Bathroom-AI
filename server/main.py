@@ -1290,6 +1290,13 @@ async def _run_shot_event(event):
 
             logger.info(f"[SHOT_EVENT] {event.name} phase: {phase_name}")
 
+            # Let the toast + music climax breathe before the recovery line.
+            # Without this, "back to the party!" lands the instant the toast ends
+            # and steps on the moment. Hold a few seconds (the song keeps playing
+            # underneath) so it feels like a beat, not a hard cut.
+            if phase_name == "recovery" and event.music_file:
+                await asyncio.sleep(5.0)
+
             # Handle countdown phase specially
             if phase_name == "countdown" and event.countdown:
                 countdown_texts = shot_event_manager.get_countdown_texts()
