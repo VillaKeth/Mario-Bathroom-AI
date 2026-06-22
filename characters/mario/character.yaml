@@ -20,6 +20,7 @@ voice:
     "okie dokie": "oh key doe key"
     "ha ha ha": "hah hah hah"
     "ha ha": "hah hah"
+    "AI": "ay eye"
 
 visuals:
   sprite_dir: "sprites/"
