@@ -55,6 +55,9 @@ class CharacterLoader:
         self.tagline: str = identity.get("tagline", "")
         self.description: str = identity.get("description", "")
         self.character_dir: str = str(self._char_dir)
+        # Optional per-character LLM model override (group mode). None -> use the
+        # group's shared_model. Read from top-level `model:` or identity.model.
+        self.model = self._config.get("model") or identity.get("model")
 
         # Parse voice config
         voice = self._config.get("voice", {})
