@@ -1395,6 +1395,40 @@ def _expand_tts_abbreviations(t: str) -> str:
     return t
 
 
+def _speak_code(text: str) -> str:
+    """Make code READABLE ALOUD: translate operators/syntax inside ```fenced``` and
+    `inline` code spans into spoken words, keeping identifiers/keywords. e.g.
+    'for i in range(1,101): if i % 3 == 0: print("Fizz")' ->
+    'for i in range 1, 101, if i mod 3 equals 0, print Fizz'. Spoken text only;
+    the speech bubble keeps the real code."""
+    def _xlate(code: str) -> str:
+        c = code
+        c = _re_tts.sub(r'#\s*([^\n]*)', r', comment, \1,', c)     # # comments
+        c = _re_tts.sub(r'\belif\b', 'else if', c)
+        c = _re_tts.sub(r'\bdef\b', 'define', c)
+        for pat, rep in (
+            (r'==', ' equals '), (r'!=', ' not equal '), (r'>=', ' greater or equal '),
+            (r'<=', ' less or equal '), (r'->', ' gives '), (r'\*\*', ' to the power '),
+            (r'//', ' floor divide '), (r'\+=', ' plus equals '), (r'-=', ' minus equals '),
+            (r'%', ' mod '), (r'=', ' equals '), (r'\*', ' times '), (r'/', ' divided by '),
+            (r'(?<=[\w\s])<(?=[\w\s])', ' less than '),
+            (r'(?<=[\w\s])>(?=[\w\s])', ' greater than '),
+            (r'(?<=[\w\)])\s*\+\s*(?=[\w\(])', ' plus '),
+            (r'(?<=[\w\)])\s+-\s+(?=[\w\(])', ' minus '),
+        ):
+            c = _re_tts.sub(pat, rep, c)
+        c = _re_tts.sub(r'["\']', '', c)            # drop string quotes
+        c = _re_tts.sub(r'[(){}\[\]]', ' ', c)      # brackets -> space
+        c = c.replace('_', ' ')                      # snake_case -> words
+        c = c.replace(':', ', ')                     # block colon -> pause
+        c = _re_tts.sub(r'[ \t]*\n[ \t]*', ', ', c)  # newlines -> pause
+        c = _re_tts.sub(r'\s+', ' ', c).strip()
+        return ' ' + c + ' '
+    text = _re_tts.sub(r'```(?:[a-zA-Z0-9_+-]+)?\s*([\s\S]*?)```', lambda m: _xlate(m.group(1)), text)
+    text = _re_tts.sub(r'`([^`]+)`', lambda m: _xlate(m.group(1)), text)
+    return text
+
+
 def _preclean_tts_text(text: str) -> str:
     """Pre-clean text before any TTS engine sees it.
 
@@ -1404,11 +1438,10 @@ def _preclean_tts_text(text: str) -> str:
     t = text
     # Spell out abbreviations first, so their period isn't treated as a sentence end.
     t = _expand_tts_abbreviations(t)
-    # Code must NOT be read aloud symbol-by-symbol (the screenshot FizzBuzz problem).
-    # Strip fenced ```...``` blocks (say a short note instead) and inline `code`
-    # backticks. SPOKEN text only — the speech bubble keeps the full code.
-    t = _re_tts.sub(r'```[\s\S]*?```', ' Here is the code, up on the screen! ', t)
-    t = _re_tts.sub(r'`+', '', t)
+    # Code: SPEAK it properly rather than reading raw symbols aloud. Translate
+    # operators inside ```fenced``` and `inline` code to spoken words
+    # (i % 3 == 0  ->  "i mod 3 equals 0"). The speech bubble keeps the real code.
+    t = _speak_code(t)
     # "'cause" -> "because" — apostrophe-stripping downstream would otherwise leave
     # "cause", which the model voices as "kawz" (reason), not "because".
     t = _re_tts.sub(r"'cause\b", "because", t, flags=_re_tts.IGNORECASE)

@@ -232,6 +232,10 @@ def clean_text_for_tts(text):
     # Also handle single ALL-CAP words at sentence start
     clean_text = _re.sub(r'(?<=[.!?]\s)[A-Z]{2,}\b', _normalize_caps, clean_text)
 
+    # Mario's signature "-a" suffix: ATTACH it (it's-a -> it'sa) so the model voices
+    # the -a flourish instead of dropping the orphaned "a". User wants it KEPT even
+    # if it warbles. (Tested: spaced drops it; -uh drops too; attached keeps it most.)
+    clean_text = _re.sub(r'(?<=\w)-a\b', 'a', clean_text, flags=_re.IGNORECASE)
     # Remove ALL hyphens — GPT-SoVITS either reads "-" as "minus" or produces silence
     # Step 1: "word-word" → "word word" (compound words keep space)
     clean_text = _re.sub(r'(?<=\w)-(?=\w)', ' ', clean_text)

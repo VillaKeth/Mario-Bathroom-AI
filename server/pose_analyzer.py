@@ -616,7 +616,9 @@ def analyze_text(text: str) -> dict:
 
     return {
         "tts_text": tts_text if tts_text else text,
-        "display_text": text,
+        # Capitalize the speech-bubble's first letter (LLM sometimes opens lowercase,
+        # e.g. "friend, you're partying hard" -> "Friend, ...").
+        "display_text": (text[0].upper() + text[1:]) if text else text,
         "pose_hint": pose_hint,
         "actions": actions,
         "energy": energy,
