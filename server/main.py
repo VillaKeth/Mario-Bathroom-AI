@@ -1231,6 +1231,19 @@ app.include_router(dashboard_router)
 init_dashboard(health_fn=None, server_start_time=_SERVER_START_TIME, live_config=live_config)  # health_fn wired below
 
 
+def _wav_secs(b: bytes, default_rate: int = 48000) -> float:
+    """Duration (sec) of a WAV from its real ByteRate header (bytes 28-31), so
+    phase gating is correct for ANY engine — Edge 24kHz = 48000 B/s, GPT-SoVITS
+    32kHz = 64000 B/s. The old hardcoded /48000 over-ran SoVITS phases by 1.33x."""
+    if not b or len(b) < 45:
+        return 0.0
+    try:
+        byte_rate = int.from_bytes(b[28:32], "little") or default_rate
+        return max(0.0, (len(b) - 44) / byte_rate)
+    except Exception:
+        return max(0.0, (len(b) - 44) / default_rate)
+
+
 async def _run_shot_event(event):
     """Run any shot event by iterating through its phases."""
     try:
@@ -1241,9 +1254,18 @@ async def _run_shot_event(event):
 
         logger.info(f"[SHOT_EVENT] Starting {event.name} ({event.tone})")
         
-        # Set memorial_active flag during event 
+        # Set memorial_active flag during event
         state_current["memorial_active"] = True
         state_current["memorial_triggered_at"] = time.time()
+
+        # Let the trigger acknowledgment ("you said the magic words!") fully finish
+        # before the phases start — otherwise it synthesizes CONCURRENTLY with the
+        # announcement and the two voices overlap (the "out of order" feel). Wait
+        # for the in-flight response task, capped so a stuck synth can't hang the event.
+        _ack_t0 = time.time()
+        while (_current_response_task is not None and not _current_response_task.done()
+               and time.time() - _ack_t0 < 25):
+            await asyncio.sleep(0.4)
 
         for phase_name in event.phases:
             if not _active_ws:
@@ -1309,7 +1331,7 @@ async def _run_shot_event(event):
                     
                     # Pace by the number's actual spoken length (gates the
                     # countdown by the audio, not a fixed 1s) so visual + voice stay together.
-                    _cd_dur = max(0.85, (len(audio_bytes) - 44) / 48000.0) if audio_bytes else 1.0
+                    _cd_dur = max(0.85, _wav_secs(audio_bytes)) if audio_bytes else 1.0
                     await asyncio.sleep(_cd_dur)
 
                 # The instant "Take a shot!" cue — precached, so it lands the moment
@@ -1329,7 +1351,7 @@ async def _run_shot_event(event):
                                     await _active_ws.send_bytes(_dc["audio"])
                         except Exception as e:
                             logger.error(f"[SHOT_EVENT] drink cue send error: {e}")
-                        await asyncio.sleep(max(0.6, (len(_dc["audio"]) - 44) / 48000.0))
+                        await asyncio.sleep(max(0.6, _wav_secs(_dc["audio"])))
                 continue
 
             # Handle music phase
@@ -1395,7 +1417,7 @@ async def _run_shot_event(event):
                 # the audio bytes), plus a small buffer — so the on-screen text and
                 # the next phase never run ahead of her voice (which caused the
                 # "wrong order" feeling). 24kHz mono 16-bit PCM -> bytes/48000.
-                _audio_dur = max(0.5, (len(audio_bytes) - 44) / 48000.0) if audio_bytes else 1.0
+                _audio_dur = max(0.5, _wav_secs(audio_bytes)) if audio_bytes else 1.0
                 if phase_name == "silence":
                     await asyncio.sleep(_audio_dur + 5.0)   # speak, then a real moment of silence
                 elif phase_name == "recovery":
@@ -2216,8 +2238,8 @@ async def trigger_memorial(request_body: dict = {}):
                             _tts_executor, lambda t=text: tts.synthesize_user(t)
                         )
                         if audio_bytes:
-                            # Calculate duration: 16-bit mono 24kHz = 48000 bytes/sec
-                            audio_duration = len(audio_bytes) / 48000
+                            # Real WAV rate (Edge 24kHz vs SoVITS 32kHz) — not hardcoded 48000
+                            audio_duration = _wav_secs(audio_bytes)
                             logger.info(f"[MEMORIAL] phase={phase_name} audio={len(audio_bytes)}B duration={audio_duration:.1f}s")
                     except Exception as e:
                         logger.error(f"[MEMORIAL] TTS error for {phase_name}: {e}")
@@ -5470,6 +5492,10 @@ async def _handle_special_commands(transcript: str) -> str:
             # Trigger the event
             trigger_result = shot_event_manager.trigger(matched_event.name)
             if trigger_result["status"] == "triggered":
+                # Set memorial_active BEFORE the task so the idle loop can't slip a
+                # mumble into the gap (matches the admin trigger path).
+                state_current["memorial_active"] = True
+                state_current["memorial_triggered_at"] = time.time()
                 # Start the event in background
                 asyncio.create_task(_run_shot_event(matched_event))
                 logger.info(f"[VOICE_TRIGGER] Triggered shot event: {matched_event.name}")
