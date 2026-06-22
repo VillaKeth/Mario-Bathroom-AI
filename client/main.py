@@ -221,10 +221,15 @@ class MarioClient:
         except Exception as _e:
             logger.debug(f"[SFX] character override skipped: {_e}")
 
-        # Start audio
-        if not self.audio_capture.start():
-            logger.warning("No microphone available — audio capture disabled")
-            self.display.set_subtitle("⚠ No microphone detected")
+        # Start audio (honor enable_microphone — false skips the mic entirely so
+        # ambient noise can't flood STT, interrupt playback, or flicker the
+        # thinking bubble; text input still works)
+        if client_config.get("enable_microphone", True):
+            if not self.audio_capture.start():
+                logger.warning("No microphone available — audio capture disabled")
+                self.display.set_subtitle("⚠ No microphone detected")
+        else:
+            logger.info("[mic] disabled by config (enable_microphone=false) — text input only")
         self.audio_playback.start()
 
         # Debug MCP surface (only starts when MARIO_DEBUG=1; binds 127.0.0.1)
