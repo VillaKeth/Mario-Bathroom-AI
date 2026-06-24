@@ -1,0 +1,8 @@
+custom:
+  bert_base_path: C:\Users\Vketh\Desktop\Mario_AI\gpt_sovits_repo\GPT_SoVITS\pretrained_models\chinese-roberta-wwm-ext-large
+  cnhuhbert_base_path: C:\Users\Vketh\Desktop\Mario_AI\gpt_sovits_repo\GPT_SoVITS\pretrained_models\chinese-hubert-base
+  device: cuda
+  is_half: false
+  t2s_weights_path: C:\Users\Vketh\Desktop\Mario_AI\mario_models_new\GPT_SoVITS_Mario\Mario-e20.ckpt
+  version: v2
+  vits_weights_path: C:\Users\Vketh\Desktop\Mario_AI\mario_models_new\GPT_SoVITS_Mario\Mario_e15_s255.pth
