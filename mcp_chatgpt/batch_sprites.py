@@ -38,6 +38,16 @@ PROMPT_PREFIX = (
     "Do NOT put any text, letters, words, watermark or signage anywhere in the image:\n\n"
 )
 
+# Prepended (after PROMPT_PREFIX) when a --ref reference image is attached, so the
+# model treats the uploaded picture as the exact character to match (image-to-image).
+REF_PREAMBLE = (
+    "Use the attached image ONLY as a reference for the character's APPEARANCE - copy her face, "
+    "hairstyle, hair length, hair color, eye color, outfit design and colors from it exactly. But do "
+    "NOT copy the reference's pose, camera angle, background, lighting, glowing light, sparks, "
+    "ribbons, sashes or any props from it. Draw this same character in a brand-new different pose on "
+    "a plain empty background, as described next: "
+)
+
 # Runs in the MAIN venv (has rembg). Cuts background -> transparent RGBA PNG.
 CUT_SNIPPET = (
     "import sys, io\n"
@@ -83,7 +93,7 @@ def cut(src: str, dst: Path) -> bool:
 _FATAL_GEN_ERR = ("launch_persistent_context", "existing browser", "ProfileInUse")
 
 
-async def _generate_once(session, prompt: str, account: str, thread_id):
+async def _generate_once(session, prompt: str, account: str, thread_id, ref_image: str = ""):
     """One sprite attempt, up to 3 retries for stochastic guardrail blocks.
 
     Uses ONE persistent chat per account: the first call opens the thread, every
@@ -95,13 +105,16 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
     {ok, cap, refused, fatal, notloggedin}. Scans assistant text AND the page
     notice, so a cap banner is caught even when it isn't part of the reply."""
     msg = ""
+    pre = REF_PREAMBLE if ref_image else ""
     for attempt in range(1, 3):     # 2 tries on this account, then rotate (caller)
         try:
             if thread_id is None:
-                r = await session.new_thread(PROMPT_PREFIX + prompt, account=account)
+                r = await session.new_thread(PROMPT_PREFIX + pre + prompt, account=account,
+                                             image_path=ref_image)
                 thread_id = r.get("thread_id")
             else:
-                r = await session.send(thread_id, PROMPT_PREFIX + prompt, account=account)
+                r = await session.send(thread_id, PROMPT_PREFIX + pre + prompt, account=account,
+                                       image_path=ref_image)
         except Exception as e:  # noqa: BLE001
             msg = f"gen error: {e}"
             low = msg.lower()
@@ -142,7 +155,7 @@ async def _generate_once(session, prompt: str, account: str, thread_id):
 
 
 async def run(provider: str, character: str, start: int, force: bool, regen: bool, accounts: list,
-              delay: float, cap_fallback: float, max_cap_waits: int) -> None:
+              delay: float, cap_fallback: float, max_cap_waits: int, ref: str = "") -> None:
     char_dir = ROOT / "characters" / character
     entries = parse_prompts(char_dir / "sprite_prompts.txt")
     # Manifest of sprites already FRESHLY regenerated this campaign, so a re-run
@@ -225,7 +238,7 @@ async def run(provider: str, character: str, start: int, force: bool, regen: boo
                     continue
 
                 img, status, msg, tid = await _generate_once(
-                    session, prompt, acct, threads.get(acct))
+                    session, prompt, acct, threads.get(acct), ref_image=ref)
                 threads[acct] = tid     # remember this account's persistent chat
                 if status == "fatal":
                     print(f"STOP [{idx:02d}] fatal browser error on '{acct}' — ending run "
@@ -323,7 +336,9 @@ if __name__ == "__main__":
                     help="seconds to wait on a cap when the page shows no parseable timer")
     ap.add_argument("--max-cap-waits", type=int, default=8,
                     help="give up a sprite after this many all-accounts-capped waits")
+    ap.add_argument("--ref", default="",
+                    help="reference image path; attach for image-to-image (chatgpt) on every send")
     a = ap.parse_args()
     accounts = [s.strip() for s in a.accounts.split(",") if s.strip()] or [a.account]
     asyncio.run(run(a.provider, a.character, a.start, a.force, a.regen, accounts, a.delay,
-                    a.cap_fallback, a.max_cap_waits))
+                    a.cap_fallback, a.max_cap_waits, ref=a.ref))

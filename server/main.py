@@ -728,6 +728,8 @@ async def lifespan(app: FastAPI):
     _character_name = config.get("character", "mario")
     _character = CharacterLoader(_characters_dir, _character_name)
     logger.info(f"Character loaded: {_character.name} ({_character.display_name})")
+    # TADC group mode: load the ensemble if config mode == 'group' (no-op otherwise).
+    _load_group()
     # Global rules + pronunciation (characters/_shared/global_rules.yaml) layered
     # under every character. Character's own pronunciation overrides global.
     import global_rules
@@ -1980,6 +1982,91 @@ async def admin_probe(request_body: dict = {}):
         return {"error": str(e), "char": _character.name, "text": ""}
 
 
+# ── TADC group mode (additive; the single-character path below is untouched) ──
+import group_config as _group_config_mod
+import group_state as _group_state_mod
+import group_orchestrator as _group_orch_mod
+import group_director as _group_director_mod
+
+_GROUP_CTX = None  # {"cfg","members","session"} or None (single mode)
+
+
+class _GroupMember:
+    """Adapts a CharacterLoader to the GroupOrchestrator member interface."""
+
+    def __init__(self, loader, model):
+        self._loader = loader
+        self.id = loader.name.lower()
+        self.display_name = loader.display_name
+        self.model = model
+        self.voice_config = loader.voice_config
+
+    def build_prompt(self):
+        return self._loader.get_system_prompt({"character_name": self.display_name})
+
+
+def _load_group():
+    """Startup hook: load the group if config mode == 'group'. No-op otherwise.
+    Fails safe to single mode on any error (never crashes the party)."""
+    global _GROUP_CTX
+    if (config.get("mode") or "single").lower() != "group":
+        return
+    gname = config.get("group") or "tadc"
+    root = os.path.dirname(os.path.dirname(__file__))
+    gpath = os.path.join(root, "groups", f"{gname}.yaml")
+    try:
+        gcfg = _group_config_mod.GroupConfig.load(gpath)
+        cdir = os.path.join(root, "characters")
+        members = {mid: _GroupMember(CharacterLoader(cdir, mid), gcfg.model_for(mid))
+                   for mid in gcfg.member_ids}
+        session = _group_state_mod.GroupSession(member_ids=list(members), maxlen=40)
+        _GROUP_CTX = {"cfg": gcfg, "members": members, "session": session}
+        n = len(gcfg.distinct_models())
+        if n * 3 > 22:   # ~3GB/model vs 24GB minus TTS headroom — warn, don't block
+            logger.warning(f"[group] {n} distinct models (~{n*3}GB) may exceed the 24GB budget")
+        logger.info(f"[group] mode ON: '{gname}' {gcfg.member_ids}; models={gcfg.distinct_models()}")
+    except Exception as e:
+        logger.error(f"[group] failed to load group '{gname}', falling back to single: {e}")
+        _GROUP_CTX = None
+
+
+async def _group_turn_task(ws, text):
+    """One group turn: director -> per-speaker generate -> voice swap -> send (sequential)."""
+    try:
+        loop = asyncio.get_event_loop()
+        gcfg = _GROUP_CTX["cfg"]
+        session = _GROUP_CTX["session"]
+        _to = GAME_CONFIG.get("llm_timeout", 45)
+
+        def _gen(messages, model):
+            fut = asyncio.run_coroutine_threadsafe(
+                llm.generate_response(messages, model=model), loop)
+            return fut.result(timeout=_to)
+
+        def _director_fn(t, transcript, roster):
+            return _group_director_mod.plan_turn(
+                t, transcript, roster, gcfg.director_model, _gen,
+                least_recent=session.least_recent_speaker())
+
+        orch = _group_orch_mod.GroupOrchestrator(
+            _GROUP_CTX["members"], session, _gen, filter_response, _director_fn)
+        lines = await loop.run_in_executor(None, orch.handle, text)
+        logger.info(f"[group] turn speakers: {[l['id'] for l in lines]}")
+        for ln in lines:
+            if hasattr(tts, "set_voice_config"):
+                tts.set_voice_config(ln["voice_config"], ln["display_name"])
+            audio = await loop.run_in_executor(_tts_executor, lambda t=ln["text"]: tts.synthesize(t))
+            await send_response(ws, ln["text"], audio, emotion=ln["emotion"], speaker=ln["display_name"])
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logger.error(f"[group] turn failed: {e}")
+    finally:
+        async with _state_lock:
+            state_current["_user_request_active"] = False
+            state_current["_response_completed_time"] = time.time()
+
+
 async def _dispatch_user_text(text: str):
     """Run a text input through the exact same pipeline as a real typed message,
     sending the response to the active pygame client. Returns a status dict.
@@ -2001,6 +2088,10 @@ async def _dispatch_user_text(text: str):
         state_current["_last_text_input_time"] = 0.0
         state_current["_user_request_active"] = True
         state_current["_last_user_msg_time"] = time.time()
+    if _GROUP_CTX is not None:
+        # Group mode: the ensemble takes the turn (director picks speakers).
+        _current_response_task = asyncio.create_task(_group_turn_task(_active_ws, text))
+        return {"status": "ok", "message": f"Group dispatched: {text[:50]}"}
     _current_response_task = asyncio.create_task(_text_input_task(_active_ws, text))
     return {"status": "ok", "message": f"Dispatched: {text[:50]}"}
 
@@ -2878,6 +2969,7 @@ async def websocket_endpoint(ws: WebSocket):
             
             greeting_text = filter_response(greeting_text)
             analyzed = analyze_text(greeting_text)
+            _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
             # Hold the opening line until GPT-SoVITS is actually ready, so the
             # FIRST thing guests hear is her real cloned voice — not the Edge
             # fallback (which fires if the greeting races sovits startup).
@@ -2897,7 +2989,7 @@ async def websocket_endpoint(ws: WebSocket):
                 return
             
             await send_response(ws, analyzed["display_text"], greeting_audio, sound="greeting",
-                                pose_hint=analyzed["pose_hint"])
+                                pose_hint=analyzed["pose_hint"], censor=_censored)
         except asyncio.TimeoutError:
             logger.error("Startup greeting timed out after 30s")
             _fallback_greeting = _startup_greeting_fallback()
@@ -3415,9 +3507,10 @@ async def _idle_loop(ws: WebSocket):
         if announcement:
             try:
                 analyzed = analyze_text(announcement)
+                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump", censor=_censored)
             except Exception as e:
                 logger.error(f"Announcement failed: {e}")
             else:
@@ -3427,9 +3520,10 @@ async def _idle_loop(ws: WebSocket):
         if scheduled_msg:
             try:
                 analyzed = analyze_text(scheduled_msg)
+                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound="coin", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                                    sound="coin", pose_hint=analyzed["pose_hint"] or "positive/excited_jump", censor=_censored)
             except Exception as e:
                 logger.error(f"Scheduled event failed: {e}")
             else:
@@ -3441,10 +3535,11 @@ async def _idle_loop(ws: WebSocket):
             memorial_msg, memorial_sfx = memorial_result
             try:
                 analyzed = analyze_text(memorial_msg)
+                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                 pose = "emotional/respectful" if "silence" in memorial_msg.lower() else "positive/excited_jump"
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound=memorial_sfx, pose_hint=pose)
+                                    sound=memorial_sfx, pose_hint=pose, censor=_censored)
                 # Extra pause after the moment of silence before the shot dedication
                 if "silence" in memorial_msg.lower():
                     await asyncio.sleep(15)
@@ -3459,9 +3554,10 @@ async def _idle_loop(ws: WebSocket):
             timeout_msg, timeout_emotion = timeout_result
             try:
                 analyzed = analyze_text(timeout_msg)
+                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound="game_over", pose_hint="positive/happy")
+                                    sound="game_over", pose_hint="positive/happy", censor=_censored)
             except Exception as e:
                 logger.error(f"Game timeout announcement failed: {e}")
 
@@ -3489,9 +3585,10 @@ async def _idle_loop(ws: WebSocket):
                 followup = random.choice(sick_followups)
                 try:
                     analyzed = analyze_text(followup)
+                    _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                        sound="coin", pose_hint="concerned/worried")
+                                        sound="coin", pose_hint="concerned/worried", censor=_censored)
                     async with _state_lock:
                         state_current["_sick_checkin_time"] = time.time()
                     logger.info(f"[SICK_CHECKIN] Proactive check-in after {silence_secs:.0f}s silence")
@@ -3519,9 +3616,10 @@ async def _idle_loop(ws: WebSocket):
                             idle_behavior._last_long_stay_time = now
                             try:
                                 analyzed = analyze_text(comment)
+                                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                                    sound="coin", pose_hint=analyzed["pose_hint"])
+                                                    sound="coin", pose_hint=analyzed["pose_hint"], censor=_censored)
                             except Exception as e:
                                 logger.error(f"Long stay comment TTS failed: {e}")
             continue
@@ -3533,9 +3631,10 @@ async def _idle_loop(ws: WebSocket):
             dj_msg = random.choice(idle_behavior._dj_announcements)
             try:
                 analyzed = analyze_text(dj_msg)
+                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                 audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                 await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                                    sound="announcement", pose_hint=analyzed["pose_hint"] or "positive/excited_jump", censor=_censored)
             except Exception as e:
                 logger.error(f"DJ announcement failed: {e}")
             finally:
@@ -3551,9 +3650,10 @@ async def _idle_loop(ws: WebSocket):
             if obs:
                 try:
                     analyzed = analyze_text(obs)
+                    _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
                     audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                        pose_hint=analyzed["pose_hint"] or "positive/excited_jump")
+                                        pose_hint=analyzed["pose_hint"] or "positive/excited_jump", censor=_censored)
                 except Exception as e:
                     logger.error(f"Time observation failed: {e}")
                 finally:
@@ -3638,6 +3738,7 @@ async def _idle_loop(ws: WebSocket):
             emotion_system.current = _idle_emotion
             emotion_system.record_sentiment(_idle_emotion)
             analyzed = analyze_text(action)
+            _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
             try:
                 # If it's purely an action (no spoken text after stripping), just send pose change
                 # Voice ALL idle messages that have enough text
@@ -3647,7 +3748,7 @@ async def _idle_loop(ws: WebSocket):
                     )
                     await _idle_send_if_safe(ws, analyzed["display_text"], audio,
                                         pose_hint=analyzed["pose_hint"], emotion=_idle_emotion,
-                                        is_idle=True)
+                                        is_idle=True, censor=_censored)
                     _idle_recent_texts.append(action)
                     if len(_idle_recent_texts) > 10:
                         _idle_recent_texts.pop(0)
