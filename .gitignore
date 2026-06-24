@@ -161,3 +161,9 @@ characters/*/.regen_done.txt
 
 # mirror debug frame dump (regenerable; not source)
 _tunnel_frame.jpg
+
+# voice training data (large, regenerable — kept local)
+voice_training/
+_old_jun18_weights/
+pomni_voice_preview.wav
+*.bak
