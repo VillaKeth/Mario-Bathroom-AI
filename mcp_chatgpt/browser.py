@@ -262,8 +262,16 @@ class ChatGPTSession:
         except Exception:  # noqa: BLE001
             pass
 
-    async def _type_and_send(self, page: Page, prompt: str) -> None:
+    async def _type_and_send(self, page: Page, prompt: str, image_path: str = "") -> None:
         await self._dismiss_intro(page)
+        if image_path and self.site.file_input:
+            # Image-to-image: attach a reference picture to the composer's hidden
+            # file input, then wait for the upload to register before sending.
+            try:
+                await page.set_input_files(self.site.file_input, image_path)
+                await page.wait_for_timeout(6000)
+            except Exception as e:  # noqa: BLE001
+                print(f"[ref] image upload failed ({image_path}): {e}", flush=True)
         await page.fill(self.site.composer, prompt)
         # Submit: click the Send button if the site has one, else press Enter
         # (grok/gemini-style composers submit on Enter, no Send button).
@@ -297,14 +305,14 @@ class ChatGPTSession:
             resp["notice"] = await self._notice(page)
         return resp
 
-    async def new_thread(self, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
+    async def new_thread(self, prompt: str, account: str = DEFAULT_ACCOUNT, image_path: str = "") -> dict:
         async with self._lock:
             ctx = await self._ctx_for(account)
             page = await ctx.new_page()
             await page.goto(self.site.url, wait_until="domcontentloaded")
             await self._check_state(page, account)
             baseline = await self._generated_image_srcs(page) | self._saved_srcs
-            await self._type_and_send(page, prompt)
+            await self._type_and_send(page, prompt, image_path)
             outcome = await self._send_wait_resolve(page, baseline)
             await page.wait_for_timeout(300)  # let URL settle to /c/<uuid>
             thread_id = parse_thread_id(page.url) or f"tab-{id(page)}"
@@ -313,7 +321,7 @@ class ChatGPTSession:
             return {"thread_id": thread_id,
                     "response": await self._build_response(page, outcome, images)}
 
-    async def send(self, thread_id: str, prompt: str, account: str = DEFAULT_ACCOUNT) -> dict:
+    async def send(self, thread_id: str, prompt: str, account: str = DEFAULT_ACCOUNT, image_path: str = "") -> dict:
         async with self._lock:
             page = self._threads.get(thread_id)
             if page is not None and page.is_closed():
@@ -328,7 +336,7 @@ class ChatGPTSession:
                 await self._check_state(page, account)
                 self._threads[thread_id] = page
             baseline = await self._generated_image_srcs(page) | self._saved_srcs
-            await self._type_and_send(page, prompt)
+            await self._type_and_send(page, prompt, image_path)
             outcome = await self._send_wait_resolve(page, baseline)
             images = await self._download_images(page, thread_id, baseline) if outcome.had_image else []
             return {"response": await self._build_response(page, outcome, images)}

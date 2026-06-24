@@ -17,6 +17,7 @@ class Site:
     challenge_text_markers: tuple
     usage_limit_markers: tuple
     stop_button: str = ""
+    file_input: str = ""        # hidden <input type=file> for image-to-image upload (chatgpt)
     refusal_markers: tuple = ()
     response_picker_markers: tuple = ()
     response_picker_buttons: tuple = ()
@@ -36,6 +37,7 @@ SITES = {
         composer="#prompt-textarea",
         send_button="[data-testid='send-button']",
         stop_button="[data-testid='stop-button']",
+        file_input="input[type='file']",
         assistant_turn="[data-message-author-role='assistant']",
         generated_image_markers=("/backend-api/", "oaiusercontent.com"),
         login_url_fragment="/auth/login",
