@@ -2067,6 +2067,31 @@ async def _group_turn_task(ws, text):
             state_current["_response_completed_time"] = time.time()
 
 
+def _resolve_guest_name(guest_name: str = None) -> str:
+    """Display name for a guest turn in the shared logs: an explicit name
+    (e.g. a tunnel guest's), else the recognized speaker, else 'Guest'."""
+    return guest_name or state_current.get("speaker_name") or "Guest"
+
+
+async def _log_guest_turn(ws: WebSocket, name: str, text: str):
+    """Log one guest turn to BOTH shared logs exactly once, at input time:
+    echo it to the pygame client's chat backlog (F3 history) AND append it to
+    the mirror transcript shown on the tunnel/phone. The mirror is optional — a
+    failure here must never break the response path."""
+    if not text:
+        return
+    try:
+        await ws.send_json({"type": "user_message", "text": text})
+    except Exception as e:
+        logger.debug(f"[WS] user_message echo failed: {e}")
+    try:
+        mirror_relay.add_transcript(name, text)
+        await mirror_relay.broadcast_text(
+            {"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+    except Exception as e:
+        logger.debug(f"[MIRROR] guest transcript log failed: {e}")
+
+
 async def _dispatch_user_text(text: str):
     """Run a text input through the exact same pipeline as a real typed message,
     sending the response to the active pygame client. Returns a status dict.
@@ -3016,8 +3041,11 @@ async def websocket_endpoint(ws: WebSocket):
     # must not talk over or reset the live session.
     greeting_task = asyncio.create_task(_send_startup_greeting()) if _is_primary else None
 
-    # Start idle behavior loop
-    idle_task = asyncio.create_task(_idle_loop(ws))
+    # Start idle behavior loop — ONLY the primary client drives idle. A second
+    # /ws connection (extra tab, e2e test) must not spawn its own idle loop, or
+    # two loops fire idle lines concurrently and talk over each other (and over
+    # the memorial). Mirrors the primary-only greeting above.
+    idle_task = asyncio.create_task(_idle_loop(ws)) if _is_primary else None
     heartbeat_task = asyncio.create_task(_heartbeat_loop(ws))
     emotion_decay_task = asyncio.create_task(_emotion_decay_loop())
     leaderboard_task = asyncio.create_task(_leaderboard_broadcast_loop(ws))
@@ -3074,11 +3102,12 @@ async def websocket_endpoint(ws: WebSocket):
         else:
             logger.error(f"WebSocket error: {e}")
     finally:
-        idle_task.cancel()
-        try:
-            await idle_task
-        except asyncio.CancelledError:
-            pass
+        if idle_task is not None:
+            idle_task.cancel()
+            try:
+                await idle_task
+            except asyncio.CancelledError:
+                pass
         heartbeat_task.cancel()
         try:
             await heartbeat_task
@@ -3424,6 +3453,86 @@ async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kw
     return True
 
 
+def _birthday_party_active() -> bool:
+    """True only when the configured birthday party is actually happening —
+    the birthday person is configured AND has shown up this session (talked to
+    us, or is the current speaker). The memorial belongs to that party, so no
+    active birthday => no auto-fire."""
+    if not birthday_vip.is_configured():
+        return False
+    speaker = state_current.get("speaker_name") or ""
+    return birthday_vip.interaction_count > 0 or birthday_vip.is_birthday_person(speaker)
+
+
+async def _maybe_run_memorial(ws: WebSocket, loop) -> bool:
+    """If the birthday memorial should fire now, deliver the WHOLE ceremony
+    (moment of silence + shot dedication) as one protected, uninterruptible
+    event, then return True. Returns False if nothing fired (caller continues
+    normal idle behavior).
+
+    This is the fix for the memorial being talked over by idle lines: the old
+    path sent the silence via _idle_send_if_safe (which never set
+    memorial_active) and slept a flat 15s — shorter than the audio — so the
+    next idle line cut in. Here memorial_active is held across both phases and
+    each phase holds for its real audio length, so no idle (or a second idle
+    loop) can interrupt.
+    """
+    # Never barge in on a response that's still generating.
+    if _current_response_task is not None and not _current_response_task.done():
+        return False
+    if not _birthday_party_active():
+        return False
+    try:
+        memorial_info = vip_knowledge.get_memorial_info(birthday_vip.name)
+    except Exception:
+        memorial_info = None
+    if not memorial_info:
+        return False
+    bday_name = birthday_vip.name or "the birthday person"
+
+    def _minutes():
+        return (time.time() - party_stats.party_start_time) / 60.0
+
+    result = idle_behavior.check_memorial_event(
+        birthday_active=True, memorial_info=memorial_info,
+        party_minutes=_minutes(), birthday_name=bday_name)
+    if not result:
+        return False
+
+    # Protected ceremony: memorial_active makes _idle_send_if_safe and the
+    # idle-loop top guard suppress every other idle line until it finishes.
+    async with _state_lock:
+        state_current["memorial_active"] = True
+    logger.info("[MEMORIAL] Idle memorial ceremony starting (protected)")
+    try:
+        while result:
+            msg, sfx = result
+            analyzed = analyze_text(msg)
+            censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
+            pose = "emotional/respectful" if "silence" in msg.lower() else "positive/excited_jump"
+            audio = await loop.run_in_executor(_tts_executor, lambda t=analyzed["tts_text"]: tts.synthesize(t))
+            # Send directly (NOT _idle_send_if_safe — that suppresses on
+            # memorial_active; this send IS the memorial).
+            await send_response(ws, analyzed["display_text"], audio,
+                                sound=sfx, pose_hint=pose, censor=censored)
+            # Hold for the real audio length so the next phase / idle never
+            # overlaps; add a reverent pause after the moment of silence.
+            hold = _wav_secs(audio) if audio else 4.0
+            if "silence" in msg.lower():
+                hold += 12.0
+            await asyncio.sleep(hold)
+            result = idle_behavior.check_memorial_event(
+                birthday_active=True, memorial_info=memorial_info,
+                party_minutes=_minutes(), birthday_name=bday_name)
+    except Exception as e:
+        logger.error(f"Memorial event failed: {e}")
+    finally:
+        async with _state_lock:
+            state_current["memorial_active"] = False
+        logger.info("[MEMORIAL] Idle memorial ceremony complete, flag cleared")
+    return True
+
+
 async def _idle_loop(ws: WebSocket):
     """Background loop for idle behavior — Mario mumbles/sings when alone."""
     global _idle_error_count
@@ -3529,22 +3638,9 @@ async def _idle_loop(ws: WebSocket):
             else:
                 _last_idle_sent_time = time.time()
             continue
-        memorial_result = idle_behavior.check_memorial_event(
-            current_speaker_name=state_current.get("speaker_name"))
-        if memorial_result:
-            memorial_msg, memorial_sfx = memorial_result
-            try:
-                analyzed = analyze_text(memorial_msg)
-                _censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
-                pose = "emotional/respectful" if "silence" in memorial_msg.lower() else "positive/excited_jump"
-                audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize(analyzed["tts_text"]))
-                await _idle_send_if_safe(ws, analyzed["display_text"], audio,
-                                    sound=memorial_sfx, pose_hint=pose, censor=_censored)
-                # Extra pause after the moment of silence before the shot dedication
-                if "silence" in memorial_msg.lower():
-                    await asyncio.sleep(15)
-            except Exception as e:
-                logger.error(f"Memorial event failed: {e}")
+        # Memorial moment — gated on an active birthday party + configured
+        # memorial, and delivered as one protected, uninterruptible ceremony.
+        if await _maybe_run_memorial(ws, loop):
             continue
 
         # Game auto-timeout using shared validation logic
@@ -3661,10 +3757,12 @@ async def _idle_loop(ws: WebSocket):
                         state_current["_last_time_obs"] = time.time()
                 continue
 
-        # Check for shot event auto-triggers (Lisa Webb memorial between 45-90min)
+        # Check for shot event auto-triggers (memorial between 45-90min) — only
+        # during an actual birthday party, never on a generic/non-birthday run.
         party_elapsed_seconds = time.time() - party_stats.party_start_time
         party_elapsed_minutes = party_elapsed_seconds / 60.0
-        shot_event_name = idle_behavior.check_shot_event_timers(shot_event_manager, party_elapsed_minutes)
+        shot_event_name = idle_behavior.check_shot_event_timers(
+            shot_event_manager, party_elapsed_minutes, birthday_active=_birthday_party_active())
         if shot_event_name:
             event = shot_event_manager.events.get(shot_event_name)
             if event:
