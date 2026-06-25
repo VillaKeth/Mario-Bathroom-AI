@@ -1,7 +1,7 @@
 # Bidirectional Chat-Log Sync — Design
 
-- **Date:** 2026-06-24
-- **Branch:** feat/tadc-group
+- **Date:** 2026-06-24 (design refined 2026-06-25 during planning)
+- **Branch:** master
 - **Status:** Design approved; implementation plan pending
 - **Scope:** server-only (plus tests)
 
@@ -19,13 +19,12 @@ Concretely, two gaps:
 2. **Group mode** (`_group_turn_task`, `server/main.py:2033`) bypasses the
    shared response pipeline entirely: it neither echoes `user_message` to the
    pygame client nor logs anything (guest **or** bot) to the mirror transcript.
-   On the current `feat/tadc-group` setup the tunnel text log is therefore
-   nearly empty.
+   On the current TADC group setup the tunnel text log is therefore nearly empty.
 
 ### What already works (must not regress)
 
 - The `/mirror` viewer mirrors the pygame **screen as video + audio** via the
-  `/mirror_ingest` relay — this is independent of the text log.
+  `/mirror_ingest` relay — independent of the text log.
 - **Tunnel → pygame log:** `_generate_and_send_response` echoes
   `{"type":"user_message"}` to the active pygame client (`:3995`); the client
   logs it (`client/main.py:362` → `display.add_chat_message("user", text)`).
@@ -63,93 +62,99 @@ turn** (single **and** group mode) appears **exactly once** in **both** logs:
 
 ## Design
 
-### Entry points and pipelines
+### Architecture: log at input entry, not in the response pipeline
 
-Guest input enters at four places and flows through two response pipelines:
+Guest-input logging is **separated from response generation**. A guest turn is
+logged exactly once, at the moment input is received, by a single helper —
+independent of which response pipeline (single `_generate_and_send_response` or
+group `_group_turn_task`) then handles it. Bot turns are logged where responses
+are sent. This covers single **and** group modes uniformly, without threading a
+name through the deep `_text_input_task → _handle_text_input →
+_generate_and_send_response` chain.
 
-- `_generate_and_send_response` (single-speaker): pygame-typed (always, even in
-  group mode), voice (`handle_audio`), and non-group tunnel/admin input.
-- `_group_turn_task` (group ensemble): tunnel/admin input when `_GROUP_CTX` set.
+### New helpers (`server/main.py`)
 
-We log at the pipeline level so each turn is captured once, with the correct
-name, regardless of entry point.
+- `_resolve_guest_name(guest_name)`:
+  `return guest_name or state_current.get("speaker_name") or "Guest"`.
+  Reads one global; unit-testable by patching `state_current`.
+- `async _log_guest_turn(ws, name, text)`:
+  ```python
+  try:
+      await ws.send_json({"type": "user_message", "text": text})   # pygame F3 log
+  except Exception as e:
+      logger.debug(f"[WS] user_message echo failed: {e}")
+  try:
+      mirror_relay.add_transcript(name, text)                      # tunnel transcript
+      await mirror_relay.broadcast_text(
+          {"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+  except Exception as e:
+      logger.debug(f"[MIRROR] guest transcript log failed: {e}")
+  ```
 
-### Changes (all in `server/main.py`)
+### Guest-input call sites (each logs exactly once)
 
-1. **`_resolve_guest_name(guest_name)`** — new tiny pure helper:
-   `return guest_name or state_current.get("speaker_name") or "Guest"`.
-   (Pure and unit-testable.)
+1. **pygame `text_input` handler** (`:6293`) — before dispatching:
+   `await _log_guest_turn(ws, _resolve_guest_name(None), text)`.
+2. **`_dispatch_user_text(text, guest_name=None)`** (`:2070`) — after the
+   `_active_ws` guard, before creating the response task:
+   `await _log_guest_turn(_active_ws, _resolve_guest_name(guest_name), text)`.
+   Covers tunnel (`/friend/say`) and admin (`/admin/simulate_text`).
+3. **voice `handle_audio`** (before `:5575`):
+   `await _log_guest_turn(ws, _resolve_guest_name(None), transcript)`.
 
-2. **`_generate_and_send_response(ws, text, source, start_time, guest_name=None)`**
-   — add the `guest_name` param. Beside the existing `user_message` echo (which
-   already guards on `text and source in ("text","audio")`), add:
-   ```python
-   _who = _resolve_guest_name(guest_name)
-   try:
-       mirror_relay.add_transcript(_who, text)
-       await mirror_relay.broadcast_text(
-           {"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
-   except Exception as e:
-       logger.debug(f"[MIRROR] guest transcript log failed: {e}")
-   ```
-   Covers pygame-typed + voice + non-group tunnel/admin. `face_greeting` and
-   other internal sources stay excluded (same guard as the echo).
+### Removals (avoid double-logging)
 
-3. **`_group_turn_task(ws, text, guest_name=None)`** — add the `guest_name`
-   param. At turn start (before orchestration): echo `user_message` to `ws` and
-   log the guest input to the transcript + broadcast (same `_resolve_guest_name`
-   + try/except). After each `send_response(ln)` in the speaker loop: log that
-   bot line — `mirror_relay.add_transcript(ln["display_name"], ln["text"])` +
-   broadcast. (Keys confirmed present at `:2057`/`:2059`.)
+- Delete the `user_message` echo block in `_generate_and_send_response`
+  (`:3991-3997`) — now done at entry. (`face_greeting` never echoed; unaffected.)
+- Delete the `add_transcript` + transcript broadcast in `/friend/say`
+  (`:2198-2199`) — now done by `_dispatch_user_text`. **Keep** the turn-acquire
+  logic + turn-state broadcast (`:2200`). Pass `guest_name=name` into
+  `_dispatch_user_text`.
 
-4. **`_dispatch_user_text(text, guest_name=None)`** — forward `guest_name` to
-   both `_group_turn_task` and `_text_input_task`.
+### Bot-turn logging
 
-5. **`_text_input_task(ws, text, guest_name=None)`** — forward `guest_name` to
-   `_generate_and_send_response`.
-
-6. **`/friend/say`** — pass `guest_name=name` into `_dispatch_user_text`, and
-   **remove** the now-duplicate `add_transcript` + transcript broadcast
-   (`:2198-2199`). **Keep** the turn-acquisition logic and the turn-state
-   broadcast (`:2200`).
-
-7. **`/admin/simulate_text`** — unchanged call; `guest_name` defaults to `None`
-   → resolves to `speaker_name`/`"Guest"`.
+- **Single mode:** unchanged — `_generate_and_send_response` already logs at
+  `:5310`.
+- **Group mode:** in `_group_turn_task`, after each
+  `await send_response(ws, ln...)` (`:2059`), add:
+  `mirror_relay.add_transcript(ln["display_name"], ln["text"])` + transcript
+  broadcast (try/except). Keys present at `:2057`/`:2059`.
 
 ### Data flow (after)
 
-- **Pygame typed:** `text_input` → `_text_input_task(pygame)` →
-  `_generate_and_send_response(pygame, source="text")` → echo to own log +
-  `add_transcript(speaker/Guest)` + broadcast (phone sees it). Bot reply →
-  display + `add_transcript(bot)` (`:5310`).
-- **Tunnel typed (single):** `/friend/say(name)` → `_dispatch_user_text(name)` →
-  `_text_input_task` → `_generate_and_send_response(_active_ws, "text", name)` →
-  echo to pygame log + `add_transcript(name)` once.
-- **Tunnel typed (group):** `/friend/say(name)` → `_dispatch_user_text(name)` →
-  `_group_turn_task(name)` → echo + `add_transcript(name)` + per-speaker bot
-  transcript.
-- **Voice:** `handle_audio` → `_generate_and_send_response(source="audio")` →
-  echo + `add_transcript(speaker)`.
+- **Pygame typed:** `text_input` → `_log_guest_turn` (echo to own F3 log +
+  transcript) → `_text_input_task` → pipeline (no echo). Bot reply → display +
+  transcript (`:5310`).
+- **Tunnel typed:** `/friend/say(name)` → `_dispatch_user_text(name)` →
+  `_log_guest_turn(_active_ws, name, text)` (echo to pygame log + transcript) →
+  group or single pipeline.
+- **Voice:** `handle_audio` → `_log_guest_turn(ws, speaker, transcript)` →
+  pipeline (no echo).
+- **Admin sim:** `/admin/simulate_text` → `_dispatch_user_text(None)` →
+  `_log_guest_turn(_active_ws, "Guest"/speaker, text)`.
 
 ### Correctness / dedup
 
-- Removing `/friend/say`'s add (step 6) prevents double-logging tunnel input now
-  that the pipeline logs it.
-- `face_greeting` / internal sources excluded by the `source in ("text","audio")`
-  guard.
-- Group bot lines logged once each inside the existing speaker `for` loop.
-- All mirror calls wrapped in try/except — mirror is optional and must never
-  break the response path.
+- Each guest turn logs once (entry only; pipeline echo removed; `/friend/say`
+  add removed).
+- `face_greeting` / internal sources never logged (not a guest entry).
+- Group bot lines logged once each in the speaker loop.
+- All mirror/echo calls wrapped in try/except — mirror is optional, never breaks
+  the response path.
+- Input is serialized (new input cancels the prior response task), so guest-turn
+  logs never interleave.
 
 ## Testing
 
 - **Unit (TDD, RED first):**
-  - `_resolve_guest_name`: `guest_name` wins; else `speaker_name`; else `"Guest"`.
-  - `_generate_and_send_response` logs the guest turn to the transcript once for
-    `source="text"` and `source="audio"`, and **not** for
-    `source="face_greeting"` (mock `mirror_relay`).
-  - Group: `_group_turn_task` logs guest input once and one bot line per speaker
-    (mock orchestrator + `mirror_relay`).
+  - `_resolve_guest_name`: returns `guest_name` when given; else
+    `state_current["speaker_name"]`; else `"Guest"`. (Patch `state_current`.)
+  - Because `server.main` is impractical to import in the unit env (see
+    `tests/test_edge_cases.py:1347`), assert structural facts via AST where
+    direct import is too heavy: `_generate_and_send_response` no longer contains
+    the `user_message` `send_json` echo; `_dispatch_user_text` and the
+    `text_input` handler and `handle_audio` each call `_log_guest_turn`;
+    `/friend/say` no longer calls `add_transcript`.
 - **Integration / live (per `.claude/rules/testing.md`, MANDATORY audio):**
   - Type on pygame → message appears in the `/friend` transcript.
   - Type on `/friend` → message appears in the pygame F3 log.
@@ -162,14 +167,18 @@ name, regardless of entry point.
 
 - A `broadcast_text` per guest turn adds minor async work — negligible at party
   message rates.
+- Removing the pipeline echo is safe **only if** all three guest entries call
+  `_log_guest_turn`; the plan adds them before removing the echo, and the live
+  test confirms every path still echoes.
 - Group bot logging relies on `ln["display_name"]`/`ln["text"]` — already used at
-  `:2057`/`:2059`, so keys are present.
-- Adding `guest_name` params is backward-compatible (all default `None`).
+  `:2057`/`:2059`.
+- Adding `guest_name` to `_dispatch_user_text` is backward-compatible (default
+  `None`).
 
 ## Files touched
 
 - `server/main.py` — all production changes.
-- `tests/test_chat_log_sync.py` (new) — unit tests.
+- `tests/test_chat_log_sync.py` (new) — unit/AST tests.
 
 ## Out of scope (restated)
 
