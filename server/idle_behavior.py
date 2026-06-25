@@ -367,60 +367,60 @@ class IdleBehavior:
         self._idle_interval = 15
         self._action_count = 0
 
-    def check_memorial_event(self, current_speaker_name: str = None) -> tuple[str, str] | None:
-        """Check if it's time for the Lisa Webb memorial moment.
+    def check_memorial_event(self, birthday_active: bool = False,
+                             memorial_info: dict | None = None,
+                             party_minutes: float | None = None,
+                             birthday_name: str = "the birthday person") -> tuple[str, str] | None:
+        """Fire the memorial moment — but ONLY when the birthday party is
+        actually happening and a memorial is configured for it.
 
-        Returns (memorial_message, sfx_event_name) tuple, or None if not time yet.
-        Prefers firing when Jacob is in the room, but fires after 90 min regardless.
-        The moment of silence fires first, then the shot on the next idle cycle.
+        Returns (memorial_message, sfx_event_name) tuple, or None.
+
+        All gates are required (this is why it must not auto-fire on a random
+        non-birthday run):
+          - birthday_active: the configured birthday person has actually shown
+            up this session. The caller derives this (e.g. birthday_vip is
+            configured AND has interacted) — the memorial belongs to that
+            party, so no birthday => no memorial.
+          - memorial_info: a real configured memorial dict. There is NO
+            hardcoded fallback any more, so an unconfigured party can never
+            leak someone else's memorial.
+          - party_minutes >= 45. Uses the caller's unified party clock; only
+            falls back to this instance's start time if not supplied.
+
+        Delivered in two phases across calls: moment of silence, then the shot
+        dedication on the next idle cycle.
         """
         if self._memorial_delivered and self._memorial_shot_delivered:
             return None
-
-        party_minutes = (time.time() - self._party_start_time) / 60
-
-        # Check if the birthday person (Jacob) is present
-        jacob_present = False
-        if current_speaker_name:
-            name_lower = current_speaker_name.lower()
-            jacob_present = any(alias in name_lower for alias in
-                                ["jacob", "jake", "hoppenstedt", "birthday boy"])
-
-        # Timing strategy:
-        #   - 45+ min AND Jacob present → fire immediately (ideal)
-        #   - 90+ min regardless → fire anyway (don't wait forever)
-        #   - < 45 min → never fire
+        # Only ever happens during an actual birthday party with a configured
+        # memorial. Both gates closed => silently no-op.
+        if not birthday_active or not memorial_info:
+            return None
+        if party_minutes is None:
+            party_minutes = (time.time() - self._party_start_time) / 60
         if party_minutes < 45:
             return None
-        if not jacob_present and party_minutes < 90:
-            return None
 
-        # Try to load memorial info from VIP knowledge
-        try:
-            import vip_knowledge
-            memorial = vip_knowledge.get_memorial_info("Jacob")
-        except Exception:
-            memorial = None
-
-        if not memorial:
-            # Fallback hardcoded memorial
-            memorial = {
-                "person": "Lisa Webb",
-                "relationship": "Jacob's aunt",
-                "born": "August 17, 1968",
-                "passed": "March 23, 2023",
-            }
+        person = memorial_info.get("person", "someone special")
+        relationship = memorial_info.get("relationship", "a loved one")
+        passed = str(memorial_info.get("passed", "")).strip()
 
         if not self._memorial_delivered:
             # Phase 1: Moment of silence
             self._memorial_delivered = True
+            passed_clause = (
+                f"They passed away in {passed}, and they meant the world to this family. "
+                if passed else
+                "They meant the world to this family. "
+            )
             msg = (
                 f"*{self._char_name} pauses respectfully* "
                 f"Hey everyone, can I have your attention for just a moment? "
-                f"Tonight we're celebrating Jacob's birthday, but I want us to take a moment "
-                f"to remember someone very special, {memorial['person']}, {memorial['relationship']}. "
-                f"She passed away in 2023, and she meant the world to this family. "
-                f"Let's have a moment of silence for Aunt Lisa. "
+                f"Tonight we're celebrating {birthday_name}'s birthday, but I want us to take a moment "
+                f"to remember someone very special, {person}, {relationship}. "
+                f"{passed_clause}"
+                f"Let's have a moment of silence for {person}. "
                 f"*bows head in silence*"
             )
             return (msg, "memorial")
@@ -429,12 +429,12 @@ class IdleBehavior:
             self._memorial_shot_delivered = True
             msg = (
                 f"*puts hat back on with a warm smile* "
-                f"Alright everyone — Aunt Lisa wouldn't want us to be sad! "
-                f"She'd want us to CELEBRATE! So right now, everybody grab a drink — "
-                f"we're taking a shot for Aunt Lisa! 🥂 "
-                f"To Lisa Webb — the kind of person who made every room brighter! "
-                f"Ready? One, two, three, CHEERS! Wahoo! "
-                f"That one was for you, Aunt Lisa! Now let's-a party!"
+                f"Alright everyone — {person} wouldn't want us to be sad! "
+                f"They'd want us to celebrate! So right now, everybody grab a drink — "
+                f"we're taking a shot for {person}! "
+                f"To {person}, the kind of person who made every room brighter! "
+                f"Ready? One, two, three, cheers! "
+                f"That one was for you, {person}! Now let's-a party!"
             )
             return (msg, "toast")
 
@@ -873,16 +873,24 @@ class IdleBehavior:
         ]
         return random.choice(generic)
 
-    def check_shot_event_timers(self, shot_event_manager, elapsed_minutes: float) -> str | None:
+    def check_shot_event_timers(self, shot_event_manager, elapsed_minutes: float,
+                                birthday_active: bool = False) -> str | None:
         """Check if any auto-trigger events should fire based on elapsed party time.
-        
+
         Args:
             shot_event_manager: The shot event manager instance.
             elapsed_minutes: Party elapsed time in minutes.
-        
+            birthday_active: True only when the configured birthday party is
+                actually happening. The Lisa Webb memorial belongs to that
+                party, so it never auto-fires on an unrelated run.
+
         Returns event name if one should trigger, None otherwise.
         """
-        # Lisa Webb memorial auto-triggers between 45-90 minutes  
+        # Memorial auto-fire is gated on an active birthday party — never fires
+        # on a generic/non-birthday session even if the clock is in range.
+        if not birthday_active:
+            return None
+        # Lisa Webb memorial auto-triggers between 45-90 minutes
         if 45 <= elapsed_minutes <= 90:
             lisa_event = shot_event_manager.events.get("lisa_webb_memorial")
             if lisa_event and not lisa_event.fired and lisa_event.trigger_type in ("auto", "voice"):

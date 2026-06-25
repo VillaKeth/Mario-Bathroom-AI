@@ -209,79 +209,100 @@ class TestUniqueSelection:
 
 # ── TestMemorialEvent ────────────────────────────────────────────────────
 
+# A configured memorial that is deliberately NOT Lisa Webb / Jacob, so tests
+# can prove the hardcoded fallback is gone and content comes from config.
+_TEST_MEMORIAL = {
+    "person": "Test Person",
+    "relationship": "aunt",
+    "born": "1990",
+    "passed": "2020",
+}
+
+
 class TestMemorialEvent:
-    """check_memorial_event timing, Jacob-awareness, and one-shot behaviour."""
+    """check_memorial_event: only fires when the birthday party is actually
+    happening (birthday_active) AND a memorial is configured. No hardcoded
+    fallback, no 90-min-regardless escape."""
 
-    @patch("idle_behavior.time")
-    def test_returns_none_before_45_minutes(self, mock_time):
-        mock_time.time.return_value = 1000.0
+    def test_returns_none_when_birthday_not_active(self):
+        """Core gate: a non-birthday party never auto-fires the memorial,
+        even long past the time threshold."""
         ib = IdleBehavior()
-        # 30 minutes later
-        mock_time.time.return_value = 1000.0 + 30 * 60
-        assert ib.check_memorial_event(current_speaker_name="Jacob") is None
+        assert ib.check_memorial_event(
+            birthday_active=False, memorial_info=_TEST_MEMORIAL, party_minutes=120) is None
 
-    @patch("idle_behavior.time")
-    def test_returns_message_at_45_minutes_with_jacob(self, mock_time):
-        mock_time.time.return_value = 1000.0
+    def test_returns_none_when_no_memorial_configured(self):
+        """No configured memorial → no fire (the hardcoded Lisa Webb fallback
+        is removed so it can't leak into other parties)."""
         ib = IdleBehavior()
-        # 46 minutes later
-        mock_time.time.return_value = 1000.0 + 46 * 60
-        result = ib.check_memorial_event(current_speaker_name="Jacob")
+        assert ib.check_memorial_event(
+            birthday_active=True, memorial_info=None, party_minutes=120) is None
+
+    def test_returns_none_before_45_minutes(self):
+        ib = IdleBehavior()
+        assert ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=30) is None
+
+    def test_fires_silence_when_active_and_configured_past_45(self):
+        ib = IdleBehavior()
+        result = ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=46)
         assert result is not None
         msg, sfx = result
         assert isinstance(msg, str)
         assert sfx == "memorial"
+        assert "Test Person" in msg
 
-    @patch("idle_behavior.time")
-    def test_waits_for_jacob_between_45_and_90_minutes(self, mock_time):
-        mock_time.time.return_value = 1000.0
+    def test_uses_configured_memorial_not_hardcoded_lisa(self):
+        """Message must come from memorial_info, never the old hardcoded
+        'Lisa Webb' / 'Jacob' strings."""
         ib = IdleBehavior()
-        # 46 minutes, no Jacob → should wait
-        mock_time.time.return_value = 1000.0 + 46 * 60
-        assert ib.check_memorial_event() is None
-        # Still no Jacob at 80 min
-        mock_time.time.return_value = 1000.0 + 80 * 60
-        assert ib.check_memorial_event() is None
-        # 91 minutes, still no Jacob → fires anyway
-        mock_time.time.return_value = 1000.0 + 91 * 60
-        result = ib.check_memorial_event()
-        assert result is not None
+        msg, _ = ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=50)
+        assert "Lisa" not in msg
+        assert "Jacob" not in msg
 
-    @patch("idle_behavior.time")
-    def test_fires_only_once_then_shot_then_none(self, mock_time):
-        mock_time.time.return_value = 1000.0
+    def test_fires_silence_then_shot_then_none(self):
         ib = IdleBehavior()
-        mock_time.time.return_value = 1000.0 + 50 * 60
-
-        first = ib.check_memorial_event(current_speaker_name="Jacob")   # moment of silence
-        assert first is not None
-        msg1, sfx1 = first
-        assert sfx1 == "memorial"
-        second = ib.check_memorial_event(current_speaker_name="Jacob")  # shot dedication
-        assert second is not None
-        msg2, sfx2 = second
-        assert sfx2 == "toast"
-        third = ib.check_memorial_event(current_speaker_name="Jacob")   # nothing left
+        first = ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=50)
+        assert first[1] == "memorial"
+        second = ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=50)
+        assert second[1] == "toast"
+        third = ib.check_memorial_event(
+            birthday_active=True, memorial_info=_TEST_MEMORIAL, party_minutes=50)
         assert third is None
 
-    @patch("idle_behavior.time")
-    def test_memorial_mentions_lisa_webb(self, mock_time):
-        mock_time.time.return_value = 1000.0
-        ib = IdleBehavior()
-        mock_time.time.return_value = 1000.0 + 50 * 60
-        result = ib.check_memorial_event(current_speaker_name="Jacob")
-        msg, sfx = result
-        assert "Lisa Webb" in msg or "Lisa" in msg
 
-    @patch("idle_behavior.time")
-    def test_jacob_alias_detection(self, mock_time):
-        """Various Jacob aliases should all trigger the memorial."""
-        for alias in ["Jacob", "jake", "Hoppenstedt", "birthday boy"]:
-            mock_time.time.return_value = 1000.0
-            ib = IdleBehavior()
-            mock_time.time.return_value = 1000.0 + 50 * 60
-            result = ib.check_memorial_event(current_speaker_name=alias)
-            assert result is not None, f"Memorial should fire for alias '{alias}'"
+class TestShotEventTimerGate:
+    """check_shot_event_timers must also be gated on an active birthday."""
+
+    def _mgr_with_lisa(self, fired=False):
+        mgr = MagicMock()
+        ev = MagicMock()
+        ev.fired = fired
+        ev.trigger_type = "auto"
+        mgr.events = {"lisa_webb_memorial": ev}
+        return mgr
+
+    @patch("idle_behavior.random.random", return_value=0.01)
+    def test_no_fire_when_birthday_not_active(self, _r):
+        ib = IdleBehavior()
+        mgr = self._mgr_with_lisa()
+        assert ib.check_shot_event_timers(mgr, 60, birthday_active=False) is None
+
+    @patch("idle_behavior.random.random", return_value=0.01)
+    def test_fires_when_birthday_active_in_window(self, _r):
+        ib = IdleBehavior()
+        mgr = self._mgr_with_lisa()
+        assert ib.check_shot_event_timers(mgr, 60, birthday_active=True) == "lisa_webb_memorial"
+
+    @patch("idle_behavior.random.random", return_value=0.01)
+    def test_no_fire_outside_window_even_when_active(self, _r):
+        ib = IdleBehavior()
+        mgr = self._mgr_with_lisa()
+        assert ib.check_shot_event_timers(mgr, 120, birthday_active=True) is None
 
 
 # ── TestContextualBehavior ───────────────────────────────────────────────
