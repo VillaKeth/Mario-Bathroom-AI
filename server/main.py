@@ -2092,7 +2092,7 @@ async def _log_guest_turn(ws: WebSocket, name: str, text: str):
         logger.debug(f"[MIRROR] guest transcript log failed: {e}")
 
 
-async def _dispatch_user_text(text: str):
+async def _dispatch_user_text(text: str, guest_name: str = None):
     """Run a text input through the exact same pipeline as a real typed message,
     sending the response to the active pygame client. Returns a status dict.
 
@@ -2102,6 +2102,8 @@ async def _dispatch_user_text(text: str):
         return {"status": "error", "message": "Text required"}
     if not _active_ws:
         return {"status": "error", "message": "No active WebSocket connection"}
+    # Log the guest turn once, at input time, to both shared logs.
+    await _log_guest_turn(_active_ws, _resolve_guest_name(guest_name), text)
     if _current_response_task and not _current_response_task.done():
         logger.info(f"[INTERRUPT] Cancelling previous response for input: '{text[:50]}'")
         _current_response_task.cancel()
@@ -2218,14 +2220,13 @@ async def friend_say(request_body: dict = {}):
     granted, holder = mirror_relay.acquire_or_refresh_turn(client_id, name, now)
     if not granted:
         return {"status": "busy", "holder": holder}
-    # Log the talker's line and push transcript + turn state to all viewers.
+    # Push turn state to all viewers. The guest's line itself is logged once by
+    # _dispatch_user_text (-> _log_guest_turn), so we don't add_transcript here.
     try:
-        mirror_relay.add_transcript(name, text)
-        await mirror_relay.broadcast_text({"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
         await mirror_relay.broadcast_text({"type": "turn", **mirror_relay.turn_state(now)})
     except Exception:
         pass
-    return await _dispatch_user_text(text)
+    return await _dispatch_user_text(text, guest_name=name)
 
 
 @app.post("/friend/log")
@@ -4013,13 +4014,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_energy = None
     _was_llm_response = False  # Track if response came from LLM vs canned fallback
 
-    # Echo the guest's own line to the client so it shows in the chat backlog
-    # ("both sides"). Only real user input — not internal greeting/face triggers.
-    if text and source in ("text", "audio"):
-        try:
-            await ws.send_json({"type": "user_message", "text": text})
-        except Exception as e:
-            logger.debug(f"[WS] user_message echo failed: {e}")
+    # Guest input is logged at input time via _log_guest_turn (echo + mirror
+    # transcript), so the response pipeline no longer echoes here.
 
     # Safety check
     _t0 = time.time()
@@ -5597,6 +5593,8 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
                     f"conf={speaker_info.get('confidence', 0):.2f} not committed "
                     f"(below party floor, no face confirm)")
 
+    # Log the spoken guest turn once to both shared logs before responding.
+    await _log_guest_turn(ws, _resolve_guest_name(None), transcript)
     await _generate_and_send_response(ws, transcript, source="audio", start_time=_response_start)
 
 
@@ -6321,6 +6319,9 @@ async def handle_event(ws: WebSocket, event: dict):
         text = event.get("text", "").strip()
         if not text:
             return
+
+        # Log the typed guest turn once to both shared logs (pygame F3 + tunnel).
+        await _log_guest_turn(ws, _resolve_guest_name(None), text)
 
         # Cancel any in-progress response task (self-interruption)
         interrupted = False
