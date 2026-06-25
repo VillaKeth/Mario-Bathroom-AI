@@ -14,14 +14,16 @@ def test_real_datetime_line_states_today():
     now = datetime.now()
     assert str(now.year) in line
     assert now.strftime("%B") in line          # current month name
-    assert "Today's real date is" in line
+    assert "today is" in line                  # grounds the LLM in the real date
 
 
 def test_system_prompt_includes_real_date():
     mario_prompt.set_character("mario", "Mario")
     prompt = mario_prompt._character_system_prompt()
-    assert str(datetime.now().year) in prompt
-    assert "Today's real date is" in prompt
+    now = datetime.now()
+    assert str(now.year) in prompt
+    assert now.strftime("%B") in prompt        # real month grounded in the prompt
+    assert "today is" in prompt
 
 
 def test_date_named_character_gets_name_not_date_clarification():
