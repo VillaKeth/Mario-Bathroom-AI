@@ -24,7 +24,7 @@ voice:
 
 visuals:
   sprite_dir: "sprites/"
-  ai_poses_dir: "../../mario_3d_assets/ai_poses_transparent/"
+  ai_poses_dir: "sprites/"
   ai_pose_size: [250, 250]
   visual_description: "Mario, the famous Nintendo plumber: a short, stout, cheerful character with a big round nose, a bushy brown mustache, a bright red cap with a white circle and a red letter M, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression"
   art_style: "3d_figurine"
