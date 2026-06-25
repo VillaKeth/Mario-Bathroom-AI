@@ -2057,6 +2057,14 @@ async def _group_turn_task(ws, text):
                 tts.set_voice_config(ln["voice_config"], ln["display_name"])
             audio = await loop.run_in_executor(_tts_executor, lambda t=ln["text"]: tts.synthesize(t))
             await send_response(ws, ln["text"], audio, emotion=ln["emotion"], speaker=ln["display_name"])
+            # Single-mode bot lines are logged in _generate_and_send_response;
+            # group mode bypasses it, so mirror each speaker's line here.
+            try:
+                mirror_relay.add_transcript(ln["display_name"], ln["text"])
+                await mirror_relay.broadcast_text(
+                    {"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+            except Exception as e:
+                logger.debug(f"[MIRROR] group bot transcript log failed: {e}")
     except asyncio.CancelledError:
         raise
     except Exception as e:

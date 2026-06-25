@@ -102,3 +102,11 @@ def test_friend_say_no_longer_adds_transcript():
     assert not _calls(node, "add_transcript"), \
         "/friend/say must not call add_transcript directly (now via _dispatch_user_text)"
     assert _calls(node, "_dispatch_user_text"), "/friend/say must still dispatch the text"
+
+
+# ── Task 3: group bot lines reach the mirror transcript ──────────────────
+
+def test_group_turn_logs_bot_lines():
+    node = _func(_main_ast(), "_group_turn_task")
+    assert _calls(node, "add_transcript"), \
+        "_group_turn_task must add each speaker's line to the mirror transcript"
