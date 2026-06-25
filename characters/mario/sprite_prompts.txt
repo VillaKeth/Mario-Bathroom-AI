@@ -4,7 +4,7 @@
 
 [01] sprites/bathroom/grossed_out.png
 ----------------------------------------------------------------------
-Mario, the famous Nintendo plumber: a short, stout, cheerful character with a big round nose, a bushy brown mustache, a bright red cap with a white circle and a red letter M, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression holding nose in disgust, leaning away, revolted face, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+Mario, the famous Nintendo plumber: a short, stout, cheerful character with a big round nose, a bushy brown mustache, a bright red cap with a white circle and a red letter M, blue denim overalls with round yellow buttons over a red long-sleeve shirt, white gloves, and brown boots, with a warm friendly expression pinching his nose shut with one white-gloved hand, eyes squeezed, disgusted revolted grimace, standing upright facing forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, zoomed out, nothing cropped or cut off at the edges, standing in frame
 
 [02] sprites/birthday/birthday_boy.png
 ----------------------------------------------------------------------

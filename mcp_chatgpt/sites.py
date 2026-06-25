@@ -105,6 +105,7 @@ SITES = {
             "button:has-text('No thanks')",
             "button:has-text('No, thanks')",
             "button:has-text('Don')",
+            "button:has-text('Dismiss')",       # "Gemini is more relevant with location" nag
         ),
     ),
 }
