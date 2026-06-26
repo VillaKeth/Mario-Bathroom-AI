@@ -90,3 +90,23 @@ def test_recognition_html_has_three_panels_and_calls():
                    "/admin/recognition/voice", "/admin/recognition/events",
                    "image_b64", "wav_b64"):
         assert needle in html, f"recognition.html must reference {needle}"
+
+
+def test_live_paths_push_recognition_events():
+    src = _main_src()
+    tree = ast.parse(src)
+    def fn(name):
+        for n in ast.walk(tree):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name:
+                return n
+    def calls_push(node):
+        for c in ast.walk(node):
+            if isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute) \
+               and c.func.attr == "push" and isinstance(c.func.value, ast.Name) \
+               and c.func.value.id == "recognition_events":
+                return True
+        return False
+    assert calls_push(fn("handle_event")), "person_detected handler must push a face event"
+    # voice path lives in the audio handler function:
+    audio_fn = fn("_process_audio") or fn("handle_audio")
+    assert audio_fn and calls_push(audio_fn), "audio path must push a voice event"

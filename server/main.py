@@ -5717,6 +5717,15 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
 
     # Log the spoken guest turn once to both shared logs before responding.
     await _log_guest_turn(ws, _resolve_guest_name(None), transcript)
+
+    try:
+        if speaker_info:
+            recognition_events.push("voice", speaker_info.get("name"),
+                                    speaker_info.get("confidence", 0.0),
+                                    speaker_info.get("is_new", True), "live")
+    except Exception:
+        pass
+
     await _generate_and_send_response(ws, transcript, source="audio", start_time=_response_start)
 
 
@@ -6483,6 +6492,15 @@ async def handle_event(ws: WebSocket, event: dict):
         face_result = face_enrollment.resolve_faces(
             faces, _face_memory, state_current.get("speaker_name")
         )
+
+        try:
+            for _d in face_result["detected"]:
+                recognition_events.push("face", _d["name"], _d.get("confidence") or 0.0,
+                                        _d.get("person_id") is None, "live")
+            for _ in range(face_result.get("new_face_count", 0)):
+                recognition_events.push("face", None, 0.0, True, "live")
+        except Exception:
+            pass
 
         detected_names = []
         for d in face_result["detected"]:
