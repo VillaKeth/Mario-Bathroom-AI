@@ -58,3 +58,26 @@ def test_roster_and_events_routes_declared():
 def test_recognition_html_stub_exists():
     p = os.path.join(os.path.dirname(__file__), "..", "server", "static", "recognition.html")
     assert os.path.exists(p), "server/static/recognition.html must exist"
+
+
+import numpy as np
+import recognition_events as _re2
+
+
+def test_face_store_then_find_roundtrip(tmp_path):
+    # Reuse the real face_memory module against a temp DB; synthetic 128-dim vector.
+    import face_memory
+    fm = face_memory.FaceMemory(str(tmp_path / "faces.db"))
+    enc = np.zeros(128, dtype=np.float64); enc[0] = 1.0
+    pid = _re2.person_id_for_name("TestAlice")
+    fm.store_face(pid, "TestAlice", enc)
+    m = fm.find_match(enc)
+    assert m is not None and m["name"] == "TestAlice" and m["confidence"] > 0.95
+    far = np.zeros(128, dtype=np.float64); far[1] = 5.0
+    assert fm.find_match(far) is None  # beyond 0.6 tolerance
+
+
+def test_face_voice_routes_declared():
+    src = _main_src()
+    assert "/admin/recognition/face" in src
+    assert "/admin/recognition/voice" in src

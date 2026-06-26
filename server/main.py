@@ -2568,6 +2568,79 @@ async def recognition_events_feed(since: int = 0):
     return {"events": recognition_events.recent(since)}
 
 
+@app.post("/admin/recognition/face")
+async def recognition_face(body: dict):
+    """Enroll (if `name` given) or test-recognize a face from a base64 image."""
+    if not _recognition_admin_ok(body):
+        return {"error": "unauthorized"}
+    try:
+        import base64, io
+        import face_recognition
+        import numpy as _np
+        img_bytes = base64.b64decode(body.get("image_b64", ""))
+        img = face_recognition.load_image_file(io.BytesIO(img_bytes))
+        encs = face_recognition.face_encodings(img)
+    except Exception as e:
+        logger.warning(f"[RECOG] face decode/encode failed: {e}")
+        return {"error": "recognition_unavailable", "detail": str(e)[:200]}
+    if not encs:
+        return {"detected": False, "reason": "no_face"}
+    enc = _np.array(encs[0], dtype=_np.float64)
+    name = (body.get("name") or "").strip()
+    if name:
+        pid = recognition_events.person_id_for_name(name)
+        _face_memory.store_face(pid, name, enc)
+        recognition_events.push("face", name, 1.0, True, "upload")
+        return {"enrolled": True, "name": name}
+    m = _face_memory.find_match(enc)
+    if m:
+        recognition_events.push("face", m["name"], m["confidence"], False, "upload")
+        return {"detected": True, "name": m["name"], "confidence": m["confidence"], "is_new": False}
+    recognition_events.push("face", None, 0.0, True, "upload")
+    return {"detected": True, "name": None, "is_new": True}
+
+
+def _wav_to_pcm(wav_bytes: bytes):
+    """Decode an uploaded WAV (base64-decoded bytes) to (int16 PCM bytes, rate)."""
+    import io, wave
+    with wave.open(io.BytesIO(wav_bytes), "rb") as w:
+        rate = w.getframerate()
+        frames = w.readframes(w.getnframes())
+    return frames, rate
+
+
+@app.post("/admin/recognition/voice")
+async def recognition_voice(body: dict):
+    """Enroll (if `name` given) or test-recognize a speaker from a base64 WAV."""
+    if not _recognition_admin_ok(body):
+        return {"error": "unauthorized"}
+    try:
+        import base64
+        wav_bytes = base64.b64decode(body.get("wav_b64", ""))
+        pcm, rate = _wav_to_pcm(wav_bytes)
+    except Exception as e:
+        logger.warning(f"[RECOG] voice decode failed: {e}")
+        return {"error": "bad_audio", "detail": str(e)[:200]}
+    name = (body.get("name") or "").strip()
+    try:
+        if name:
+            sid = speaker_id.register_speaker(name, pcm, rate)
+            recognition_events.push("voice", name, 1.0, True, "upload")
+            return {"enrolled": True, "name": name, "speaker_id": sid}
+        info = speaker_id.identify_speaker(pcm, rate)
+        try:
+            transcript = stt.transcribe(pcm, rate)
+        except Exception:
+            transcript = ""
+        recognition_events.push("voice", info.get("name"), info.get("confidence", 0.0),
+                                info.get("is_new", True), "upload")
+        return {"transcript": transcript, "name": info.get("name"),
+                "confidence": info.get("confidence", 0.0), "is_new": info.get("is_new", True)}
+    except Exception as e:
+        logger.warning(f"[RECOG] voice identify/enroll failed: {e}")
+        return {"error": "recognition_unavailable", "detail": str(e)[:200]}
+
+
 @app.get("/admin/faces")
 async def admin_list_faces():
     """List all stored face entries."""
