@@ -60,6 +60,7 @@ from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior, MEMORIAL_ANNOUNCEMENT, MEMORIAL_SILENCE, MEMORIAL_TOAST, MEMORIAL_FADEOUT
 from pose_analyzer import analyze_text
 import command_handlers
+import recognition_events
 from game_handlers import check_game_timeout
 import game_handlers as _game_handlers_mod
 import yaml
@@ -2525,6 +2526,46 @@ async def admin_lookup_face(body: dict):
         return {"status": "ok", "matched": False}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+_RECOGNITION_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "recognition.html")
+
+
+def _recognition_admin_ok(body_or_params: dict) -> bool:
+    key = GAME_CONFIG.get("admin_api_key", "")
+    return (not key) or body_or_params.get("api_key") == key
+
+
+@app.get("/recognition")
+async def recognition_page():
+    """Serve the Recognition Inspector page."""
+    try:
+        with open(_RECOGNITION_HTML_PATH, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except Exception:
+        return HTMLResponse("<h1>recognition page missing</h1>", status_code=500)
+
+
+@app.get("/admin/recognition/roster")
+async def recognition_roster():
+    """Who Mario knows: enrolled faces + voices."""
+    try:
+        faces = _face_memory.get_all_faces() if _face_memory else []
+    except Exception as e:
+        faces = []
+        logger.warning(f"[RECOG] roster faces failed: {e}")
+    try:
+        voices = speaker_id.list_speakers()
+    except Exception as e:
+        voices = []
+        logger.warning(f"[RECOG] roster voices failed: {e}")
+    return {"faces": faces, "voices": voices}
+
+
+@app.get("/admin/recognition/events")
+async def recognition_events_feed(since: int = 0):
+    """Recent recognition events newer than `since` (seq)."""
+    return {"events": recognition_events.recent(since)}
 
 
 @app.get("/admin/faces")
