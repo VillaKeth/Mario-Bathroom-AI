@@ -81,3 +81,12 @@ def test_face_voice_routes_declared():
     src = _main_src()
     assert "/admin/recognition/face" in src
     assert "/admin/recognition/voice" in src
+
+
+def test_recognition_html_has_three_panels_and_calls():
+    p = os.path.join(os.path.dirname(__file__), "..", "server", "static", "recognition.html")
+    html = open(p, encoding="utf-8").read()
+    for needle in ("/admin/recognition/roster", "/admin/recognition/face",
+                   "/admin/recognition/voice", "/admin/recognition/events",
+                   "image_b64", "wav_b64"):
+        assert needle in html, f"recognition.html must reference {needle}"
