@@ -38,30 +38,32 @@
    <div class="res" id="vres"></div></div>
 </div>
 <script>
+const API_KEY = new URLSearchParams(location.search).get('api_key') || '';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const J=(u,o)=>fetch(u,o).then(r=>r.json());
 function bar(c){return `<span class="bar"><i style="width:${Math.round((c||0)*100)}%"></i></span> ${(c||0).toFixed(2)}`;}
-async function roster(){const d=await J('/admin/recognition/roster');
+async function roster(){const d=await J('/admin/recognition/roster?api_key='+encodeURIComponent(API_KEY));
  document.getElementById('faces').innerHTML='<tr><th>name</th><th>visits</th></tr>'+
-   (d.faces||[]).map(f=>`<tr><td>${f.name}</td><td>${f.visit_count}</td></tr>`).join('')||'<tr><td>none</td></tr>';
+   (d.faces||[]).map(f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.visit_count)}</td></tr>`).join('')||'<tr><td>none</td></tr>';
  document.getElementById('voices').innerHTML='<tr><th>name</th><th>id</th></tr>'+
-   (d.voices||[]).map(v=>`<tr><td>${v.name}</td><td>${v.id}</td></tr>`).join('')||'<tr><td>none</td></tr>';}
+   (d.voices||[]).map(v=>`<tr><td>${esc(v.name)}</td><td>${esc(v.id)}</td></tr>`).join('')||'<tr><td>none</td></tr>';}
 function b64(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(file);});}
 async function sendFace(enroll){const f=document.getElementById('fimg').files[0];if(!f)return;
  const name=enroll?document.getElementById('fname').value:'';
  const d=await J('/admin/recognition/face',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({image_b64:await b64(f),name})});
- document.getElementById('fres').innerHTML=d.enrolled?`✅ enrolled ${d.name}`:
-   d.detected===false?'🚫 no face found':d.name?`👤 ${d.name} ${bar(d.confidence)}`:'🆕 new / unknown face';roster();}
+   body:JSON.stringify({image_b64:await b64(f),name,api_key:API_KEY})});
+ document.getElementById('fres').innerHTML=d.enrolled?`✅ enrolled ${esc(d.name)}`:
+   d.detected===false?'🚫 no face found':d.name?`👤 ${esc(d.name)} ${bar(d.confidence)}`:'🆕 new / unknown face';roster();}
 async function sendVoice(enroll){const f=document.getElementById('vwav').files[0];if(!f)return;
  const name=enroll?document.getElementById('vname').value:'';
  const d=await J('/admin/recognition/voice',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({wav_b64:await b64(f),name})});
- document.getElementById('vres').innerHTML=d.enrolled?`✅ enrolled ${d.name}`:
-   d.error?('⚠️ '+d.error):`${d.name?('🎤 '+d.name+' '+bar(d.confidence)):'🆕 new speaker'} <i>"${d.transcript||''}"</i>`;roster();}
+   body:JSON.stringify({wav_b64:await b64(f),name,api_key:API_KEY})});
+ document.getElementById('vres').innerHTML=d.enrolled?`✅ enrolled ${esc(d.name)}`:
+   d.error?('⚠️ '+esc(d.error)):`${d.name?('🎤 '+esc(d.name)+' '+bar(d.confidence)):'🆕 new speaker'} <i>"${esc(d.transcript||'')}"</i>`;roster();}
 let lastSeq=0;
-async function feed(){const d=await J('/admin/recognition/events?since='+lastSeq);
+async function feed(){const d=await J('/admin/recognition/events?since='+lastSeq+'&api_key='+encodeURIComponent(API_KEY));
  const el=document.getElementById('feed');
  (d.events||[]).forEach(e=>{lastSeq=e.seq;const ic=e.kind==='face'?'👤':'🎤';
-   el.innerHTML=`<div>${ic} ${e.name||'unknown'} ${e.is_new?'🆕':''} ${bar(e.confidence)} <small>(${e.source})</small></div>`+el.innerHTML;});}
+   el.innerHTML=`<div>${ic} ${esc(e.name)||'unknown'} ${e.is_new?'🆕':''} ${bar(e.confidence)} <small>(${e.source})</small></div>`+el.innerHTML;});}
 roster();setInterval(roster,3000);setInterval(feed,1500);
 </script></body></html>

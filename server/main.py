@@ -2547,8 +2547,10 @@ async def recognition_page():
 
 
 @app.get("/admin/recognition/roster")
-async def recognition_roster():
+async def recognition_roster(api_key: str = ""):
     """Who Mario knows: enrolled faces + voices."""
+    if not _recognition_admin_ok({"api_key": api_key}):
+        return {"error": "unauthorized"}
     try:
         faces = _face_memory.get_all_faces() if _face_memory else []
     except Exception as e:
@@ -2563,8 +2565,10 @@ async def recognition_roster():
 
 
 @app.get("/admin/recognition/events")
-async def recognition_events_feed(since: int = 0):
+async def recognition_events_feed(since: int = 0, api_key: str = ""):
     """Recent recognition events newer than `since` (seq)."""
+    if not _recognition_admin_ok({"api_key": api_key}):
+        return {"error": "unauthorized"}
     return {"events": recognition_events.recent(since)}
 
 
@@ -2573,6 +2577,8 @@ async def recognition_face(body: dict):
     """Enroll (if `name` given) or test-recognize a face from a base64 image."""
     if not _recognition_admin_ok(body):
         return {"error": "unauthorized"}
+    if len(body.get("image_b64", "")) > 8_000_000:
+        return {"error": "too_large"}
     try:
         import base64, io
         import face_recognition
@@ -2614,6 +2620,8 @@ async def recognition_voice(body: dict):
     """Enroll (if `name` given) or test-recognize a speaker from a base64 WAV."""
     if not _recognition_admin_ok(body):
         return {"error": "unauthorized"}
+    if len(body.get("wav_b64", "")) > 10_000_000:
+        return {"error": "too_large"}
     try:
         import base64
         wav_bytes = base64.b64decode(body.get("wav_b64", ""))
