@@ -4155,6 +4155,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
         redirect_audio = await loop.run_in_executor(_tts_executor, lambda: tts.synthesize_user(safety["redirect"]))
         await send_response(ws, safety["redirect"], redirect_audio)
+        # Log the deflection to the live transcript too, same as a normal reply —
+        # otherwise safety redirects silently vanish from the chat log (only the
+        # guest's flagged line shows). Mirrors the bot-reply path below.
+        try:
+            _bot_label = getattr(_character, "display_name", None) or getattr(_character, "name", None) or "Bot"
+            mirror_relay.add_transcript(_bot_label, safety["redirect"])
+            await mirror_relay.broadcast_text({"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
+        except Exception:
+            pass
         return
 
     # Emotion + idle reset
