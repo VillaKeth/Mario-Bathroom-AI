@@ -4149,7 +4149,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
     # Safety check
     _t0 = time.time()
+    logger.info(f"[DEBUG_SAFETY] BEFORE safety filter: {text!r}")
     safety = check_input(text)
+    logger.info(f"[DEBUG_SAFETY] AFTER safety filter: safe={safety['safe']} "
+                f"message={(text if safety['safe'] else safety['redirect'])!r}")
     _timing["safety_ms"] = int((time.time() - _t0) * 1000)
     if not safety["safe"]:
         logger.warning(f"[SAFETY] Unsafe input from {state_current.get('speaker_name', 'unknown')}: redirecting")
