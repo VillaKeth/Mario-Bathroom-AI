@@ -1455,8 +1455,11 @@ def _preclean_tts_text(text: str) -> str:
     t = t.replace('"', '')
     # Em/en dashes → comma pause
     t = t.replace('—', ', ').replace('–', ', ')
-    # Asterisks (action markers like *laughs*)
-    t = t.replace('*', '')
+    # Asterisks (markdown emphasis / action markers like *laughs*): replace each RUN
+    # with a space, not nothing, so space-less markers ("roast!****freaking") don't
+    # mash adjacent words into one unpronounceable blob. The space-before-punctuation
+    # and whitespace-collapse cleanup below tidies the result.
+    t = _re_tts.sub(r'\*+', ' ', t)
     # Parentheticals with no letters (bare dates/numbers/codes like "(07/03)" or
     # "(2024)") aren't spoken asides — drop them entirely so the voice doesn't
     # read out a code. Asides with real words fall through and are still spoken.

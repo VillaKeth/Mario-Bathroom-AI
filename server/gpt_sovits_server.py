@@ -266,7 +266,7 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'[\u2700-\u27BF]', '', clean_text)  # Dingbats (✓, ✗, etc.)
     clean_text = _re.sub(r'[\u2190-\u21FF]', '', clean_text)  # Arrows
     clean_text = _re.sub(r'[\u2500-\u257F]', '', clean_text)  # Box drawing
-    clean_text = clean_text.replace('*', '')  # Asterisks (action markers)
+    clean_text = _re.sub(r'\*+', ' ', clean_text)  # Asterisks → space (keep word gaps; collapsed at end)
     clean_text = clean_text.replace('~', '')  # Tildes
     clean_text = clean_text.replace('#', '')  # Hash symbols
     clean_text = clean_text.replace('@', ' at ')  # @ sign → spoken form

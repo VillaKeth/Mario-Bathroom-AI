@@ -532,6 +532,25 @@ CONTENT_POSE_MAP = {
 _CONTENT_KEYS_SORTED = sorted(CONTENT_POSE_MAP.keys(), key=len, reverse=True)
 
 
+def _strip_md_asterisks(text: str) -> str:
+    """Remove markdown emphasis markers (* and **) while KEEPING every word.
+
+    Pygame can't render '*' and the TTS engines can't speak it, and the LLM
+    frequently emits unbalanced or space-less markers ("roast!****freaking").
+    Replacing each RUN of '*' with a single space — then dropping the space that
+    lands before punctuation and collapsing runs — keeps word boundaries intact
+    ("roast! freaking") instead of mashing words ("roast!freaking") or deleting the
+    emphasized text outright. Used for BOTH the spoken line and the speech bubble so
+    the two stay identical. Text with no '*' is returned untouched (spacing intact).
+    """
+    if not text or '*' not in text:
+        return text
+    t = re.sub(r'\*+', ' ', text)              # markers -> space (keep the word gap)
+    t = re.sub(r'\s+([.,!?;:])', r'\1', t)     # drop the space left before punctuation
+    t = re.sub(r'\s+', ' ', t).strip()         # collapse runs
+    return t
+
+
 def analyze_text(text: str) -> dict:
     """Analyze Mario's response text for pose hints and clean TTS text.
 
@@ -546,10 +565,13 @@ def analyze_text(text: str) -> dict:
     if not text:
         return {"tts_text": "", "display_text": "", "pose_hint": None, "actions": []}
 
-    # Extract asterisk actions: *does something*
+    # Detect roleplay actions (*waves*) to drive the sprite pose below — but do NOT
+    # delete them from speech. The LLM mostly uses asterisks for emphasis (**Rudi**,
+    # *so* good), so the bot should still SAY those words. We read the action text for
+    # the pose hint, while the spoken line keeps every word with only the asterisk
+    # markers removed — exactly like the bubble (see _strip_md_asterisks).
     actions = re.findall(r'\*([^*]+)\*', text)
-    tts_text = re.sub(r'\*[^*]+\*', '', text).strip()
-    tts_text = re.sub(r'\s+', ' ', tts_text).strip()
+    tts_text = _strip_md_asterisks(text)
 
     # Normalize the "WOOHOO" excitement shout for the SPOKEN text only: ALL-CAPS
     # + repeated vowels make sovits garble it and trip the caps->high-energy
@@ -614,19 +636,9 @@ def analyze_text(text: str) -> dict:
     if DEBUG_POSE and (actions or pose_hint):
         logger.info(f"[DEBUG_POSE] analyze: actions={actions}, pose={pose_hint}")
 
-    # Strip markdown asterisks for the speech bubble. Pygame has no markdown parser,
-    # so **bold** / *italic* would otherwise render as literal '*' characters. Replace
-    # each RUN of '*' with a single space (not nothing) and KEEP every word, then
-    # collapse whitespace. Using a space matters: the LLM often omits spaces around
-    # its markers ("roast!****freaking"), so stripping to '' would mash adjacent words
-    # ("roast!freaking"); a space keeps the word boundary ("roast! freaking"). Do NOT
-    # delete the text between '*' pairs — that ate emphasized words mid-sentence
-    # ("party *was* really *fun*" -> "party really"). Markers out, words stay.
-    disp = re.sub(r'\*+', ' ', text)                  # markers -> space (keep word gap)
-    disp = re.sub(r'\s+([.,!?;:])', r'\1', disp)      # drop the space left before punctuation
-    disp = re.sub(r'\s+', ' ', disp).strip()          # collapse runs
-    if not disp:                                      # text was only asterisks/space
-        disp = text
+    # Speech bubble uses the SAME asterisk-stripped text as the spoken line, so the
+    # two always match. Markers out, every word kept (see _strip_md_asterisks).
+    disp = _strip_md_asterisks(text) or text
 
     return {
         "tts_text": tts_text if tts_text else text,

@@ -312,8 +312,12 @@ def _clean_response(text: str) -> str:
         text = text[1:-1]
     # Remove parenthetical stage directions like (laughs) (excited)
     text = re.sub(r'\((?:laughs?|sighs?|giggles?|pauses?|excited|nervous|whispers?|shouts?|winks?|smiles?|grins?|nods?|waves?|jumps?|dances?|flexes?|claps?|cheers?|bows?)\)', '', text, flags=re.IGNORECASE)
-    # Remove *action descriptions* like *jumps*, *laughs*
-    text = re.sub(r'\*[a-z\s]+\*', '', text, flags=re.IGNORECASE)
+    # Markdown emphasis / *action* markers (*jumps*, **Rudi**): strip the MARKERS but
+    # KEEP the words, so the bot still SAYS them (and analyze_text can still read them
+    # for a sprite pose). Replace each run with a space so space-less markers don't
+    # mash adjacent words; tidy any space left before punctuation.
+    text = re.sub(r'\*+', ' ', text)
+    text = re.sub(r'\s+([.,!?;:])', r'\1', text)
     # Collapse excessive whitespace
     text = re.sub(r'\s+', ' ', text).strip()
     # Remove trailing incomplete sentences (no period/!/?)
