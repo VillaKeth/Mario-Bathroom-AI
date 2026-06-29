@@ -614,11 +614,21 @@ def analyze_text(text: str) -> dict:
     if DEBUG_POSE and (actions or pose_hint):
         logger.info(f"[DEBUG_POSE] analyze: actions={actions}, pose={pose_hint}")
 
+    # Strip markdown asterisks for the speech bubble. Pygame has no markdown parser,
+    # so **bold** / *italic* would otherwise render as literal '*' characters. Remove
+    # ONLY the marker characters and KEEP every word — exactly what the spoken text
+    # does (tts.py strips every '*'), so bubble and audio stay in sync. Do NOT delete
+    # the text between '*' pairs: that ate emphasized words mid-sentence
+    # ("party *was* really *fun*" -> "party really"). Markers out, words stay.
+    disp = re.sub(r'\s+', ' ', text.replace('*', '')).strip()
+    if not disp:                                      # text was only asterisks/space
+        disp = text
+
     return {
         "tts_text": tts_text if tts_text else text,
         # Capitalize the speech-bubble's first letter (LLM sometimes opens lowercase,
         # e.g. "friend, you're partying hard" -> "Friend, ...").
-        "display_text": (text[0].upper() + text[1:]) if text else text,
+        "display_text": (disp[0].upper() + disp[1:]) if disp else disp,
         "pose_hint": pose_hint,
         "actions": actions,
         "energy": energy,
