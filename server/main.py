@@ -5384,7 +5384,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     censored = tadc_censor.is_enabled() and tadc_censor.censor_analyzed(analyzed)
     if censored:
         logger.info("[TADC] censored swear(s) in response")
-    logger.info(f"Mario says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
+    logger.info(f"{getattr(_character, 'display_name', None) or 'Bot'} says: '{analyzed['tts_text']}' (pose={analyzed['pose_hint']})")
 
     # Trim BEFORE appending to stay within limit — compress dropped messages
     _hist_limit = GAME_CONFIG["conversation_history_limit"]

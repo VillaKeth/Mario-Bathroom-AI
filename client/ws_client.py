@@ -10,6 +10,10 @@ import websocket
 DEBUG_WS = True
 logger = logging.getLogger(__name__)
 
+# Display name of the active character, set by main.py once the character config
+# is loaded — keeps debug logs character-accurate instead of hard-coded "mario".
+CHARACTER_NAME = "Bot"
+
 
 class MarioWSClient:
     """WebSocket client that connects to the Mario AI server."""
@@ -136,7 +140,7 @@ class MarioWSClient:
 
                 if msg_type == "mario_response":
                     if DEBUG_WS:
-                        logger.info(f"[DEBUG_WS] mario says: {data.get('text', '')[:60]}")
+                        logger.info(f"[DEBUG_WS] {CHARACTER_NAME} says: {data.get('text', '')[:60]}")
                     self._expecting_audio = data.get("has_audio", False)
                     if self.on_text_response:
                         self.on_text_response(data.get("text", ""), data)

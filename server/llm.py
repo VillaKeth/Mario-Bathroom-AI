@@ -198,6 +198,14 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         },
     }
 
+    # Qwen3 / DeepSeek-R1 style hybrid models emit a chain-of-thought by default.
+    # On a small GPU that reasoning wastes 20-30s per reply, and we only read the
+    # final 'content' so it is discarded anyway. Disable thinking for those models
+    # so replies are fast and short. Name-gated because Ollama errors if you send
+    # think=false to a model that has no thinking mode.
+    if any(t in str(use_model).lower() for t in ("qwen3", "deepseek-r1", "magistral")):
+        payload["think"] = False
+
     try:
         chunks = []
         async with httpx.AsyncClient() as client:

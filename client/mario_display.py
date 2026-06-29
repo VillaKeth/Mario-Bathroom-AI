@@ -1000,15 +1000,50 @@ class MarioDisplay:
             self._emotion_badge_pop_time = time.time()
 
     def set_pose_hint(self, pose_hint: str):
-        """Set an explicit pose hint from the server (highest priority for sprite selection)."""
-        if pose_hint and pose_hint in self._sprites:
-            self._pose_hint = pose_hint
+        """Set an explicit pose hint from the server (highest priority for sprite selection).
+
+        The server's pose hints use generic 'category/name' paths modelled on one
+        character's sprite filenames (e.g. 'thinking/thinking'), but other characters
+        name the same pose differently ('thinking/pondering'). Resolve the hint against
+        whatever sprites THIS character actually loaded so poses work for everyone —
+        no hard-coded character or sprite names. Falls back: exact key, then any sprite
+        sharing the leaf name, then any sprite in the same category."""
+        if not pose_hint:
+            return
+        resolved = self._resolve_pose_key(pose_hint)
+        if resolved:
+            self._pose_hint = resolved
             self._pose_hint_timer = 0
             if DEBUG_DISPLAY:
-                logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint}")
-        elif pose_hint:
-            if DEBUG_DISPLAY:
-                logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint} not found in loaded sprites")
+                if resolved == pose_hint:
+                    logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint}")
+                else:
+                    logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint} -> {resolved} (resolved to this character's sprite)")
+        elif DEBUG_DISPLAY:
+            logger.info(f"[DEBUG_DISPLAY] set_pose_hint: {pose_hint} not found, no category match for this character")
+
+    def _resolve_pose_key(self, pose_hint: str):
+        """Map a generic 'category/name' pose hint to a sprite key this character has.
+
+        Character-agnostic: tries exact match, then any sprite with the same leaf name
+        (e.g. 'bathroom/grossed_out' -> 'negative/grossed_out'), then any sprite in the
+        same category (e.g. 'thinking/thinking' -> 'thinking/pondering'). Returns the
+        resolved key (guaranteed in self._sprites) or None."""
+        sprites = self._sprites
+        if pose_hint in sprites:
+            return pose_hint
+        category, _, leaf = pose_hint.partition("/") if "/" in pose_hint else ("", "", pose_hint)
+        # 1) same leaf name in any category
+        if leaf:
+            for key in sprites:
+                if key.rsplit("/", 1)[-1] == leaf:
+                    return key
+        # 2) any sprite in the same category
+        if category:
+            for key in sprites:
+                if key.split("/", 1)[0] == category:
+                    return key
+        return None
 
     def set_thinking(self, thinking: bool):
         """Show/hide thinking animation (while waiting for server response)."""

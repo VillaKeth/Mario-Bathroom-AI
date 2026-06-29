@@ -127,6 +127,8 @@ from audio_capture import AudioCapture
 from audio_playback import AudioPlayback
 from presence import PresenceDetector
 from ws_client import MarioWSClient
+import ws_client as _ws_client_module
+_ws_client_module.CHARACTER_NAME = _character.display_name
 from mirror_sender import MirrorSender
 from sound_effects import SoundEffects
 
@@ -372,7 +374,7 @@ class MarioClient:
                 logger.info("[DEBUG_CLIENT] Suppressed idle text during memorial")
             return
         if DEBUG_CLIENT:
-            logger.info(f"[DEBUG_CLIENT] Mario says: {text}")
+            logger.info(f"[DEBUG_CLIENT] {_character.display_name} says: {text}")
         self.display.set_thinking(False)
         self.display.set_mario_text(text)
         self.display.set_state(STATE_TALKING)
