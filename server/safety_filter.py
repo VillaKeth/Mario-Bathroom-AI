@@ -36,8 +36,8 @@ BLOCKED_RE = SLUR_RE + CONTENT_RE
 
 # Per-character toggles, set at startup by main.py from character.yaml. Default
 # ON (filtered) so a misconfigured / parentless boot fails safe.
-_SAFETY_ENABLED = True   # gates CONTENT_RE + MILD_REPLACEMENTS + banned topics
-_BLOCK_SLURS = True      # independent gate for SLUR_RE
+_SAFETY_ENABLED = False   # gates CONTENT_RE + MILD_REPLACEMENTS + banned topics
+_BLOCK_SLURS = False      # independent gate for SLUR_RE
 
 _CHARACTER_NAME = "assistant"
 _CHARACTER_DISPLAY_NAME = "Assistant"
