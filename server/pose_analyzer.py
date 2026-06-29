@@ -615,12 +615,16 @@ def analyze_text(text: str) -> dict:
         logger.info(f"[DEBUG_POSE] analyze: actions={actions}, pose={pose_hint}")
 
     # Strip markdown asterisks for the speech bubble. Pygame has no markdown parser,
-    # so **bold** / *italic* would otherwise render as literal '*' characters. Remove
-    # ONLY the marker characters and KEEP every word — exactly what the spoken text
-    # does (tts.py strips every '*'), so bubble and audio stay in sync. Do NOT delete
-    # the text between '*' pairs: that ate emphasized words mid-sentence
+    # so **bold** / *italic* would otherwise render as literal '*' characters. Replace
+    # each RUN of '*' with a single space (not nothing) and KEEP every word, then
+    # collapse whitespace. Using a space matters: the LLM often omits spaces around
+    # its markers ("roast!****freaking"), so stripping to '' would mash adjacent words
+    # ("roast!freaking"); a space keeps the word boundary ("roast! freaking"). Do NOT
+    # delete the text between '*' pairs — that ate emphasized words mid-sentence
     # ("party *was* really *fun*" -> "party really"). Markers out, words stay.
-    disp = re.sub(r'\s+', ' ', text.replace('*', '')).strip()
+    disp = re.sub(r'\*+', ' ', text)                  # markers -> space (keep word gap)
+    disp = re.sub(r'\s+([.,!?;:])', r'\1', disp)      # drop the space left before punctuation
+    disp = re.sub(r'\s+', ' ', disp).strip()          # collapse runs
     if not disp:                                      # text was only asterisks/space
         disp = text
 
