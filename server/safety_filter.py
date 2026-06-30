@@ -19,12 +19,7 @@ SLUR_PATTERNS = [
 # _SAFETY_ENABLED; a character with safety.enabled: false lets all of these
 # through to the LLM and out unredacted.
 CONTENT_PATTERNS = [
-    r'\b(fuck|shit|damn|ass|bitch|bastard|dick|cock|pussy)\b',
-    r'\b(kill|murder|suicide|die|death|dying)\b(?!.*(?:mushroom|bowser|goomba|game|laughing|funny|comedy))',
-    r'\b(racist|sexist|homophob|transphob|bigot)\b',
-    r'\b(nazi|hitler|holocaust)\b',
-    r'\b(drugs?|cocaine|heroin|meth|weed)\b(?!.*mushroom)',
-    r'\b(rape|molest|abuse|assault)\b',
+    r'\b\b',
 ]
 
 SLUR_RE = [re.compile(p, re.IGNORECASE | re.MULTILINE) for p in SLUR_PATTERNS]
