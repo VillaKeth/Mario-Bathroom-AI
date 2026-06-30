@@ -2119,11 +2119,14 @@ def _batch_join(messages: list[str]) -> str:
 
 async def _enqueue_user_text(text: str):
     """Debounce + batch rapid messages into one turn (A3). burst_debounce_ms<=0
-    restores the old cancel-immediately behavior."""
+    restores the old cancel-immediately behavior.
+
+    Note: the interrupt (cancel+clear_audio) is also delayed by the debounce window;
+    set burst_debounce_ms=0 to restore immediate cancellation."""
     global _burst_timer_task
     debounce_ms = int(live_config.get("burst_debounce_ms", 1200))
     if debounce_ms <= 0:
-        await _dispatch_user_text(text)
+        await _dispatch_user_text(text, skip_log=True)
         return
     _pending_burst.append(text)
     async with _state_lock:
@@ -2139,12 +2142,12 @@ async def _enqueue_user_text(text: str):
         batch = _batch_join(list(_pending_burst))
         _pending_burst.clear()
         if batch:
-            await _dispatch_user_text(batch)
+            await _dispatch_user_text(batch, skip_log=True)
 
     _burst_timer_task = asyncio.create_task(_fire(debounce_ms))
 
 
-async def _dispatch_user_text(text: str, guest_name: str = None):
+async def _dispatch_user_text(text: str, guest_name: str = None, skip_log: bool = False):
     """Run a text input through the exact same pipeline as a real typed message,
     sending the response to the active pygame client. Returns a status dict.
 
@@ -2155,7 +2158,9 @@ async def _dispatch_user_text(text: str, guest_name: str = None):
     if not _active_ws:
         return {"status": "error", "message": "No active WebSocket connection"}
     # Log the guest turn once, at input time, to both shared logs.
-    await _log_guest_turn(_active_ws, _resolve_guest_name(guest_name), text)
+    # skip_log=True when the caller (e.g. WS text_input) already echoed immediately.
+    if not skip_log:
+        await _log_guest_turn(_active_ws, _resolve_guest_name(guest_name), text)
     if _current_response_task and not _current_response_task.done():
         logger.info(f"[INTERRUPT] Cancelling previous response for input: '{text[:50]}'")
         _current_response_task.cancel()
@@ -5386,8 +5391,13 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not response_text:
         response_text = "Let's keep talking! What's on your mind?"
     _raw_response = response_text
-    _cap_for_turn = not (locals().get("_long") and len(_raw_response) <= int(live_config.get("long_char_cap", 2000)))
-    response_text = filter_response(_raw_response, cap=_cap_for_turn)
+    _is_long = bool(locals().get("_long"))
+    _to_filter = _raw_response
+    if _is_long:
+        _char_cap = int(live_config.get("long_char_cap", 2000))
+        if len(_to_filter) > _char_cap:
+            _to_filter = _to_filter[:_char_cap]
+    response_text = filter_response(_to_filter, cap=not _is_long)
     # Uncapped clean version for the chat backlog ("what she meant to say").
     _full_clean = filter_response(_raw_response, cap=False)
     response_text = mario_prompt.maybe_add_question(response_text, text)
@@ -6526,11 +6536,13 @@ async def handle_event(ws: WebSocket, event: dict):
 
     elif event_type == "text_input":
         # Handle keyboard-typed text — non-blocking so receive loop stays free for interrupts
-        global _current_response_task
         text = event.get("text", "").strip()
         if not text:
             return
 
+        # Echo immediately to F3 chat history + tunnel mirror (before debounce).
+        # _dispatch_user_text skips logging (skip_log=True) to avoid double-entry.
+        await _log_guest_turn(ws, _resolve_guest_name(None), text)
         # Route through debounce buffer (A3). When burst_debounce_ms > 0, rapid
         # messages are collected and fired as one batched turn; when 0, the old
         # cancel-immediately behavior is preserved via _dispatch_user_text.
