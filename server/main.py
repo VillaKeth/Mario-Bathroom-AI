@@ -463,6 +463,11 @@ _ws_clients: list = []
 # Track the current response generation task for cancellation on new input
 _current_response_task: "asyncio.Task | None" = None
 
+# ── Burst debounce buffer (A3) ──
+# Collects rapid successive messages and fires them as one batched turn.
+_pending_burst: list[str] = []
+_burst_timer_task: "asyncio.Task | None" = None
+
 # ── Guest rotation tracker ──
 # Tracks last interaction time per guest for rotation-aware prompting.
 # Key: guest_name (str), Value: timestamp (float)
@@ -2099,6 +2104,43 @@ async def _log_guest_turn(ws: WebSocket, name: str, text: str):
             {"type": "transcript", "lines": mirror_relay.transcript_snapshot()})
     except Exception as e:
         logger.debug(f"[MIRROR] guest transcript log failed: {e}")
+
+
+def _batch_join(messages: list[str]) -> str:
+    """Fold a burst of quick messages into one turn. A lone message passes through
+    unchanged; multiple are joined so the LLM answers them together."""
+    msgs = [m.strip() for m in messages if m and m.strip()]
+    if not msgs:
+        return ""
+    if len(msgs) == 1:
+        return msgs[0]
+    return " ".join(msgs)
+
+
+async def _enqueue_user_text(text: str):
+    """Debounce + batch rapid messages into one turn (A3). burst_debounce_ms<=0
+    restores the old cancel-immediately behavior."""
+    global _burst_timer_task
+    debounce_ms = int(live_config.get("burst_debounce_ms", 1200))
+    if debounce_ms <= 0:
+        await _dispatch_user_text(text)
+        return
+    _pending_burst.append(text)
+    state_current["_user_request_active"] = True  # suppress idle while collecting
+    if _burst_timer_task and not _burst_timer_task.done():
+        _burst_timer_task.cancel()
+
+    async def _fire(cap_ms: int):
+        try:
+            await asyncio.sleep(cap_ms / 1000.0)
+        except asyncio.CancelledError:
+            return
+        batch = _batch_join(list(_pending_burst))
+        _pending_burst.clear()
+        if batch:
+            await _dispatch_user_text(batch)
+
+    _burst_timer_task = asyncio.create_task(_fire(debounce_ms))
 
 
 async def _dispatch_user_text(text: str, guest_name: str = None):
@@ -6491,27 +6533,10 @@ async def handle_event(ws: WebSocket, event: dict):
         # Log the typed guest turn once to both shared logs (pygame F3 + tunnel).
         await _log_guest_turn(ws, _resolve_guest_name(None), text)
 
-        # Cancel any in-progress response task (self-interruption)
-        interrupted = False
-        if _current_response_task and not _current_response_task.done():
-            logger.info(f"[INTERRUPT] Cancelling previous response for new input: '{text[:50]}'")
-            _current_response_task.cancel()
-            interrupted = True
-            # Tell client to stop playing current audio immediately
-            try:
-                await ws.send_json({"type": "clear_audio"})
-            except Exception:
-                pass
-
-        # Always reset rate limiter for new input — task cancellation handles rapid-fire
-        async with _state_lock:
-            state_current["_last_text_input_time"] = 0.0
-            state_current["_user_request_active"] = True  # Set IMMEDIATELY to suppress idle before task starts
-
-        # Fire-and-forget: task manages its own _user_request_active lifecycle
-        _current_response_task = asyncio.create_task(
-            _text_input_task(ws, text)
-        )
+        # Route through debounce buffer (A3). When burst_debounce_ms > 0, rapid
+        # messages are collected and fired as one batched turn; when 0, the old
+        # cancel-immediately behavior is preserved via _dispatch_user_text.
+        await _enqueue_user_text(text)
 
     elif event_type == "person_detected":
         if not _face_memory:
