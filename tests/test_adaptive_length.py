@@ -43,3 +43,19 @@ def test_num_predict_override_used(monkeypatch):
     asyncio.run(
         llm_mod.generate_response([{"role": "user", "content": "hi"}], num_predict=512))
     assert captured["num_predict"] == 512
+
+
+from mario_prompt import maybe_add_followup
+
+def test_followup_throttled():
+    flag = [False]
+    # First active-convo turn may add a hook
+    out1 = maybe_add_followup("Cool build.", history_len=6, last_added=flag)
+    # Immediately after a hook, the next turn must NOT add another
+    if flag[0]:
+        out2 = maybe_add_followup("Nice.", history_len=6, last_added=flag)
+        assert out2 == "Nice."  # throttled
+    # Short/early convo never adds
+    flag2 = [False]
+    assert maybe_add_followup("Hi.", history_len=1, last_added=flag2) == "Hi."
+    assert flag2[0] is False

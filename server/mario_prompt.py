@@ -3837,3 +3837,27 @@ def get_command_discovery_hint(exchange_count: int) -> str:
 def reset_discovery():
     global _discovery_hints_given
     _discovery_hints_given = set()
+
+
+# --- Conversation Follow-Up Hooks (A2) ---
+import random as _rand_fu
+
+_FOLLOWUPS = [
+    "So what's your move?", "You in or out?", "Bet you can't top that.",
+    "What happened next?", "Come on, give me the story.", "Your turn, hotshot.",
+]
+
+def maybe_add_followup(response: str, history_len: int, last_added: list) -> str:
+    """In an active back-and-forth, sometimes end on a hook to keep it going.
+
+    Throttled: never two turns in a row (last_added[0] is the flag). Only in an
+    established convo (history_len >= 4). ~40% chance otherwise.
+    """
+    if history_len < 4 or last_added[0]:
+        last_added[0] = False
+        return response
+    if _rand_fu.random() < 0.40:
+        last_added[0] = True
+        return response.rstrip() + " " + _rand_fu.choice(_FOLLOWUPS)
+    last_added[0] = False
+    return response

@@ -3092,6 +3092,7 @@ async def websocket_endpoint(ws: WebSocket):
         state_current["_sick_checkin_time"] = 0.0  # Track last sick follow-up
         state_current["_last_user_msg_time"] = 0.0  # Track silence for sick check-ins
         state_current["_name_from_parsing"] = False  # Reset name parsing flag
+        state_current["_last_followup_flag"] = [False]  # Throttle follow-up hooks (A2)
         state_current["presence_phase"] = "IDLE"
         state_current["_last_dj_time"] = time.time()  # Prevent immediate DJ announcement
         state_current["audio_buffer"] = bytearray()  # Clear stale audio from previous connection
@@ -5347,6 +5348,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # Uncapped clean version for the chat backlog ("what she meant to say").
     _full_clean = filter_response(_raw_response, cap=False)
     response_text = mario_prompt.maybe_add_question(response_text, text)
+    response_text = mario_prompt.maybe_add_followup(
+        response_text, len(state_current["conversation_history"]),
+        state_current.setdefault("_last_followup_flag", [False]))
     response_text = mario_prompt.maybe_inject_catchphrase(response_text)
     response_text = mario_prompt.check_opener_variety(response_text)
 
