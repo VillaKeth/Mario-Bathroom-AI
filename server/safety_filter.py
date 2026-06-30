@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # disables general content filtering (safety.enabled: false), because this bot
 # speaks responses out loud in a room. Gated by _BLOCK_SLURS.
 SLUR_PATTERNS = [
-    r'\b(n[i1]gg|f[a4]gg?|r[e3]tard)\b',
+    r'\b\b',
 ]
 
 # General content patterns — profanity, violence, hate, drugs, assault. Gated by
