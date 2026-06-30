@@ -5227,6 +5227,16 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         _ROUTER_FALLBACK_TIMEOUT = 25  # Retry with fast model if quality takes >25s
         _t_llm = time.time()
 
+        # Detect length intent and set token budget for this turn
+        _length_intent = mario_prompt.detect_length_intent(text)
+        _long = (_length_intent == "long")
+        _long_np = int(live_config.get("long_num_predict", 512)) if _long else None
+        if _long:
+            ctx.append({"role": "system", "content":
+                "This question deserves a thorough, in-character answer — give real "
+                "detail and clear structure, do not rush it or cut it short."})
+            logger.info(f"[LENGTH] long-intent detected for: '{text[:60]}'")
+
         # Infer response type for router
         _response_type = _infer_response_type(text, state_current)
         # Collect system prompt text for "MUST mention" detection
@@ -5241,7 +5251,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         try:
             _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
-                asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model), timeout=_LLM_TIMEOUT),
+                asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model,
+                                                       num_predict=_long_np), timeout=_LLM_TIMEOUT),
             )
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
@@ -5270,7 +5281,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 )
                 try:
                     llm_response = await asyncio.wait_for(
-                        llm.generate_response(ctx, text, model=_fallback_model),
+                        llm.generate_response(ctx, text, model=_fallback_model,
+                                              num_predict=_long_np),
                         timeout=_LLM_TIMEOUT,
                     )
                     response_text = llm_response["text"]
@@ -5330,7 +5342,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not response_text:
         response_text = "Let's keep talking! What's on your mind?"
     _raw_response = response_text
-    response_text = filter_response(_raw_response)
+    _cap_for_turn = not (locals().get("_long") and len(_raw_response) <= int(live_config.get("long_char_cap", 2000)))
+    response_text = filter_response(_raw_response, cap=_cap_for_turn)
     # Uncapped clean version for the chat backlog ("what she meant to say").
     _full_clean = filter_response(_raw_response, cap=False)
     response_text = mario_prompt.maybe_add_question(response_text, text)
