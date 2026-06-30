@@ -538,6 +538,35 @@ def maybe_add_question(response: str, transcript: str) -> str:
     return response
 
 
+import re as _re_len
+
+_LONG_INTENT_PATTERNS = [
+    r"\bhow (?:do|do i|do you|to)\b",
+    r"\bwalk me through\b",
+    r"\bstep[- ]by[- ]step\b",
+    r"\bbest (?:way|strategy|build|loadout)\b",
+    r"\bstrateg(?:y|ies)\b",
+    r"\bexplain\b", r"\bbreak ?down\b",
+    r"\btips? for\b", r"\bteach me\b",
+    r"\bguide\b", r"\bhow does .+ work\b",
+    r"\btell me everything\b", r"\bfull (?:guide|rundown|breakdown)\b",
+]
+_LONG_INTENT_RE = _re_len.compile("|".join(_LONG_INTENT_PATTERNS), _re_len.IGNORECASE)
+
+def detect_length_intent(text: str) -> str:
+    """Heuristic: 'long' when the guest asks for a guide/explanation/strategy.
+
+    Gated on a real request (>= 4 words) so a bare 'explain?' or one-word message
+    stays short. No LLM call — cheap and deterministic.
+    """
+    if not text:
+        return "short"
+    words = text.split()
+    if len(words) < 4:
+        return "short"
+    return "long" if _LONG_INTENT_RE.search(text) else "short"
+
+
 # --- Challenge Interrupt System ---
 # After several exchanges, Mario randomly throws out fun mini-challenges
 
