@@ -228,15 +228,12 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'\bAIs\b', 'Ay Eyes', clean_text)
     clean_text = _re.sub(r'\bAI\b', 'Ay Eye', clean_text)
 
-    # Roman numerals in titles/sequels -> spoken numbers ("The Godfather Part II" ->
-    # "Part Two", "World War II" -> "World War Two"). Gated on a leading keyword so we
-    # never touch the pronoun "I" or words that look like numerals (MIX, DID, CIVIC);
-    # the numeral group is UPPERCASE-only for the same reason. Also BEFORE caps-norm,
-    # which would otherwise mangle "II" -> "Ii".
-    _RN_CARDINAL = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six',
-        7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten', 11: 'Eleven', 12: 'Twelve',
-        13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen',
-        18: 'Eighteen', 19: 'Nineteen', 20: 'Twenty'}
+    # Roman numerals -> spoken words. ORDINALS for regnal names/titles ("Henry VIII"
+    # -> "Henry the Eighth", "Louis XIV" -> "Louis the Fourteenth"); CARDINALS for
+    # sequel/title keywords ("Part II" -> "Part Two", "World War II" -> "World War Two").
+    # All gated on a leading word and the numeral group is UPPERCASE-only, so the
+    # pronoun "I" and numeral-looking words (MIX, DID, CIVIC) are never touched. Runs
+    # BEFORE the caps-normalizer, which would otherwise mangle "II" -> "Ii".
     def _roman_to_int(s):
         vals = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
         total, prev = 0, 0
@@ -245,6 +242,41 @@ def clean_text_for_tts(text):
             total += -v if v < prev else v
             prev = max(prev, v)
         return total
+    _RN_CARDINAL = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six',
+        7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten', 11: 'Eleven', 12: 'Twelve',
+        13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen',
+        18: 'Eighteen', 19: 'Nineteen', 20: 'Twenty'}
+    _RN_ORDINAL = {1: 'First', 2: 'Second', 3: 'Third', 4: 'Fourth', 5: 'Fifth',
+        6: 'Sixth', 7: 'Seventh', 8: 'Eighth', 9: 'Ninth', 10: 'Tenth', 11: 'Eleventh',
+        12: 'Twelfth', 13: 'Thirteenth', 14: 'Fourteenth', 15: 'Fifteenth',
+        16: 'Sixteenth', 17: 'Seventeenth', 18: 'Eighteenth', 19: 'Nineteenth',
+        20: 'Twentieth', 21: 'Twenty First', 22: 'Twenty Second', 23: 'Twenty Third',
+        24: 'Twenty Fourth', 25: 'Twenty Fifth', 26: 'Twenty Sixth', 27: 'Twenty Seventh',
+        28: 'Twenty Eighth', 29: 'Twenty Ninth', 30: 'Thirtieth'}
+
+    # Ordinals, title-gated (royal/papal) — safe to expand even a lone "I".
+    def _ord_title(m):
+        word = _RN_ORDINAL.get(_roman_to_int(m.group(2)))
+        return f"{m.group(1)} the {word}" if word else m.group(0)
+    clean_text = _re.sub(
+        r'\b((?:King|Queen|Pope|Emperor|Empress|Tsar|Czar|Kaiser|Sultan|Prince|Princess|'
+        r'Archduke|Duke|Duchess|Pharaoh)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+([IVXLCDM]+)\b',
+        _ord_title, clean_text)
+
+    # Ordinals, bare regnal first-name ("Louis XIV"). Skip a lone "I" — that is the
+    # pronoun ("Louis I think..."), not a numeral.
+    def _ord_name(m):
+        if m.group(2) == 'I':
+            return m.group(0)
+        word = _RN_ORDINAL.get(_roman_to_int(m.group(2)))
+        return f"{m.group(1)} the {word}" if word else m.group(0)
+    clean_text = _re.sub(
+        r'\b(Henry|Louis|Charles|George|Edward|William|Elizabeth|Philip|Richard|James|'
+        r'Frederick|Catherine|Napoleon|Ferdinand|Leopold|Alexander|Nicholas|Constantine|'
+        r'Benedict|Francis|Pius|Gregory|Clement|Innocent|Victoria)\s+([IVXLCDM]+)\b',
+        _ord_name, clean_text)
+
+    # Cardinals, sequel/title keyword ("Part II" -> "Part Two").
     def _expand_roman(m):
         word = _RN_CARDINAL.get(_roman_to_int(m.group(2)))
         return f"{m.group(1)} {word}" if word else m.group(0)
