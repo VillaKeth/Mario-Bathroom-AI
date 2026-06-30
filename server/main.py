@@ -5321,10 +5321,15 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             
         except asyncio.TimeoutError:
             _llm_elapsed = time.time() - _t_llm
-            # If quality model timed out, retry with fast model
-            if _routing == RoutingDecision.QUALITY and _llm_elapsed >= _ROUTER_FALLBACK_TIMEOUT:
-                _fallback_routing = llm_router.get_fallback(_routing)
-                _fallback_model = llm_router.get_model(_fallback_routing)
+            _fallback_routing = llm_router.get_fallback(_routing)
+            _fallback_model = llm_router.get_model(_fallback_routing)
+            # If the quality model timed out, retry with the fast model — but ONLY if it
+            # is actually a DIFFERENT model. On a single-model box (fast == quality, e.g.
+            # this dev box runs one model for both), retrying the same slow model just
+            # doubles the wait for no benefit, so skip the fallback and go straight to
+            # the canned recovery response below.
+            if (_routing == RoutingDecision.QUALITY and _llm_elapsed >= _ROUTER_FALLBACK_TIMEOUT
+                    and _fallback_model != _routed_model):
                 logger.warning(
                     f"[ROUTER] Quality model timed out after {_llm_elapsed:.1f}s — retrying with fast model {_fallback_model}"
                 )
