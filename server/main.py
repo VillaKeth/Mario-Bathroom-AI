@@ -2126,7 +2126,8 @@ async def _enqueue_user_text(text: str):
         await _dispatch_user_text(text)
         return
     _pending_burst.append(text)
-    state_current["_user_request_active"] = True  # suppress idle while collecting
+    async with _state_lock:
+        state_current["_user_request_active"] = True  # suppress idle while collecting
     if _burst_timer_task and not _burst_timer_task.done():
         _burst_timer_task.cancel()
 
@@ -6529,9 +6530,6 @@ async def handle_event(ws: WebSocket, event: dict):
         text = event.get("text", "").strip()
         if not text:
             return
-
-        # Log the typed guest turn once to both shared logs (pygame F3 + tunnel).
-        await _log_guest_turn(ws, _resolve_guest_name(None), text)
 
         # Route through debounce buffer (A3). When burst_debounce_ms > 0, rapid
         # messages are collected and fired as one batched turn; when 0, the old
