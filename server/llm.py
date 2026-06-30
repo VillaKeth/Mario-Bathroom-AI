@@ -147,7 +147,8 @@ async def check_ollama():
         return False
 
 
-async def generate_response(messages: list[dict], transcript: str = None, model: str = None) -> dict:
+async def generate_response(messages: list[dict], transcript: str = None, model: str = None,
+                            num_predict: int = None) -> dict:
     """Send messages to Ollama and get Mario's response with sentiment data.
 
     Uses streaming internally for faster first-token, returns complete text + sentiment.
@@ -190,7 +191,7 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         "options": {
             "temperature": round(temp, 2),
             "top_p": 0.9,
-            "num_predict": LLM_NUM_PREDICT,
+            "num_predict": num_predict if isinstance(num_predict, int) else LLM_NUM_PREDICT,
             "num_ctx": LLM_NUM_CTX,
             "repeat_penalty": 1.15,
             "seed": random.randint(1, 2**31),

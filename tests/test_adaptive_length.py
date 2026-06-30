@@ -19,3 +19,27 @@ def test_banter_stays_short():
         "yes", "I'm Jacob", "haha nice", "explain?",  # too short / not a real request
     ]:
         assert detect_length_intent(t) == "short", t
+
+
+import asyncio
+import llm as llm_mod
+
+def test_num_predict_override_used(monkeypatch):
+    captured = {}
+    class FakeResp:
+        status_code = 200
+        def raise_for_status(self): pass
+        async def aiter_lines(self):
+            yield '{"message":{"content":"hi there friend"},"done":true}'
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        def stream(self, method, url, json=None, timeout=None):
+            captured["num_predict"] = json["options"]["num_predict"]
+            return FakeResp()
+    monkeypatch.setattr(llm_mod.httpx, "AsyncClient", lambda *a, **k: FakeClient())
+    asyncio.run(
+        llm_mod.generate_response([{"role": "user", "content": "hi"}], num_predict=512))
+    assert captured["num_predict"] == 512
