@@ -222,6 +222,36 @@ def clean_text_for_tts(text):
     clean_text = _re.sub(r'([aeiouAEIOU])\1{2,}', r'\1', clean_text)
     clean_text = _re.sub(r'([^aeiouAEIOU\s\W])\1{2,}', r'\1\1', clean_text)
 
+    # Acronyms that must be SPELLED as letters, not read as a word. The caps-normalizer
+    # below would turn "AI" -> "Ai" (spoken like "eye"); force the A-I letter sound.
+    # Runs BEFORE the caps-normalizer so it sees the original uppercase.
+    clean_text = _re.sub(r'\bAIs\b', 'Ay Eyes', clean_text)
+    clean_text = _re.sub(r'\bAI\b', 'Ay Eye', clean_text)
+
+    # Roman numerals in titles/sequels -> spoken numbers ("The Godfather Part II" ->
+    # "Part Two", "World War II" -> "World War Two"). Gated on a leading keyword so we
+    # never touch the pronoun "I" or words that look like numerals (MIX, DID, CIVIC);
+    # the numeral group is UPPERCASE-only for the same reason. Also BEFORE caps-norm,
+    # which would otherwise mangle "II" -> "Ii".
+    _RN_CARDINAL = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six',
+        7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten', 11: 'Eleven', 12: 'Twelve',
+        13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen',
+        18: 'Eighteen', 19: 'Nineteen', 20: 'Twenty'}
+    def _roman_to_int(s):
+        vals = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+        total, prev = 0, 0
+        for ch in reversed(s):
+            v = vals.get(ch, 0)
+            total += -v if v < prev else v
+            prev = max(prev, v)
+        return total
+    def _expand_roman(m):
+        word = _RN_CARDINAL.get(_roman_to_int(m.group(2)))
+        return f"{m.group(1)} {word}" if word else m.group(0)
+    clean_text = _re.sub(
+        r'\b(Part|Chapter|Volume|Vol|Book|Episode|Act|Season|War|Wars)\s+([IVXLCDM]+)\b',
+        _expand_roman, clean_text)
+
     # Normalize ALL CAPS to lowercase (GPT-SoVITS spells out capital letters)
     # Preserve first-letter caps for natural sentence flow
     def _normalize_caps(m):
