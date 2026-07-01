@@ -17,7 +17,7 @@ def test_encode_jpeg_returns_downscaled_jpeg():
     assert dec.shape[1] == 1024
 
 
-import base64, json
+import base64
 
 
 def test_describe_frame_sends_image_and_keepalive(monkeypatch):
@@ -47,3 +47,23 @@ def test_unload_llava_sends_keepalive_zero(monkeypatch):
                         lambda url, json=None, timeout=None: (captured.update(json=json) or FakeResp()))
     screen_watcher.unload_llava("http://x:11434", "llava-llama3:latest")
     assert captured["json"]["keep_alive"] == 0
+
+
+def test_run_watch_loop_ticks_and_unloads(monkeypatch):
+    calls = {"desc": 0, "post": 0, "unload": 0, "sleep": 0}
+    monkeypatch.setattr(screen_watcher, "capture_frame", lambda width=1024: b"\xff\xd8x")
+    def fake_desc(*a, **k):
+        calls["desc"] += 1
+        if calls["desc"] == 2:
+            raise RuntimeError("bad frame")  # a bad tick must not kill the loop
+        return "scene"
+    monkeypatch.setattr(screen_watcher, "describe_frame", fake_desc)
+    monkeypatch.setattr(screen_watcher, "post_frame", lambda *a, **k: calls.update(post=calls["post"]+1) or True)
+    monkeypatch.setattr(screen_watcher, "unload_llava", lambda *a, **k: calls.update(unload=calls["unload"]+1))
+    monkeypatch.setattr(screen_watcher.time, "sleep", lambda s: calls.update(sleep=calls["sleep"]+1))
+    cfg = {"ollama_url": "http://x:11434", "llava_model": "m", "server_url": "http://y:8765",
+           "api_key": "", "interval": 0, "width": 1024, "keepalive": "3m"}
+    screen_watcher.run_watch_loop(cfg, max_ticks=3)
+    assert calls["desc"] == 3            # ran 3 ticks
+    assert calls["post"] == 2            # tick 2 errored before post, others posted
+    assert calls["unload"] == 1          # unloaded exactly once on exit

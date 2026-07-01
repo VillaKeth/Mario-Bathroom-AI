@@ -5,7 +5,10 @@ unloaded on exit."""
 import base64
 import cv2
 import httpx
+import json
 import numpy as np
+import os
+import time
 
 
 _DESCRIBE_PROMPT = (
@@ -59,3 +62,77 @@ def capture_frame(width: int = 1024) -> bytes:
         shot = sct.grab(sct.monitors[1])  # monitors[1] = primary
     frame = np.array(shot)[:, :, :3]      # BGRA -> BGR
     return _encode_jpeg(frame, width=width)
+
+
+def post_frame(server_url: str, description: str, api_key: str, guest: str = None) -> bool:
+    # guest is None from the watch loop; the server falls back to state_current["speaker_name"].
+    # The param is reserved for future direct callers.
+    try:
+        r = httpx.post(f"{server_url}/admin/watch_frame",
+                       json={"description": description, "api_key": api_key, "guest": guest},
+                       timeout=15.0)
+        return r.status_code == 200
+    except Exception as e:
+        print(f"[watch] post failed: {e}")
+        return False
+
+
+def run_watch_loop(cfg: dict, max_ticks: int = None) -> None:
+    """Capture -> describe -> post every cfg['interval'] s until killed or
+    watch_max_minutes elapses. Unloads llava on exit. Per-tick errors are logged
+    and skipped (one bad frame never kills the session)."""
+    started = time.monotonic()
+    max_secs = cfg.get("max_minutes", 30) * 60
+    ticks = 0
+    try:
+        while True:
+            if max_ticks is not None and ticks >= max_ticks:
+                break
+            if max_ticks is None and (time.monotonic() - started) >= max_secs:
+                print("[watch] max session time reached, exiting")
+                break
+            ticks += 1
+            try:
+                jpeg = capture_frame(width=cfg["width"])
+                desc = describe_frame(jpeg, cfg["ollama_url"], cfg["llava_model"], cfg["keepalive"])
+                if desc:
+                    post_frame(cfg["server_url"], desc, cfg["api_key"])
+            except Exception as e:
+                print(f"[watch] tick failed (continuing): {e}")
+            time.sleep(cfg["interval"])
+    finally:
+        unload_llava(cfg["ollama_url"], cfg["llava_model"])
+        print("[watch] llava unloaded, watcher stopped")
+
+
+def _load_cfg() -> dict:
+    root = os.path.dirname(os.path.dirname(__file__))
+    try:
+        with open(os.path.join(root, "config.json"), encoding="utf-8") as f:
+            s = json.load(f).get("server", {})
+    except Exception:
+        s = {}
+    return {
+        "ollama_url": os.environ.get("OLLAMA_URL", s.get("ollama_url", "http://localhost:11434")),
+        "server_url": os.environ.get("MARIO_SERVER_URL", "http://localhost:8765"),
+        "llava_model": s.get("llava_model", "llava-llama3:latest"),
+        "api_key": s.get("admin_api_key", ""),
+        "interval": s.get("watch_interval_seconds", 20),
+        "max_minutes": s.get("watch_max_minutes", 30),
+        "width": s.get("watch_jpeg_width", 1024),
+        "keepalive": s.get("watch_keepalive", "3m"),
+    }
+
+
+def main():
+    cfg = _load_cfg()
+    print(f"[watch] starting — every {cfg['interval']}s, llava={cfg['llava_model']} "
+          f"(loads now, unloads on exit). Ctrl+C to stop.")
+    try:
+        run_watch_loop(cfg)
+    except KeyboardInterrupt:
+        print("[watch] interrupted")
+
+
+if __name__ == "__main__":
+    main()
