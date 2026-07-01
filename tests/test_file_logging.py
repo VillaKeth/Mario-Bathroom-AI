@@ -192,3 +192,23 @@ def test_handler_reopens_after_close(tmp_path):
     assert "first line" in content
     assert "second line" in content
     h.close()
+
+
+def test_formatter_includes_exception_traceback():
+    import sys
+    fmt = _PlainFormatter()
+    try:
+        raise ValueError("boom kaboom")
+    except ValueError:
+        rec = logging.LogRecord("x", logging.ERROR, __file__, 1, "pipeline failed", None, sys.exc_info())
+    line = fmt.format(rec)
+    assert "pipeline failed" in line
+    assert "ValueError: boom kaboom" in line
+    assert "Traceback" in line
+
+
+def test_init_file_logging_tolerates_non_dict_config(tmp_path):
+    # false/null/garbage must NOT crash startup (Fix B).
+    for bad in (None, False, "nope", 5):
+        handle = file_logging.init_file_logging(str(tmp_path), bad)
+        file_logging.shutdown_file_logging(handle)

@@ -129,7 +129,7 @@ server_config = config.get("server", {})
 # docs/superpowers/specs/2026-07-01-file-logging-design.md) ---
 import atexit
 from shared import file_logging as _file_logging
-_LOG_CONFIG = config.get("logging", {})
+_LOG_CONFIG = config.get("logging") or {}
 _LOG_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                          _LOG_CONFIG.get("root_dir", "logs"))
 _file_logging.set_character(config.get("character", "mario"))
