@@ -37,7 +37,7 @@ class DayFolderHandler(logging.Handler):
 
     def _ensure_open(self):
         day = self._now_fn().strftime("%Y-%m-%d")
-        if day != self._day:
+        if self._fh is None or day != self._day:
             if self._fh:
                 self._fh.close()
             folder = os.path.join(self.root_dir, day)
@@ -57,8 +57,11 @@ class DayFolderHandler(logging.Handler):
         try:
             if self._fh:
                 self._fh.close()
-                self._fh = None
+        except Exception:
+            pass
         finally:
+            self._fh = None
+            self._day = None
             super().close()
 
 

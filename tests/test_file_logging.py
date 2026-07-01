@@ -179,3 +179,16 @@ def test_probe_writable_false_for_bad_path(tmp_path):
     bad.write_text("x", encoding="utf-8")
     # A path under a regular file cannot be a directory.
     assert file_logging.probe_writable(str(bad / "sub")) is False
+
+
+def test_handler_reopens_after_close(tmp_path):
+    h = DayFolderHandler("system", str(tmp_path))
+    h.setFormatter(_PlainFormatter())
+    h.emit(_record("first line"))
+    h.close()                       # simulates the mid-run close that caused the crash
+    h.emit(_record("second line"))  # must self-heal and write, not raise/lose it
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    content = (tmp_path / day / "system.log").read_text(encoding="utf-8")
+    assert "first line" in content
+    assert "second line" in content
+    h.close()
