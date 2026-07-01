@@ -213,7 +213,7 @@ class MarioDisplay:
     """Pygame-based Mario display with background, transitions, typewriter,
     keyboard input, and party effects."""
 
-    def __init__(self):
+    def __init__(self, chat_overlay_max: int = 40):
         self._screen = None
         self._clock = None
         self._running = False
@@ -331,7 +331,7 @@ class MarioDisplay:
         self._chat_total_lines = 0      # set during render, for scroll clamping
         self._chat_viewport_lines = 1
         self._chat_char_name = "AI"     # label for her lines; set by client
-        self._MAX_CHAT_HISTORY = 10000  # whole session, effectively uncapped
+        self._MAX_CHAT_HISTORY = chat_overlay_max  # overlay backlog; full record in logs/<day>/conversation.log
 
         # Panic mode (Konami-like sequence: Up Up Down Down Left Right)
         self._panic_mode = False

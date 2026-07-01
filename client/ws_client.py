@@ -152,8 +152,10 @@ class MarioWSClient:
 
                 elif msg_type == "audio_chunk":
                     # Sentence streaming: server sends audio_chunk JSON followed by binary audio
-                    if DEBUG_WS:
-                        logger.info(f"[DEBUG_WS] audio_chunk {data.get('chunk_index', '?')}/{data.get('total_chunks', '?')} is_last={data.get('is_last', False)}")
+                    if DEBUG_WS and logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("[DEBUG_WS] audio_chunk %s/%s is_last=%s",
+                                     data.get('chunk_index', '?'), data.get('total_chunks', '?'),
+                                     data.get('is_last', False))
                     self._expecting_chunk_audio = True
                     self._last_chunk_meta = data
 

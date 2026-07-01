@@ -154,7 +154,8 @@ class MarioClient:
         self.audio_capture = AudioCapture()
         self.audio_playback = AudioPlayback()
         self.presence = PresenceDetector()
-        self.display = MarioDisplay()
+        self.display = MarioDisplay(
+            chat_overlay_max=int(_full_config.get("logging", {}).get("chat_overlay_max", 40)))
         self.ws = MarioWSClient(server_url)
         _mcfg = (_full_config or {}).get("mirror", {})
         self.mirror = MirrorSender(
