@@ -87,3 +87,61 @@ def test_shutdown_removes_queue_handler_from_root(tmp_path):
     file_logging.shutdown_file_logging(handle)
     after = [h for h in root.handlers if isinstance(h, logging.handlers.QueueHandler)]
     assert after == before
+
+
+def test_shutdown_restores_root_logger_level(tmp_path):
+    # init_file_logging lowers the root logger's level so records reach the queue;
+    # shutdown_file_logging must restore the prior level, or repeated init/shutdown
+    # cycles ratchet the whole pytest session down toward INFO and silently change
+    # how later tests capture logs. We force a known starting level (WARNING) that
+    # init will actively lower, so the restore is genuinely exercised regardless of
+    # the order this test runs in.
+    root = logging.getLogger()
+    original = root.level
+    root.setLevel(logging.WARNING)
+    try:
+        before = root.level
+        handle = file_logging.init_file_logging(str(tmp_path), {"enabled": True})
+        assert root.level <= logging.INFO  # init lowered it so INFO records get through
+        file_logging.shutdown_file_logging(handle)
+        assert root.level == before        # restored to exactly what it was before init
+    finally:
+        root.setLevel(original)
+
+
+def test_include_sources_client_routes_only_to_client_log(tmp_path):
+    # Client process path: include_sources=["client"] must build ONLY the catch-all
+    # client.log handler (everything on the root logger), and NOT any server-side
+    # per-source handler like llm.log.
+    handle = file_logging.init_file_logging(
+        str(tmp_path), {"enabled": True}, include_sources=["client"]
+    )
+    try:
+        logging.getLogger().warning("client-only record")
+        time.sleep(0.2)  # let the listener thread drain
+    finally:
+        file_logging.shutdown_file_logging(handle)
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    client_log = tmp_path / day / "client.log"
+    assert client_log.exists()
+    assert "client-only record" in client_log.read_text(encoding="utf-8")
+    assert not (tmp_path / day / "llm.log").exists()  # no server-side source file
+
+
+def test_console_level_raises_existing_stream_handler(tmp_path):
+    # console_level should raise the threshold of pre-existing console StreamHandlers
+    # (so the terminal stays quiet) without touching the file handlers behind the queue.
+    root = logging.getLogger()
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.INFO)
+    root.addHandler(sh)
+    handle = None
+    try:
+        handle = file_logging.init_file_logging(
+            str(tmp_path), {"enabled": True}, console_level="WARNING"
+        )
+        assert sh.level == logging.WARNING
+    finally:
+        root.removeHandler(sh)
+        if handle is not None:
+            file_logging.shutdown_file_logging(handle)

@@ -120,6 +120,7 @@ def init_file_logging(root_dir, config, *, include_sources=None, console_level=N
     listener.start()
 
     root = logging.getLogger()
+    prev_level = root.level
     level = getattr(logging, str(config.get("level", "INFO")).upper(), logging.INFO)
     root.setLevel(min(root.level or logging.INFO, level))
     qh = logging.handlers.QueueHandler(q)
@@ -131,7 +132,7 @@ def init_file_logging(root_dir, config, *, include_sources=None, console_level=N
             if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.handlers.QueueHandler):
                 h.setLevel(lvl)
 
-    return {"queue": q, "listener": listener, "handlers": handlers, "qhandler": qh}
+    return {"queue": q, "listener": listener, "handlers": handlers, "qhandler": qh, "prev_level": prev_level}
 
 
 def shutdown_file_logging(handle):
@@ -140,6 +141,8 @@ def shutdown_file_logging(handle):
     qh = handle.get("qhandler")
     if qh is not None:
         logging.getLogger().removeHandler(qh)
+    if "prev_level" in handle:
+        logging.getLogger().setLevel(handle["prev_level"])
     try:
         handle["listener"].stop()
     finally:
