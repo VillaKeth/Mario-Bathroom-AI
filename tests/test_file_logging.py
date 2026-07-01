@@ -168,3 +168,14 @@ def test_conversation_helpers_write_chipped_lines(tmp_path):
     assert "[rudi] Ohh you know it!" in conv
     assert "[rudi:idle] just me mumbling" in conv
     assert conv.count("\n") == 4  # empty log_bot produced no line
+
+
+def test_probe_writable_true_for_tmp(tmp_path):
+    assert file_logging.probe_writable(str(tmp_path / "logs")) is True
+
+
+def test_probe_writable_false_for_bad_path(tmp_path):
+    bad = tmp_path / "afile"
+    bad.write_text("x", encoding="utf-8")
+    # A path under a regular file cannot be a directory.
+    assert file_logging.probe_writable(str(bad / "sub")) is False

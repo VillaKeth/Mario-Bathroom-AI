@@ -178,3 +178,17 @@ def log_bot(text, is_idle=False):
         return
     chip = f"[{_CHARACTER_NAME}:idle]" if is_idle else f"[{_CHARACTER_NAME}]"
     get_conversation_logger().info(f"{chip} {text}")
+
+
+def probe_writable(root_dir):
+    """Canary/startup check: can we create the log root and write to it?"""
+    try:
+        root_dir = os.path.abspath(root_dir)
+        os.makedirs(root_dir, exist_ok=True)
+        probe = os.path.join(root_dir, ".write_probe")
+        with open(probe, "w", encoding="utf-8") as f:
+            f.write("ok")
+        os.remove(probe)
+        return True
+    except Exception:
+        return False
