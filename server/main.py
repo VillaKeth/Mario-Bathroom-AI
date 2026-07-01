@@ -125,6 +125,20 @@ else:
     logger.warning(f"Config not found at {CONFIG_PATH} — using defaults")
 server_config = config.get("server", {})
 
+# --- File logging: day-by-day per-source logs under logs/<day>/ (see
+# docs/superpowers/specs/2026-07-01-file-logging-design.md) ---
+import atexit
+from shared import file_logging as _file_logging
+_LOG_CONFIG = config.get("logging", {})
+_LOG_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         _LOG_CONFIG.get("root_dir", "logs"))
+_file_logging.set_character(config.get("character", "mario"))
+if _LOG_CONFIG.get("enabled", True) and not _file_logging.probe_writable(_LOG_ROOT):
+    logger.warning(f"[LOGGING] log root not writable: {_LOG_ROOT} — file logs disabled")
+    _LOG_CONFIG = {"enabled": False}
+_LOG_HANDLE = _file_logging.init_file_logging(_LOG_ROOT, _LOG_CONFIG)
+atexit.register(_file_logging.shutdown_file_logging, _LOG_HANDLE)
+
 # Live config for hot-reloadable personality settings
 LIVE_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_live.json")
 live_config = LiveConfig(LIVE_CONFIG_PATH)
@@ -2094,6 +2108,10 @@ async def _log_guest_turn(ws: WebSocket, name: str, text: str):
     failure here must never break the response path."""
     if not text:
         return
+    try:
+        _file_logging.log_guest(name, text)
+    except Exception:
+        pass
     try:
         await ws.send_json({"type": "user_message", "text": text})
     except Exception as e:
@@ -6779,6 +6797,11 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
     full_text is the complete untruncated reply for the chat backlog ("what she
     meant to say"); the spoken/displayed `text` may be capped. Defaults to text.
     """
+    if chunk_index is None or chunk_index == 0:
+        try:
+            _file_logging.log_bot(full_text if full_text is not None else text, is_idle=is_idle)
+        except Exception:
+            pass
     # Trigger server-side sound effect (non-blocking, fire-and-forget)
     if sound:
         sound_events.trigger(sound)

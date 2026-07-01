@@ -69,6 +69,17 @@
     "face_match_tolerance": 0.6,
     "person_detection_frame_skip": 3
   },
+  "logging": {
+    "enabled": true,
+    "root_dir": "logs",
+    "level": "INFO",
+    "sources": {
+      "conversation": true, "llm": true, "tts": true, "memory": true,
+      "events": true, "system": true, "errors": true, "client": true
+    },
+    "client_console_level": "WARNING",
+    "chat_overlay_max": 40
+  },
   "elevenlabs_api_key": "",
   "alert_webhook_url": ""
 }
