@@ -2201,7 +2201,7 @@ async def admin_watch_frame(request_body: dict = {}):
         return {"ok": True, "spoke": False}
     if _active_ws is None:
         return {"ok": True, "spoke": False}
-    guest = state_current.get("speaker_name")
+    guest = request_body.get("guest") or state_current.get("speaker_name")
     try:
         ctx = mario_prompt.build_watch_context(
             description, guest=guest, system_prompt=_get_idle_prompt())
@@ -2216,9 +2216,9 @@ async def admin_watch_frame(request_body: dict = {}):
         loop = asyncio.get_event_loop()
         audio = await loop.run_in_executor(
             _tts_executor, lambda: tts.synthesize_user(analyzed["tts_text"]))
-        await _idle_send_if_safe(_active_ws, analyzed["display_text"], audio,
-                                 emotion="mischievous", pose_hint=analyzed.get("pose_hint"))
-        return {"ok": True, "spoke": True}
+        sent = await _idle_send_if_safe(_active_ws, analyzed["display_text"], audio,
+                                       emotion="mischievous", pose_hint=analyzed.get("pose_hint"))
+        return {"ok": True, "spoke": bool(sent)}
     except Exception as e:
         logger.warning(f"[WATCH] heckle failed: {e}")
         return {"ok": False, "spoke": False}
