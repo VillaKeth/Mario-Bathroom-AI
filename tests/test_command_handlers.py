@@ -96,6 +96,20 @@ def _call(text, state=None, **dep_overrides):
     )
 
 
+def test_typed_name_sets_speaker_id(monkeypatch):
+    """A typed name (no voice audio) now resolves a persistent speaker_id."""
+    import command_handlers
+    monkeypatch.setattr(command_handlers, "resolve_chat_identity",
+                        lambda name, client_id=None: (4242, name))
+    state = _make_state()
+    state["_last_audio_chunk"] = None
+    state["_name_from_parsing"] = False
+    result = _call("my name is Bob", state=state)
+    assert state["speaker_id"] == 4242
+    assert state["speaker_name"] == "Bob"
+    assert "Bob" in result
+
+
 # ===================================================================
 # TestGameCommands
 # ===================================================================

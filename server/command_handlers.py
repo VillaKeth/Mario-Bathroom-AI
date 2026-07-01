@@ -11,6 +11,7 @@ from emotions import Emotion
 import game_handlers
 from game_handlers import _deflavor
 import speaker_id
+from chat_identity import resolve_chat_identity
 
 # Character identity — set by main.py on startup via set_character()
 _CHARACTER_NAME = "Mario"
@@ -601,9 +602,14 @@ def _handle_special_commands_impl(
                     emotion_system.current = "excited"
                     return f"Nice to meet you, {name}! I'll remember your voice from now on!"
                 else:
-                    state["speaker_name"] = name
+                    pid, canonical = resolve_chat_identity(name)
+                    if pid is not None:
+                        state["speaker_id"] = pid
+                        state["speaker_name"] = canonical
+                    else:
+                        state["speaker_name"] = name
                     state["_name_from_parsing"] = True
-                    return f"Nice to meet you, {name}! I'll remember you!"
+                    return f"Nice to meet you, {state['speaker_name']}! I'll remember you!"
 
     # What time is it
     if any(w in lower for w in ["what time", "how late"]):

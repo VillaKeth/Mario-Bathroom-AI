@@ -6005,19 +6005,16 @@ async def _do_greeting(ws: WebSocket, event: dict):
             logger.info(f"[OPEN_SET] greeting voice '{info.get('name')}' "
                         f"conf={info.get('confidence', 0):.2f} not committed (no face confirm)")
 
-    # Browser fallback: look up or create speaker_id by name if not identified by voice
+    # Browser fallback: resolve speaker_id from the name if voice didn't identify.
+    # Shared with the typed-chat path via chat_identity (also applies VIP-alias
+    # normalization). See docs/superpowers/specs/2026-07-01-chat-person-memory-design.md
     if state_current["speaker_id"] is None and state_current["speaker_name"]:
-        person = memory.find_person_by_name(state_current["speaker_name"])
-        if person:
-            state_current["speaker_id"] = person["id"]
-            memory.record_visit(person["id"])
-            logger.info(f"[BROWSER_MEMORY] Matched '{state_current['speaker_name']}' to speaker_id={person['id']} (visits={person['visit_count']})")
-        else:
-            import hashlib
-            virtual_id = int(hashlib.md5(state_current["speaker_name"].lower().encode()).hexdigest()[:8], 16)
-            state_current["speaker_id"] = virtual_id
-            memory.register_person(virtual_id, state_current["speaker_name"])
-            logger.info(f"[BROWSER_MEMORY] Created virtual speaker_id={virtual_id} for '{state_current['speaker_name']}'")
+        from chat_identity import resolve_chat_identity
+        pid, canonical = resolve_chat_identity(state_current["speaker_name"])
+        if pid is not None:
+            state_current["speaker_id"] = pid
+            state_current["speaker_name"] = canonical
+            logger.info(f"[BROWSER_MEMORY] Resolved '{canonical}' to speaker_id={pid}")
 
     # Record visit in party stats
     visit_id = party_stats.record_enter(
