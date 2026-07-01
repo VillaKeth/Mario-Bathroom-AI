@@ -103,6 +103,17 @@ class CharacterLoader:
         self.backgrounds_dir: str = str(self._resolve_path(bg_dir))
         self.default_background: str = visuals.get("default_background", "")
 
+        # Wardrobe: optional alternate outfit sprite sets. Each outfit maps a
+        # name -> {dir, display, fallback}; the client can repoint the active
+        # sprite tree at an outfit subtree at runtime (see _apply_outfit) so the
+        # character can change clothes without a restart. active_outfit is the
+        # startup default (None = the base ai_poses_dir set). Resolution helpers
+        # (outfit_poses_dir / outfit_fallback) treat unknown names as the
+        # default, so a bad name can never break sprite loading.
+        outfits = visuals.get("outfits", {}) or {}
+        self.outfits: dict = outfits if isinstance(outfits, dict) else {}
+        self.active_outfit = visuals.get("active_outfit") or None
+
         # Parse speech
         speech = self._config.get("speech", {})
         self.accent_markers: list = speech.get("accent_markers", [])
@@ -160,6 +171,33 @@ class CharacterLoader:
     def _resolve_path(self, relative: str) -> Path:
         """Resolve a path relative to the character directory."""
         return self._char_dir / relative
+
+    def has_outfit(self, name: str) -> bool:
+        """True if `name` is a defined alternate outfit for this character."""
+        return bool(name) and name in self.outfits
+
+    def outfit_poses_dir(self, name: str) -> str:
+        """Absolute sprite-tree dir for an outfit. Unknown / None / 'default'
+        resolve to the base ai_poses_dir, so a bad outfit name never breaks
+        sprite loading — the character just stays in its default set."""
+        if not self.has_outfit(name):
+            return self.ai_poses_dir
+        rel = self.outfits[name].get("dir", "")
+        if not rel:
+            return self.ai_poses_dir
+        return str(self._resolve_path(rel))
+
+    def outfit_fallback(self, name: str) -> str:
+        """Pose key to show when an active outfit is MISSING a requested pose.
+        Prefers the outfit's own fallback (keeps the character fully in-costume
+        while its set is still partial), else the character's fallback_sprites,
+        else 'neutral/idle'."""
+        char_fallback = (self.fallback_sprites.get("state")
+                         or self.fallback_sprites.get("emotion")
+                         or "neutral/idle")
+        if not self.has_outfit(name):
+            return char_fallback
+        return self.outfits[name].get("fallback") or char_fallback
 
     def _load_yaml_file(self, relative: str, default: Any = None) -> Any:
         """Load a YAML file relative to character directory. Returns default if missing."""

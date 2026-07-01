@@ -243,3 +243,81 @@ def test_memory_defaults(tmp_chars):
     assert loader.collections["faces"] == "testbot_faces"
     assert loader.collections["voices"] == "testbot_voices"
     assert loader.collections["memories"] == "testbot_memories"
+
+
+# ---- Wardrobe / outfit system -------------------------------------------
+
+def _write_visuals(tmp_chars, visuals):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["visuals"] = visuals
+    config_path.write_text(yaml.dump(config))
+
+
+def test_outfits_parsed(tmp_chars):
+    _write_visuals(tmp_chars, {
+        "ai_poses_dir": "sprites/",
+        "outfits": {
+            "tuxedo": {"dir": "outfits/tuxedo/", "display": "Black Tie",
+                       "fallback": "neutral/idle"},
+        },
+    })
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert "tuxedo" in loader.outfits
+    assert loader.outfits["tuxedo"]["display"] == "Black Tie"
+    assert loader.has_outfit("tuxedo") is True
+    # Resolved poses dir points at the outfit subtree under the character dir.
+    d = loader.outfit_poses_dir("tuxedo").replace("\\", "/")
+    assert d.endswith("test_char/outfits/tuxedo")
+    assert loader.outfit_fallback("tuxedo") == "neutral/idle"
+
+
+def test_active_outfit_parsed(tmp_chars):
+    _write_visuals(tmp_chars, {
+        "ai_poses_dir": "sprites/",
+        "active_outfit": "tuxedo",
+        "outfits": {"tuxedo": {"dir": "outfits/tuxedo/"}},
+    })
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.active_outfit == "tuxedo"
+
+
+def test_outfits_default_when_absent(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.outfits == {}
+    assert loader.active_outfit is None
+    assert loader.has_outfit("tuxedo") is False
+    # No/None/"default" outfit resolves to the default sprite tree.
+    assert loader.outfit_poses_dir(None) == loader.ai_poses_dir
+    assert loader.outfit_poses_dir("default") == loader.ai_poses_dir
+
+
+def test_unknown_outfit_resolves_to_default(tmp_chars):
+    _write_visuals(tmp_chars, {
+        "ai_poses_dir": "sprites/",
+        "outfits": {"tuxedo": {"dir": "outfits/tuxedo/"}},
+    })
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    # An unknown outfit name never crashes — it falls back to the default tree.
+    assert loader.outfit_poses_dir("clown_suit") == loader.ai_poses_dir
+
+
+def test_outfit_fallback_defaults_to_neutral_idle(tmp_chars):
+    _write_visuals(tmp_chars, {
+        "ai_poses_dir": "sprites/",
+        # No explicit fallback on the outfit, no fallback_sprites block.
+        "outfits": {"tuxedo": {"dir": "outfits/tuxedo/"}},
+    })
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.outfit_fallback("tuxedo") == "neutral/idle"
+
+
+def test_outfit_fallback_uses_character_fallback_sprites(tmp_chars):
+    _write_visuals(tmp_chars, {
+        "ai_poses_dir": "sprites/",
+        "fallback_sprites": {"state": "neutral/rest", "emotion": "neutral/rest"},
+        "outfits": {"tuxedo": {"dir": "outfits/tuxedo/"}},
+    })
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    # With no per-outfit fallback, defer to the character's own fallback pose.
+    assert loader.outfit_fallback("tuxedo") == "neutral/rest"

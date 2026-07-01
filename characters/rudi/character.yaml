@@ -92,6 +92,15 @@ visuals:
   fallback_sprites:
     emotion: "neutral/idle"
     state: "neutral/idle"
+  # Wardrobe: alternate outfit sprite sets under characters/rudi/outfits/<name>/.
+  # The bot can swap to one at runtime (/outfit <name>) or at startup via
+  # config.json active_outfit. `fallback` keeps him in-costume while an outfit's
+  # set is still partial (missing poses show that pose instead of the default).
+  outfits:
+    tuxedo:
+      dir: "outfits/tuxedo/"
+      display: "Black Tie"
+      fallback: "neutral/idle"
 
 speech:
   accent_markers:

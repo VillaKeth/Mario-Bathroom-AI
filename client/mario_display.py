@@ -263,6 +263,11 @@ class MarioDisplay:
         self._pose_hint = None
         self._pose_hint_timer = 0
 
+        # Active outfit's fallback pose key (set by _apply_outfit). While an
+        # outfit's sprite set is still partial, any unresolved pose falls back
+        # to this so the character stays in-costume. None = default outfit.
+        self._outfit_fallback_key = None
+
         # Transition system
         self._transition_active = False
         self._transition_type = None  # "enter" or "exit"
@@ -1043,6 +1048,13 @@ class MarioDisplay:
             for key in sprites:
                 if key.split("/", 1)[0] == category:
                     return key
+        # 3) an active OUTFIT whose set is still partial: keep the character
+        # in-costume by resolving anything unmatched to the outfit's fallback
+        # pose (e.g. tux idle) rather than None (which would blank the sprite or
+        # leak the default outfit). Only if that fallback is actually loaded.
+        outfit_fb = getattr(self, "_outfit_fallback_key", None)
+        if outfit_fb and outfit_fb in sprites:
+            return outfit_fb
         return None
 
     def set_thinking(self, thinking: bool):

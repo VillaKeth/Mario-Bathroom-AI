@@ -155,12 +155,18 @@ async def _generate_once(session, prompt: str, account: str, thread_id, ref_imag
 
 
 async def run(provider: str, character: str, start: int, force: bool, regen: bool, accounts: list,
-              delay: float, cap_fallback: float, max_cap_waits: int, ref: str = "") -> None:
+              delay: float, cap_fallback: float, max_cap_waits: int, ref: str = "",
+              prompts: str = "sprite_prompts.txt") -> None:
     char_dir = ROOT / "characters" / character
-    entries = parse_prompts(char_dir / "sprite_prompts.txt")
+    # A --prompts file (e.g. an alternate outfit's "outfits/tuxedo/prompts.txt")
+    # isolates a campaign: the manifest lives next to it, so an outfit grind
+    # never touches the default set's .regen_done.txt. Default resolves to the
+    # legacy char_dir/sprite_prompts.txt + char_dir/.regen_done.txt.
+    prompts_path = char_dir / prompts
+    entries = parse_prompts(prompts_path)
     # Manifest of sprites already FRESHLY regenerated this campaign, so a re-run
     # after a cap resumes instead of redoing finished ones.
-    manifest = char_dir / ".regen_done.txt"
+    manifest = prompts_path.parent / ".regen_done.txt"
     done_set = set(manifest.read_text().split()) if manifest.exists() else set()
     session = get_session(provider)
     pool = AccountPool(accounts)
@@ -338,7 +344,11 @@ if __name__ == "__main__":
                     help="give up a sprite after this many all-accounts-capped waits")
     ap.add_argument("--ref", default="",
                     help="reference image path; attach for image-to-image (chatgpt) on every send")
+    ap.add_argument("--prompts", default="sprite_prompts.txt",
+                    help="prompts file relative to characters/<char>/ (e.g. "
+                         "'outfits/tuxedo/prompts.txt'); its folder holds the "
+                         "campaign's own .regen_done.txt manifest")
     a = ap.parse_args()
     accounts = [s.strip() for s in a.accounts.split(",") if s.strip()] or [a.account]
     asyncio.run(run(a.provider, a.character, a.start, a.force, a.regen, accounts, a.delay,
-                    a.cap_fallback, a.max_cap_waits, ref=a.ref))
+                    a.cap_fallback, a.max_cap_waits, ref=a.ref, prompts=a.prompts))

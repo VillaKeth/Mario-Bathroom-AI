@@ -35,6 +35,7 @@ class MarioWSClient:
         self.on_memorial_event = None   # Called with (data: dict)
         self.on_clear_audio = None      # Called when server requests audio interruption
         self.on_character_switched = None  # Called with (data: dict) on hot-swap
+        self.on_outfit_switched = None  # Called with (data: dict) on outfit change
         self.on_mirror_request = None   # Called with (active: bool) — start/stop mirror capture
         self.on_set_volume = None       # Called with (gain: float) — remote volume set
         self.on_connected = None
@@ -193,6 +194,11 @@ class MarioWSClient:
                     logger.info(f"[DEBUG_WS] character switched to: {data.get('display_name')}")
                     if self.on_character_switched:
                         self.on_character_switched(data)
+
+                elif msg_type == "outfit_switched":
+                    logger.info(f"[DEBUG_WS] outfit switched to: {data.get('outfit')}")
+                    if self.on_outfit_switched:
+                        self.on_outfit_switched(data)
 
                 elif msg_type == "mirror_request":
                     active = bool(data.get("active", False))

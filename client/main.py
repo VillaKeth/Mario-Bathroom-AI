@@ -190,6 +190,14 @@ class MarioClient:
         self._memorial_active = False  # Suppresses idle text during memorial
         self._audio_wait_cancel = threading.Event()  # Cancel audio-wait thread
         self._pending_character_switch = None  # Queued switch for main thread
+        self._pending_outfit_switch = None  # Queued outfit change for main thread
+        # Track the active character so an outfit swap resolves against the
+        # right character.yaml even after a runtime character hot-swap.
+        self._current_character_name = _character_name
+        # Startup outfit: config.json 'active_outfit' overrides the character's
+        # own visuals.active_outfit. None = the character's default sprite set.
+        self._startup_outfit = (_full_config.get("active_outfit")
+                                or _character.active_outfit or None)
 
         # Wire up callbacks
         self.ws.on_text_response = self._on_mario_text
@@ -202,6 +210,7 @@ class MarioClient:
         self.ws.on_memorial_event = self._on_memorial_event
         self.ws.on_clear_audio = self._on_clear_audio
         self.ws.on_character_switched = self._on_character_switched
+        self.ws.on_outfit_switched = self._on_outfit_switched
         self.ws.on_mirror_request = self._on_mirror_request
         self.ws.on_set_volume = self._on_set_volume
         self.ws.on_user_message = self._on_user_message
@@ -276,6 +285,11 @@ class MarioClient:
 
         logger.info("=== Mario AI Client Ready! ===")
 
+        # Apply the configured startup outfit on the first main-thread tick
+        # (pygame sprite loads must happen on this thread).
+        if self._startup_outfit and not self._pending_outfit_switch:
+            self._pending_outfit_switch = {"outfit": self._startup_outfit}
+
         # Main display loop (must run on main thread for Pygame)
         try:
             while self._running:
@@ -283,6 +297,10 @@ class MarioClient:
                 if self._pending_character_switch:
                     self._apply_character_switch(self._pending_character_switch)
                     self._pending_character_switch = None
+                # Process pending outfit change on main thread (pygame-safe)
+                if self._pending_outfit_switch:
+                    self._apply_outfit(self._pending_outfit_switch)
+                    self._pending_outfit_switch = None
                 # Keep reconnect info fresh for display
                 if not self.display.connected:
                     self.display._reconnect_info = self.ws.reconnect_info
@@ -601,9 +619,65 @@ class MarioClient:
             _md.BANNER_TITLE = new_name
             _md.WINDOW_TITLE = new_name
             
+            # Follow the active character for outfit resolution, and drop any
+            # outfit fallback from the previous character (new one starts base).
+            self._current_character_name = char_key
+            self.display._outfit_fallback_key = None
             logger.info(f"Character switch complete: {new_name} ({len(self.display._sprites)} sprites)")
         except Exception as e:
             logger.warning(f"Failed to apply character switch: {e}")
+
+    def _on_outfit_switched(self, data: dict):
+        """Handle an outfit-change notification from the server.
+
+        Queues the swap for the main thread (pygame sprite loads must run there).
+        """
+        self._pending_outfit_switch = data
+        logger.info(f"Outfit switch queued: {data.get('outfit')}")
+
+    def _apply_outfit(self, data: dict):
+        """Apply an outfit change on the main thread (pygame-safe).
+
+        Repoints the active sprite tree at the outfit's subtree and reloads,
+        keeping the SAME character. Unknown / 'default' / missing outfit reverts
+        to the base sprite set. A partial outfit set is fine — the display's
+        _outfit_fallback_key keeps unresolved poses in-costume (never leaks the
+        default outfit)."""
+        outfit = (data.get("outfit") or "").strip()
+        try:
+            characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "characters")
+            from shared.character_loader import CharacterLoader as CL
+            char = CL(characters_dir, self._current_character_name)
+            import mario_display as md
+
+            if outfit and outfit.lower() != "default" and char.has_outfit(outfit):
+                poses_dir = char.outfit_poses_dir(outfit)
+                fallback_key = char.outfit_fallback(outfit)
+                label = char.outfits[outfit].get("display", outfit)
+            else:
+                poses_dir = char.ai_poses_dir
+                fallback_key = None
+                label = "default"
+                outfit = "default"
+
+            md.AI_POSES_DIR = poses_dir
+            self.display._outfit_fallback_key = fallback_key
+            self.display._sprites.clear()
+            self.display._load_sprites()
+
+            # A totally-empty outfit dir loads nothing — never leave the
+            # character spriteless. Revert to the base set (drop the fallback).
+            if not self.display._sprites and poses_dir != char.ai_poses_dir:
+                logger.warning(f"Outfit '{outfit}' loaded no sprites — reverting to default set")
+                md.AI_POSES_DIR = char.ai_poses_dir
+                self.display._outfit_fallback_key = None
+                self.display._load_sprites()
+                label = "default (outfit empty)"
+
+            logger.info(f"Outfit applied: {label} "
+                        f"({len(self.display._sprites)} sprites) from {poses_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to apply outfit '{outfit}': {e}")
 
     def _on_disconnected(self):
         logger.warning("Disconnected from server!")
@@ -728,8 +802,15 @@ class MarioClient:
         elif cmd == "/sovits":
             self._send_admin_get("/restart_sovits")
             self.display.set_subtitle("🔄 SoVITS restarting...")
+        elif cmd == "/outfit":
+            # Apply locally on the main thread — the client owns sprite
+            # rendering, so no server round-trip is needed. Blank / 'default'
+            # reverts to the base outfit.
+            target = arg.strip() if arg else "default"
+            self._pending_outfit_switch = {"outfit": target}
+            self.display.set_subtitle(f"👔 Outfit → {target}")
         elif cmd == "/help":
-            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /health, /leaderboard, /stats, /summary, /games, /help"
+            help_text = "Commands: /announce, /emotion, /event, /events, /memorial, /stopgame, /reload, /reset, /pause, /sovits, /outfit, /health, /leaderboard, /stats, /summary, /games, /help"
             self.display.set_mario_text(help_text)
             self.display.set_subtitle("ℹ️ Admin commands")
         elif cmd == "/health":
