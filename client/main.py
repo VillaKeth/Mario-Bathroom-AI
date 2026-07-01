@@ -54,6 +54,18 @@ class _ClientRingHandler(logging.Handler):
 
 logging.getLogger().addHandler(_ClientRingHandler())
 
+# File logging: client writes its own logs/<day>/client.log and quiets the
+# console (see docs/superpowers/specs/2026-07-01-file-logging-design.md).
+from shared import file_logging as _file_logging
+_LOG_CONFIG = _full_config.get("logging", {})
+_LOG_ROOT = os.path.join(PROJECT_ROOT, _LOG_CONFIG.get("root_dir", "logs"))
+_LOG_HANDLE = _file_logging.init_file_logging(
+    _LOG_ROOT, _LOG_CONFIG,
+    include_sources=["client"],
+    console_level=_LOG_CONFIG.get("client_console_level", "WARNING"))
+import atexit as _atexit
+_atexit.register(_file_logging.shutdown_file_logging, _LOG_HANDLE)
+
 
 class _DebugProvider:
     """Adapts MarioClient to the client/debug_server route() provider interface."""
