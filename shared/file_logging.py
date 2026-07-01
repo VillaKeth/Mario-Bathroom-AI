@@ -19,7 +19,14 @@ class _PlainFormatter(logging.Formatter):
     def format(self, record):
         ct = datetime.datetime.fromtimestamp(record.created)
         stamp = ct.strftime("%Y-%m-%d@%H:%M:%S.") + f"{int(record.msecs):03d}"
-        return f"{stamp}  {record.getMessage()}"
+        out = f"{stamp}  {record.getMessage()}"
+        if record.exc_info and not record.exc_text:
+            record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            out += "\n" + record.exc_text
+        if record.stack_info:
+            out += "\n" + self.formatStack(record.stack_info)
+        return out
 
 
 class DayFolderHandler(logging.Handler):
@@ -37,7 +44,7 @@ class DayFolderHandler(logging.Handler):
 
     def _ensure_open(self):
         day = self._now_fn().strftime("%Y-%m-%d")
-        if day != self._day:
+        if self._fh is None or day != self._day:
             if self._fh:
                 self._fh.close()
             folder = os.path.join(self.root_dir, day)
@@ -57,8 +64,11 @@ class DayFolderHandler(logging.Handler):
         try:
             if self._fh:
                 self._fh.close()
-                self._fh = None
+        except Exception:
+            pass
         finally:
+            self._fh = None
+            self._day = None
             super().close()
 
 
@@ -95,6 +105,8 @@ def _make_handler(source, root_dir, flt):
 
 
 def init_file_logging(root_dir, config, *, include_sources=None, console_level=None):
+    if not isinstance(config, dict):
+        config = {}
     if not config.get("enabled", True):
         return {}
     root_dir = os.path.abspath(root_dir)

@@ -179,3 +179,36 @@ def test_probe_writable_false_for_bad_path(tmp_path):
     bad.write_text("x", encoding="utf-8")
     # A path under a regular file cannot be a directory.
     assert file_logging.probe_writable(str(bad / "sub")) is False
+
+
+def test_handler_reopens_after_close(tmp_path):
+    h = DayFolderHandler("system", str(tmp_path))
+    h.setFormatter(_PlainFormatter())
+    h.emit(_record("first line"))
+    h.close()                       # simulates the mid-run close that caused the crash
+    h.emit(_record("second line"))  # must self-heal and write, not raise/lose it
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    content = (tmp_path / day / "system.log").read_text(encoding="utf-8")
+    assert "first line" in content
+    assert "second line" in content
+    h.close()
+
+
+def test_formatter_includes_exception_traceback():
+    import sys
+    fmt = _PlainFormatter()
+    try:
+        raise ValueError("boom kaboom")
+    except ValueError:
+        rec = logging.LogRecord("x", logging.ERROR, __file__, 1, "pipeline failed", None, sys.exc_info())
+    line = fmt.format(rec)
+    assert "pipeline failed" in line
+    assert "ValueError: boom kaboom" in line
+    assert "Traceback" in line
+
+
+def test_init_file_logging_tolerates_non_dict_config(tmp_path):
+    # false/null/garbage must NOT crash startup (Fix B).
+    for bad in (None, False, "nope", 5):
+        handle = file_logging.init_file_logging(str(tmp_path), bad)
+        file_logging.shutdown_file_logging(handle)
