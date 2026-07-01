@@ -156,7 +156,7 @@ async def _generate_once(session, prompt: str, account: str, thread_id, ref_imag
 
 async def run(provider: str, character: str, start: int, force: bool, regen: bool, accounts: list,
               delay: float, cap_fallback: float, max_cap_waits: int, ref: str = "",
-              prompts: str = "sprite_prompts.txt") -> None:
+              prompts: str = "sprite_prompts.txt", end: int = 0) -> None:
     char_dir = ROOT / "characters" / character
     # A --prompts file (e.g. an alternate outfit's "outfits/tuxedo/prompts.txt")
     # isolates a campaign: the manifest lives next to it, so an outfit grind
@@ -178,6 +178,8 @@ async def run(provider: str, character: str, start: int, force: bool, regen: boo
     try:
         for idx, rel, prompt in entries:
             if idx < start:
+                continue
+            if end and idx > end:      # partition an outfit across providers
                 continue
             dst = char_dir / rel
             # --regen: overwrite existing art, but skip ones already regenerated.
@@ -348,7 +350,10 @@ if __name__ == "__main__":
                     help="prompts file relative to characters/<char>/ (e.g. "
                          "'outfits/tuxedo/prompts.txt'); its folder holds the "
                          "campaign's own .regen_done.txt manifest")
+    ap.add_argument("--end", type=int, default=0,
+                    help="only generate sprites with index <= END (0 = no limit); "
+                         "pair with --start to give each provider a disjoint slice")
     a = ap.parse_args()
     accounts = [s.strip() for s in a.accounts.split(",") if s.strip()] or [a.account]
     asyncio.run(run(a.provider, a.character, a.start, a.force, a.regen, accounts, a.delay,
-                    a.cap_fallback, a.max_cap_waits, ref=a.ref, prompts=a.prompts))
+                    a.cap_fallback, a.max_cap_waits, ref=a.ref, prompts=a.prompts, end=a.end))
