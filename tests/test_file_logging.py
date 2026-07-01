@@ -145,3 +145,26 @@ def test_console_level_raises_existing_stream_handler(tmp_path):
         root.removeHandler(sh)
         if handle is not None:
             file_logging.shutdown_file_logging(handle)
+
+
+def test_conversation_helpers_write_chipped_lines(tmp_path):
+    file_logging.set_character("rudi")
+    handle = file_logging.init_file_logging(
+        str(tmp_path), {"enabled": True, "sources": {"conversation": True, "errors": True}})
+    try:
+        file_logging.log_guest("Jacob", "hey rudi you awake?")
+        file_logging.log_guest(None, "anyone there")
+        file_logging.log_bot("Ohh you know it!")
+        file_logging.log_bot("just me mumbling", is_idle=True)
+        file_logging.log_bot("")  # empty is ignored
+        time.sleep(0.2)
+    finally:
+        file_logging.shutdown_file_logging(handle)
+        file_logging.set_character("mario")
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    conv = (tmp_path / day / "conversation.log").read_text(encoding="utf-8")
+    assert "[guest:Jacob] hey rudi you awake?" in conv
+    assert "[guest] anyone there" in conv
+    assert "[rudi] Ohh you know it!" in conv
+    assert "[rudi:idle] just me mumbling" in conv
+    assert conv.count("\n") == 4  # empty log_bot produced no line

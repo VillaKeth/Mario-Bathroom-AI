@@ -151,3 +151,30 @@ def shutdown_file_logging(handle):
                 h.close()
             except Exception:
                 pass
+
+
+_CHARACTER_NAME = "mario"
+
+
+def set_character(name, display_name=None):
+    global _CHARACTER_NAME
+    if name:
+        _CHARACTER_NAME = str(name).lower()
+
+
+def get_conversation_logger():
+    return logging.getLogger(CONV_LOGGER)
+
+
+def log_guest(name, text):
+    if not text:
+        return
+    chip = f"[guest:{name}]" if name else "[guest]"
+    get_conversation_logger().info(f"{chip} {text}")
+
+
+def log_bot(text, is_idle=False):
+    if not text:
+        return
+    chip = f"[{_CHARACTER_NAME}:idle]" if is_idle else f"[{_CHARACTER_NAME}]"
+    get_conversation_logger().info(f"{chip} {text}")
