@@ -230,42 +230,7 @@ def test_speaker_id():
         print(f"  ⚠️ {cross_issues} cross-speaker issues")
         failed += 1
 
-    # Test 4: Test Qdrant storage (only if not locked by server)
-    print("\n[4] Testing Qdrant voice storage...")
-    if speaker_id._qdrant_client:
-        stored_count = 0
-        for guest in GUESTS[:5]:
-            emb = make_voice_embedding(guest["voice_seed"])
-            success = speaker_id.store_voice_qdrant(guest["name"], emb)
-            if success:
-                stored_count += 1
-        if stored_count > 0:
-            print(f"  ✅ Stored {stored_count}/5 voice embeddings")
-            passed += 1
-
-            # Test 5: Qdrant lookup
-            print("\n[5] Qdrant voice lookup...")
-            lookup_ok = 0
-            for guest in GUESTS[:5]:
-                emb = make_voice_embedding(guest["voice_seed"])
-                match = speaker_id.lookup_voice_qdrant(emb)
-                if match and match["name"] == guest["name"]:
-                    lookup_ok += 1
-            if lookup_ok >= 3:
-                print(f"  ✅ {lookup_ok}/5 voices matched in Qdrant")
-                passed += 1
-            else:
-                print(f"  ❌ {lookup_ok}/5 voices matched")
-                failed += 1
-        else:
-            print(f"  ⚠️ Qdrant locked by server — skipping storage tests (expected)")
-            passed += 1  # Not a failure — expected when server is running
-    else:
-        print("  ⚠️ Qdrant client not available (server holds lock) — skipping")
-        print("  📝 This is expected when Mario server is running")
-        passed += 1
-
-    # Test 6: Embedding shape validation
+    # Test 4: Embedding shape validation
     print("\n[6] Embedding shape validation...")
     for guest in GUESTS[:3]:
         emb = make_voice_embedding(guest["voice_seed"])

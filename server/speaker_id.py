@@ -1,13 +1,10 @@
-"""Speaker identification using voice embeddings (resemblyzer) + Qdrant vector storage."""
+"""Speaker identification using voice embeddings (resemblyzer) + SQLite storage."""
 
 import logging
 import sqlite3
 import json
 import os
-import uuid
 import numpy as np
-from datetime import datetime
-from typing import Optional
 
 # Fix numpy deprecation in resemblyzer (np.bool removed in numpy 1.24+)
 import warnings
@@ -28,13 +25,6 @@ except ImportError:
         "[speaker_id] resemblyzer not installed — speaker identification disabled. "
         "Install with: pip install resemblyzer"
     )
-
-# Qdrant integration for voice embeddings
-try:
-    from qdrant_client import QdrantClient, models
-    _HAS_QDRANT = True
-except ImportError:
-    _HAS_QDRANT = False
 
 DEBUG_SPEAKER = os.environ.get("DEBUG_SPEAKER", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
@@ -66,16 +56,7 @@ try:
 except (TypeError, ValueError):
     MIN_SPEECH_RMS = 120.0
 
-# Voice matching routes through the SQLite cosine scan (the store the EMA refinement
-# in update_speaker() actually writes). The Qdrant voice path is never populated by
-# the live enrollment path (register_speaker writes SQLite only), so consulting it
-# first only ever returned stale/empty results. Kept defined for future use but no
-# longer consulted by identify_speaker. See AUDIT_VOICE_FACE_RECOGNITION.md (F3/F8).
-_USE_QDRANT_VOICE = False
-
 _encoder = None
-_qdrant_client: QdrantClient = None if _HAS_QDRANT else None
-_collection_name = "mario_voices"
 
 
 def _audio_rms(audio_data: bytes) -> float:
@@ -114,9 +95,12 @@ def is_available() -> bool:
 
 
 def init_speaker_id(collection_name: str = "mario_voices"):
-    """Initialize the voice encoder, database, and Qdrant collection."""
-    global _encoder, _qdrant_client, _collection_name
-    _collection_name = collection_name
+    """Initialize the voice encoder and SQLite database.
+
+    `collection_name` is retained for back-compat with existing callers; it is
+    unused now that matching is SQLite-only.
+    """
+    global _encoder
     if not _HAS_RESEMBLYZER:
         logger.warning("[speaker_id] Skipping init — resemblyzer not installed")
         return
@@ -125,7 +109,7 @@ def init_speaker_id(collection_name: str = "mario_voices"):
 
     _encoder = VoiceEncoder("cpu")
 
-    # Initialize SQLite database (legacy/fallback)
+    # Initialize SQLite database
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
@@ -138,44 +122,17 @@ def init_speaker_id(collection_name: str = "mario_voices"):
         """)
         conn.commit()
 
-    # Initialize Qdrant for voice embeddings  
-    if _HAS_QDRANT:
-        try:
-            # Use local file-based storage for Qdrant
-            qdrant_path = os.path.join(os.path.dirname(DB_PATH), "qdrant_voices")
-            os.makedirs(qdrant_path, exist_ok=True)
-            _qdrant_client = QdrantClient(path=qdrant_path)
-            
-            # Check if collection exists
-            collections = [c.name for c in _qdrant_client.get_collections().collections]
-            if _collection_name not in collections:
-                _qdrant_client.create_collection(
-                    collection_name=_collection_name,
-                    vectors_config=models.VectorParams(
-                        size=256,  # Resemblyzer embedding dimension
-                        distance=models.Distance.COSINE,
-                    ),
-                )
-                if DEBUG_SPEAKER:
-                    logger.info(f"[DEBUG_SPEAKER] Created {_collection_name} Qdrant collection")
-            else:
-                if DEBUG_SPEAKER:
-                    logger.info(f"[DEBUG_SPEAKER] {_collection_name} Qdrant collection already exists")
-        except Exception as e:
-            logger.warning(f"[DEBUG_SPEAKER] Failed to initialize Qdrant: {e}")
-            _qdrant_client = None
-
     if DEBUG_SPEAKER:
         logger.info("[DEBUG_SPEAKER] init_speaker_id: END")
 
 
 def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
     """Extract voice embedding from audio data.
-    
+
     Args:
         audio_data: Raw PCM int16 mono audio bytes
         sample_rate: Sample rate of the audio
-        
+
     Returns:
         256-dimensional voice embedding vector
     """
@@ -203,121 +160,11 @@ def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
     return embedding
 
 
-def store_voice_qdrant(name: str, embedding: np.ndarray) -> bool:
-    """Store voice embedding in Qdrant collection.
-    
-    Args:
-        name: Speaker name
-        embedding: 256-dim voice embedding
-        
-    Returns:
-        True if stored successfully, False otherwise
-    """
-    if not _qdrant_client or embedding.shape != (256,):
-        return False
-        
-    try:
-        # Generate deterministic point ID from name
-        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"voice:{name}"))
-        
-        # Get next speaker ID from SQLite for consistency
-        speaker_id_val = None
-        try:
-            with sqlite3.connect(DB_PATH) as conn:
-                existing = conn.execute("SELECT id FROM speakers WHERE name = ?", (name,)).fetchone()
-                if existing:
-                    speaker_id_val = existing[0]
-                else:
-                    # Create new speaker record
-                    cursor = conn.execute("INSERT INTO speakers (name, embedding) VALUES (?, ?)", 
-                                        (name, embedding.tobytes()))
-                    speaker_id_val = cursor.lastrowid
-                    conn.commit()
-        except Exception:
-            pass
-        
-        # Store voice embedding in Qdrant
-        _qdrant_client.upsert(
-            collection_name=_collection_name,
-            points=[models.PointStruct(
-                id=point_id,
-                vector=embedding.tolist(),
-                payload={
-                    "name": name,
-                    "speaker_id": speaker_id_val,
-                    "last_seen": datetime.now().isoformat(),
-                },
-            )],
-        )
-        
-        if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] Stored voice for {name} in Qdrant (id: {speaker_id_val})")
-        return True
-        
-    except Exception as e:
-        logger.error(f"[DEBUG_SPEAKER] Failed to store voice in Qdrant: {e}")
-        return False
-
-
-def lookup_voice_qdrant(embedding: np.ndarray, 
-                       similarity_threshold: float = None) -> Optional[dict]:
-    """Find matching voice in Qdrant by cosine similarity.
-    
-    Args:
-        embedding: 256-dim voice embedding to match
-        similarity_threshold: Similarity threshold (default: SIMILARITY_THRESHOLD)
-        
-    Returns:
-        dict with name, speaker_id, confidence or None if no match
-    """
-    if not _qdrant_client or embedding.shape != (256,):
-        return None
-        
-    threshold = similarity_threshold or SIMILARITY_THRESHOLD
-    
-    try:
-        results = _qdrant_client.query_points(
-            collection_name=_collection_name,
-            query=embedding.tolist(),
-            limit=1,
-            score_threshold=threshold,
-        )
-        
-        if results.points:
-            point = results.points[0]
-            payload = point.payload
-            
-            return {
-                "name": payload.get("name", "Unknown"),
-                "speaker_id": payload.get("speaker_id"),
-                "confidence": float(point.score),
-                "last_seen": payload.get("last_seen", ""),
-            }
-            
-    except Exception as e:
-        logger.error(f"[DEBUG_SPEAKER] Failed to lookup voice in Qdrant: {e}")
-        
-    return None
-
-
-def learn_voice(name: str, embedding: np.ndarray):
-    """Learn a new guest's voice embedding.
-    
-    Stores in both Qdrant (primary) and SQLite (fallback).
-    """
-    # Store in Qdrant (primary)
-    qdrant_success = store_voice_qdrant(name, embedding)
-    
-    if DEBUG_SPEAKER:
-        qdrant_status = "✓" if qdrant_success else "✗"
-        logger.info(f"[DEBUG_SPEAKER] Learned voice for {name} - Qdrant: {qdrant_status}")
-
-
 def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
-    """Identify who is speaking from audio data using Qdrant first, SQLite fallback.
-    
+    """Identify who is speaking from audio via a SQLite cosine-similarity scan.
+
     Returns:
-        dict with 'name' (str or None), 'speaker_id' (int or None), 
+        dict with 'name' (str or None), 'speaker_id' (int or None),
         'confidence' (float), 'is_new' (bool)
     """
     if not _HAS_RESEMBLYZER or _encoder is None:
@@ -333,21 +180,6 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     if embedding is None:
         return {"name": None, "speaker_id": None, "confidence": 0.0, "is_new": True}
 
-    # Qdrant voice lookup is disabled (_USE_QDRANT_VOICE=False) — see note above.
-    # All real matching flows through the SQLite cosine scan below.
-    if _USE_QDRANT_VOICE and _qdrant_client:
-        qdrant_match = lookup_voice_qdrant(embedding)
-        if qdrant_match:
-            if DEBUG_SPEAKER:
-                logger.info(f"[DEBUG_SPEAKER] Qdrant voice match: {qdrant_match['name']} ({qdrant_match['confidence']:.3f})")
-            return {
-                "name": qdrant_match["name"],
-                "speaker_id": qdrant_match["speaker_id"],
-                "confidence": qdrant_match["confidence"],
-                "is_new": False,
-            }
-
-    # Fallback to SQLite (legacy method)
     conn = sqlite3.connect(DB_PATH)
     try:
         cursor = conn.execute("SELECT id, name, embedding FROM speakers")
@@ -383,7 +215,7 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
 
     if best_match and best_similarity >= SIMILARITY_THRESHOLD:
         if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] SQLite fallback matched {best_match[1]} ({best_similarity:.3f})")
+            logger.info(f"[DEBUG_SPEAKER] matched {best_match[1]} ({best_similarity:.3f})")
         return {
             "name": best_match[1],
             "speaker_id": best_match[0],
@@ -398,7 +230,7 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
 
 def register_speaker(name: str, audio_data: bytes, sample_rate: int = 16000) -> int:
     """Register a new speaker's voice.
-    
+
     Returns:
         The new speaker's database ID
     """

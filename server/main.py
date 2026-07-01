@@ -296,13 +296,11 @@ def _parse_name_from_response(text: str) -> str | None:
 
 
 def _count_unique_faces() -> int:
-    """Count unique faces currently in the Qdrant collection for energy tracking."""
-    if not _face_memory or not hasattr(_face_memory, '_qdrant_client') or not _face_memory._qdrant_client:
+    """Count unique faces stored in SQLite for energy tracking."""
+    if not _face_memory:
         return 0
-    
     try:
-        collection_info = _face_memory._qdrant_client.get_collection("mario_faces")
-        return collection_info.points_count or 0
+        return len(_face_memory.get_all_faces())
     except Exception as e:
         logger.warning(f"[PRESENCE_SCAN] Failed to count faces: {e}")
         return 0
@@ -911,16 +909,6 @@ async def lifespan(app: FastAPI):
         from face_memory import FaceMemory
         _face_db_path = os.path.join(os.path.dirname(__file__), "data", "memory.db")
         _face_memory = FaceMemory(_face_db_path, collection_name=_character.collections["faces"])
-        
-        # Jacob VIP pre-registration - metadata only, face should be registered from real photo
-        if hasattr(_face_memory, 'store_face_qdrant') and _face_memory._qdrant_client:
-            try:
-                # Jacob's face should be registered from a real photo or during first identification
-                # at the party. We skip the face vector but keep VIP name registration if needed.
-                logger.info("[INIT] Jacob VIP metadata ready - face should be registered from real photo")
-            except Exception as e:
-                logger.warning(f"[INIT] Jacob VIP setup error: {e}")
-        
         logger.info("[INIT] Face memory initialized")
     except Exception as e:
         logger.warning(f"[INIT] Face memory unavailable: {e}")
