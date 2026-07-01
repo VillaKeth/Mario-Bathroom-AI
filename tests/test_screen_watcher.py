@@ -15,3 +15,35 @@ def test_encode_jpeg_returns_downscaled_jpeg():
     import cv2
     dec = cv2.imdecode(np.frombuffer(out, np.uint8), cv2.IMREAD_COLOR)
     assert dec.shape[1] == 1024
+
+
+import base64, json
+
+
+def test_describe_frame_sends_image_and_keepalive(monkeypatch):
+    captured = {}
+    class FakeResp:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return {"message": {"content": "Fortnite, low HP, being chased."}}
+    def fake_post(url, json=None, timeout=None):
+        captured["url"] = url; captured["json"] = json
+        return FakeResp()
+    monkeypatch.setattr(screen_watcher.httpx, "post", fake_post)
+    out = screen_watcher.describe_frame(b"\xff\xd8fakejpeg", "http://x:11434", "llava-llama3:latest")
+    assert out == "Fortnite, low HP, being chased."
+    msg = captured["json"]["messages"][0]
+    assert captured["json"]["keep_alive"] == "3m"
+    assert base64.b64decode(msg["images"][0]) == b"\xff\xd8fakejpeg"  # image base64'd
+
+
+def test_unload_llava_sends_keepalive_zero(monkeypatch):
+    captured = {}
+    class FakeResp:
+        status_code = 200
+        def raise_for_status(self): pass
+        def json(self): return {}
+    monkeypatch.setattr(screen_watcher.httpx, "post",
+                        lambda url, json=None, timeout=None: (captured.update(json=json) or FakeResp()))
+    screen_watcher.unload_llava("http://x:11434", "llava-llama3:latest")
+    assert captured["json"]["keep_alive"] == 0
