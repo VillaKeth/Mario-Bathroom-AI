@@ -167,3 +167,6 @@ voice_training/
 _old_jun18_weights/
 pomni_voice_preview.wav
 *.bak
+
+# Overnight run logs (day-by-day per-source)
+logs/
