@@ -60,3 +60,91 @@ class DayFolderHandler(logging.Handler):
                 self._fh = None
         finally:
             super().close()
+
+
+SOURCE_LOGGERS = {
+    "conversation": {CONV_LOGGER},
+    "llm": {"llm_router", "llm"},
+    "tts": {"tts", "tts_router", "gpt_sovits_server", "fish_speech_tts"},
+    "memory": {"memory", "memory_semantic", "party_gossip", "vip_knowledge"},
+    "events": {"game_handlers", "idle_behavior", "night_progression", "emotions", "birthday_vip"},
+    "system": {"mario-server", "mario-client", "watchdog", "canary", "hardware", "hot_reload", "dashboard"},
+    # "errors" and "client" are special-cased in init_file_logging.
+}
+
+
+class _NameFilter(logging.Filter):
+    def __init__(self, names):
+        super().__init__()
+        self.names = set(names)
+
+    def filter(self, record):
+        return record.name in self.names
+
+
+class _ErrorFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno >= logging.WARNING and record.name != CONV_LOGGER
+
+
+def _make_handler(source, root_dir, flt):
+    h = DayFolderHandler(source, root_dir)
+    h.setFormatter(_PlainFormatter())
+    h.addFilter(flt)
+    return h
+
+
+def init_file_logging(root_dir, config, *, include_sources=None, console_level=None):
+    if not config.get("enabled", True):
+        return {}
+    root_dir = os.path.abspath(root_dir)
+    enabled = config.get("sources", {})
+    handlers = []
+
+    def want(src):
+        if include_sources is not None:
+            return src in include_sources
+        return enabled.get(src, True)
+
+    for source, names in SOURCE_LOGGERS.items():
+        if want(source):
+            handlers.append(_make_handler(source, root_dir, _NameFilter(names)))
+    if want("errors"):
+        handlers.append(_make_handler("errors", root_dir, _ErrorFilter()))
+    if include_sources and "client" in include_sources:
+        # Client process: everything on its root logger goes to client.log.
+        handlers.append(_make_handler("client", root_dir, logging.Filter()))
+
+    q = queue.Queue(-1)
+    listener = logging.handlers.QueueListener(q, *handlers, respect_handler_level=True)
+    listener.start()
+
+    root = logging.getLogger()
+    level = getattr(logging, str(config.get("level", "INFO")).upper(), logging.INFO)
+    root.setLevel(min(root.level or logging.INFO, level))
+    qh = logging.handlers.QueueHandler(q)
+    root.addHandler(qh)
+
+    if console_level is not None:
+        lvl = getattr(logging, str(console_level).upper(), logging.WARNING)
+        for h in root.handlers:
+            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.handlers.QueueHandler):
+                h.setLevel(lvl)
+
+    return {"queue": q, "listener": listener, "handlers": handlers, "qhandler": qh}
+
+
+def shutdown_file_logging(handle):
+    if not handle:
+        return
+    qh = handle.get("qhandler")
+    if qh is not None:
+        logging.getLogger().removeHandler(qh)
+    try:
+        handle["listener"].stop()
+    finally:
+        for h in handle.get("handlers", []):
+            try:
+                h.close()
+            except Exception:
+                pass
