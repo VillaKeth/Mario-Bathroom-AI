@@ -2189,6 +2189,41 @@ async def admin_simulate_text(request_body: dict = {}):
     return await _dispatch_user_text(request_body.get("text", ""))
 
 
+@app.post("/admin/watch_frame")
+async def admin_watch_frame(request_body: dict = {}):
+    """Screen-watch heckle: turn a scene description into a spoken roast.
+    Called by screen_watcher.py. Idle-safe gated (won't talk over a real convo)."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"ok": False, "spoke": False, "error": "unauthorized"}
+    description = (request_body.get("description") or "").strip()
+    if not description:
+        return {"ok": True, "spoke": False}
+    if _active_ws is None:
+        return {"ok": True, "spoke": False}
+    guest = state_current.get("speaker_name")
+    try:
+        ctx = mario_prompt.build_watch_context(
+            description, guest=guest, system_prompt=_get_idle_prompt())
+        llm_response = await asyncio.wait_for(
+            llm.generate_response(ctx, model=llm_router.get_model(
+                llm_router.classify("roast", response_type="casual"))),
+            timeout=_LLM_IDLE_TIMEOUT)
+        text = filter_response((llm_response.get("text") or "").strip())
+        if not text or len(text) < 3:
+            return {"ok": True, "spoke": False}
+        analyzed = analyze_text(text)
+        loop = asyncio.get_event_loop()
+        audio = await loop.run_in_executor(
+            _tts_executor, lambda: tts.synthesize_user(analyzed["tts_text"]))
+        await _idle_send_if_safe(_active_ws, analyzed["display_text"], audio,
+                                 emotion="mischievous", pose_hint=analyzed.get("pose_hint"))
+        return {"ok": True, "spoke": True}
+    except Exception as e:
+        logger.warning(f"[WATCH] heckle failed: {e}")
+        return {"ok": False, "spoke": False}
+
+
 @app.get("/debug/log")
 async def debug_log(n: int = 200, grep: str = "", level: str = "DEBUG"):
     """Debug MCP: tail the in-memory server log ring. Off unless MARIO_DEBUG=1."""

@@ -3861,3 +3861,20 @@ def maybe_add_followup(response: str, history_len: int, last_added: list) -> str
         return response.rstrip() + " " + _rand_fu.choice(_FOLLOWUPS)
     last_added[0] = False
     return response
+
+
+# ── Screen-watch heckle context ───────────────────────────────────────────────
+
+def build_watch_context(description: str, guest: str = None, system_prompt: str = None) -> list:
+    """LLM context for a screen-watch heckle: optional persona system prompt +
+    the on-screen scene. Roast-first, occasional real tip, in character, short.
+    The caller (main.py endpoint) passes the character prompt as system_prompt."""
+    who = guest or "them"
+    ctx = []
+    if system_prompt:
+        ctx.append({"role": "system", "content": system_prompt})
+    ctx.append({"role": "user", "content":
+        f"You're watching {who} play a game right now. On their screen: {description}. "
+        "Drop ONE short line, mostly roast/heckle, occasionally a genuine tip. "
+        "In character, under 20 words, no asterisks."})
+    return ctx
