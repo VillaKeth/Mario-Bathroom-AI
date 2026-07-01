@@ -39,3 +39,6 @@ colorama>=0.4.6
 
 # === Configuration ===
 PyYAML>=6.0
+
+# === Screen capture (screen-watch game-coach feature) ===
+mss
