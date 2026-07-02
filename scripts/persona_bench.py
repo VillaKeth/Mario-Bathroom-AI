@@ -8,7 +8,7 @@ the client log and confirming audio actually played.
 
 Writes a side-by-side markdown report so the SAME prompt can be compared across
 characters (Reze warm/flirty vs Jax cold/snarky, etc.) and every feature
-(identity, knowledge, games, emotion, safety refusal, VIP Denji, spoiler guard,
+(identity, knowledge, games, emotion, VIP Denji, spoiler guard,
 familiarity warmth) is exercised on the running app.
 
 Usage:
