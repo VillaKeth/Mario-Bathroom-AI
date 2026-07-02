@@ -46,7 +46,11 @@ class DayFolderHandler(logging.Handler):
         day = self._now_fn().strftime("%Y-%m-%d")
         if self._fh is None or day != self._day:
             if self._fh:
-                self._fh.close()
+                try:
+                    self._fh.close()
+                except Exception:
+                    pass
+            self._fh = None
             folder = os.path.join(self.root_dir, day)
             os.makedirs(folder, exist_ok=True)
             self._fh = open(os.path.join(folder, f"{self.source}.log"), "a", encoding="utf-8")
@@ -141,7 +145,7 @@ def init_file_logging(root_dir, config, *, include_sources=None, console_level=N
     if console_level is not None:
         lvl = getattr(logging, str(console_level).upper(), logging.WARNING)
         for h in root.handlers:
-            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.handlers.QueueHandler):
+            if isinstance(h, logging.StreamHandler):
                 h.setLevel(lvl)
 
     return {"queue": q, "listener": listener, "handlers": handlers, "qhandler": qh, "prev_level": prev_level}
@@ -185,10 +189,11 @@ def log_guest(name, text):
     get_conversation_logger().info(f"{chip} {text}")
 
 
-def log_bot(text, is_idle=False):
+def log_bot(text, is_idle=False, speaker=None):
     if not text:
         return
-    chip = f"[{_CHARACTER_NAME}:idle]" if is_idle else f"[{_CHARACTER_NAME}]"
+    who = speaker or _CHARACTER_NAME
+    chip = f"[{who}:idle]" if is_idle else f"[{who}]"
     get_conversation_logger().info(f"{chip} {text}")
 
 

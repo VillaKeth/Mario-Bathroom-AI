@@ -212,3 +212,21 @@ def test_init_file_logging_tolerates_non_dict_config(tmp_path):
     for bad in (None, False, "nope", 5):
         handle = file_logging.init_file_logging(str(tmp_path), bad)
         file_logging.shutdown_file_logging(handle)
+
+
+def test_log_bot_speaker_attribution(tmp_path):
+    file_logging.set_character("rudi")
+    handle = file_logging.init_file_logging(str(tmp_path), {"enabled": True, "sources": {"conversation": True}})
+    try:
+        file_logging.log_bot("single mode line")
+        file_logging.log_bot("kafka speaks", speaker="Kafka")
+        file_logging.log_bot("sparkle mumbles", is_idle=True, speaker="Sparkle")
+        import time; time.sleep(0.2)
+    finally:
+        file_logging.shutdown_file_logging(handle)
+        file_logging.set_character("mario")
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    conv = (tmp_path / day / "conversation.log").read_text(encoding="utf-8")
+    assert "[rudi] single mode line" in conv
+    assert "[Kafka] kafka speaks" in conv
+    assert "[Sparkle:idle] sparkle mumbles" in conv

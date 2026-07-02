@@ -6779,7 +6779,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         particle_effect: str = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None, is_idle: bool = False,
-                        full_text: str = None, censor: bool = False):
+                        full_text: str = None, censor: bool = False,
+                        speaker: str = None):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
@@ -6787,7 +6788,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
     """
     if chunk_index is None or chunk_index == 0:
         try:
-            _file_logging.log_bot(full_text if full_text is not None else text, is_idle=is_idle)
+            _file_logging.log_bot(full_text if full_text is not None else text, is_idle=is_idle, speaker=speaker)
         except Exception:
             pass
     # Trigger server-side sound effect (non-blocking, fire-and-forget)
@@ -6816,6 +6817,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["particle_effect"] = particle_effect
     if censor:
         msg["censor"] = True
+    if speaker:
+        msg["speaker"] = speaker
     # Sentence streaming metadata
     if chunk_index is not None:
         msg["chunk_index"] = chunk_index
