@@ -152,9 +152,10 @@ characters/*/_incoming/
 # mcp-chatgpt runtime (browser profile + downloaded images — never commit)
 mcp_chatgpt/profile/
 mcp_chatgpt/output/
+mcp_chatgpt/*.pid
 
 # sprite-regen resume manifest (local progress tracking, not source)
-characters/*/.regen_done.txt
+characters/**/.regen_done.txt
 
 # browser-driven test artifacts (playwright/chrome-devtools snapshots & shots)
 .playwright-mcp/
