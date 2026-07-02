@@ -9,6 +9,7 @@ import argparse
 import datetime
 import json
 import os
+import sys
 
 
 def _default_root():
@@ -32,20 +33,20 @@ def main(argv=None):
     ap.add_argument("--day", default=None)
     ap.add_argument("--source", default="conversation")
     ap.add_argument("--grep", default=None)
-    ap.add_argument("--tail", type=int, default=0)
+    ap.add_argument("--tail", type=int, default=None)
     args = ap.parse_args(argv)
 
     root = args.root or _default_root()
     path = resolve_log_path(root, args.day, args.source)
     if not os.path.exists(path):
-        print(f"(no log at {path})")
+        print(f"(no log at {path})", file=sys.stderr)
         return
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     if args.grep:
         lines = [ln for ln in lines if args.grep.lower() in ln.lower()]
-    if args.tail:
-        lines = lines[-args.tail:]
+    if args.tail is not None:
+        lines = lines[-args.tail:] if args.tail > 0 else []
     print("".join(lines), end="")
 
 

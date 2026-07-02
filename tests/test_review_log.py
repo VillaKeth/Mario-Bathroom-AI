@@ -17,3 +17,35 @@ def test_resolve_and_read(tmp_path, capsys):
     review_log.main(["--root", str(tmp_path), "--grep", "guest"])
     out = capsys.readouterr().out
     assert "[guest] hi" in out and "[guest] bye" in out and "[rudi] hello" not in out
+
+
+def test_tail_returns_last_n(tmp_path, capsys):
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    d = tmp_path / day; d.mkdir(parents=True)
+    (d / "conversation.log").write_text("l1\nl2\nl3\nl4\nl5\n", encoding="utf-8")
+    review_log.main(["--root", str(tmp_path), "--tail", "2"])
+    assert capsys.readouterr().out == "l4\nl5\n"
+
+
+def test_tail_zero_returns_nothing(tmp_path, capsys):
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    d = tmp_path / day; d.mkdir(parents=True)
+    (d / "conversation.log").write_text("l1\nl2\n", encoding="utf-8")
+    review_log.main(["--root", str(tmp_path), "--tail", "0"])
+    assert capsys.readouterr().out == ""
+
+
+def test_grep_case_insensitive_mixed(tmp_path, capsys):
+    day = datetime.datetime.now().strftime("%Y-%m-%d")
+    d = tmp_path / day; d.mkdir(parents=True)
+    (d / "conversation.log").write_text("A  [guest] HELLO there\nB  [rudi] bye\n", encoding="utf-8")
+    review_log.main(["--root", str(tmp_path), "--grep", "hello"])  # lowercase term vs UPPERCASE content
+    out = capsys.readouterr().out
+    assert "HELLO there" in out and "bye" not in out
+
+
+def test_missing_log_message_to_stderr(tmp_path, capsys):
+    review_log.main(["--root", str(tmp_path), "--day", "1999-01-01"])
+    cap = capsys.readouterr()
+    assert cap.out == ""
+    assert "no log at" in cap.err

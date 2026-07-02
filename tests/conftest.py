@@ -5,6 +5,9 @@ These files either:
 - Are standalone diagnostic scripts, not proper pytest tests
 - Require hardware (camera, microphone) to run
 """
+import logging
+
+import pytest
 
 collect_ignore = [
     # Standalone diagnostic scripts (not pytest tests)
@@ -38,3 +41,25 @@ collect_ignore = [
     "_e2e_test.py",
     "_visual_test.py",
 ]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_root_logger():
+    """Snapshot/restore the root logger's handlers and level around every test.
+
+    Importing server.main initializes file logging at import time (a QueueHandler
+    on the root logger + a lowered root level, torn down only at atexit). Without
+    this, that state leaks into later tests. Snapshot before, restore after."""
+    root = logging.getLogger()
+    saved_handlers = root.handlers[:]
+    saved_level = root.level
+    try:
+        yield
+    finally:
+        for h in root.handlers[:]:
+            if h not in saved_handlers:
+                root.removeHandler(h)
+        for h in saved_handlers:
+            if h not in root.handlers:
+                root.addHandler(h)
+        root.setLevel(saved_level)
