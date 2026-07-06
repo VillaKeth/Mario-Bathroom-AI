@@ -90,3 +90,17 @@ def test_live_set_and_state_roundtrip(srv_tmp):
     assert s["flags"]["gossip_enabled"] is False
     assert any(f["key"] == "gossip_enabled" for f in s["manifest"])
     assert "coerce" not in s["manifest"][0]  # JSON-safe
+
+
+# --- Task 3: idle flags read live ------------------------------------------
+
+def test_idle_llm_enabled_reads_live(srv_tmp):
+    srv_tmp.live_config.set("llm_idle_enabled", False)
+    assert srv_tmp._idle_llm_enabled() is False
+    srv_tmp.live_config.set("llm_idle_enabled", True)
+    assert srv_tmp._idle_llm_enabled() is True
+
+
+def test_idle_llm_chance_reads_live(srv_tmp):
+    srv_tmp.live_config.set("llm_idle_chance", 0.9)
+    assert srv_tmp._idle_llm_chance() == 0.9

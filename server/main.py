@@ -3616,6 +3616,20 @@ _LLM_IDLE_CHANCE = GAME_CONFIG.get("llm_idle_chance", 0.25)  # 25% of idle messa
 _LLM_IDLE_TIMEOUT = 15  # seconds
 _last_llm_idle_time = 0.0  # Cooldown to avoid spamming LLM
 
+
+def _idle_llm_enabled() -> bool:
+    """Live-readable idle-chatter switch. Admin can toggle `llm_idle_enabled` at
+    runtime via /admin/live_set; the startup config value is the fallback default."""
+    return bool(live_config.get("llm_idle_enabled", _LLM_IDLE_ENABLED))
+
+
+def _idle_llm_chance() -> float:
+    """Live-readable chance (0..1) that an idle beat uses the LLM."""
+    try:
+        return float(live_config.get("llm_idle_chance", _LLM_IDLE_CHANCE))
+    except (TypeError, ValueError):
+        return _LLM_IDLE_CHANCE
+
 _LLM_IDLE_SYSTEM_PROMPT = None  # Will be loaded from character config
 
 def _get_idle_prompt():
@@ -4077,7 +4091,7 @@ async def _idle_loop(ws: WebSocket):
 
         # LLM idle chatter: 25% chance to generate original Mario thoughts
         _llm_idle_result = None
-        if _LLM_IDLE_ENABLED and random.random() < _LLM_IDLE_CHANCE:
+        if _idle_llm_enabled() and random.random() < _idle_llm_chance():
             try:
                 _llm_idle_result = await _generate_llm_idle()
             except Exception as e:
