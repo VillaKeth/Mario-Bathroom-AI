@@ -3630,6 +3630,12 @@ def _idle_llm_chance() -> float:
     except (TypeError, ValueError):
         return _LLM_IDLE_CHANCE
 
+
+def _reply_paused() -> bool:
+    """Live 'pause bot' kill switch. When true the bot stays silent — skips
+    generating replies and idle chatter. Reversible via /admin/live_set paused=false."""
+    return bool(live_config.get("paused", False))
+
 _LLM_IDLE_SYSTEM_PROMPT = None  # Will be loaded from character config
 
 def _get_idle_prompt():
@@ -3712,6 +3718,9 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    if _reply_paused():
+        logger.debug("[IDLE] Suppressed idle send — bot paused")
+        return False
     # A response may still be generating/streaming (slow LLM + sovits can take
     # 30s+ on a low-tier GPU). Idle must NOT slip in during that window, or the
     # bot interrupts itself mid-conversation with a "talking to myself" line.
@@ -6796,6 +6805,9 @@ async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
 
 async def _handle_text_input(ws: WebSocket, text: str):
     """Process text input — rate-limited, then delegates to shared pipeline."""
+    if _reply_paused():
+        logger.info(f"[PAUSED] Dropping text input (bot paused): '{text[:50]}'")
+        return
     now = time.time()
     async with _state_lock:
         if now - state_current["_last_text_input_time"] < 2.0:

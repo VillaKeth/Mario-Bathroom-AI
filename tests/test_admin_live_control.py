@@ -104,3 +104,13 @@ def test_idle_llm_enabled_reads_live(srv_tmp):
 def test_idle_llm_chance_reads_live(srv_tmp):
     srv_tmp.live_config.set("llm_idle_chance", 0.9)
     assert srv_tmp._idle_llm_chance() == 0.9
+
+
+# --- Task 4: paused kill switch --------------------------------------------
+
+def test_reply_paused_reads_live(srv_tmp):
+    assert srv_tmp._reply_paused() is False
+    srv_tmp.live_config.set("paused", True)
+    assert srv_tmp._reply_paused() is True
+    srv_tmp.live_config.set("paused", False)
+    assert srv_tmp._reply_paused() is False
