@@ -45,3 +45,48 @@ def test_public_manifest_is_json_safe():
 
 def test_flag_defaults_covers_all_flags():
     assert set(lf.flag_defaults()) == {f["key"] for f in lf.LIVE_FLAGS}
+
+
+# --- Task 2: /admin/live_set + /admin/state --------------------------------
+# These import server/main.py (heavy but cached) and monkeypatch its module-level
+# `live_config` to a temp file so the tests never touch the RUNNING server's
+# config_live.json.
+
+import asyncio
+
+from hot_reload import LiveConfig
+
+
+@pytest.fixture
+def srv_tmp(tmp_path, monkeypatch):
+    import main as srv
+    lc = LiveConfig(str(tmp_path / "live.json"))
+    monkeypatch.setattr(srv, "live_config", lc)
+    return srv
+
+
+def _key(srv):
+    return srv.GAME_CONFIG.get("admin_api_key", "")
+
+
+def test_live_set_rejects_unknown_key(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "definitely_not_a_flag", "value": 1}))
+    assert r["status"] == "error"
+
+
+def test_live_set_bad_value_rejected(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "llm_idle_chance", "value": 9}))
+    assert r["status"] == "error"
+
+
+def test_live_set_and_state_roundtrip(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "gossip_enabled", "value": False}))
+    assert r["status"] == "ok" and r["value"] is False
+    s = asyncio.run(srv_tmp.admin_state({"api_key": _key(srv_tmp)}))
+    assert s["status"] == "ok"
+    assert s["flags"]["gossip_enabled"] is False
+    assert any(f["key"] == "gossip_enabled" for f in s["manifest"])
+    assert "coerce" not in s["manifest"][0]  # JSON-safe

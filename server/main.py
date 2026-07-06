@@ -45,6 +45,7 @@ import hardware
 import speaker_id
 import face_enrollment
 import recognition_fusion
+import live_flags
 import memory
 import mario_prompt
 import safety_filter
@@ -3016,6 +3017,48 @@ async def admin_set_config(request_body: dict = {}):
         return {"status": "error", "message": f"config write failed: {e}"}
     logger.info(f"[ADMIN] set_config wrote: {cleaned}")
     return {"status": "ok", "applied": cleaned, "note": "Saved. Restart to apply."}
+
+
+@app.post("/admin/live_set")
+async def admin_live_set(request_body: dict = {}):
+    """Set one whitelisted live flag (see server/live_flags.py). Instant — LiveConfig
+    auto-reloads, so the next live_config.get() sees the new value with no restart.
+    Only manifest keys are accepted + range-checked, so a value sent over the public
+    tunnel can't set arbitrary config or brick the server."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    key = request_body.get("key")
+    try:
+        value = live_flags.coerce_flag(key, request_body.get("value"))
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    live_config.set(key, value)
+    logger.info(f"[ADMIN] live_set {key} = {value!r}")
+    return {"status": "ok", "key": key, "value": value}
+
+
+@app.post("/admin/state")
+async def admin_state(request_body: dict = {}):
+    """Snapshot of every live flag (server/live_flags.py) plus a few live readouts, so
+    the control page renders true state instead of guessing."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    flags = {k: live_config.get(k, d) for k, d in live_flags.flag_defaults().items()}
+    try:
+        phase = night_progression.get_current_phase_name() if night_progression else None
+    except Exception:
+        phase = None
+    active = state_current.get("_active_game") or {}
+    return {
+        "status": "ok",
+        "flags": flags,
+        "manifest": live_flags.public_manifest(),
+        "phase": phase,
+        "active_game": active.get("type") if isinstance(active, dict) else None,
+        "paused": bool(live_config.get("paused", False)),
+    }
 
 
 @app.post("/admin/restart")
