@@ -1,0 +1,64 @@
+# Rudi's video-game knowledge + tactics (tough-love gaming coach).
+#
+# Ingested into Qdrant at startup (see server/lore_knowledge.py) and surfaced
+# SEMANTICALLY when a guest brings up a game — relevance-gated, so it only fires
+# on gaming talk, never info-dumps. Rudi weaves the tactic in; the trash-talk
+# delivery ("you're trash / bot / hardstuck") comes from his system_prompt
+# GAMING COACH block. So the facts carry real tactical substance (he actually
+# knows his stuff) with enough edge to fuel the coaching + the respect-flip.
+facts:
+  # --- Minecraft ---
+  - "Minecraft: never dig straight down. Dropping into lava or a cave is the classic bot death."
+  - "Minecraft diamonds spawn deep near the bottom of the world; strip-mining blind wastes hours."
+  - "Minecraft: a bed explodes in the Nether and the End. Anyone who tries to sleep there dies clueless."
+  - "Minecraft skill gap: good players build an auto mob farm and never touch a mine again."
+  - "Minecraft water-bucket clutch saves you from any fall. Pros place it mid-drop; bots just splat."
+
+  # --- Roblox ---
+  - "Roblox is a platform, not a game. Thousands of experiences, so bragging you are good at Roblox means nothing."
+  - "The Roblox games people actually mean: Doors, Blox Fruits, Adopt Me, Tower of Hell, Arsenal."
+  - "Roblox Arsenal is won on aim and movement. Campers sitting in one spot get clowned."
+  - "Tower of Hell is pure parkour with no checkpoints. One bad jump sends you back to the start."
+  - "Blox Fruits is a grind: the right fruit and stat build is the whole game. Randoms just flail."
+
+  # --- Fortnite ---
+  - "Fortnite is a building game with a gun taped on. Box up and take high ground or you are free kills."
+  - "Fortnite mechanics that separate real players from spray-and-pray bots: building, editing, piece control."
+  - "Fortnite Zero Build mode exists for people who cannot build. No shame, but it is a different game."
+  - "Fortnite: the storm circle dictates rotations. Getting caught out in the storm is a rookie death."
+  - "Fortnite skill ceiling: good players pre-edit walls and hold high ground the whole fight."
+
+  # --- Valorant ---
+  - "Valorant: crosshair placement beats raw aim. Hold angles at head level, do not flick up from the floor."
+  - "Valorant agents have roles: duelists entry, controllers smoke, sentinels hold, initiators get info."
+  - "Valorant economy matters. Force-buying every round with no save is how teams throw the game."
+  - "Valorant basics bots skip: counter-strafe, stop moving to shoot, and control your spray."
+  - "Valorant: good players throw utility before they peek. Running in dry with no smokes is bot behavior."
+
+  # --- League of Legends ---
+  - "League of Legends: it is always the jungler's fault, and it is also always your fault. Both are true."
+  - "League: last-hitting minions for gold is free money. Bad players miss CS and stay broke all game."
+  - "League: vision and wards win more games than kills. Face-checking a bush gets you collapsed on."
+  - "League: objectives like dragon and baron close games. Chasing kills instead is how you lose a won game."
+  - "League skill gap: knowing matchups and wave management is the difference between iron and challenger."
+
+  # --- Call of Duty / Warzone ---
+  - "Call of Duty: movement wins fights. Slide-cancel and jump-shot; hardscopers standing still get lasered."
+  - "Call of Duty: pre-aim the common angles. You should never be surprised by a corner you already knew about."
+  - "Warzone: the gulag is your second chance. Losing a clean one-versus-one down there is embarrassing."
+  - "Warzone: loadout drops give you your own guns and turn fights. Ground-loot players stay struggling."
+  - "Call of Duty: good players use cover and rotate. Sprinting across open field is free XP for the enemy."
+
+  # --- GTA (V / Online) ---
+  - "GTA Online is a grind. Heists like Cayo Perico and businesses print money; story missions are chump change."
+  - "GTA Online: Oppressor griefers ruin lobbies. Smart players go off-radar or run a ghost organization."
+  - "GTA races are won on racing lines and cornering. Players who brake into every turn get lapped."
+  - "GTA Online meta money: the Cayo Perico heist solo. People still begging for cash never learned it."
+  - "GTA: aim assist and cover-shooting carry you against the AI. Free-aim player-versus-player is a whole other skill."
+
+  # --- Among Us ---
+  - "Among Us: as impostor, fake tasks but never claim visual tasks. Visual tasks cannot be faked, so it exposes you."
+  - "Among Us: good crewmates track movement and cross-reference alibis instead of vibes-voting."
+  - "Among Us: vote on evidence, not because someone feels sus for no reason. Blind votes lose the game for crew."
+  - "Among Us: sabotaging lights and oxygen splits the group. That pressure is basic impostor play."
+  - "Among Us: winning as impostor is reading people. Randoms just panic-lie and get caught in one meeting."

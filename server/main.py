@@ -1145,11 +1145,19 @@ async def lifespan(app: FastAPI):
             vip_knowledge.load_all_vip_profiles()
             logger.info("VIP profiles loaded into semantic memory")
 
-            # Load world lore (e.g. scraped HSR wiki facts) for THIS character.
+            # Load world lore for THIS character: the legacy hardcoded
+            # hsr_lore.yaml (HSR chars) PLUS the character's own configured
+            # lore_file (character.yaml memory.lore_file — e.g. Rudi's game
+            # knowledge in memories/lore.yaml). Both are ingested idempotently;
+            # a missing file is a no-op, and the dedupe avoids a double-load when
+            # a character points lore_file at hsr_lore.yaml itself.
             try:
                 import lore_knowledge
-                _lore_path = os.path.join(_character.character_dir, "memories", "hsr_lore.yaml")
-                _n_lore = lore_knowledge.load_lore_file(_lore_path)
+                _lore_paths = [os.path.join(_character.character_dir, "memories", "hsr_lore.yaml")]
+                _cfg_lore = getattr(_character, "lore_file", "") or ""
+                if _cfg_lore and _cfg_lore not in _lore_paths:
+                    _lore_paths.append(_cfg_lore)
+                _n_lore = sum(lore_knowledge.load_lore_file(p) for p in _lore_paths)
                 if _n_lore:
                     logger.info(f"Loaded {_n_lore} world-lore facts into semantic memory")
             except Exception as _e:
