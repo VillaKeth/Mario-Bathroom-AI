@@ -6,110 +6,72 @@
 <title>Party Bot — Admin Control</title>
 <style>
   :root { --bg:#13131f; --card:#1e1e2e; --edge:#33334d; --txt:#e6e6f0; --muted:#9a9ab0;
-          --accent:#7c5cff; --good:#2ecc71; --warn:#ff6b6b; }
+          --accent:#7c5cff; --good:#2ecc71; --off:#44445a; --warn:#ff6b6b; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg);
-         color:var(--txt); padding:16px; max-width:560px; margin:0 auto; }
-  h1 { font-size:20px; margin:8px 0 4px; }
-  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+         color:var(--txt); padding:14px; max-width:960px; margin:0 auto; }
+  h1 { font-size:19px; margin:6px 0 2px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px;
+            position:sticky; top:0; background:var(--bg); padding:8px 0; z-index:5; }
+  .modepill { display:flex; gap:2px; background:#0e0e16; border-radius:99px; padding:3px; font-size:13px; }
+  .modepill button { background:none; border:none; color:var(--muted); padding:5px 12px;
+                     border-radius:99px; cursor:pointer; font-weight:600; }
+  .modepill button.active { background:var(--accent); color:#fff; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--off); display:inline-block; }
+  .dot.on { background:var(--good); } .dot.bad { background:var(--warn); }
   .card { background:var(--card); border:1px solid var(--edge); border-radius:12px;
-          padding:14px 16px; margin-bottom:14px; }
-  .card h2 { font-size:15px; margin:0 0 10px; }
-  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 3px; }
-  input, select { width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--edge);
+          padding:12px 14px; margin-bottom:12px; }
+  .card h2 { font-size:14px; margin:0 0 4px; }
+  .grid { display:grid; gap:12px; }
+  @media (min-width:720px){ .grid.setup { grid-template-columns:1fr 1fr; } }
+  label { display:block; font-size:12px; color:var(--muted); margin:8px 0 3px; }
+  input, select, textarea { width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--edge);
                   background:#15151f; color:var(--txt); font-size:14px; }
-  .row { display:flex; gap:8px; }
-  .row > * { flex:1; }
-  button { cursor:pointer; border:none; border-radius:8px; padding:10px 12px; font-size:14px;
-           font-weight:600; background:var(--accent); color:#fff; margin-top:10px; width:100%; }
-  button.ghost { background:#2a2a3d; }
-  button.danger { background:var(--warn); }
+  button { cursor:pointer; border:none; border-radius:8px; padding:9px 12px; font-size:14px;
+           font-weight:600; background:var(--accent); color:#fff; }
+  button.ghost { background:#2a2a3d; } button.danger { background:var(--warn); }
   button:disabled { opacity:.5; cursor:not-allowed; }
-  .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px;
-          background:#2a2a3d; color:var(--muted); }
-  .note { font-size:12px; color:var(--muted); margin-top:6px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+         padding:9px 2px; border-bottom:1px solid #26263a; }
+  .row:last-child { border-bottom:none; }
+  .row .name { font-size:14px; }
+  .sw { width:44px; height:25px; border-radius:99px; background:var(--off); position:relative;
+        flex:none; transition:background .15s; border:none; padding:0; }
+  .sw.on { background:var(--good); }
+  .sw i { position:absolute; top:3px; left:3px; width:19px; height:19px; border-radius:50%;
+          background:#fff; transition:left .15s; }
+  .sw.on i { left:22px; }
+  .seg { display:flex; gap:4px; flex-wrap:wrap; }
+  .seg button { background:#0e0e16; color:var(--muted); padding:5px 9px; font-size:12px; font-weight:600; }
+  .seg button.active { background:var(--accent); color:#fff; }
+  .inline { display:flex; gap:8px; } .inline > * { flex:1; }
+  .note { font-size:12px; color:var(--muted); margin:4px 0 2px; }
   #log { white-space:pre-wrap; font-family:ui-monospace,Consolas,monospace; font-size:12px;
          background:#0e0e16; border:1px solid var(--edge); border-radius:8px; padding:10px;
-         min-height:40px; color:#cfcfe6; }
+         max-height:120px; overflow:auto; color:#cfcfe6; }
   .ok { color:var(--good); } .bad { color:var(--warn); }
+  .hidden { display:none !important; }
 </style>
 </head>
 <body>
-  <h1>🎛️ Party Bot — Admin Control</h1>
-  <div class="sub">Everything here needs the admin key. Nothing works without it.</div>
+  <div class="topbar">
+    <div><span class="dot" id="statusDot"></span> <b>🎛️ Party Bot</b>
+      <span id="curchar" style="color:var(--muted);font-size:12px"></span></div>
+    <div class="modepill" id="modePill">
+      <button data-mode="live">Live</button>
+      <button data-mode="setup">Setup</button>
+    </div>
+  </div>
 
-  <div class="card">
+  <div class="card" id="keyCard">
     <h2>🔑 Admin key</h2>
     <input id="key" type="password" placeholder="Paste admin key" autocomplete="off">
-    <button id="connect">Connect</button>
-    <div class="note">Stored only in this browser. Current character: <span id="curchar" class="pill">—</span></div>
+    <div class="inline" style="margin-top:8px"><button id="connect">Connect</button></div>
+    <div class="note">Stored only in this browser. Nothing works without it.</div>
   </div>
 
-  <div class="card" id="charCard" style="display:none">
-    <h2>🎭 Character</h2>
-    <label for="charsel">Pick a character</label>
-    <select id="charsel"></select>
-    <div class="row">
-      <button id="switchLive" class="ghost">Switch now (live)</button>
-      <button id="switchRestart">Switch &amp; Restart</button>
-    </div>
-    <div class="note">Live = voice + personality change instantly. Switch &amp; Restart also
-      fully reloads memory, VIP profiles, and lore for the new character.</div>
-  </div>
-
-  <div class="card" id="setCard" style="display:none">
-    <h2>⚙️ Safe settings</h2>
-    <div class="note">Leave a field blank to keep it unchanged. Applied on the next restart.</div>
-    <label for="idleEnabled">Idle chatter</label>
-    <select id="idleEnabled">
-      <option value="">(unchanged)</option>
-      <option value="true">On</option>
-      <option value="false">Off</option>
-    </select>
-    <label for="idleChance">Idle "use the AI" chance (0.0 – 1.0)</label>
-    <input id="idleChance" type="number" min="0" max="1" step="0.05" placeholder="e.g. 0.25">
-    <div class="row">
-      <div>
-        <label for="idleMin">Idle min seconds</label>
-        <input id="idleMin" type="number" min="1" max="600" placeholder="e.g. 15">
-      </div>
-      <div>
-        <label for="idleMax">Idle max seconds</label>
-        <input id="idleMax" type="number" min="1" max="3600" placeholder="e.g. 90">
-      </div>
-    </div>
-    <button id="saveSettings" class="ghost">Save settings</button>
-  </div>
-
-  <div class="card" id="volCard" style="display:none">
-    <h2>🔊 Volume (live)</h2>
-    <div class="note">Sets the bot's speaker volume on the party machine right now. 1.0 = normal, 2.0 = loud.</div>
-    <label for="vol">Volume: <b><span id="volVal">1.0</span>×</b></label>
-    <input id="vol" type="range" min="0" max="2" step="0.05" value="1.0">
-    <button id="setVol" class="ghost">Set volume</button>
-  </div>
-
-  <div class="card" id="phaseCard" style="display:none">
-    <h2>🌙 Night phase</h2>
-    <div class="note">Auto = advances by party time on its own. Pick one to force it
-      (changes warmth, chaos, gossip &amp; roast level). Takes effect immediately.</div>
-    <select id="phasesel">
-      <option value="AUTO">Auto (by time)</option>
-      <option value="WARM_UP">Warm-up (chill, warm)</option>
-      <option value="PARTY_MODE">Party mode (lively)</option>
-      <option value="UNHINGED">Unhinged (chaotic, roasty)</option>
-      <option value="WIND_DOWN">Wind-down (mellow)</option>
-    </select>
-    <button id="setPhase" class="ghost">Set phase</button>
-  </div>
-
-  <div class="card" id="restartCard" style="display:none">
-    <h2>🔁 Restart server</h2>
-    <div class="note">Type <b>RESTART</b> below to confirm. The bot drops for ~30–60s while it reboots.</div>
-    <label for="confirm">Confirm</label>
-    <input id="confirm" type="text" placeholder="Type RESTART" autocomplete="off">
-    <button id="restartBtn" class="danger">Restart server</button>
-  </div>
+  <div id="panel" class="hidden"></div>
 
   <div class="card">
     <h2>📋 Status</h2>
@@ -118,111 +80,180 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const KEY_STORE = "mario_admin_key";
+const KEY_STORE = "mario_admin_key", MODE_STORE = "mario_admin_mode";
 $("key").value = localStorage.getItem(KEY_STORE) || "";
 
-function log(msg, cls) {
-  const el = $("log");
-  const span = cls ? `<span class="${cls}">${msg}</span>` : msg;
-  el.innerHTML = span + "\n" + el.innerHTML;
-}
-function apiKey() { return $("key").value.trim(); }
+let MANIFEST = [], FLAGS = {}, CHARS = [], CURCHAR = "", POLL = null;
+let MODE = localStorage.getItem(MODE_STORE) ||
+           (window.matchMedia("(max-width:720px)").matches ? "live" : "setup");
 
-async function post(path, body) {
-  const r = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(Object.assign({ api_key: apiKey() }, body || {}))
-  });
+const PHASES = ["AUTO","WARM_UP","PARTY_MODE","UNHINGED","WIND_DOWN"];
+const PHASE_LABEL = {AUTO:"Auto",WARM_UP:"Warm-up",PARTY_MODE:"Party",UNHINGED:"Wild",WIND_DOWN:"Wind-down"};
+const EMOTIONS = ["happy","excited","mischievous","confused","sad","angry","sleepy","surprised","proud","concerned"];
+
+function apiKey(){ return $("key").value.trim(); }
+function log(msg, cls){ const el=$("log"); el.innerHTML = (cls?`<span class="${cls}">${msg}</span>`:msg)+"\n"+el.innerHTML; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function post(path, body){
+  const r = await fetch(path, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(Object.assign({api_key:apiKey()}, body||{})) });
   return r.json();
 }
 
-function showPanels(show) {
-  for (const id of ["charCard", "setCard", "volCard", "phaseCard", "restartCard"])
-    $(id).style.display = show ? "block" : "none";
-}
-
-async function connect() {
-  if (!apiKey()) { log("Enter the admin key first.", "bad"); return; }
+async function connect(){
+  if(!apiKey()){ log("Enter the admin key first.","bad"); return; }
   localStorage.setItem(KEY_STORE, apiKey());
-  const res = await post("/admin/switch_character", {});   // no character = list
-  if (res.status !== "ok") { log("✗ " + (res.message || "bad key"), "bad"); showPanels(false); return; }
-  const sel = $("charsel");
-  sel.innerHTML = "";
-  (res.available || []).forEach(name => {
-    const o = document.createElement("option");
-    o.value = name; o.textContent = name;
-    if (name === res.current) o.selected = true;
-    sel.appendChild(o);
+  const st = await post("/admin/state", {});
+  if(st.status !== "ok"){ log("✗ "+(st.message||"bad key"),"bad"); setDot("bad"); return; }
+  MANIFEST = st.manifest || []; FLAGS = st.flags || {};
+  const cs = await post("/admin/switch_character", {});   // no character = list
+  if(cs.status==="ok"){ CHARS = cs.available||[]; CURCHAR = cs.current||""; }
+  $("keyCard").classList.add("hidden"); $("panel").classList.remove("hidden");
+  setDot("on"); $("curchar").textContent = CURCHAR ? "· "+CURCHAR : "";
+  log("✓ Connected. "+MANIFEST.length+" live flags.","ok");
+  render();
+  if(POLL) clearInterval(POLL);
+  POLL = setInterval(refreshState, 5000);
+}
+
+function setDot(s){ const d=$("statusDot"); d.className = "dot"+(s==="on"?" on":s==="bad"?" bad":""); }
+
+async function refreshState(){
+  const st = await post("/admin/state", {});
+  if(st.status !== "ok"){ setDot("bad"); return; }
+  setDot("on"); FLAGS = st.flags || FLAGS;
+  document.querySelectorAll("[data-flag]").forEach(el=>{
+    const k = el.getAttribute("data-flag");
+    if(k in FLAGS && el.classList.contains("sw")) el.classList.toggle("on", !!FLAGS[k]);
   });
-  $("curchar").textContent = res.current || "—";
-  showPanels(true);
-  log("✓ Connected. " + (res.available || []).length + " characters available.", "ok");
 }
 
-async function doSwitch(thenRestart) {
-  const name = $("charsel").value;
-  if (!name) return;
-  if (thenRestart && !confirm(`Switch to "${name}" and restart the server now?`)) return;
-  const res = await post("/admin/switch_character", { character: name });
-  if (res.status !== "ok") { log("✗ switch failed: " + (res.message || ""), "bad"); return; }
-  $("curchar").textContent = name;
-  log(`✓ Switched to ${res.display_name || name} (live).`, "ok");
-  if (thenRestart) {
-    const rr = await post("/admin/restart", { confirm: "RESTART" });
-    log(rr.status === "ok" ? "↻ " + rr.message : "✗ " + rr.message, rr.status === "ok" ? "ok" : "bad");
-  } else {
-    log("Voice + personality applied. Restart to fully load its memory / VIPs / lore.");
+function featureFlags(){ return MANIFEST.filter(f=>f.type==="bool" && f.group==="features"); }
+
+function render(){
+  document.querySelectorAll("#modePill button").forEach(b=>b.classList.toggle("active", b.dataset.mode===MODE));
+  const p = $("panel");
+  let h = "";
+  // --- Vibe ---
+  h += card("🎚️ Vibe", `
+    <div class="row"><span class="name">Night phase</span><div class="seg" id="phaseSeg">${
+      PHASES.map(p=>`<button data-phase="${p}" class="${FLAGS.__phase===p?'active':''}">${PHASE_LABEL[p]}</button>`).join("")}</div></div>
+    <div class="row"><span class="name">Volume</span>
+      <input type="range" min="0" max="2" step="0.05" value="1" id="vol" style="max-width:150px"
+        oninput="post('/admin/set_volume',{gain:parseFloat(this.value)})"></div>
+    ${flagRow(MANIFEST.find(f=>f.key==="paused"))}
+  `);
+  // --- Features ---
+  h += card("⚡ Features", featureFlags().map(flagRow).join(""));
+  // --- Games & events ---
+  h += card("🎬 Games &amp; events", `
+    <div class="inline" style="margin-bottom:8px">
+      <button class="danger" onclick="act('/admin/force_stop_game',{},'game stopped')">■ Stop game</button>
+      <button class="ghost" onclick="if(confirm('Trigger the memorial moment now?'))act('/admin/trigger_memorial',{},'memorial triggered')">🕯️ Memorial</button>
+    </div>
+    <label>Trigger event</label>
+    <div class="inline"><input id="evt" placeholder="e.g. mario_kart">
+      <button style="flex:0 0 auto" onclick="triggerEvent()">Go</button></div>`);
+  // --- Look ---
+  h += card("🎭 Look", `
+    <label>Outfit</label>
+    <div class="inline"><input id="outfit" placeholder="default / tuxedo / ...">
+      <button style="flex:0 0 auto" onclick="act('/admin/outfit',{outfit:$('outfit').value||'default'},'outfit → '+($('outfit').value||'default'))">Apply</button></div>
+    <label>Emotion</label>
+    <div class="inline"><select id="emo">${EMOTIONS.map(e=>`<option>${e}</option>`).join("")}</select>
+      <button style="flex:0 0 auto" onclick="act('/admin/set_emotion',{emotion:$('emo').value},'emotion → '+$('emo').value)">Set</button></div>
+    <label>Announce (Mario says it)</label>
+    <div class="inline"><input id="ann" maxlength="200" placeholder="Type something for Mario to say">
+      <button style="flex:0 0 auto" onclick="announce()">Say</button></div>`);
+  // --- Setup only ---
+  if(MODE==="setup"){
+    h += card("🎭 Character", `
+      <div class="inline"><select id="charsel">${CHARS.map(c=>`<option ${c===CURCHAR?'selected':''}>${esc(c)}</option>`).join("")}</select></div>
+      <div class="inline" style="margin-top:8px">
+        <button class="ghost" onclick="switchChar(false)">Switch live</button>
+        <button onclick="switchChar(true)">Switch &amp; restart</button></div>`);
+    h += card("⚙️ Idle timing", `
+      ${numRow(MANIFEST.find(f=>f.key==="llm_idle_chance"))}
+      <label>Idle min / max seconds (blank = keep)</label>
+      <div class="inline"><input id="idleMin" type="number" placeholder="min e.g. 15">
+        <input id="idleMax" type="number" placeholder="max e.g. 90"></div>
+      <button class="ghost" style="margin-top:8px" onclick="saveIdle()">Save idle timing (restart to apply)</button>`);
+    h += card("🔁 Restart server", `
+      <div class="note">Type RESTART to confirm — bot drops ~30-60s.</div>
+      <div class="inline"><input id="confirm" placeholder="Type RESTART">
+        <button class="danger" style="flex:0 0 auto" onclick="restart()">Restart</button></div>`);
   }
+  p.innerHTML = h;
+  wireToggles(); wirePhase();
 }
 
-async function saveSettings() {
-  const s = {};
-  if ($("idleEnabled").value !== "") s.llm_idle_enabled = ($("idleEnabled").value === "true");
-  if ($("idleChance").value !== "") s.llm_idle_chance = parseFloat($("idleChance").value);
-  if ($("idleMin").value !== "") s.idle_interval_min_seconds = parseInt($("idleMin").value, 10);
-  if ($("idleMax").value !== "") s.idle_interval_max_seconds = parseInt($("idleMax").value, 10);
-  if (!Object.keys(s).length) { log("Nothing to save — all fields blank.", "bad"); return; }
-  const res = await post("/admin/set_config", { settings: s });
-  if (res.status !== "ok") {
-    log("✗ " + (res.message || "save failed") + (res.rejected ? " " + JSON.stringify(res.rejected) : ""), "bad");
-  } else {
-    log("✓ Saved " + JSON.stringify(res.applied) + " — restart to apply.", "ok");
-  }
+function card(title, inner){ return `<div class="card"><h2>${title}</h2>${inner}</div>`; }
+function flagRow(f){ if(!f) return "";
+  return `<div class="row"><span class="name">${esc(f.label)}</span>
+    <button class="sw ${FLAGS[f.key]?'on':''}" data-flag="${f.key}"><i></i></button></div>`; }
+function numRow(f){ if(!f) return "";
+  return `<label>${esc(f.label)} (${f.min}–${f.max})</label>
+    <input type="number" min="${f.min}" max="${f.max}" step="0.05" value="${FLAGS[f.key]}"
+      onchange="setNum('${f.key}',this)">`; }
+
+function wireToggles(){
+  document.querySelectorAll(".sw[data-flag]").forEach(el=>{
+    el.onclick = async ()=>{
+      const k = el.getAttribute("data-flag"), next = !el.classList.contains("on");
+      el.classList.toggle("on", next);                 // optimistic
+      const r = await post("/admin/live_set", {key:k, value:next});
+      if(r.status!=="ok"){ el.classList.toggle("on", !next); log("✗ "+k+": "+(r.message||"failed"),"bad"); }
+      else { FLAGS[k]=r.value; log("✓ "+k+" → "+r.value,"ok"); }
+    };
+  });
+}
+function wirePhase(){
+  document.querySelectorAll("#phaseSeg button").forEach(b=>{
+    b.onclick = async ()=>{
+      const r = await post("/admin/set_night_phase", {phase:b.dataset.phase});
+      if(r.status==="ok"){ FLAGS.__phase=b.dataset.phase;
+        document.querySelectorAll("#phaseSeg button").forEach(x=>x.classList.toggle("active",x===b));
+        log("✓ phase → "+(r.effective_phase||b.dataset.phase),"ok"); }
+      else log("✗ phase: "+(r.message||"failed"),"bad");
+    };
+  });
 }
 
-async function setVolume() {
-  const g = parseFloat($("vol").value);
-  const res = await post("/admin/set_volume", { gain: g });
-  log(res.status === "ok" ? `✓ Volume set to ${g.toFixed(2)}×` : "✗ " + (res.message || "failed"),
-      res.status === "ok" ? "ok" : "bad");
+async function setNum(key, el){
+  const r = await post("/admin/live_set", {key, value:parseFloat(el.value)});
+  log(r.status==="ok" ? "✓ "+key+" → "+r.value : "✗ "+(r.message||"failed"), r.status==="ok"?"ok":"bad");
 }
-
-async function setPhase() {
-  const p = $("phasesel").value;
-  const res = await post("/admin/set_night_phase", { phase: p });
-  if (res.status !== "ok") { log("✗ " + (res.message || "failed"), "bad"); return; }
-  log(`✓ Phase ${p === "AUTO" ? "set to AUTO" : "forced to " + p} (now: ${res.effective_phase}).`, "ok");
+async function act(path, body, okmsg){
+  const r = await post(path, body);
+  log(r.status==="ok" ? "✓ "+okmsg : "✗ "+(r.message||r.reason||"failed"), r.status==="ok"?"ok":"bad");
+  refreshState();
 }
-
-async function restart() {
-  const c = $("confirm").value.trim();
-  if (c.toUpperCase() !== "RESTART") { log('Type RESTART to confirm.', "bad"); return; }
-  const res = await post("/admin/restart", { confirm: c });
-  log(res.status === "ok" ? "↻ " + res.message : "✗ " + res.message, res.status === "ok" ? "ok" : "bad");
-  $("confirm").value = "";
+function triggerEvent(){ const n=($("evt").value||"").trim(); if(!n){log("Event name required.","bad");return;}
+  act("/admin/trigger_event/"+encodeURIComponent(n), {}, "event → "+n); }
+function announce(){ const t=($("ann").value||"").trim(); if(!t){log("Nothing to announce.","bad");return;}
+  act("/admin/announce", {text:t}, "announced: "+t.slice(0,40)); $("ann").value=""; }
+async function switchChar(restart){
+  const name = $("charsel").value; if(!name) return;
+  if(restart && !confirm(`Switch to "${name}" and restart?`)) return;
+  const r = await post("/admin/switch_character", {character:name});
+  if(r.status!=="ok"){ log("✗ switch: "+(r.message||""),"bad"); return; }
+  CURCHAR=name; $("curchar").textContent="· "+name; log("✓ switched to "+(r.display_name||name),"ok");
+  if(restart) act("/admin/restart", {confirm:"RESTART"}, "restarting");
 }
+function saveIdle(){
+  const s={}; if($("idleMin").value!=="") s.idle_interval_min_seconds=parseInt($("idleMin").value,10);
+  if($("idleMax").value!=="") s.idle_interval_max_seconds=parseInt($("idleMax").value,10);
+  if(!Object.keys(s).length){ log("Nothing to save.","bad"); return; }
+  act("/admin/set_config", {settings:s}, "idle timing saved (restart to apply)");
+}
+function restart(){ if(($("confirm").value||"").toUpperCase()!=="RESTART"){log("Type RESTART to confirm.","bad");return;}
+  act("/admin/restart", {confirm:"RESTART"}, "restarting"); $("confirm").value=""; }
 
 $("connect").onclick = connect;
-$("switchLive").onclick = () => doSwitch(false);
-$("switchRestart").onclick = () => doSwitch(true);
-$("saveSettings").onclick = saveSettings;
-$("vol").oninput = () => { $("volVal").textContent = parseFloat($("vol").value).toFixed(2); };
-$("setVol").onclick = setVolume;
-$("setPhase").onclick = setPhase;
-$("restartBtn").onclick = restart;
-// Auto-connect if a key is already saved.
-if (apiKey()) connect();
+$("modePill").onclick = e=>{ const m=e.target.dataset.mode; if(!m) return;
+  MODE=m; localStorage.setItem(MODE_STORE,m); render(); };
+if(apiKey()) connect();
 </script>
 </body>
 </html>
