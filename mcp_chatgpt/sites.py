@@ -74,6 +74,25 @@ SITES = {
         usage_limit_markers=("rate limit", "try again later", "out of",
                              "limit reached", "upgrade to"),
         refusal_markers=("can't help with that", "i can't create"),
+        # grok periodically drops a Terms & Conditions / consent-update modal that
+        # REPLACES the chat and hides the composer (symptom: Page.fill times out
+        # "waiting for locator" because [contenteditable] never appears). Because
+        # the composer is absent, _dismiss_intro runs these and clicks whichever is
+        # present to accept and get back to the composer. Ordered most- to least-
+        # specific; :has-text is a case-insensitive substring match.
+        intro_buttons=(
+            "button:has-text('Accept all')",
+            "button:has-text('Accept and continue')",
+            "button:has-text('Agree and continue')",
+            "button:has-text('I agree')",
+            "button:has-text('Accept')",
+            "button:has-text('Agree')",
+            "button:has-text('Acknowledge')",
+            "button:has-text('Continue')",
+            "button:has-text('Got it')",
+            "[data-testid='accept-terms']",
+            "[aria-label*='Accept' i]",
+        ),
     ),
     # SCAFFOLD — verify live (Gemini uses a Quill div.ql-editor composer +
     # <model-response> turns; confirm the real image host).
