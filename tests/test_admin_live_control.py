@@ -142,3 +142,24 @@ def test_live_set_games_toggles_game_handlers(srv_tmp):
     asyncio.run(srv_tmp.admin_live_set(
         {"api_key": _key(srv_tmp), "key": "games_enabled", "value": True}))
     assert srv_tmp._game_handlers_mod._GAMES_ENABLED is True
+
+
+# --- Task 6: /admin/outfit -------------------------------------------------
+
+def test_admin_outfit_broadcasts(srv_tmp, monkeypatch):
+    sent = {}
+
+    class FakeWS:
+        async def send_json(self, msg):
+            sent.update(msg)
+
+    monkeypatch.setattr(srv_tmp, "_active_ws", FakeWS())
+    r = asyncio.run(srv_tmp.admin_outfit({"api_key": _key(srv_tmp), "outfit": "tuxedo"}))
+    assert r["status"] == "ok" and r["outfit"] == "tuxedo"
+    assert sent == {"type": "outfit_switched", "outfit": "tuxedo"}
+
+
+def test_admin_outfit_no_client(srv_tmp, monkeypatch):
+    monkeypatch.setattr(srv_tmp, "_active_ws", None)
+    r = asyncio.run(srv_tmp.admin_outfit({"api_key": _key(srv_tmp), "outfit": "tuxedo"}))
+    assert r["status"] == "error"

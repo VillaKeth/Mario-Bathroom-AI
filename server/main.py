@@ -3074,6 +3074,24 @@ async def admin_state(request_body: dict = {}):
     }
 
 
+@app.post("/admin/outfit")
+async def admin_outfit(request_body: dict = {}):
+    """Push an outfit swap to the connected client. The client's on_outfit_switched
+    handler repoints its sprite tree live. Blank / 'default' reverts to the base set."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    outfit = (request_body.get("outfit") or "default").strip()
+    if not _active_ws:
+        return {"status": "error", "message": "No client connected"}
+    try:
+        await _active_ws.send_json({"type": "outfit_switched", "outfit": outfit})
+    except Exception as e:
+        return {"status": "error", "message": f"send failed: {e}"}
+    logger.info(f"[ADMIN] outfit -> {outfit}")
+    return {"status": "ok", "outfit": outfit}
+
+
 @app.post("/admin/restart")
 async def admin_restart(request_body: dict = {}):
     """Admin: restart the whole server.
