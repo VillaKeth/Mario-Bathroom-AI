@@ -3034,6 +3034,19 @@ async def admin_live_set(request_body: dict = {}):
     except ValueError as e:
         return {"status": "error", "message": str(e)}
     live_config.set(key, value)
+    # Some subsystems cache their setting instead of reading live_config each call —
+    # push the change to them so the toggle is truly instant.
+    if key == "safety_enabled":
+        try:
+            _blk = bool(getattr(_character, "safety_block_slurs", False)) if _character else False
+            safety_filter.set_safety_config(bool(value), _blk)
+        except Exception as e:
+            logger.warning(f"[ADMIN] safety live-apply failed: {e}")
+    elif key == "games_enabled":
+        try:
+            _game_handlers_mod.set_games_enabled(bool(value))
+        except Exception as e:
+            logger.warning(f"[ADMIN] games live-apply failed: {e}")
     logger.info(f"[ADMIN] live_set {key} = {value!r}")
     return {"status": "ok", "key": key, "value": value}
 
@@ -3635,6 +3648,11 @@ def _reply_paused() -> bool:
     """Live 'pause bot' kill switch. When true the bot stays silent — skips
     generating replies and idle chatter. Reversible via /admin/live_set paused=false."""
     return bool(live_config.get("paused", False))
+
+
+def _feature_on(key: str, default: bool = True) -> bool:
+    """Live-readable feature switch (admin-toggleable via /admin/live_set)."""
+    return bool(live_config.get(key, default))
 
 _LLM_IDLE_SYSTEM_PROMPT = None  # Will be loaded from character config
 
@@ -4465,7 +4483,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Catchphrase mirroring — feed guest text and check for repeated phrases
         _speaker = state_current.get("speaker_name", "")
-        if _speaker:
+        if _speaker and _feature_on("catchphrase_mirror_enabled"):
             catchphrase_mirror.feed(_speaker, text)
             mirror_phrase = catchphrase_mirror.get_mirror_phrase(_speaker)
             if mirror_phrase:
@@ -5110,13 +5128,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                            "who's come", "anyone come by", "who stopped by",
                            "met anyone", "seen anyone", "any visitors")
         gossip_requested = any(kw in lower_text for kw in gossip_keywords)
+        _gossip_on = _feature_on("gossip_enabled")
 
         gossip_hints = party_gossip.get_gossip_for_guest(
             current_speaker_id=state_current.get("speaker_id"),
             current_name=state_current.get("speaker_name"),
             count=3 if gossip_requested else 1,
             gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
-        )
+        ) if _gossip_on else []
         # Always inject gossip when explicitly requested, otherwise 35% chance
         if gossip_hints and (gossip_requested or random.random() < 0.35):
             gossip_ctx = " ".join(gossip_hints) if gossip_requested else gossip_hints[0]
@@ -5126,7 +5145,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Visitor list fallback — inject known guest names when gossip is requested
         # This ensures Mario knows WHO was here even if no gossip entries exist
-        if gossip_requested:
+        if gossip_requested and _gossip_on:
             known_names = party_gossip.get_known_guest_names(
                 exclude_id=state_current.get("speaker_id"))
             # Also check party_stats for visitors not captured by gossip system
@@ -5151,25 +5170,25 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Guest comparison — if they said something another guest also talked about
         comparison = party_gossip.get_comparison_hint(
             state_current.get("speaker_id", ""), text)
-        if comparison and random.random() < 0.4:
+        if _gossip_on and comparison and random.random() < 0.4:
             ctx.append({"role": "system", "content": f"[COMPARE]: {comparison}"})
 
         # Rivalry hint — if current topic touches an existing rivalry
         rivalry_hint = party_gossip.get_rivalry_hint(
             state_current.get("speaker_id", ""), text)
-        if rivalry_hint:
+        if _gossip_on and rivalry_hint:
             ctx.append({"role": "system", "content": f"[RIVALRY]: {rivalry_hint}"})
 
         # Alliance hint — if current topic matches an existing alliance
         alliance_hint = party_gossip.get_alliance_hint(
             state_current.get("speaker_id", ""), text)
-        if alliance_hint and random.random() < 0.5:
+        if _gossip_on and alliance_hint and random.random() < 0.5:
             ctx.append({"role": "system", "content": f"[ALLIANCE]: {alliance_hint}"})
 
         # Trending topic hint — if a topic is hot across 3+ guests
         trending = party_gossip.get_trending_topic_hint(
             state_current.get("speaker_id", ""))
-        if trending:
+        if _gossip_on and trending:
             ctx.append({"role": "system", "content": f"[TRENDING]: {trending}"})
 
         # Gossip seed question — ask fun questions early to generate material
@@ -5779,7 +5798,8 @@ def _voice_commit_ok(speaker_info, now):
     Prevents greeting an un-enrolled stranger by a guest's name. See audit F5."""
     if not speaker_info or speaker_info.get("is_new"):
         return False
-    recent_face = _fresh_result(state_current.get("_last_face_result"), now)
+    recent_face = (_fresh_result(state_current.get("_last_face_result"), now)
+                   if _feature_on("recognition_enabled") else None)
     decision = recognition_fusion.fuse_identity(
         voice=speaker_info, face=recent_face,
         noise_level=recognition_fusion.LIVE_PARTY_NOISE_LEVEL)
@@ -5811,7 +5831,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
 
     # Audio-based vomit detection: feed frame through DistressTracker for
     # volume-spike + temporal-coherence gating (requires 2+ frames in 5s)
-    if distress_result and _distress_tracker is not None:
+    if distress_result and _distress_tracker is not None and _feature_on("distress_enabled"):
         tracked = _distress_tracker.update(distress_result, audio_chunk)
         logger.debug(f"[AUDIO_DISTRESS] tracker: confirmed={tracked['confirmed_distress']}, "
                      f"conf={tracked['combined_confidence']:.2f}, "

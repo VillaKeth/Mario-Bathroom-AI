@@ -460,8 +460,21 @@ def reset_game_rotation():
 # start_game — initialise a new game session
 # ---------------------------------------------------------------------------
 
+# Live 'games' switch — main.py flips this via /admin/live_set games_enabled.
+_GAMES_ENABLED = True
+
+
+def set_games_enabled(enabled: bool):
+    """Toggle games on/off at runtime. When off, start_game() is a no-op (returns
+    None), so game triggers fall through to normal chat instead of launching."""
+    global _GAMES_ENABLED
+    _GAMES_ENABLED = bool(enabled)
+
+
 def start_game(game_name: str, state: dict, config: dict, emotion_sys) -> str | None:
     """Public entry: start a game, then strip Mario-only flavor for non-Mario chars."""
+    if not _GAMES_ENABLED:
+        return None
     return _deflavor_result(_start_game_impl(game_name, state, config, emotion_sys))
 
 

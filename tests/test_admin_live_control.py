@@ -114,3 +114,31 @@ def test_reply_paused_reads_live(srv_tmp):
     assert srv_tmp._reply_paused() is True
     srv_tmp.live_config.set("paused", False)
     assert srv_tmp._reply_paused() is False
+
+
+# --- Task 5: feature gates -------------------------------------------------
+
+def test_feature_on_reads_live(srv_tmp):
+    srv_tmp.live_config.set("gossip_enabled", False)
+    assert srv_tmp._feature_on("gossip_enabled") is False
+    srv_tmp.live_config.set("gossip_enabled", True)
+    assert srv_tmp._feature_on("gossip_enabled") is True
+    assert srv_tmp._feature_on("nonexistent_flag", True) is True
+
+
+def test_games_disabled_makes_start_game_noop():
+    import game_handlers
+    game_handlers.set_games_enabled(False)
+    try:
+        assert game_handlers.start_game("mario_trivia", {}, {}, None) is None
+    finally:
+        game_handlers.set_games_enabled(True)
+
+
+def test_live_set_games_toggles_game_handlers(srv_tmp):
+    asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "games_enabled", "value": False}))
+    assert srv_tmp._game_handlers_mod._GAMES_ENABLED is False
+    asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "games_enabled", "value": True}))
+    assert srv_tmp._game_handlers_mod._GAMES_ENABLED is True
