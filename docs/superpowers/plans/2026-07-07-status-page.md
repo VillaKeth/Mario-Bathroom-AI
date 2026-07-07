@@ -483,6 +483,7 @@ def test_status_data_buckets_capped_at_48(sp):
 
 def test_status_data_incidents_newest_first(sp):
     sp.init_db(now=1000.0)   # last_alive = 1000
+    _set_party_start(sp, 500.0)
     sp.init_db(now=2000.0)   # incident A: 1000..2000
     sp.init_db(now=5000.0)   # incident B: 2000..5000
     data = sp.get_status_data(now=6000.0)
@@ -497,6 +498,17 @@ def test_status_data_character_follows_set_character(sp):
         assert sp.get_status_data(now=2000.0)["character"] == "Rudi"
     finally:
         sp.set_character("mario", "Mario")
+
+
+def test_status_data_incidents_scoped_to_party(sp):
+    """Stale incidents from before the party (e.g. yesterday's dev restarts)
+    must not show up in tonight's outage history."""
+    sp.init_db(now=1000.0)
+    sp.init_db(now=2000.0)      # stale incident 1000..2000, before party
+    _set_party_start(sp, 3000.0)
+    sp.init_db(now=5000.0)      # incident 2000..5000 ends after party start
+    data = sp.get_status_data(now=6000.0)
+    assert [i["started_at"] for i in data["incidents"]] == [2000.0]
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -547,7 +559,9 @@ def get_status_data(now: float = None) -> dict:
             {"started_at": s, "ended_at": e, "kind": k}
             for (s, e, k) in conn.execute(
                 "SELECT started_at, ended_at, kind FROM status_incidents "
-                "ORDER BY started_at DESC LIMIT ?", (MAX_INCIDENTS_LISTED,)).fetchall()]
+                "WHERE ended_at >= ? "
+                "ORDER BY started_at DESC LIMIT ?",
+                (party_start, MAX_INCIDENTS_LISTED)).fetchall()]
     return {
         "character": _CHARACTER_DISPLAY_NAME,
         "reports_last_15min": recent,
@@ -649,7 +663,11 @@ async def status_report_route(request: Request):
         body = await request.json()
     except Exception:
         body = {}
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not isinstance(body, dict):
+        body = {}
+    # Proxies append to XFF; the LAST entry is what our tunnel actually saw.
+    # Leftmost is client-forgeable (rate limit evasion on a public endpoint).
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[-1].strip()
     ip = forwarded or (request.client.host if request.client else "unknown")
     result = status_page.record_report(
         reason=body.get("reason"),
@@ -1021,3 +1039,25 @@ git commit -m "docs: document /status page endpoints
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
+
+---
+
+### Post-review hardening (applied after the final whole-branch review)
+
+One additional commit hardens the feature for merge; the code blocks above
+have been patched in place to match. Changes:
+
+1. **Party-scoped incidents** — `get_status_data` filters
+   `WHERE ended_at >= party_start` so stale incidents from earlier days
+   (e.g. dev restarts) never render as tonight's outages. New test:
+   `test_status_data_incidents_scoped_to_party`; the newest-first test now
+   sets an explicit party start. Final module test count: **20**.
+2. **X-Forwarded-For hardening** — `/status/report` takes the LAST XFF
+   entry (proxies append; leftmost is client-forgeable → rate-limit evasion).
+3. **Body guard** — JSON bodies that are not objects are treated as empty
+   (400 invalid_reason instead of a 500 AttributeError).
+4. **/health metric caching** (server/main.py, outside this plan's original
+   scope but motivated by it): `_get_gpu_temp()`/`_get_rss_mb()` are now 15 s
+   TTL cache wrappers around `_read_gpu_temp_uncached()`/`_read_rss_mb_uncached()`
+   — the status page adds one `/health` poller per open guest tab, and the
+   nvidia-smi subprocess must not run per request on the event loop.

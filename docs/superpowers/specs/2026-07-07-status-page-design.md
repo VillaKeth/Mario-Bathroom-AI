@@ -61,7 +61,9 @@ Returns JSON:
 - `reports_last_15min`: int.
 - `report_buckets`: list of `{bucket_start_ts, count}` per 30-minute bucket
   covering the party so far.
-- `incidents`: list of `{started_at, ended_at, kind}`.
+- `incidents`: list of `{started_at, ended_at, kind}`, scoped to the current
+  party (`ended_at >= party_start_time`) so stale incidents from earlier days
+  never render as tonight's outages.
 
 Kept separate from `/health` so report-aggregation SQL stays off the hot path
 (watchdog and client poll `/health`).
@@ -78,7 +80,11 @@ Kept separate from `/health` so report-aggregation SQL stays off the hot path
   retro-timestamped reports in one burst (their effective times are already
   ≥ 60 s apart thanks to the client-side button cooldown) without tripping
   the limit.
-- IP stored as a hash only (`ip_hash`), not the raw address.
+- IP stored as a hash only (`ip_hash`), not the raw address. Client IP is the
+  LAST entry of `X-Forwarded-For` (proxies append; the leftmost entry is
+  client-forgeable), falling back to the socket peer address.
+- Malformed request bodies (non-JSON or JSON that is not an object) are
+  treated as empty → 400 invalid_reason, never a 500.
 - `client_ts` supports retro-timestamped offline reports; sanity-clamped
   server-side (not in the future; not older than 24 h).
 
