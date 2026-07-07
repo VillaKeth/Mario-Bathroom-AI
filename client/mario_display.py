@@ -957,13 +957,17 @@ class MarioDisplay:
         text = self._typewriter_text or ""
         needle = _EMOJI_RE.sub("", sentence or "").strip()
         if not needle or not text:
+            # An empty needle is not expected here: the server merges empty /
+            # emoji-only sentences into the next chunk — so no cursor advance.
             return int(self._typewriter_span_target or 0)
         start = max(0, int(self._span_search_pos))
         idx = text.find(needle, start)
         if idx < 0:
             idx = text.find(needle)
         end = (idx + len(needle)) if idx >= 0 else min(start + len(needle) + 1, len(text))
-        self._span_search_pos = end
+        # Cursor never regresses: a retry-from-0 that matched an earlier,
+        # already-consumed occurrence must not drag the search backward.
+        self._span_search_pos = max(end, self._span_search_pos)
         return end
 
     def set_typewriter_span(self, target_char: int, duration_s: float):

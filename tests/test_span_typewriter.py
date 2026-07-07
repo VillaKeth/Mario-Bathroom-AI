@@ -68,13 +68,15 @@ def test_span_paces_and_holds():
 def test_span_is_monotonic():
     d = make_stub(TEXT)
     MarioDisplay.prepare_span_stream(d)
-    MarioDisplay.set_typewriter_span(d, 40, 0.5)
-    for _ in range(120):
+    MarioDisplay.set_typewriter_span(d, 56, 3.0)
+    for _ in range(5):  # pos still climbing, well below 56
         MarioDisplay._update_typewriter(d)
-    pos_before = d._typewriter_pos
-    MarioDisplay.set_typewriter_span(d, 10, 1.0)  # lower target must not rewind
-    MarioDisplay._update_typewriter(d)
-    assert d._typewriter_pos >= pos_before
+    assert 0 < d._typewriter_pos < 56
+    MarioDisplay.set_typewriter_span(d, 10, 3.0)  # stale lower target arrives mid-climb
+    for _ in range(200):
+        MarioDisplay._update_typewriter(d)
+    # Reveal still reaches the higher target — not frozen at the stale lower one.
+    assert int(d._typewriter_pos) == 56
 
 
 def test_stale_span_releases_after_8s():
@@ -86,3 +88,28 @@ def test_stale_span_releases_after_8s():
         MarioDisplay._update_typewriter(d)
     assert d._typewriter_span_target is None          # limit released
     assert d._typewriter_pos > target                 # fallback speed resumed
+
+
+def test_resolve_miss_on_earlier_text_never_moves_cursor_backward():
+    text = "Go team go! Second sentence here. Third sentence ends."
+    d = make_stub(text)
+    MarioDisplay.prepare_span_stream(d)
+    MarioDisplay.resolve_span_target(d, "Go team go!")
+    t2 = MarioDisplay.resolve_span_target(d, "Second sentence here.")
+    # Needle found only BEFORE the cursor (already consumed): the retry-from-0
+    # path hits the early occurrence, but the search cursor must never regress —
+    # a regressed cursor resolves later spans behind the reveal and stalls the
+    # bubble until the 8s stale release.
+    t3 = MarioDisplay.resolve_span_target(d, "Go team go!")
+    assert t3 == len("Go team go!")  # return value is still the found end
+    assert d._span_search_pos >= t2  # cursor did not move backward
+    # The next real sentence still resolves forward to the end of the text.
+    assert MarioDisplay.resolve_span_target(d, "Third sentence ends.") == len(text)
+
+
+def test_legacy_path_without_spans_reveals_fully():
+    d = make_stub(TEXT)  # span target stays None — every non-streamed reply runs this path
+    for _ in range(300):
+        MarioDisplay._update_typewriter(d)
+    assert int(d._typewriter_pos) == len(TEXT)
+    assert d.current_text == TEXT
