@@ -3071,6 +3071,11 @@ async def admin_state(request_body: dict = {}):
         "phase": phase,
         "active_game": active.get("type") if isinstance(active, dict) else None,
         "paused": bool(live_config.get("paused", False)),
+        "character": getattr(_character, "name", None),
+        "outfits": [
+            {"name": n, "label": (o.get("display") if isinstance(o, dict) else None) or n}
+            for n, o in (getattr(_character, "outfits", {}) or {}).items()
+        ],
     }
 
 

@@ -83,7 +83,7 @@ const $ = id => document.getElementById(id);
 const KEY_STORE = "mario_admin_key", MODE_STORE = "mario_admin_mode";
 $("key").value = localStorage.getItem(KEY_STORE) || "";
 
-let MANIFEST = [], FLAGS = {}, CHARS = [], CURCHAR = "", POLL = null;
+let MANIFEST = [], FLAGS = {}, CHARS = [], CURCHAR = "", OUTFITS = [], POLL = null;
 let MODE = localStorage.getItem(MODE_STORE) ||
            (window.matchMedia("(max-width:720px)").matches ? "live" : "setup");
 
@@ -106,9 +106,9 @@ async function connect(){
   localStorage.setItem(KEY_STORE, apiKey());
   const st = await post("/admin/state", {});
   if(st.status !== "ok"){ log("✗ "+(st.message||"bad key"),"bad"); setDot("bad"); return; }
-  MANIFEST = st.manifest || []; FLAGS = st.flags || {};
+  MANIFEST = st.manifest || []; FLAGS = st.flags || {}; OUTFITS = st.outfits || [];
   const cs = await post("/admin/switch_character", {});   // no character = list
-  if(cs.status==="ok"){ CHARS = cs.available||[]; CURCHAR = cs.current||""; }
+  if(cs.status==="ok"){ CHARS = cs.available||[]; CURCHAR = st.character || cs.current || ""; }
   $("keyCard").classList.add("hidden"); $("panel").classList.remove("hidden");
   setDot("on"); $("curchar").textContent = CURCHAR ? "· "+CURCHAR : "";
   log("✓ Connected. "+MANIFEST.length+" live flags.","ok");
@@ -157,19 +157,20 @@ function render(){
       <button style="flex:0 0 auto" onclick="triggerEvent()">Go</button></div>`);
   // --- Look ---
   h += card("🎭 Look", `
-    <label>Outfit</label>
-    <div class="inline"><input id="outfit" placeholder="default / tuxedo / ...">
-      <button style="flex:0 0 auto" onclick="act('/admin/outfit',{outfit:$('outfit').value||'default'},'outfit → '+($('outfit').value||'default'))">Apply</button></div>
+    <label>Outfit${OUTFITS.length?"":" (this character has none — default only)"}</label>
+    <div class="inline"><select id="outfit"><option value="default">Default (base look)</option>${
+      OUTFITS.map(o=>`<option value="${esc(o.name)}">${esc(o.label)}</option>`).join("")}</select>
+      <button style="flex:0 0 auto" onclick="act('/admin/outfit',{outfit:$('outfit').value},'outfit → '+$('outfit').value)">Apply</button></div>
     <label>Emotion</label>
     <div class="inline"><select id="emo">${EMOTIONS.map(e=>`<option>${e}</option>`).join("")}</select>
       <button style="flex:0 0 auto" onclick="act('/admin/set_emotion',{emotion:$('emo').value},'emotion → '+$('emo').value)">Set</button></div>
-    <label>Announce (Mario says it)</label>
-    <div class="inline"><input id="ann" maxlength="200" placeholder="Type something for Mario to say">
+    <label>Announce (bot says it aloud)</label>
+    <div class="inline"><input id="ann" maxlength="200" placeholder="Type something to say aloud">
       <button style="flex:0 0 auto" onclick="announce()">Say</button></div>`);
   // --- Character (both modes — most-wanted live control) ---
   h += card("🎭 Character", `
     <div class="note">Switch live = voice + personality + sprites change instantly, no restart.</div>
-    <div class="inline"><select id="charsel">${CHARS.map(c=>`<option ${c===CURCHAR?'selected':''}>${esc(c)}</option>`).join("")}</select></div>
+    <div class="inline"><select id="charsel">${CHARS.map(c=>`<option ${c.toLowerCase()===String(CURCHAR).toLowerCase()?'selected':''}>${esc(c)}</option>`).join("")}</select></div>
     <div class="inline" style="margin-top:8px">
       <button class="ghost" onclick="switchChar(false)">Switch live</button>
       <button onclick="switchChar(true)">Switch &amp; restart</button></div>`);
@@ -241,6 +242,8 @@ async function switchChar(restart){
   const r = await post("/admin/switch_character", {character:name});
   if(r.status!=="ok"){ log("✗ switch: "+(r.message||""),"bad"); return; }
   CURCHAR=name; $("curchar").textContent="· "+name; log("✓ switched to "+(r.display_name||name),"ok");
+  try { const st=await post("/admin/state",{}); OUTFITS = st.outfits||[]; FLAGS = st.flags||FLAGS;
+        if(st.character) CURCHAR = st.character; render(); } catch(e){}   // repopulate outfits for new char
   if(restart) act("/admin/restart", {confirm:"RESTART"}, "restarting");
 }
 function saveIdle(){
