@@ -6,6 +6,8 @@ import time
 import logging
 from datetime import datetime
 
+from server.joke_engine import JokeEngine, load_curated_jokes
+
 DEBUG_IDLE = os.environ.get("DEBUG_IDLE", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ MEMORIAL_FADEOUT = (
 class IdleBehavior:
     """Manages character's autonomous behavior when idle."""
 
-    def __init__(self, character_loader=None):
+    def __init__(self, character_loader=None, joke_llm_fn=None, joke_llm_chance=0.10):
         self._last_idle_action = time.time()
         self._idle_interval = 15
         self._action_count = 0
@@ -74,6 +76,11 @@ class IdleBehavior:
         # All character content lives in characters/<name>/idle/messages.yaml
         self._mumbles = self._char_pools.get("mumbles", [])
         self._jokes = self._char_pools.get("jokes", [])
+        # Curated pool supersedes idle/messages.yaml jokes when present.
+        _char_dir = getattr(character_loader, "char_dir", None) or getattr(character_loader, "_char_dir", None)
+        if _char_dir:
+            self._jokes = load_curated_jokes(str(_char_dir), fallback=self._jokes)
+        self._joke_engine = JokeEngine(self._jokes, llm_fn=joke_llm_fn, llm_chance=joke_llm_chance)
         self._songs = self._char_pools.get("songs", [])
         self._trivia = self._char_pools.get("trivia_idle", [])
         self._plumbing = self._char_pools.get("deep_thoughts", [])
@@ -250,6 +257,11 @@ class IdleBehavior:
         ]
         cat_name, options = random.choice(_categories)
 
+        if cat_name == "jokes":
+            j = self._joke_engine.next_joke()
+            if j:
+                return j
+
         # Phase-driven tone adjustments
         if phase_val == 1:  # WARM_UP — heavier on compliments and friendly content
             options.extend(self._compliments * 2)
@@ -281,11 +293,7 @@ class IdleBehavior:
         return choice
 
     def get_joke(self) -> str:
-        if not self._jokes:
-            return None
-        joke = self._jokes[self._joke_index % len(self._jokes)]
-        self._joke_index += 1
-        return joke
+        return self._joke_engine.next_joke()
 
     def get_trivia(self) -> str:
         combined = self._trivia + self._plumbing
