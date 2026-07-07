@@ -400,9 +400,11 @@ def test_display_split_does_not_preclean():
 
 
 def test_short_fragments_merge():
-    text = "Yes! No! Absolutely, my friend, that is the whole idea of the party."
+    text = "Yes! No! Okay fine, party people. And here is a second proper sentence for the test."
     sents = tts.split_display_sentences(text)
-    assert all(len(s) >= 15 for s in sents[:-1])
+    assert len(sents) == 2
+    assert sents[0].startswith("Yes! No!")  # shorts merged forward, not standalone
+    assert all(len(s) >= 15 for s in sents)
 
 
 def test_build_stream_chunks_pairs_display_and_tts():
