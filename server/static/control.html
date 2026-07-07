@@ -166,13 +166,15 @@ function render(){
     <label>Announce (Mario says it)</label>
     <div class="inline"><input id="ann" maxlength="200" placeholder="Type something for Mario to say">
       <button style="flex:0 0 auto" onclick="announce()">Say</button></div>`);
+  // --- Character (both modes — most-wanted live control) ---
+  h += card("🎭 Character", `
+    <div class="note">Switch live = voice + personality + sprites change instantly, no restart.</div>
+    <div class="inline"><select id="charsel">${CHARS.map(c=>`<option ${c===CURCHAR?'selected':''}>${esc(c)}</option>`).join("")}</select></div>
+    <div class="inline" style="margin-top:8px">
+      <button class="ghost" onclick="switchChar(false)">Switch live</button>
+      <button onclick="switchChar(true)">Switch &amp; restart</button></div>`);
   // --- Setup only ---
   if(MODE==="setup"){
-    h += card("🎭 Character", `
-      <div class="inline"><select id="charsel">${CHARS.map(c=>`<option ${c===CURCHAR?'selected':''}>${esc(c)}</option>`).join("")}</select></div>
-      <div class="inline" style="margin-top:8px">
-        <button class="ghost" onclick="switchChar(false)">Switch live</button>
-        <button onclick="switchChar(true)">Switch &amp; restart</button></div>`);
     h += card("⚙️ Idle timing", `
       ${numRow(MANIFEST.find(f=>f.key==="llm_idle_chance"))}
       <label>Idle min / max seconds (blank = keep)</label>
