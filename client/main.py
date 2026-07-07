@@ -189,7 +189,7 @@ class MarioClient:
         self._health_thread = None
         self._last_play_end_time = 0  # Echo cancellation tracking
         self._memorial_active = False  # Suppresses idle text during memorial
-        self._audio_wait_cancel = threading.Event()  # Cancel audio-wait thread
+        self._audio_wait_gen = 0  # Watchdog generation; a bump cancels older watchdog threads
         self._pending_chunk0_text = None   # chunk-0 display sentence awaiting its audio
         self._stream_is_last_seen = True   # False while a chunked stream is still arriving
         self._pending_character_switch = None  # Queued switch for main thread
@@ -325,7 +325,7 @@ class MarioClient:
         if self.presence and self.presence.someone_present and self.ws.connected:
             self.ws.send_event({"type": "presence_exit"})
             time.sleep(0.5)  # Brief delay to let server process
-        self._audio_wait_cancel.set()
+        self._audio_wait_gen += 1  # cancel any live audio watchdog
         self.audio_capture.stop()
         self.audio_playback.stop()
         try:
@@ -399,8 +399,8 @@ class MarioClient:
 
     def _on_mario_text(self, text: str, metadata: dict = None):
         """Called when Mario has something to say."""
-        # Cancel any pending audio-wait thread from previous text
-        self._audio_wait_cancel.set()
+        # Cancel any pending audio-wait watchdog from previous text
+        self._audio_wait_gen += 1
         
         # Suppress idle text bubbles during memorial ceremony
         if self._memorial_active:
@@ -468,22 +468,32 @@ class MarioClient:
             if resp_time:
                 self.display._last_response_time = resp_time
 
-    def _wait_for_audio_complete(self):
+    def _start_audio_watchdog(self):
+        """Cancel any prior watchdog (generation bump) and start a fresh one."""
+        self._audio_wait_gen += 1
+        gen = self._audio_wait_gen
+        self._audio_wait_thread = threading.Thread(
+            target=self._wait_for_audio_complete, args=(gen,), daemon=True)
+        self._audio_wait_thread.start()
+
+    def _wait_for_audio_complete(self, gen):
         """Wait for audio playback to finish, then clear the speech bubble.
 
         Streamed replies keep this thread alive across chunk gaps: after
         playback goes idle it waits 0.5s (last chunk seen) or up to 4s
         (mid-stream gap / stream died without is_last) for more audio before
-        clearing — the bubble never wedges on a broken stream."""
-        self._audio_wait_cancel.clear()
+        clearing — the bubble never wedges on a broken stream.
 
+        Cancellation is a generation compare (gen != self._audio_wait_gen):
+        unlike an Event set+clear pulse, a value bump can't be missed by a
+        watchdog sleeping in its 100ms tick."""
         # Wait for audio to start playing (up to 2s)
         for _ in range(20):
-            if self.audio_playback.is_playing or self._audio_wait_cancel.is_set():
+            if self.audio_playback.is_playing or gen != self._audio_wait_gen:
                 break
             time.sleep(0.1)
 
-        while not self._audio_wait_cancel.is_set():
+        while gen == self._audio_wait_gen:
             if self.audio_playback.is_playing:
                 time.sleep(0.1)
                 continue
@@ -491,14 +501,14 @@ class MarioClient:
             grace = 0.5 if getattr(self, "_stream_is_last_seen", True) else 4.0
             idle_start = time.time()
             resumed = False
-            while (time.time() - idle_start) < grace and not self._audio_wait_cancel.is_set():
+            while (time.time() - idle_start) < grace and gen == self._audio_wait_gen:
                 if self.audio_playback.is_playing:
                     resumed = True
                     break
                 time.sleep(0.1)
             if resumed:
                 continue
-            if not self._audio_wait_cancel.is_set():
+            if gen == self._audio_wait_gen:
                 self._clear_speaking_state()
             return
 
@@ -535,10 +545,8 @@ class MarioClient:
         # when this reply is NOT audio-gated per chunk.
         if _chunk0_text is None:
             self.display.sync_typewriter_to_audio(duration)
-        # Start audio-wait thread that polls until playback actually finishes
-        self._audio_wait_cancel.set()
-        self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
-        self._audio_wait_thread.start()
+        # Start audio-wait watchdog that polls until playback actually finishes
+        self._start_audio_watchdog()
 
     def _on_mirror_request(self, active: bool):
         """Server signals a viewer connected/left — start/stop capture."""
@@ -571,7 +579,11 @@ class MarioClient:
         """Called when server requests immediate audio interruption (new user input)."""
         if DEBUG_CLIENT:
             logger.info("[DEBUG_CLIENT] clear_audio: stopping playback for new input")
-        self._audio_wait_cancel.set()
+        self._audio_wait_gen += 1  # cancel any live audio watchdog
+        # Drop interrupted-reply stream state — stale chunk-0 text must never
+        # hijack the next clip's on_start.
+        self._pending_chunk0_text = None
+        self._stream_is_last_seen = True
         self.audio_playback.clear()
         self._last_play_end_time = 0
         self._clear_speaking_state()
@@ -609,9 +621,7 @@ class MarioClient:
         # (Re)start the audio-wait watchdog on EVERY chunk — it clears the
         # speaking state after real playback ends, and failsafes a stream that
         # died without is_last (see _wait_for_audio_complete).
-        self._audio_wait_cancel.set()
-        self._audio_wait_thread = threading.Thread(target=self._wait_for_audio_complete, daemon=True)
-        self._audio_wait_thread.start()
+        self._start_audio_watchdog()
 
     def _clear_speaking_state(self):
         """Clear speaking state after audio finishes."""
