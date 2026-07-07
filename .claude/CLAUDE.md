@@ -173,6 +173,7 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - `response_char_ceiling` (config_live, code default 4000) — runaway-protection cap on spoken/displayed replies (replaced the old hard 500 cut; responses are never style-truncated)
 - `ramble_chance` (config_live, code default 0.12) — probability a response gets explicit filibuster permission (ramble mode)
 - `long_num_predict` (config_live, code default 1024) — token budget for long-intent/ramble responses; size to the box's LLM speed vs the 75s LLM timeout (slow dev GPUs need ~450 or lower with reasoning models)
+- `joke_llm_chance` (config_live, code default 0.10) — probability a joke is generated live by the LLM vs pulled from the cached pool.
 
 ## Port
 - **WebSocket server**: `ws://localhost:8765` (default)

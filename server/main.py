@@ -902,7 +902,9 @@ async def lifespan(app: FastAPI):
     # and the module global stays None, silently disabling ALL face ID
     # (person_detected early-returns, admin face endpoints fail).
     global idle_behavior, _face_memory
-    idle_behavior = IdleBehavior(character_loader=_character)
+    _joke_chance = live_config.get("joke_llm_chance", 0.10)
+    idle_behavior = IdleBehavior(character_loader=_character, joke_llm_fn=_joke_llm_fn,
+                                  joke_llm_chance=_joke_chance)
     # Give TTS precache access to character-specific idle pools
     tts._idle_behavior_ref = idle_behavior
 
@@ -3773,6 +3775,49 @@ def _get_idle_prompt():
         except Exception:
             _LLM_IDLE_SYSTEM_PROMPT = "You are talking to yourself. Say something short and funny."
     return _LLM_IDLE_SYSTEM_PROMPT
+
+
+def _joke_llm_fn() -> str | None:
+    """Sync callback for JokeEngine's 10% live-LLM joke path.
+
+    server/joke_engine.py calls this directly with no await (`out = self._llm_fn()`),
+    so it must be a plain synchronous function returning a string or None — it
+    cannot itself be `async def` (that would hand back an un-awaited coroutine,
+    which JokeEngine's try/except would silently swallow, permanently disabling
+    the live path). It reuses the SAME llm.generate_response() helper and idle
+    system prompt as _generate_llm_idle() below, bridging async -> sync the way
+    tts.py's _synthesize_edge() does: run the coroutine to completion on a worker
+    thread when we're already inside a running event loop (the idle loop always is).
+    """
+    try:
+        ctx = [
+            {"role": "system", "content": _get_idle_prompt()},
+            {"role": "user", "content": (
+                "Tell ONE short, original, in-character joke. One or two sentences. "
+                "No preamble, just the joke."
+            )},
+        ]
+        _model = llm_router.get_model(llm_router.classify("joke", response_type="one_liner"))
+        coro = asyncio.wait_for(llm.generate_response(ctx, model=_model), timeout=12)
+
+        loop = None
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+
+        if loop and loop.is_running():
+            with ThreadPoolExecutor(max_workers=1) as _ex:
+                llm_response = _ex.submit(lambda: asyncio.run(coro)).result(timeout=15)
+        else:
+            llm_response = asyncio.run(coro)
+
+        if not llm_response or llm_response.get("was_fallback"):
+            return None  # generic filler text ("Tell me more about that!"), not a joke
+        text = (llm_response.get("text") or "").strip()
+        return text or None
+    except Exception:
+        return None
 
 
 async def _generate_llm_idle() -> dict | None:

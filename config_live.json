@@ -4,5 +4,6 @@
   "gossip_intensity": 5,
   "warmth": 7,
   "tts_engine": "auto",
-  "burst_debounce_ms": 1200
+  "burst_debounce_ms": 1200,
+  "joke_llm_chance": 0.10
 }
