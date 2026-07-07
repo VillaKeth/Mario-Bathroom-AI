@@ -1,50 +1,44 @@
-- desc: A detective who solves mysteries in New York City
+- desc: A heroic caped crusader with a deep voice
+  answer: Batman
+- desc: A blue giant with great strength and a heart of gold
+  answer: Goku
+- desc: The main protagonist in a popular fighting game series
+  answer: Ryu
+- desc: A fearless leader with a red cape and superhuman strength
+  answer: Superman
+- desc: A beloved Disney princess with long golden hair
+  answer: Aurora
+- desc: The main character in a popular survival horror game series
+  answer: Leon S. Kennedy
+- desc: A young wizard who turns out to be the chosen one
+  answer: Ron Weasley
+- desc: A powerful sorceress with a love for animals and magic
+  answer: Gryffindor's Cho Chang
+- desc: The main character in a popular RPG series about friendship
+  answer: Link
+- desc: A master thief with a penchant for getting into trouble
+  answer: Lupin III
+- desc: A talking rabbit and the main hero of a classic cartoon series
+  answer: Bugs Bunny
+- desc: The lead singer of a famous rock band known for their iconic songs
+  answer: Freddie Mercury
+- desc: A brilliant detective with a trusty sidekick and magnifying glass
   answer: Sherlock Holmes
-- desc: A superhero from the 1960s with a shield and strength
-  answer: Captain America
-- desc: The main character of the classic horror movie 'The Exorcist'
-  answer: Regan MacNeil
-- desc: A princess who teams up with Mario to rescue her
-  answer: Princess Peach
-- desc: A blue Power Ranger with a Triceratops Zord
-  answer: Billy Cranston
-- desc: The main character of the popular 'Overwatch' game
-  answer: Reinhardt Wilhelm
-- desc: A time-traveling adventurer from the planet Gallifrey
-  answer: The Doctor
-- desc: A dark lord who seeks to conquer Hyrule
-  answer: Ganondorf
-- desc: A young wizard with a lightning-shaped scar on his forehead
-  answer: Dumbledore's nephew
-- desc: The main character of the popular 'Assassin's Creed' series
-  answer: Ezio Auditore
-- desc: The protagonist of the hit 'Silent Hill' survival horror game
-  answer: James Sunderland
-- desc: A vampire hunter with a crossbow and cape
-  answer: Alucard
-- desc: The main character of the classic video game series 'Pitfall!'
-  answer: Pit
-- desc: A legendary samurai warrior from ancient Japan
-  answer: Musashi Miyamoto
-- desc: The superhero alter ego of a mild-mannered journalist
-  answer: Clark Kent
-- desc: A demonic entity that terrorizes a group of friends in the 'Saw' franchise
-  answer: Jigsaw
-- desc: A skilled warrior from the planet Tatooine
-  answer: Obi-Wan Kenobi
-- desc: The main character of the popular indie game series 'Undertale'
-  answer: Papyrus
-- desc: The leader of a group of mutated humans in a post-apocalyptic world
-  answer: Leeroy Jenkins
-- desc: A high school student who becomes a zombie after eating contaminated meat
-  answer: Trey Spruance
-- desc: A skilled archer and warrior from the land of Prydain
-  answer: Owen ap Dynerth
-- desc: The main character of the popular 'BioShock' game series
-  answer: Jack
-- desc: A superhero with a red and blue costume and heat vision
-  answer: Kryptonian Boy Scout
-- desc: The protagonist of the hit survival horror game 'Resident Evil'
-  answer: Chris Redfield
-- desc: A legendary hero from ancient Greece, known for his twelve labors
-  answer: Heracles
+- desc: The main character in a popular sci-fi book series about rebels
+  answer: Anakin Skywalker
+- desc: The main hero of the classic arcade game 'Pac-Man'
+  answer: Pac-Man
+- desc: A young ninja with a cute cat as his trusty sidekick
+  answer: Naruto Uzumaki
+- desc: A popular cartoon character known for saying 'What's up, Doc?'
+  answer: Bugs Bunny
+- desc: The main hero of the popular video game series 'Castlevania'
+  answer: Simon Belmont
+- desc: A beloved cartoon character with a love for adventure and bananas
+  answer: Donkey Kong
+- desc: A skilled warrior with supernatural abilities from ancient Japan
+  answer: Ninja Gaiden's Ryu Hayabusa
+- desc: The main hero of the popular 'Mortal Kombat' fighting game series
+  answer: Scorpion
+- desc: The star of a famous Japanese anime series about giant robots
+  answer: Gundam's Amuro Ray
