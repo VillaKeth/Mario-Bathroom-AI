@@ -176,7 +176,9 @@ def get_status_data(now: float = None) -> dict:
             {"started_at": s, "ended_at": e, "kind": k}
             for (s, e, k) in conn.execute(
                 "SELECT started_at, ended_at, kind FROM status_incidents "
-                "ORDER BY started_at DESC LIMIT ?", (MAX_INCIDENTS_LISTED,)).fetchall()]
+                "WHERE ended_at >= ? "
+                "ORDER BY started_at DESC LIMIT ?",
+                (party_start, MAX_INCIDENTS_LISTED)).fetchall()]
     return {
         "character": _CHARACTER_DISPLAY_NAME,
         "reports_last_15min": recent,

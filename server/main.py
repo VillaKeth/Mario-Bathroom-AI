@@ -1472,7 +1472,18 @@ async def _run_shot_event(event):
 
 
 def _get_rss_mb() -> float:
-    """Get current process RSS in MB."""
+    """Get current process RSS in MB (cached; see _SYS_METRICS_TTL)."""
+    now = time.time()
+    if now - _sys_metrics_cache["rss_ts"] < _SYS_METRICS_TTL:
+        return _sys_metrics_cache["rss_mb"]
+    rss = _read_rss_mb_uncached()
+    _sys_metrics_cache["rss_mb"] = rss
+    _sys_metrics_cache["rss_ts"] = now
+    return rss
+
+
+def _read_rss_mb_uncached() -> float:
+    """Actual RSS lookup; only called on cache expiry."""
     try:
         import psutil
         return psutil.Process().memory_info().rss / (1024 * 1024)
@@ -1502,8 +1513,26 @@ def _get_rss_mb() -> float:
         return 0.0
 
 
+# Concurrent /health pollers (one per open guest status-page tab, every 5-10s)
+# would otherwise each pay for a fresh nvidia-smi shell-out / RSS read. Cache
+# both for a short TTL so they share one reading instead.
+_SYS_METRICS_TTL = 15.0
+_sys_metrics_cache = {"gpu_temp": 0.0, "gpu_ts": 0.0, "rss_mb": 0.0, "rss_ts": 0.0}
+
+
 def _get_gpu_temp() -> float:
-    """Get GPU temperature in °C (best-effort)."""
+    """Get GPU temperature in °C (best-effort, cached; see _SYS_METRICS_TTL)."""
+    now = time.time()
+    if now - _sys_metrics_cache["gpu_ts"] < _SYS_METRICS_TTL:
+        return _sys_metrics_cache["gpu_temp"]
+    temp = _read_gpu_temp_uncached()
+    _sys_metrics_cache["gpu_temp"] = temp
+    _sys_metrics_cache["gpu_ts"] = now
+    return temp
+
+
+def _read_gpu_temp_uncached() -> float:
+    """Actual nvidia-smi shell-out; only called on cache expiry."""
     try:
         import subprocess
         result = subprocess.run(
@@ -2338,7 +2367,11 @@ async def status_report_route(request: Request):
         body = await request.json()
     except Exception:
         body = {}
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not isinstance(body, dict):
+        body = {}
+    # Proxies append to XFF; the LAST entry is what our tunnel actually saw.
+    # Leftmost is client-forgeable (rate limit evasion on a public endpoint).
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[-1].strip()
     ip = forwarded or (request.client.host if request.client else "unknown")
     result = status_page.record_report(
         reason=body.get("reason"),

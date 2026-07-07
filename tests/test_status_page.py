@@ -197,6 +197,7 @@ def test_status_data_buckets_capped_at_48(sp):
 
 def test_status_data_incidents_newest_first(sp):
     sp.init_db(now=1000.0)   # last_alive = 1000
+    _set_party_start(sp, 500.0)
     sp.init_db(now=2000.0)   # incident A: 1000..2000
     sp.init_db(now=5000.0)   # incident B: 2000..5000
     data = sp.get_status_data(now=6000.0)
@@ -211,3 +212,14 @@ def test_status_data_character_follows_set_character(sp):
         assert sp.get_status_data(now=2000.0)["character"] == "Rudi"
     finally:
         sp.set_character("mario", "Mario")
+
+
+def test_status_data_incidents_scoped_to_party(sp):
+    """Stale incidents from before the party (e.g. yesterday's dev restarts)
+    must not show up in tonight's outage history."""
+    sp.init_db(now=1000.0)
+    sp.init_db(now=2000.0)      # stale incident 1000..2000, before party
+    _set_party_start(sp, 3000.0)
+    sp.init_db(now=5000.0)      # incident 2000..5000 ends after party start
+    data = sp.get_status_data(now=6000.0)
+    assert [i["started_at"] for i in data["incidents"]] == [2000.0]
