@@ -5759,31 +5759,38 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
                             for _, c in remaining
                         ]
-                        for (i, chunk), synth_task in zip(remaining, synth_tasks):
-                            try:
-                                chunk_audio = await synth_task
-                            except Exception as synth_err:
-                                logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {synth_err}")
-                                continue
-                            if chunk_audio and len(chunk_audio) > 44:
-                                is_last = (i == total_chunks - 1)
+                        try:
+                            for (i, chunk), synth_task in zip(remaining, synth_tasks):
                                 try:
-                                    await ws.send_json({
-                                        "type": "audio_chunk",
-                                        "chunk_index": i,
-                                        "total_chunks": total_chunks,
-                                        "is_last": is_last,
-                                        "chunk_text": chunk["display"],
-                                    })
-                                    await ws.send_bytes(chunk_audio)
-                                except Exception as send_err:
-                                    logger.warning(f"[DEBUG_STREAM] WebSocket send failed on chunk {i+1}/{total_chunks}: {send_err}")
-                                    break
-                                if DEBUG_STREAM:
-                                    logger.info(f"[DEBUG_STREAM] Sent chunk {i+1}/{total_chunks} ({len(chunk_audio)} bytes, is_last={is_last})")
-                            else:
-                                if DEBUG_STREAM:
-                                    logger.warning(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} produced empty audio, skipping")
+                                    chunk_audio = await synth_task
+                                except Exception as synth_err:
+                                    logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {synth_err}")
+                                    continue
+                                if chunk_audio and len(chunk_audio) > 44:
+                                    is_last = (i == total_chunks - 1)
+                                    try:
+                                        await ws.send_json({
+                                            "type": "audio_chunk",
+                                            "chunk_index": i,
+                                            "total_chunks": total_chunks,
+                                            "is_last": is_last,
+                                            "chunk_text": chunk["display"],
+                                        })
+                                        await ws.send_bytes(chunk_audio)
+                                    except Exception as send_err:
+                                        logger.warning(f"[DEBUG_STREAM] WebSocket send failed on chunk {i+1}/{total_chunks}: {send_err}")
+                                        break
+                                    if DEBUG_STREAM:
+                                        logger.info(f"[DEBUG_STREAM] Sent chunk {i+1}/{total_chunks} ({len(chunk_audio)} bytes, is_last={is_last})")
+                                else:
+                                    if DEBUG_STREAM:
+                                        logger.warning(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} produced empty audio, skipping")
+                        finally:
+                            # Barge-in cancel or send-fail break must not leave
+                            # orphan synth jobs hogging the serialized TTS lock
+                            # ahead of the NEXT reply's audio.
+                            for _t in synth_tasks:
+                                _t.cancel()
                 else:
                     if DEBUG_STREAM:
                         logger.warning("[DEBUG_STREAM] First sentence produced empty audio, falling back to full synthesis")
