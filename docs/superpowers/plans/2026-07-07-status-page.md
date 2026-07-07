@@ -326,6 +326,21 @@ def test_record_report_client_ts_clamped_ancient(sp):
     assert client_ts == now - sp.CLIENT_TS_MAX_AGE_SECONDS
 
 
+def test_record_report_retro_near_prior_retro_rate_limited(sp):
+    """Regression: rate limit must key on the NEAREST prior report, not the
+    newest. Two retro reports 30s apart are limited even when both are far
+    from the newest accepted report."""
+    sp.init_db(now=1000.0)
+    t0 = 100000.0
+    assert sp.record_report("no_voice", ip_hash="aaa", now=t0)["ok"] is True
+    assert sp.record_report("no_voice", client_ts=t0 - 3600, ip_hash="aaa",
+                            now=t0 + 5)["ok"] is True
+    result = sp.record_report("no_voice", client_ts=t0 - 3570, ip_hash="aaa",
+                              now=t0 + 10)
+    assert result["ok"] is False
+    assert result["error"] == "rate_limited"
+
+
 def test_hash_ip_stable_and_short(sp):
     a = sp.hash_ip("203.0.113.7")
     assert a == sp.hash_ip("203.0.113.7")
@@ -368,15 +383,16 @@ def record_report(reason: str, client_ts: float = None, ip_hash: str = "",
         effective_ts = max(now - CLIENT_TS_MAX_AGE_SECONDS, min(effective_ts, now))
         stored_client_ts = effective_ts
     with _connect() as conn:
+        # Nearest prior report, not the newest: a MAX-based check lets retro
+        # reports slip through once any newer report exists for the IP.
         row = conn.execute(
-            "SELECT MAX(COALESCE(client_ts, created_at)) FROM status_reports "
-            "WHERE ip_hash = ?", (ip_hash,)).fetchone()
-        last_effective = row[0] if row else None
-        if last_effective is not None:
-            gap = abs(effective_ts - float(last_effective))
-            if gap < RATE_LIMIT_SECONDS:
-                return {"ok": False, "error": "rate_limited",
-                        "retry_after": int(RATE_LIMIT_SECONDS - gap) + 1}
+            "SELECT MIN(ABS(COALESCE(client_ts, created_at) - ?)) "
+            "FROM status_reports WHERE ip_hash = ?",
+            (effective_ts, ip_hash)).fetchone()
+        min_gap = row[0] if row and row[0] is not None else None
+        if min_gap is not None and min_gap < RATE_LIMIT_SECONDS:
+            return {"ok": False, "error": "rate_limited",
+                    "retry_after": int(RATE_LIMIT_SECONDS - min_gap) + 1}
         conn.execute(
             "INSERT INTO status_reports (created_at, client_ts, ip_hash, reason) "
             "VALUES (?, ?, ?, ?)", (now, stored_client_ts, ip_hash, reason))
@@ -386,7 +402,7 @@ def record_report(reason: str, client_ts: float = None, ip_hash: str = "",
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `venv\Scripts\python.exe -m pytest tests/test_status_page.py -v`
-Expected: 13 passed
+Expected: 14 passed
 
 - [ ] **Step 5: Commit**
 
@@ -543,7 +559,7 @@ def get_status_data(now: float = None) -> dict:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `venv\Scripts\python.exe -m pytest tests/test_status_page.py -v`
-Expected: 18 passed
+Expected: 19 passed
 
 - [ ] **Step 5: Commit**
 
