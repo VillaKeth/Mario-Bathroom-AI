@@ -45,6 +45,7 @@ import hardware
 import speaker_id
 import face_enrollment
 import recognition_fusion
+import live_flags
 import memory
 import mario_prompt
 import safety_filter
@@ -3018,6 +3019,85 @@ async def admin_set_config(request_body: dict = {}):
     return {"status": "ok", "applied": cleaned, "note": "Saved. Restart to apply."}
 
 
+@app.post("/admin/live_set")
+async def admin_live_set(request_body: dict = {}):
+    """Set one whitelisted live flag (see server/live_flags.py). Instant — LiveConfig
+    auto-reloads, so the next live_config.get() sees the new value with no restart.
+    Only manifest keys are accepted + range-checked, so a value sent over the public
+    tunnel can't set arbitrary config or brick the server."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    key = request_body.get("key")
+    try:
+        value = live_flags.coerce_flag(key, request_body.get("value"))
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    live_config.set(key, value)
+    # Some subsystems cache their setting instead of reading live_config each call —
+    # push the change to them so the toggle is truly instant.
+    if key == "safety_enabled":
+        try:
+            _blk = bool(getattr(_character, "safety_block_slurs", False)) if _character else False
+            safety_filter.set_safety_config(bool(value), _blk)
+        except Exception as e:
+            logger.warning(f"[ADMIN] safety live-apply failed: {e}")
+    elif key == "games_enabled":
+        try:
+            _game_handlers_mod.set_games_enabled(bool(value))
+        except Exception as e:
+            logger.warning(f"[ADMIN] games live-apply failed: {e}")
+    logger.info(f"[ADMIN] live_set {key} = {value!r}")
+    return {"status": "ok", "key": key, "value": value}
+
+
+@app.post("/admin/state")
+async def admin_state(request_body: dict = {}):
+    """Snapshot of every live flag (server/live_flags.py) plus a few live readouts, so
+    the control page renders true state instead of guessing."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    flags = {k: live_config.get(k, d) for k, d in live_flags.flag_defaults().items()}
+    try:
+        phase = night_progression.get_current_phase_name() if night_progression else None
+    except Exception:
+        phase = None
+    active = state_current.get("_active_game") or {}
+    return {
+        "status": "ok",
+        "flags": flags,
+        "manifest": live_flags.public_manifest(),
+        "phase": phase,
+        "active_game": active.get("type") if isinstance(active, dict) else None,
+        "paused": bool(live_config.get("paused", False)),
+        "character": getattr(_character, "name", None),
+        "outfits": [
+            {"name": n, "label": (o.get("display") if isinstance(o, dict) else None) or n}
+            for n, o in (getattr(_character, "outfits", {}) or {}).items()
+        ],
+        "events": sorted(e["name"] for e in shot_event_manager.list_events()) if shot_event_manager else [],
+    }
+
+
+@app.post("/admin/outfit")
+async def admin_outfit(request_body: dict = {}):
+    """Push an outfit swap to the connected client. The client's on_outfit_switched
+    handler repoints its sprite tree live. Blank / 'default' reverts to the base set."""
+    api_key = GAME_CONFIG.get("admin_api_key", "")
+    if api_key and request_body.get("api_key") != api_key:
+        return {"status": "error", "message": "Invalid API key"}
+    outfit = (request_body.get("outfit") or "default").strip()
+    if not _active_ws:
+        return {"status": "error", "message": "No client connected"}
+    try:
+        await _active_ws.send_json({"type": "outfit_switched", "outfit": outfit})
+    except Exception as e:
+        return {"status": "error", "message": f"send failed: {e}"}
+    logger.info(f"[ADMIN] outfit -> {outfit}")
+    return {"status": "ok", "outfit": outfit}
+
+
 @app.post("/admin/restart")
 async def admin_restart(request_body: dict = {}):
     """Admin: restart the whole server.
@@ -3573,6 +3653,31 @@ _LLM_IDLE_CHANCE = GAME_CONFIG.get("llm_idle_chance", 0.25)  # 25% of idle messa
 _LLM_IDLE_TIMEOUT = 15  # seconds
 _last_llm_idle_time = 0.0  # Cooldown to avoid spamming LLM
 
+
+def _idle_llm_enabled() -> bool:
+    """Live-readable idle-chatter switch. Admin can toggle `llm_idle_enabled` at
+    runtime via /admin/live_set; the startup config value is the fallback default."""
+    return bool(live_config.get("llm_idle_enabled", _LLM_IDLE_ENABLED))
+
+
+def _idle_llm_chance() -> float:
+    """Live-readable chance (0..1) that an idle beat uses the LLM."""
+    try:
+        return float(live_config.get("llm_idle_chance", _LLM_IDLE_CHANCE))
+    except (TypeError, ValueError):
+        return _LLM_IDLE_CHANCE
+
+
+def _reply_paused() -> bool:
+    """Live 'pause bot' kill switch. When true the bot stays silent — skips
+    generating replies and idle chatter. Reversible via /admin/live_set paused=false."""
+    return bool(live_config.get("paused", False))
+
+
+def _feature_on(key: str, default: bool = True) -> bool:
+    """Live-readable feature switch (admin-toggleable via /admin/live_set)."""
+    return bool(live_config.get(key, default))
+
 _LLM_IDLE_SYSTEM_PROMPT = None  # Will be loaded from character config
 
 def _get_idle_prompt():
@@ -3655,6 +3760,9 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    if _reply_paused():
+        logger.debug("[IDLE] Suppressed idle send — bot paused")
+        return False
     # A response may still be generating/streaming (slow LLM + sovits can take
     # 30s+ on a low-tier GPU). Idle must NOT slip in during that window, or the
     # bot interrupts itself mid-conversation with a "talking to myself" line.
@@ -4034,7 +4142,7 @@ async def _idle_loop(ws: WebSocket):
 
         # LLM idle chatter: 25% chance to generate original Mario thoughts
         _llm_idle_result = None
-        if _LLM_IDLE_ENABLED and random.random() < _LLM_IDLE_CHANCE:
+        if _idle_llm_enabled() and random.random() < _idle_llm_chance():
             try:
                 _llm_idle_result = await _generate_llm_idle()
             except Exception as e:
@@ -4399,7 +4507,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Catchphrase mirroring — feed guest text and check for repeated phrases
         _speaker = state_current.get("speaker_name", "")
-        if _speaker:
+        if _speaker and _feature_on("catchphrase_mirror_enabled"):
             catchphrase_mirror.feed(_speaker, text)
             mirror_phrase = catchphrase_mirror.get_mirror_phrase(_speaker)
             if mirror_phrase:
@@ -5044,13 +5152,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                            "who's come", "anyone come by", "who stopped by",
                            "met anyone", "seen anyone", "any visitors")
         gossip_requested = any(kw in lower_text for kw in gossip_keywords)
+        _gossip_on = _feature_on("gossip_enabled")
 
         gossip_hints = party_gossip.get_gossip_for_guest(
             current_speaker_id=state_current.get("speaker_id"),
             current_name=state_current.get("speaker_name"),
             count=3 if gossip_requested else 1,
             gossip_aggression=(_get_night_phase_modifier() or {}).get("gossip_aggression", 0.3),
-        )
+        ) if _gossip_on else []
         # Always inject gossip when explicitly requested, otherwise 35% chance
         if gossip_hints and (gossip_requested or random.random() < 0.35):
             gossip_ctx = " ".join(gossip_hints) if gossip_requested else gossip_hints[0]
@@ -5060,7 +5169,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
 
         # Visitor list fallback — inject known guest names when gossip is requested
         # This ensures Mario knows WHO was here even if no gossip entries exist
-        if gossip_requested:
+        if gossip_requested and _gossip_on:
             known_names = party_gossip.get_known_guest_names(
                 exclude_id=state_current.get("speaker_id"))
             # Also check party_stats for visitors not captured by gossip system
@@ -5085,25 +5194,25 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Guest comparison — if they said something another guest also talked about
         comparison = party_gossip.get_comparison_hint(
             state_current.get("speaker_id", ""), text)
-        if comparison and random.random() < 0.4:
+        if _gossip_on and comparison and random.random() < 0.4:
             ctx.append({"role": "system", "content": f"[COMPARE]: {comparison}"})
 
         # Rivalry hint — if current topic touches an existing rivalry
         rivalry_hint = party_gossip.get_rivalry_hint(
             state_current.get("speaker_id", ""), text)
-        if rivalry_hint:
+        if _gossip_on and rivalry_hint:
             ctx.append({"role": "system", "content": f"[RIVALRY]: {rivalry_hint}"})
 
         # Alliance hint — if current topic matches an existing alliance
         alliance_hint = party_gossip.get_alliance_hint(
             state_current.get("speaker_id", ""), text)
-        if alliance_hint and random.random() < 0.5:
+        if _gossip_on and alliance_hint and random.random() < 0.5:
             ctx.append({"role": "system", "content": f"[ALLIANCE]: {alliance_hint}"})
 
         # Trending topic hint — if a topic is hot across 3+ guests
         trending = party_gossip.get_trending_topic_hint(
             state_current.get("speaker_id", ""))
-        if trending:
+        if _gossip_on and trending:
             ctx.append({"role": "system", "content": f"[TRENDING]: {trending}"})
 
         # Gossip seed question — ask fun questions early to generate material
@@ -5713,7 +5822,8 @@ def _voice_commit_ok(speaker_info, now):
     Prevents greeting an un-enrolled stranger by a guest's name. See audit F5."""
     if not speaker_info or speaker_info.get("is_new"):
         return False
-    recent_face = _fresh_result(state_current.get("_last_face_result"), now)
+    recent_face = (_fresh_result(state_current.get("_last_face_result"), now)
+                   if _feature_on("recognition_enabled") else None)
     decision = recognition_fusion.fuse_identity(
         voice=speaker_info, face=recent_face,
         noise_level=recognition_fusion.LIVE_PARTY_NOISE_LEVEL)
@@ -5745,7 +5855,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
 
     # Audio-based vomit detection: feed frame through DistressTracker for
     # volume-spike + temporal-coherence gating (requires 2+ frames in 5s)
-    if distress_result and _distress_tracker is not None:
+    if distress_result and _distress_tracker is not None and _feature_on("distress_enabled"):
         tracked = _distress_tracker.update(distress_result, audio_chunk)
         logger.debug(f"[AUDIO_DISTRESS] tracker: confirmed={tracked['confirmed_distress']}, "
                      f"conf={tracked['combined_confidence']:.2f}, "
@@ -6739,6 +6849,9 @@ async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
 
 async def _handle_text_input(ws: WebSocket, text: str):
     """Process text input — rate-limited, then delegates to shared pipeline."""
+    if _reply_paused():
+        logger.info(f"[PAUSED] Dropping text input (bot paused): '{text[:50]}'")
+        return
     now = time.time()
     async with _state_lock:
         if now - state_current["_last_text_input_time"] < 2.0:

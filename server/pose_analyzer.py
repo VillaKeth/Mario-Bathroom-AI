@@ -640,6 +640,21 @@ def analyze_text(text: str) -> dict:
     # two always match. Markers out, every word kept (see _strip_md_asterisks).
     disp = _strip_md_asterisks(text) or text
 
+    # Emoji render as tofu boxes (􏰀) in the pygame bubble font. Strip emoji that
+    # appear MID-text (they interrupt reading), but keep a trailing emoji run at the
+    # very end — that's decorative and doesn't break the flow of what he said.
+    _trail_re = re.compile(r'\s*(' + _EMOJI + r'(?:\s*' + _EMOJI + r')*)\s*$')
+    _tm = _trail_re.search(disp)
+    _trail = ''
+    if _tm:
+        _trail = _tm.group(1)
+        disp = disp[:_tm.start()]
+    disp = re.sub(_EMOJI + r'+', '', disp)          # strip mid-text emoji
+    disp = re.sub(r'\s+([!?.,;:])', r'\1', disp)    # tidy space left before punctuation
+    disp = re.sub(r'\s{2,}', ' ', disp).strip()
+    if _trail:
+        disp = (disp + ' ' + _trail).strip()
+
     return {
         "tts_text": tts_text if tts_text else text,
         # Capitalize the speech-bubble's first letter (LLM sometimes opens lowercase,

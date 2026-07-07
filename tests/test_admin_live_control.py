@@ -1,0 +1,165 @@
+"""Tests for the admin live-toggle bus: live_flags manifest, /admin/live_set,
+/admin/state, and the read-site refactors that make feature flags apply live."""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
+
+import pytest
+
+import live_flags as lf
+
+
+# --- Task 1: manifest + coercion -------------------------------------------
+
+def test_manifest_has_expected_flags():
+    keys = {f["key"] for f in lf.LIVE_FLAGS}
+    assert {
+        "llm_idle_enabled", "gossip_enabled", "safety_enabled", "games_enabled",
+        "recognition_enabled", "distress_enabled", "catchphrase_mirror_enabled",
+        "paused",
+    } <= keys
+
+
+def test_coerce_bool_and_reject_unknown():
+    assert lf.coerce_flag("paused", "true") is True
+    assert lf.coerce_flag("paused", 0) is False
+    assert lf.coerce_flag("paused", "off") is False
+    with pytest.raises(ValueError):
+        lf.coerce_flag("not_a_flag", 1)
+
+
+def test_coerce_number_range():
+    assert lf.coerce_flag("llm_idle_chance", "0.25") == 0.25
+    with pytest.raises(ValueError):
+        lf.coerce_flag("llm_idle_chance", 5)  # out of 0..1
+
+
+def test_public_manifest_is_json_safe():
+    import json
+    # coerce fns are callables — must be stripped from the public manifest
+    json.dumps(lf.public_manifest())
+    assert all("coerce" not in entry for entry in lf.public_manifest())
+
+
+def test_flag_defaults_covers_all_flags():
+    assert set(lf.flag_defaults()) == {f["key"] for f in lf.LIVE_FLAGS}
+
+
+# --- Task 2: /admin/live_set + /admin/state --------------------------------
+# These import server/main.py (heavy but cached) and monkeypatch its module-level
+# `live_config` to a temp file so the tests never touch the RUNNING server's
+# config_live.json.
+
+import asyncio
+
+from hot_reload import LiveConfig
+
+
+@pytest.fixture
+def srv_tmp(tmp_path, monkeypatch):
+    import main as srv
+    lc = LiveConfig(str(tmp_path / "live.json"))
+    monkeypatch.setattr(srv, "live_config", lc)
+    return srv
+
+
+def _key(srv):
+    return srv.GAME_CONFIG.get("admin_api_key", "")
+
+
+def test_live_set_rejects_unknown_key(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "definitely_not_a_flag", "value": 1}))
+    assert r["status"] == "error"
+
+
+def test_live_set_bad_value_rejected(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "llm_idle_chance", "value": 9}))
+    assert r["status"] == "error"
+
+
+def test_live_set_and_state_roundtrip(srv_tmp):
+    r = asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "gossip_enabled", "value": False}))
+    assert r["status"] == "ok" and r["value"] is False
+    s = asyncio.run(srv_tmp.admin_state({"api_key": _key(srv_tmp)}))
+    assert s["status"] == "ok"
+    assert s["flags"]["gossip_enabled"] is False
+    assert any(f["key"] == "gossip_enabled" for f in s["manifest"])
+    assert "coerce" not in s["manifest"][0]  # JSON-safe
+
+
+# --- Task 3: idle flags read live ------------------------------------------
+
+def test_idle_llm_enabled_reads_live(srv_tmp):
+    srv_tmp.live_config.set("llm_idle_enabled", False)
+    assert srv_tmp._idle_llm_enabled() is False
+    srv_tmp.live_config.set("llm_idle_enabled", True)
+    assert srv_tmp._idle_llm_enabled() is True
+
+
+def test_idle_llm_chance_reads_live(srv_tmp):
+    srv_tmp.live_config.set("llm_idle_chance", 0.9)
+    assert srv_tmp._idle_llm_chance() == 0.9
+
+
+# --- Task 4: paused kill switch --------------------------------------------
+
+def test_reply_paused_reads_live(srv_tmp):
+    assert srv_tmp._reply_paused() is False
+    srv_tmp.live_config.set("paused", True)
+    assert srv_tmp._reply_paused() is True
+    srv_tmp.live_config.set("paused", False)
+    assert srv_tmp._reply_paused() is False
+
+
+# --- Task 5: feature gates -------------------------------------------------
+
+def test_feature_on_reads_live(srv_tmp):
+    srv_tmp.live_config.set("gossip_enabled", False)
+    assert srv_tmp._feature_on("gossip_enabled") is False
+    srv_tmp.live_config.set("gossip_enabled", True)
+    assert srv_tmp._feature_on("gossip_enabled") is True
+    assert srv_tmp._feature_on("nonexistent_flag", True) is True
+
+
+def test_games_disabled_makes_start_game_noop():
+    import game_handlers
+    game_handlers.set_games_enabled(False)
+    try:
+        assert game_handlers.start_game("mario_trivia", {}, {}, None) is None
+    finally:
+        game_handlers.set_games_enabled(True)
+
+
+def test_live_set_games_toggles_game_handlers(srv_tmp):
+    asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "games_enabled", "value": False}))
+    assert srv_tmp._game_handlers_mod._GAMES_ENABLED is False
+    asyncio.run(srv_tmp.admin_live_set(
+        {"api_key": _key(srv_tmp), "key": "games_enabled", "value": True}))
+    assert srv_tmp._game_handlers_mod._GAMES_ENABLED is True
+
+
+# --- Task 6: /admin/outfit -------------------------------------------------
+
+def test_admin_outfit_broadcasts(srv_tmp, monkeypatch):
+    sent = {}
+
+    class FakeWS:
+        async def send_json(self, msg):
+            sent.update(msg)
+
+    monkeypatch.setattr(srv_tmp, "_active_ws", FakeWS())
+    r = asyncio.run(srv_tmp.admin_outfit({"api_key": _key(srv_tmp), "outfit": "tuxedo"}))
+    assert r["status"] == "ok" and r["outfit"] == "tuxedo"
+    assert sent == {"type": "outfit_switched", "outfit": "tuxedo"}
+
+
+def test_admin_outfit_no_client(srv_tmp, monkeypatch):
+    monkeypatch.setattr(srv_tmp, "_active_ws", None)
+    r = asyncio.run(srv_tmp.admin_outfit({"api_key": _key(srv_tmp), "outfit": "tuxedo"}))
+    assert r["status"] == "error"
