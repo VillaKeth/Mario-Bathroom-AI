@@ -876,12 +876,15 @@ Create `server/static/status.html` (self-contained; same dark card theme as `con
     }
   }
 
-  function pollData() {
-    fetch("/status/data", { cache: "no-store" })
+  function fetchData() {
+    return fetch("/status/data", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
       .then(renderData)
-      .catch(function () { /* health poll owns the down state */ })
-      .then(function () { setTimeout(pollData, 30000); });
+      .catch(function () { /* health poll owns the down state */ });
+  }
+
+  function pollData() {
+    fetchData().then(function () { setTimeout(pollData, 30000); });
   }
 
   function loadQueue() {
@@ -901,25 +904,34 @@ Create `server/static/status.html` (self-contained; same dark card theme as `con
     });
   }
 
+  var flushing = false;
+
   function flushQueue() {
+    if (flushing) return;
     var q = loadQueue();
     if (!q.length) return;
+    flushing = true;
     var item = q[0];
     postReport(item.reason, item.client_ts).then(function (r) {
+      flushing = false;
       if (r.ok || r.status === 400 || r.status === 429) {
-        q.shift();           // delivered or permanently unwanted - drop it
-        saveQueue(q);
-        if (q.length) flushQueue();
+        var fresh = loadQueue();   // reload - a tap may have queued more meanwhile
+        fresh.shift();             // delivered or permanently unwanted - drop it
+        saveQueue(fresh);
+        if (fresh.length) flushQueue();
       }
-    }).catch(function () { /* still down - retry on next successful poll */ });
+    }).catch(function () { flushing = false; /* still down - retry on next successful poll */ });
   }
+
+  var cooldownTimer = null;
 
   function startCooldown(seconds, msg) {
     cooldownUntil = Date.now() + seconds * 1000;
     var buttons = $("reasons").querySelectorAll("button");
     buttons.forEach(function (b) { b.disabled = true; });
     $("reportMsg").textContent = msg;
-    setTimeout(function () {
+    if (cooldownTimer) clearTimeout(cooldownTimer);
+    cooldownTimer = setTimeout(function () {
       buttons.forEach(function (b) { b.disabled = false; });
       $("reportMsg").textContent = "";
     }, seconds * 1000);
@@ -928,12 +940,13 @@ Create `server/static/status.html` (self-contained; same dark card theme as `con
   $("reasons").addEventListener("click", function (ev) {
     var btn = ev.target.closest("button");
     if (!btn || Date.now() < cooldownUntil) return;
+    cooldownUntil = Date.now() + 60000;  // optimistic guard; response adjusts it
     var reason = btn.getAttribute("data-reason");
     var clientTs = Date.now() / 1000;
     postReport(reason, clientTs).then(function (r) {
       if (r.ok) {
         startCooldown(60, "Thanks, report received");
-        pollData();
+        fetchData();
       } else if (r.status === 429) {
         r.json().then(function (j) {
           startCooldown(j.retry_after || 60, "Easy there, one report per minute");
