@@ -113,3 +113,23 @@ def test_legacy_path_without_spans_reveals_fully():
         MarioDisplay._update_typewriter(d)
     assert int(d._typewriter_pos) == len(TEXT)
     assert d.current_text == TEXT
+
+
+def test_wav_duration_from_header():
+    import io, wave, struct
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "client"))
+    import audio_playback
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(24000)
+        wf.writeframes(struct.pack("<h", 0) * 24000)  # exactly 1.0s of silence
+    dur = audio_playback.wav_duration_s(buf.getvalue())
+    assert abs(dur - 1.0) < 0.02
+
+
+def test_wav_duration_garbage_falls_back():
+    import audio_playback
+    dur = audio_playback.wav_duration_s(b"RIFFgarbage-not-a-real-wav" * 100)
+    assert dur > 0
