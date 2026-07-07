@@ -4,7 +4,5 @@
   "gossip_intensity": 5,
   "warmth": 7,
   "tts_engine": "auto",
-  "long_num_predict": 512,
-  "long_char_cap": 2000,
   "burst_debounce_ms": 1200
 }
