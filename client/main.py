@@ -613,6 +613,11 @@ class MarioClient:
             self.audio_playback.play(wav_bytes, text=getattr(self.display, "_typewriter_text", ""))
             if chunk_idx == 0 and isinstance(total, int) and total > 0:
                 self.display.sync_typewriter_to_audio(duration * total)
+        # A mid-stream gap (>4s) may have let the watchdog clear the speaking
+        # state; a resuming chunk must bring the bubble and talking pose back.
+        if not getattr(self.display, "_speaking", False):
+            self.display._speaking = True
+            self.display.set_state(STATE_TALKING)
         self.mirror.send_audio(wav_bytes)   # tee streaming chunk to remote viewers
         # Keep speaking state active; extend echo cancellation window
         self._last_play_end_time = time.time() + duration

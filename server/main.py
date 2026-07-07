@@ -5746,7 +5746,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         chunk_text=stream_chunks[0]["display"])
                     streamed = True
 
-                    # Pre-synthesize remaining sentences in parallel for speed
+                    # Pre-synthesize remaining sentences (submitted together so the
+                    # executor works ahead), but send each chunk the moment ITS
+                    # synthesis completes — a gather here would hold every chunk
+                    # until the LAST one finished, starving playback into the
+                    # client's mid-stream watchdog on long replies.
                     remaining = [(i, c) for i, c in enumerate(stream_chunks[1:], start=1)]
                     if remaining:
                         synth_tasks = [
@@ -5755,10 +5759,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
                             for _, c in remaining
                         ]
-                        synth_results = await asyncio.gather(*synth_tasks, return_exceptions=True)
-                        for (i, chunk), chunk_audio in zip(remaining, synth_results):
-                            if isinstance(chunk_audio, Exception):
-                                logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {chunk_audio}")
+                        for (i, chunk), synth_task in zip(remaining, synth_tasks):
+                            try:
+                                chunk_audio = await synth_task
+                            except Exception as synth_err:
+                                logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {synth_err}")
                                 continue
                             if chunk_audio and len(chunk_audio) > 44:
                                 is_last = (i == total_chunks - 1)
