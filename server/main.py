@@ -3796,8 +3796,13 @@ def _joke_llm_fn() -> str | None:
     which JokeEngine's try/except would silently swallow, permanently disabling
     the live path). It reuses the SAME llm.generate_response() helper and idle
     system prompt as _generate_llm_idle() below, bridging async -> sync the way
-    tts.py's _synthesize_edge() does: run the coroutine to completion on a worker
-    thread when we're already inside a running event loop (the idle loop always is).
+    tts.py's _synthesize_edge() does: if ever called while already on the event
+    loop, run the coroutine to completion on a worker thread instead of blocking
+    it. In practice this should no longer happen — both callers (the idle loop's
+    get_idle_action() and _handle_special_commands()) now dispatch this entire
+    function through loop.run_in_executor(), so it runs on a plain worker thread
+    with no running loop and always takes the asyncio.run(coro) branch below.
+    The on-loop branch remains only as a defensive fallback.
     """
     try:
         ctx = [
