@@ -1279,7 +1279,9 @@ def _start_idle_precache():
     def _idle_cache_worker():
         # Use character-specific pools from the idle behavior instance
         if _idle_behavior_ref is not None:
-            all_idle = list(getattr(_idle_behavior_ref, '_mumbles', [])) + list(getattr(_idle_behavior_ref, '_dj_announcements', []))
+            all_idle = (list(getattr(_idle_behavior_ref, '_mumbles', []))
+                        + list(getattr(_idle_behavior_ref, '_dj_announcements', []))
+                        + list(getattr(_idle_behavior_ref, '_jokes', [])))
         else:
             all_idle = []
         if not all_idle:
