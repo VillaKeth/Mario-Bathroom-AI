@@ -39,11 +39,14 @@ def test_build_stream_chunks_pairs_display_and_tts():
 
 def test_emoji_only_sentence_merges_into_next_display():
     # The emoji run is ≥15 chars so it survives the short-chunk merge as its own
-    # sentence, then cleans to empty TTS — exercising the carry-merge path.
+    # sentence. NOTE: it does NOT exercise the carry-merge path — the trailing
+    # "!" means analyze_text cleans it to a lone "!" (non-empty TTS), so it stays
+    # a chunk of its own. What this pins: no chunk ends up with empty or
+    # emoji-garbage TTS, and all display text survives, in order.
     text = "Here is the first real sentence of all! " + "🎉" * 20 + "! And here is the second real one."
     chunks = tts.build_stream_chunks(text)
-    # No chunk may have empty tts; all display text must survive, in order.
     assert all(c["tts"].strip() for c in chunks)
+    assert all("🎉" not in c["tts"] for c in chunks)
     combined = " ".join(c["display"] for c in chunks)
     assert "first real sentence" in combined and "second real one" in combined
 
@@ -51,3 +54,35 @@ def test_emoji_only_sentence_merges_into_next_display():
 def test_single_sentence_yields_single_chunk():
     chunks = tts.build_stream_chunks("Just one single sentence for the bubble tonight.")
     assert len(chunks) == 1
+
+
+def test_trailing_emoji_run_display_survives_with_nonempty_tts():
+    # A bare trailing emoji run (≥15 chars, no punctuation) splits off as the
+    # final buffer and stays a sentence of its own. Verified path: it does NOT
+    # take build_stream_chunks' carry-merge branch — analyze_text cleans it to
+    # empty internally, then its own fallback ("tts_text if tts_text else text")
+    # returns the RAW emoji run, so the chunk's tts is the emoji run itself
+    # (non-empty). Downstream, synthesize_user's preclean empties it and returns
+    # the emergency-silence WAV (4454 bytes > the 44-byte send gate), so the
+    # chunk still ships with its display text and nothing garbled is spoken.
+    # Pin the wire contract: every chunk has non-empty tts, the emoji display
+    # text is not dropped, and it stays in order at the end.
+    text = "First real sentence here tonight! Second real sentence lands after it. " + "🎉" * 20
+    chunks = tts.build_stream_chunks(text)
+    assert all(c["tts"].strip() for c in chunks)
+    assert "🎉" in chunks[-1]["display"]  # emoji display text not dropped
+    combined = " ".join(c["display"] for c in chunks)
+    assert "First real sentence" in combined and "Second real sentence" in combined
+
+
+def test_short_trailing_emoji_run_merges_into_last_sentence():
+    # The realistic case: a reply ending in one or two emoji. The <15-char
+    # trailing buffer merges into the last sentence inside the SPLITTER itself
+    # (before analyze_text ever runs), so the emoji rides along in that chunk's
+    # display while analyze_text strips it from the spoken tts. No standalone
+    # emoji sentence — and no carry — is ever created for short runs.
+    text = "First real sentence here tonight! Second real sentence lands after it. 🎉🎉"
+    chunks = tts.build_stream_chunks(text)
+    assert len(chunks) == 2
+    assert "🎉" in chunks[-1]["display"]
+    assert chunks[-1]["tts"].strip() and "🎉" not in chunks[-1]["tts"]
