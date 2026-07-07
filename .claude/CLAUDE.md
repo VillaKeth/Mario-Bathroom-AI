@@ -152,6 +152,12 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - `POST /admin/set_emotion` — force emotion change
 - `POST /admin/announce` — broadcast announcement to client
 
+### Public Status Page (no auth — guest-facing over the tunnel)
+- `GET /status` — downdetector-style page: up/degraded/unreachable banner, component dots, guest report button, outage history (`server/static/status.html`)
+- `GET /status/data` — report tallies (15-min window, 30-min buckets), incident list, character name (backed by `server/status_page.py`)
+- `POST /status/report` — guest problem report; preset reason enum only, 60s-per-IP rate limit keyed on effective report time; IPs stored as short hashes
+- Outage detection: server heartbeats `status_last_alive` to SQLite every 30s; a >90s gap at startup becomes a `server_down` incident row
+
 ---
 
 ## Config
