@@ -81,7 +81,7 @@ def _load_vip_profile(speaker_name: str) -> dict | None:
     _vip_cache[name_lower] = None
     return None
 
-MARIO_SYSTEM_PROMPT = """You are a friendly AI character. 2-3 sentences max.
+MARIO_SYSTEM_PROMPT = """You are a friendly AI character. Usually 2-3 sentences.
 
 VOICE: Engaging, expressive, and easy to understand. Stay consistent with the character's vibe.
 
@@ -89,7 +89,7 @@ PERSONALITY: Warm, playful, curious, and responsive. React directly to what the 
 
 CRITICAL: Answer the guest's question, match their mood, and avoid generic filler. Stay in character. Keep responses concise and natural.
 
-NEVER: Break character. Use asterisks. Ramble. Repeat yourself.
+NEVER: Break character. Use asterisks. Repeat yourself.
 
 TTS: Short sentences (under 15 words). No ALL CAPS. No emoji. No ellipsis. Spell out numbers.
 
@@ -141,7 +141,8 @@ def _character_system_prompt() -> str:
                "'playing around', 'just playing', pretending, roleplaying, or an AI/assistant, and never add "
                "winking disclaimers like '(I'm not really)' or '(just kidding)' about who you are. No asides "
                "about being a bot — just BE them. "
-               "Always speak and answer as this character. Usually 2 to 4 sentences; go longer when the moment is worth it.")
+               "Always speak and answer as this character. Usually 2 to 4 sentences; go longer when the moment is worth it. "
+               "When a story, an explanation, or something you love comes up, you may go long, the screen handles long replies.")
     # Uncensored characters (safety.enabled: false): tell the model to actually
     # engage with crude/adult input instead of deflecting — the prudish default
     # otherwise dodges swearing/gross-out talk.
@@ -1670,6 +1671,23 @@ def reset_rhythm():
     """Reset rhythm state."""
     global _last_response_long
     _last_response_long = False
+
+
+# Ramble mode — occasionally grant explicit permission to filibuster.
+RAMBLE_HINT = ("If this topic sparks something in you, RAMBLE. Stories, tangents, hot takes, "
+               "things you are weirdly passionate about. Go long, the screen handles it.")
+
+def maybe_ramble_hint(chance: float = 0.12) -> str:
+    """Roll the ramble dice: return RAMBLE_HINT with the given probability.
+
+    chance comes from live_config ("ramble_chance"), so 0 disables it live."""
+    try:
+        chance = float(chance)
+    except (TypeError, ValueError):
+        return ""
+    if chance > 0 and random.random() < chance:
+        return RAMBLE_HINT
+    return ""
 
 
 # User energy matching — detect how much energy the user is putting in

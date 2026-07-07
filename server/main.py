@@ -5437,12 +5437,20 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Detect length intent and set token budget for this turn
         _length_intent = mario_prompt.detect_length_intent(text)
         _long = (_length_intent == "long")
-        _long_np = int(live_config.get("long_num_predict", 1024)) if _long else None
         if _long:
             ctx.append({"role": "system", "content":
                 "This question deserves a thorough, in-character answer — give real "
                 "detail and clear structure, do not rush it or cut it short."})
             logger.info(f"[LENGTH] long-intent detected for: '{text[:60]}'")
+        # Ramble mode: occasionally grant explicit permission to filibuster
+        # (skipped when long-intent already fired — redundant then).
+        _ramble_hint = "" if _long else mario_prompt.maybe_ramble_hint(
+            live_config.get("ramble_chance", 0.12))
+        if _ramble_hint:
+            ctx.append({"role": "system", "content": _ramble_hint})
+            logger.info("[LENGTH] ramble hint fired — filibuster permission granted")
+        # Long-form token budget applies to both explicit long intent and rambles.
+        _long_np = int(live_config.get("long_num_predict", 1024)) if (_long or _ramble_hint) else None
 
         # Infer response type for router
         _response_type = _infer_response_type(text, state_current)
