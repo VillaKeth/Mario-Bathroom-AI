@@ -2966,7 +2966,7 @@ async def admin_switch_character(request_body: dict = {}):
         import party_report, party_stats as ps_mod, party_gossip as pg_mod
         import catchphrase_mirror as cm_mod, emotions as emo_mod
         import birthday_vip as bv_mod, night_progression as np_mod
-        for mod in (party_report, ps_mod, pg_mod, cm_mod, emo_mod, bv_mod, np_mod):
+        for mod in (party_report, ps_mod, pg_mod, cm_mod, emo_mod, bv_mod, np_mod, status_page):
             if hasattr(mod, "set_character"):
                 mod.set_character(_character.name, _character.display_name)
         
