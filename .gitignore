@@ -171,3 +171,6 @@ pomni_voice_preview.wav
 
 # Overnight run logs (day-by-day per-source)
 logs/
+
+characters/*/jokes/candidates.jsonl
+characters/*/jokes/scored.jsonl
