@@ -146,9 +146,9 @@ _JS_SCAN_DISMISS = r"""
     const pop = assumePopup || inPopup(el);
     let sc = 0;
     if (benign.some(b => label.includes(b))) sc += pop ? 10 : 2;     // benign text only STRONG in a popup
-    if (XGLYPH.test((el.textContent||'').trim())) sc += pop ? 8 : 5;
+    if (XGLYPH.test((el.textContent||'').trim())) sc += pop ? 8 : 3;
     const al = (el.getAttribute('aria-label')||'').toLowerCase();
-    if (al.includes('close') || al.includes('dismiss')) sc += pop ? 9 : 6;
+    if (al.includes('close') || al.includes('dismiss')) sc += pop ? 9 : 3;
     if (((el.className||'')+'').toLowerCase().includes('close')) sc += 2;
     if (pop) sc += 3;
     if (label.length > 40) sc -= 4;                                   // long text = not a dismiss
@@ -211,11 +211,13 @@ async def _try_each(page, selectors, timeout=1200) -> bool:
     return False
 
 
-async def _scan_and_click(frame, assume_popup=False) -> bool:
+async def _scan_and_click(frame, assume_popup=False, js_click=False) -> bool:
     """Heuristic dismiss-discovery on one frame: score+mark the best benign close
     control in JS (shadow-DOM-aware, popup-context-gated), then click it via
     Playwright. `assume_popup` treats the whole frame as popup context (used for
-    child frames — an overlaying iframe IS a popup). Returns True if it clicked."""
+    child frames — an overlaying iframe IS a popup). `js_click` clicks the marked
+    control directly in JS (fast; skips Playwright actionability — used by the
+    fuzzer at scale). Returns True if it clicked."""
     try:
         res = await frame.evaluate(_JS_SCAN_DISMISS,
                                    [list(BENIGN_DISMISS), list(AVOID), bool(assume_popup)])
@@ -223,6 +225,13 @@ async def _scan_and_click(frame, assume_popup=False) -> bool:
         return False
     if not (res and res.get("found")):
         return False
+    if js_click:
+        try:
+            await frame.evaluate("() => { const e = document.querySelector(\"[data-mcp-dismiss='1']\");"
+                                 " if (e) { e.click(); e.dispatchEvent(new MouseEvent('click', {bubbles:true})); } }")
+            return True
+        except Exception:  # noqa: BLE001
+            return False
     try:
         loc = frame.locator("[data-mcp-dismiss='1']").first
         await loc.click(timeout=1500)
@@ -241,15 +250,19 @@ async def _scan_and_click(frame, assume_popup=False) -> bool:
 
 
 async def _overlay_present(page, site) -> bool:
-    sels = OVERLAY_SELECTORS + tuple(getattr(site, "blocking_overlay_markers", ()) or ())
-    for sel in sels:
-        try:
-            loc = page.locator(sel).first
-            if await loc.count() and await loc.is_visible():
-                return True
-        except Exception:  # noqa: BLE001
-            continue
-    return False
+    """True if any overlay/dialog/cookie selector matches a VISIBLE element. One
+    in-page eval (not ~30 Playwright round-trips) — matters because _blocked calls
+    this every dismissal round."""
+    sels = list(OVERLAY_SELECTORS + tuple(getattr(site, "blocking_overlay_markers", ()) or ()))
+    try:
+        return bool(await page.evaluate(
+            """(sels) => { for (const s of sels) { try { const e = document.querySelector(s);
+                if (e) { const r = e.getBoundingClientRect(); const st = getComputedStyle(e);
+                  if (r.width > 0 && r.height > 0 && st.visibility !== 'hidden' && st.display !== 'none') return true; }
+              } catch (err) {} } return false; }""",
+            sels))
+    except Exception:  # noqa: BLE001
+        return False
 
 
 async def occlusion(page, site) -> dict:
@@ -299,7 +312,7 @@ def site_name(site) -> str:
         return "site"
 
 
-async def _scan_frames(page) -> bool:
+async def _scan_frames(page, js_click=False) -> bool:
     """Heuristic dismiss-scan across the main frame (popup-context-gated so it
     never touches a clean page's stray Close button) + every child frame (treated
     as popup context — an overlaying iframe is itself a popup, e.g. a consent
@@ -307,7 +320,7 @@ async def _scan_frames(page) -> bool:
     acted = False
     for i, fr in enumerate(_frames(page)):
         try:
-            if await _scan_and_click(fr, assume_popup=(i != 0)):
+            if await _scan_and_click(fr, assume_popup=(i != 0), js_click=js_click):
                 acted = True
         except Exception:  # noqa: BLE001
             continue
@@ -323,7 +336,7 @@ async def _blocked(page, site) -> bool:
     return bool(occ.get("covered"))
 
 
-async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=True) -> int:
+async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=True, settle_ms=300, fast=False) -> int:
     """Clear whatever is covering the page. Returns how many rounds acted. Idempotent
     — stops the instant a round is a no-op. The generic benign / close-icon /
     Escape-consent-backdrop steps run ONLY when there is real overlay evidence (an
@@ -340,7 +353,7 @@ async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=
             acted = True
         # 2) heuristic dismiss-discovery (self-gating: benign text only in a popup
         #    context; iframes treated as popups; shadow-DOM-aware) — always safe
-        elif await _scan_frames(page):
+        elif await _scan_frames(page, js_click=fast):
             acted = True
         # 3) generic benign text buttons — ONLY when blocked (avoid clean-page misfire)
         elif blocked and await _try_each(page, _benign_selectors()):
@@ -360,16 +373,30 @@ async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=
             elif await _try_each(page, _consent_selectors(site)):
                 acted = True
             else:
+                # Click-away, but NEVER blind-click a real control — a money button
+                # could sit at the corner. Only click if that point is inert.
                 try:
-                    await page.mouse.click(6, 6)
-                    await page.wait_for_timeout(250)
+                    # Pierce shadow roots to the REAL element at the corner — a
+                    # blind mouse click hits shadow-DOM content even though
+                    # elementFromPoint only reports the shadow host.
+                    safe = await page.evaluate(
+                        """() => { let e = document.elementFromPoint(6, 6);
+                             while (e && e.shadowRoot) { const i = e.shadowRoot.elementFromPoint(6, 6);
+                               if (!i || i === e) break; e = i; }
+                             if (!e) return true;
+                             return !e.closest('button,a,[role=button],input,select,textarea'); }""")
+                    if safe:
+                        await page.mouse.click(6, 6)
+                        if settle_ms:
+                            await page.wait_for_timeout(min(settle_ms, 250))
                     acted = not await _blocked(page, site)
                 except Exception:  # noqa: BLE001
                     acted = False
         if not acted:
             break
         dismissed += 1
-        await page.wait_for_timeout(300)
+        if settle_ms:
+            await page.wait_for_timeout(settle_ms)
     # If the composer is STILL occluded after all rounds, capture diagnostics once.
     if capture and not benign_only:
         occ = await occlusion(page, site)
