@@ -8,6 +8,7 @@ from playwright.async_api import async_playwright, Page
 from mcp_chatgpt.sites import get_site
 from mcp_chatgpt.parsing import parse_thread_id, classify_page_state
 from mcp_chatgpt.stability import ProbeResult, WaitOutcome, wait_for_response
+from mcp_chatgpt import interact
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 PROFILE_DIR = os.path.join(_DIR, "profile")   # base; the default account lives here
@@ -114,6 +115,16 @@ class ChatGPTSession:
         return out
 
     async def _probe(self, page: Page, baseline: set) -> ProbeResult:
+        # Throttled benign-only overlay sweep (~every 6s at 0.5s polls) so a nag
+        # that lands MID-render — idle prompt, rating ask, "still there?" — can't
+        # freeze the wait loop. benign_only skips Escape/consent/backdrop so it
+        # can never mis-click a generation control while an image is rendering.
+        self._probe_ticks = getattr(self, "_probe_ticks", 0) + 1
+        if self._probe_ticks % 12 == 0:
+            try:
+                await interact.sweep_light(page, self.site)
+            except Exception:  # noqa: BLE001
+                pass
         # Some providers (e.g. grok) have no Stop button — treat "no stop selector"
         # as not-generating and let the wait loop rely on text/image stability.
         generating = bool(self.site.stop_button) and \
@@ -241,26 +252,16 @@ class ChatGPTSession:
         return outcome
 
     async def _dismiss_intro(self, page: Page) -> None:
-        """Click onboarding buttons (in order, each if present) before the composer
-        exists — fresh gemini accounts show a 'Use Gemini' landing then a 'No
-        thanks' data dialog. No-op once the composer is already on the page."""
-        if not self.site.intro_buttons:
-            return
-        if await page.query_selector(self.site.composer):
-            return
-        for sel in self.site.intro_buttons:
-            try:
-                btn = await page.query_selector(sel)
-                if btn:
-                    await btn.click()
-                    await page.wait_for_timeout(2000)
-                    print(f"[intro] clicked {sel}", flush=True)
-            except Exception:  # noqa: BLE001
-                continue
+        """Clear whatever stands between us and the composer — onboarding CTAs,
+        consent/ToS dialogs, cookie walls, upsell nags. Generalized: the sweep in
+        interact.dismiss_overlays handles this site's intro_buttons AND any modal
+        that appears mid-session, then we wait for the composer to be reachable."""
+        await interact.dismiss_overlays(page, self.site)
         try:
             await page.wait_for_selector(self.site.composer, timeout=10000)
         except Exception:  # noqa: BLE001
-            pass
+            # Composer still hidden — one more aggressive sweep before we give up.
+            await interact.dismiss_overlays(page, self.site, max_rounds=8)
 
     async def _type_and_send(self, page: Page, prompt: str, image_path: str = "") -> None:
         await self._dismiss_intro(page)
@@ -272,13 +273,12 @@ class ChatGPTSession:
                 await page.wait_for_timeout(6000)
             except Exception as e:  # noqa: BLE001
                 print(f"[ref] image upload failed ({image_path}): {e}", flush=True)
-        await page.fill(self.site.composer, prompt)
-        # Submit: click the Send button if the site has one, else press Enter
-        # (grok/gemini-style composers submit on Enter, no Send button).
-        if self.site.send_button:
-            await page.click(self.site.send_button)
-        else:
-            await page.keyboard.press("Enter")
+        # Self-healing fill + submit: both sweep overlays first and fall back
+        # through several strategies, so a modal that lands between upload and
+        # send can't wedge us on a locator timeout.
+        if not await interact.safe_fill(page, self.site, prompt):
+            print("[interact] safe_fill could not land the prompt after retries", flush=True)
+        await interact.safe_send(page, self.site)
         # Wait for streaming to actually begin (Stop button appears) so the wait
         # loop doesn't sample the blank pre-generation turn. Sites without a Stop
         # button skip this — the wait loop handles them via text/image stability.
@@ -310,6 +310,7 @@ class ChatGPTSession:
             ctx = await self._ctx_for(account)
             page = await ctx.new_page()
             await page.goto(self.site.url, wait_until="domcontentloaded")
+            await interact.dismiss_overlays(page, self.site)   # clear any landing modal
             await self._check_state(page, account)
             baseline = await self._generated_image_srcs(page) | self._saved_srcs
             await self._type_and_send(page, prompt, image_path)
@@ -333,6 +334,7 @@ class ChatGPTSession:
                 page = await ctx.new_page()
                 await page.goto(f"https://chatgpt.com/c/{thread_id}",
                                 wait_until="domcontentloaded")
+                await interact.dismiss_overlays(page, self.site)   # clear any landing modal
                 await self._check_state(page, account)
                 self._threads[thread_id] = page
             baseline = await self._generated_image_srcs(page) | self._saved_srcs

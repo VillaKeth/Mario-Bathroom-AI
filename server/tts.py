@@ -1683,6 +1683,80 @@ def split_into_sentences(text: str) -> list[str]:
     return merged
 
 
+def split_display_sentences(text: str) -> list[str]:
+    """Split DISPLAY text into sentence chunks — same boundaries and short-chunk
+    merging as split_into_sentences, but with NO preclean, so every chunk stays
+    a verbatim substring of the display text. The client locates each chunk in
+    the bubble text to gate the typewriter to real audio playback.
+
+    Chunks are emitted as offset SLICES of the input, so merged fragments keep
+    their real separator (a lone "\\n" or "\\t" survives analyze_text's display
+    cleanup — rejoining with a hardcoded " " would make the chunk unfindable).
+    """
+    import re
+    if not text or not text.strip():
+        return []
+    text = text.strip()
+
+    # Fragment spans (start, end) between sentence separators, as offsets.
+    frag_spans = []
+    prev_end = 0
+    for m in re.finditer(r'(?<=[.!?])\s+', text):
+        frag_spans.append((prev_end, m.start()))
+        prev_end = m.end()
+    frag_spans.append((prev_end, len(text)))
+
+    # Merge short fragments forward until a chunk reaches >= 15 chars. A chunk
+    # is text[start:end] spanning every merged fragment AND the real separators
+    # between them — verbatim by construction, no rejoin logic.
+    chunk_spans = []
+    start = None
+    for s, e in frag_spans:
+        if start is None:
+            start = s
+        if e - start >= 15:
+            chunk_spans.append((start, e))
+            start = None
+    if start is not None:
+        if chunk_spans:
+            # Trailing short fragment(s) merge into the last chunk — extending
+            # its span keeps the true separator between them.
+            chunk_spans[-1] = (chunk_spans[-1][0], len(text))
+        else:
+            chunk_spans.append((start, len(text)))
+    return [text[s:e] for s, e in chunk_spans]
+
+
+def build_stream_chunks(display_text: str) -> list[dict]:
+    """Pair each display sentence with its TTS input for sentence streaming.
+
+    Returns [{"display": <verbatim display sentence(s)>, "tts": <cleaned tts text>}].
+    Uses pose_analyzer.analyze_text per sentence — the exact transform the
+    non-streamed path applies to the whole reply — so spoken text never drifts
+    from the bubble. Sentences that clean to nothing (emoji-only) have their
+    display text merged into the NEXT chunk so the bubble still reveals them.
+    """
+    from pose_analyzer import analyze_text as _analyze
+    chunks = []
+    carry = ""
+    for sent in split_display_sentences(display_text):
+        disp = (carry + " " + sent).strip() if carry else sent
+        tts_in = _analyze(sent)["tts_text"].strip()
+        if not tts_in:
+            carry = disp
+            continue
+        chunks.append({"display": disp, "tts": tts_in})
+        carry = ""
+    if carry:
+        if chunks:
+            chunks[-1]["display"] = (chunks[-1]["display"] + " " + carry).strip()
+        else:
+            # Nothing speakable at all — one chunk with empty tts; caller falls
+            # back to the non-streamed path.
+            chunks.append({"display": carry, "tts": ""})
+    return chunks
+
+
 async def synthesize_streaming(text: str, voice_params: dict = None):
     """Split text into sentences, synthesize each, yield WAV bytes as they complete.
 

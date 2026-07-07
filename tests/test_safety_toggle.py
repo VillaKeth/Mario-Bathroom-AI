@@ -113,7 +113,7 @@ class TestBrevityAndCap:
         set_safety_config(True, True)
         long_text = "Wahoo there friend. " * 60  # ~1200 chars, sentence-punctuated
         result = filter_response(long_text)
-        assert 300 < len(result) <= 510
+        assert 300 < len(result) <= 4000
 
     def test_cap_false_returns_uncapped_full_text(self):
         # full_text for the chat backlog: the complete cleaned reply, not capped.

@@ -29,6 +29,17 @@ class Site:
     # exists — e.g. fresh gemini accounts show "Use Gemini" then a "No thanks"
     # data-sharing dialog. Clicked in order, only when the composer isn't there.
     intro_buttons: tuple = ()
+    # Benign "close this nag" buttons the overlay-sweep (interact.dismiss_overlays)
+    # may click at ANY time, not just at login — Not now / No thanks / Close-style.
+    # The generic benign list in interact.py already covers most; this is for
+    # site-specific ones. Never a purchase/upsell.
+    dismiss_buttons: tuple = ()
+    # Consent/ToS accept buttons clicked ONLY as a last resort when an overlay
+    # still blocks the composer after Escape (required to proceed, never a buy).
+    consent_buttons: tuple = ()
+    # Extra selectors (on top of interact.OVERLAY_SELECTORS) that mean "a modal is
+    # covering the page" for this site, so the sweep knows to keep escalating.
+    blocking_overlay_markers: tuple = ()
 
 
 SITES = {
@@ -57,6 +68,21 @@ SITES = {
             "button:has-text('prefer this response')",
             "button:has-text('Keep this response')",
             "[data-testid='paragen-prefer-button']",
+        ),
+        # Common ChatGPT interstitials that pop over the composer mid-session:
+        # "Stay logged out" account nag, upsell close, cookie reject.
+        dismiss_buttons=(
+            "button:has-text('Stay logged out')",
+            "a:has-text('Stay logged out')",
+            "button:has-text('Not now')",
+            "button:has-text('Maybe later')",
+            "button:has-text('No thanks')",
+            "button:has-text('Reject non-essential')",
+            "[data-testid='close-button']",
+        ),
+        consent_buttons=(
+            "button:has-text('Accept all')",
+            "button:has-text('Keep essential only')",
         ),
     ),
     # SCAFFOLD — selectors are best-effort guesses; verify live against the
@@ -93,6 +119,13 @@ SITES = {
             "[data-testid='accept-terms']",
             "[aria-label*='Accept' i]",
         ),
+        # grok also drops "Try SuperGrok" upsells + assorted nags over the chat.
+        dismiss_buttons=(
+            "button:has-text('Not now')",
+            "button:has-text('Maybe later')",
+            "button:has-text('Skip')",
+            "button:has-text('No thanks')",
+        ),
     ),
     # SCAFFOLD — verify live (Gemini uses a Quill div.ql-editor composer +
     # <model-response> turns; confirm the real image host).
@@ -125,6 +158,14 @@ SITES = {
             "button:has-text('No, thanks')",
             "button:has-text('Don')",
             "button:has-text('Dismiss')",       # "Gemini is more relevant with location" nag
+        ),
+        # Gemini sprinkles "Got it" / feature-intro / location nags over the app.
+        dismiss_buttons=(
+            "button:has-text('No thanks')",
+            "button:has-text('Not now')",
+            "button:has-text('Got it')",
+            "button:has-text('Dismiss')",
+            "button:has-text('No, thanks')",
         ),
     ),
 }

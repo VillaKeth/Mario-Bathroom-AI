@@ -137,12 +137,14 @@ def _character_break_patterns():
     ]
 
 
-def filter_response(text: str, cap: bool = True) -> str:
+def filter_response(text: str, cap: bool = True, cap_chars: int = 4000) -> str:
     """Filter the response for inappropriate content and LLM artifacts.
 
-    cap=True (default) enforces MAX_RESPONSE_CHARS — the spoken/displayed text.
-    cap=False skips only the length cap (all cleaning/filtering still applies),
-    yielding the full 'what she meant to say' text for the chat backlog.
+    cap=True (default) enforces the cap_chars ceiling on the spoken/displayed
+    text — a runaway-protection limit, not a style choice (the prompt handles
+    pacing). cap=False skips only the length cap (all cleaning/filtering still
+    applies), yielding the full 'what she meant to say' text for the chat
+    backlog.
     """
     if not text:
         return text or ""
@@ -186,9 +188,9 @@ def filter_response(text: str, cap: bool = True) -> str:
     for pat, repl in _character_break_patterns():
         text = re.sub(pat, repl, text)
 
-    # Enforce maximum response length — the character should be punchy, not an essay writer.
+    # Enforce the maximum response length ceiling — runaway protection only.
     # Skipped when cap=False so callers can capture the full untruncated reply.
-    MAX_RESPONSE_CHARS = 500
+    MAX_RESPONSE_CHARS = max(200, int(cap_chars))
     if cap and len(text) > MAX_RESPONSE_CHARS:
         # Try to cut at a sentence boundary
         truncated = text[:MAX_RESPONSE_CHARS]
@@ -197,8 +199,7 @@ def filter_response(text: str, cap: bool = True) -> str:
             text = truncated[:last_punct + 1]
         else:
             text = truncated.rstrip() + "."
-        if DEBUG_SAFETY:
-            logger.info(f"[DEBUG_SAFETY] Truncated response from {len(original)} to {len(text)} chars")
+        logger.warning(f"[DEBUG_SAFETY] Response hit char ceiling — truncated from {len(original)} to {len(text)} chars")
 
     if text != original and DEBUG_SAFETY:
         logger.info(f"[DEBUG_SAFETY] filter_response: modified response")

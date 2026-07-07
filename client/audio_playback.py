@@ -34,6 +34,20 @@ def analyze_wav(wav_bytes: bytes) -> dict:
             "peak": round(peak, 4), "rms": round(rms, 4), "engine_guess": engine}
 
 
+def wav_duration_s(wav_bytes: bytes) -> float:
+    """Real duration of a WAV byte buffer from its header.
+
+    Used to pace the bubble typewriter to each streamed clip. Falls back to
+    the 24kHz/16-bit estimate used for echo cancellation when the header is
+    unreadable."""
+    try:
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+            rate = wf.getframerate() or 24000
+            return max(0.3, wf.getnframes() / float(rate))
+    except Exception:
+        return max(0.5, len(wav_bytes or b"") / 48000)
+
+
 class AudioPlayback:
     """Plays audio (WAV bytes) through the speakers."""
 
