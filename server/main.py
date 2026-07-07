@@ -5719,20 +5719,22 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not particle:
         particle = emotion_system.get_emotion_particle()
 
-    # Sentence streaming: split into sentences, send first chunk immediately,
-    # synthesize remaining in background while client plays first chunk
+    # Sentence streaming: split the DISPLAY text into sentences, send the first
+    # chunk (text + its sentence) immediately, synthesize the rest in background
+    # while the client plays chunk 0. Each chunk carries its display sentence
+    # (chunk_text) so the client can gate the bubble typewriter to real audio.
     if TTS_STREAMING_ENABLED:
-        sentences = tts.split_into_sentences(tts_text)
-        if len(sentences) >= 2 and len(sentences[0]) >= 12:
+        stream_chunks = tts.build_stream_chunks(analyzed["display_text"])
+        if len(stream_chunks) >= 2 and len(stream_chunks[0]["tts"]) >= 12:
             try:
-                total_chunks = len(sentences)
+                total_chunks = len(stream_chunks)
                 if DEBUG_STREAM:
                     logger.info(f"[DEBUG_STREAM] Streaming {total_chunks} sentences for: \"{tts_text[:80]}...\"")
 
                 # Synthesize first sentence immediately
                 first_audio = await loop.run_in_executor(
                     _tts_executor, lambda: tts.synthesize_user(
-                        sentences[0], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                        stream_chunks[0]["tts"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
                 if first_audio and len(first_audio) > 44:
                     # Send full text + metadata with first audio chunk
                     await send_response(ws, analyzed["display_text"], first_audio,
@@ -5740,20 +5742,21 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                         pose_hint=analyzed["pose_hint"], response_time=time.time() - start_time,
                         particle_effect=particle, full_text=analyzed.get("full_text"),
                         censor=censored,
-                        chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1))
+                        chunk_index=0, total_chunks=total_chunks, is_last=(total_chunks == 1),
+                        chunk_text=stream_chunks[0]["display"])
                     streamed = True
 
                     # Pre-synthesize remaining sentences in parallel for speed
-                    remaining = [(i, s.strip()) for i, s in enumerate(sentences[1:], start=1) if s.strip()]
+                    remaining = [(i, c) for i, c in enumerate(stream_chunks[1:], start=1)]
                     if remaining:
                         synth_tasks = [
                             loop.run_in_executor(
-                                _tts_executor, lambda s=s: tts.synthesize_user(
+                                _tts_executor, lambda s=c["tts"]: tts.synthesize_user(
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-                            for _, s in remaining
+                            for _, c in remaining
                         ]
                         synth_results = await asyncio.gather(*synth_tasks, return_exceptions=True)
-                        for (i, stripped), chunk_audio in zip(remaining, synth_results):
+                        for (i, chunk), chunk_audio in zip(remaining, synth_results):
                             if isinstance(chunk_audio, Exception):
                                 logger.error(f"[DEBUG_STREAM] Sentence {i+1}/{total_chunks} failed: {chunk_audio}")
                                 continue
@@ -5765,6 +5768,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                                         "chunk_index": i,
                                         "total_chunks": total_chunks,
                                         "is_last": is_last,
+                                        "chunk_text": chunk["display"],
                                     })
                                     await ws.send_bytes(chunk_audio)
                                 except Exception as send_err:
@@ -6906,7 +6910,7 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None, is_idle: bool = False,
                         full_text: str = None, censor: bool = False,
-                        speaker: str = None):
+                        speaker: str = None, chunk_text: str = None):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
@@ -6945,6 +6949,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["censor"] = True
     if speaker:
         msg["speaker"] = speaker
+    if chunk_text is not None:
+        msg["chunk_text"] = chunk_text
     # Sentence streaming metadata
     if chunk_index is not None:
         msg["chunk_index"] = chunk_index

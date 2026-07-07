@@ -1683,6 +1683,61 @@ def split_into_sentences(text: str) -> list[str]:
     return merged
 
 
+def split_display_sentences(text: str) -> list[str]:
+    """Split DISPLAY text into sentence chunks — same boundaries and short-chunk
+    merging as split_into_sentences, but with NO preclean, so every chunk stays
+    a verbatim substring of the display text. The client locates each chunk in
+    the bubble text to gate the typewriter to real audio playback.
+    """
+    import re
+    if not text or not text.strip():
+        return []
+    chunks = re.split(r'(?<=[.!?])\s+', text.strip())
+    merged = []
+    buffer = ""
+    for chunk in chunks:
+        buffer += (" " if buffer else "") + chunk
+        if len(buffer) >= 15:
+            merged.append(buffer)
+            buffer = ""
+    if buffer:
+        if merged:
+            merged[-1] += " " + buffer
+        else:
+            merged.append(buffer)
+    return merged
+
+
+def build_stream_chunks(display_text: str) -> list[dict]:
+    """Pair each display sentence with its TTS input for sentence streaming.
+
+    Returns [{"display": <verbatim display sentence(s)>, "tts": <cleaned tts text>}].
+    Uses pose_analyzer.analyze_text per sentence — the exact transform the
+    non-streamed path applies to the whole reply — so spoken text never drifts
+    from the bubble. Sentences that clean to nothing (emoji-only) have their
+    display text merged into the NEXT chunk so the bubble still reveals them.
+    """
+    from pose_analyzer import analyze_text as _analyze
+    chunks = []
+    carry = ""
+    for sent in split_display_sentences(display_text):
+        disp = (carry + " " + sent).strip() if carry else sent
+        tts_in = _analyze(sent)["tts_text"].strip()
+        if not tts_in:
+            carry = disp
+            continue
+        chunks.append({"display": disp, "tts": tts_in})
+        carry = ""
+    if carry:
+        if chunks:
+            chunks[-1]["display"] = (chunks[-1]["display"] + " " + carry).strip()
+        else:
+            # Nothing speakable at all — one chunk with empty tts; caller falls
+            # back to the non-streamed path.
+            chunks.append({"display": carry, "tts": ""})
+    return chunks
+
+
 async def synthesize_streaming(text: str, voice_params: dict = None):
     """Split text into sentences, synthesize each, yield WAV bytes as they complete.
 
