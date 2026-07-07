@@ -54,7 +54,6 @@ class IdleBehavior:
         self._idle_interval = 15
         self._action_count = 0
         self._used_mumbles = set()
-        self._used_jokes = set()
         self._used_trivia = set()
         self._recently_used = []  # Track last N choices to avoid repeats
         self._used_items = {}  # pool_name -> set of recently used items
@@ -77,7 +76,9 @@ class IdleBehavior:
         self._mumbles = self._char_pools.get("mumbles", [])
         self._jokes = self._char_pools.get("jokes", [])
         # Curated pool supersedes idle/messages.yaml jokes when present.
-        _char_dir = getattr(character_loader, "char_dir", None) or getattr(character_loader, "_char_dir", None)
+        # CharacterLoader exposes the PUBLIC `character_dir` attr; `_char_dir`
+        # is kept as a fallback for older/fake loaders (e.g. some tests).
+        _char_dir = getattr(character_loader, "character_dir", None) or getattr(character_loader, "_char_dir", None)
         if _char_dir:
             self._jokes = load_curated_jokes(str(_char_dir), fallback=self._jokes)
         self._joke_engine = JokeEngine(self._jokes, llm_fn=joke_llm_fn, llm_chance=joke_llm_chance)
@@ -95,7 +96,6 @@ class IdleBehavior:
         self._lonely_deep = self._char_pools.get("lonely_deep", [])
 
         # Per-category rotation tracking
-        self._joke_index = random.randint(0, max(1, len(self._jokes)) - 1)
         self._trivia_index = random.randint(0, max(1, len(self._trivia)) - 1)
         self._song_index = random.randint(0, max(1, len(self._songs)) - 1)
         self._challenge_index = random.randint(0, max(1, len(self._challenges)) - 1)

@@ -2935,7 +2935,7 @@ async def admin_switch_character(request_body: dict = {}):
     Body: {"character": "sonic"} or {"character": "pomni"}
     Lists available characters if no character specified.
     """
-    global _character
+    global _character, idle_behavior
     
     api_key = GAME_CONFIG.get("admin_api_key", "")
     if api_key and request_body.get("api_key") != api_key:
@@ -3008,7 +3008,17 @@ async def admin_switch_character(request_body: dict = {}):
         _char_sys_prompt = _character.get_system_prompt()
         if _char_sys_prompt:
             mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
-        
+
+        # Rebuild idle behavior for the new character — without this,
+        # idle_behavior (and its _joke_engine/_jokes pool) stays pinned to the
+        # boot character, so the OLD character's jokes/idle lines would fire
+        # under the new voice after a live switch. Mirrors the construction at
+        # startup (main.py, in main()).
+        _joke_chance = live_config.get("joke_llm_chance", 0.10)
+        idle_behavior = IdleBehavior(character_loader=_character, joke_llm_fn=_joke_llm_fn,
+                                      joke_llm_chance=_joke_chance)
+        tts._idle_behavior_ref = idle_behavior
+
         # Update config.json for persistence across restarts
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
         try:
@@ -3798,7 +3808,7 @@ def _joke_llm_fn() -> str | None:
             )},
         ]
         _model = llm_router.get_model(llm_router.classify("joke", response_type="one_liner"))
-        coro = asyncio.wait_for(llm.generate_response(ctx, model=_model), timeout=12)
+        coro = asyncio.wait_for(llm.generate_response(ctx, model=_model), timeout=8)
 
         loop = None
         try:
@@ -4257,7 +4267,11 @@ async def _idle_loop(ws: WebSocket):
             if contextual and random.random() < 0.20:
                 action = contextual
             else:
-                action = idle_behavior.get_idle_action(phase=_idle_phase)
+                # Off-load: on the 10% joke-LLM roll this can block for several
+                # seconds (see _joke_llm_fn). Running it on the loop thread would
+                # freeze the whole server, so run it in a worker thread instead.
+                action = await loop.run_in_executor(
+                    None, lambda: idle_behavior.get_idle_action(phase=_idle_phase))
 
             # Gossip-based idle: occasionally reminisce about guests when alone (15% chance)
             if random.random() < 0.15:
@@ -6203,9 +6217,17 @@ async def _answer_twenty_questions(transcript: str) -> str | None:
 
 async def _handle_special_commands(transcript: str) -> str:
     """Handle special commands/requests in the transcript. Returns response text or None."""
-    response = command_handlers.handle_special_commands(
-        transcript, state_current, GAME_CONFIG, emotion_system,
-        idle_behavior, party_stats, memory
+    # Off-load: this can reach idle_behavior.get_joke() -> JokeEngine.next_joke(),
+    # which on a 10% roll calls _joke_llm_fn() and blocks for several seconds.
+    # Running that on the loop thread would freeze the whole server, so run the
+    # whole (fast in the common case) sync call in a worker thread instead.
+    _loop = asyncio.get_running_loop()
+    response = await _loop.run_in_executor(
+        None,
+        lambda: command_handlers.handle_special_commands(
+            transcript, state_current, GAME_CONFIG, emotion_system,
+            idle_behavior, party_stats, memory
+        ),
     )
     
     # Only set command cooldown when a command actually matched
