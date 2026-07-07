@@ -5437,7 +5437,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Detect length intent and set token budget for this turn
         _length_intent = mario_prompt.detect_length_intent(text)
         _long = (_length_intent == "long")
-        _long_np = int(live_config.get("long_num_predict", 512)) if _long else None
+        _long_np = int(live_config.get("long_num_predict", 1024)) if _long else None
         if _long:
             ctx.append({"role": "system", "content":
                 "This question deserves a thorough, in-character answer — give real "
