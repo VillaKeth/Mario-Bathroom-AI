@@ -136,3 +136,50 @@ def record_report(reason: str, client_ts: float = None, ip_hash: str = "",
             "INSERT INTO status_reports (created_at, client_ts, ip_hash, reason) "
             "VALUES (?, ?, ?, ?)", (now, stored_client_ts, ip_hash, reason))
     return {"ok": True}
+
+
+def _get_party_start(conn, now: float) -> float:
+    row = conn.execute(
+        "SELECT value FROM party_meta WHERE key = 'party_start_time'").fetchone()
+    if row:
+        try:
+            return float(row[0])
+        except (TypeError, ValueError):
+            pass
+    return now
+
+
+def get_status_data(now: float = None) -> dict:
+    """Everything the status page shows besides /health: tallies + incidents."""
+    now = time.time() if now is None else now
+    with _connect() as conn:
+        party_start = _get_party_start(conn, now)
+        window_start = now - REPORTS_WINDOW_SECONDS
+        recent = conn.execute(
+            "SELECT COUNT(*) FROM status_reports "
+            "WHERE COALESCE(client_ts, created_at) >= ?", (window_start,)).fetchone()[0]
+        rows = conn.execute(
+            "SELECT COALESCE(client_ts, created_at) FROM status_reports "
+            "WHERE COALESCE(client_ts, created_at) >= ?", (party_start,)).fetchall()
+        counts = {}
+        for (ts,) in rows:
+            idx = int((ts - party_start) // BUCKET_SECONDS)
+            if idx >= 0:
+                counts[idx] = counts.get(idx, 0) + 1
+        n_buckets = max(int((now - party_start) // BUCKET_SECONDS) + 1, 1)
+        first_idx = max(0, n_buckets - MAX_BUCKETS)
+        report_buckets = [
+            {"bucket_start_ts": party_start + i * BUCKET_SECONDS,
+             "count": counts.get(i, 0)}
+            for i in range(first_idx, n_buckets)]
+        incidents = [
+            {"started_at": s, "ended_at": e, "kind": k}
+            for (s, e, k) in conn.execute(
+                "SELECT started_at, ended_at, kind FROM status_incidents "
+                "ORDER BY started_at DESC LIMIT ?", (MAX_INCIDENTS_LISTED,)).fetchall()]
+    return {
+        "character": _CHARACTER_DISPLAY_NAME,
+        "reports_last_15min": recent,
+        "report_buckets": report_buckets,
+        "incidents": incidents,
+    }

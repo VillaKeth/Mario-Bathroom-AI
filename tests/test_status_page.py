@@ -147,3 +147,67 @@ def test_record_report_retro_near_prior_retro_rate_limited(sp):
                               now=t0 + 10)
     assert result["ok"] is False
     assert result["error"] == "rate_limited"
+
+
+# ---------------- Task 3: get_status_data ----------------
+
+def _set_party_start(sp, ts):
+    with _conn(sp) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO party_meta (key, value) "
+            "VALUES ('party_start_time', ?)", (str(ts),))
+
+
+def test_status_data_reports_last_15min_window(sp):
+    sp.init_db(now=1000.0)
+    now = 100000.0
+    sp.record_report("no_voice", ip_hash="a", now=now - 16 * 60)   # outside window
+    sp.record_report("no_voice", ip_hash="b", now=now - 5 * 60)    # inside
+    sp.record_report("other", ip_hash="c", now=now - 10)           # inside
+    data = sp.get_status_data(now=now)
+    assert data["reports_last_15min"] == 2
+
+
+def test_status_data_buckets(sp):
+    sp.init_db(now=1000.0)
+    party_start = 10000.0
+    _set_party_start(sp, party_start)
+    now = party_start + 3 * 1800 + 10  # 4th bucket just began
+    sp.record_report("no_voice", ip_hash="a", now=party_start + 100)          # bucket 0
+    sp.record_report("no_voice", ip_hash="b", now=party_start + 200)          # bucket 0
+    sp.record_report("no_voice", ip_hash="c", now=party_start + 1800 + 5)     # bucket 1
+    data = sp.get_status_data(now=now)
+    buckets = data["report_buckets"]
+    assert len(buckets) == 4
+    assert buckets[0] == {"bucket_start_ts": party_start, "count": 2}
+    assert buckets[1] == {"bucket_start_ts": party_start + 1800, "count": 1}
+    assert buckets[2]["count"] == 0
+    assert buckets[3]["count"] == 0
+
+
+def test_status_data_buckets_capped_at_48(sp):
+    sp.init_db(now=1000.0)
+    _set_party_start(sp, 0.0)
+    now = 100 * 1800.0 - 1  # inside the 100th bucket (index 99)
+    data = sp.get_status_data(now=now)
+    assert len(data["report_buckets"]) == 48
+    # Kept buckets are the most recent ones.
+    assert data["report_buckets"][-1]["bucket_start_ts"] == 99 * 1800.0
+
+
+def test_status_data_incidents_newest_first(sp):
+    sp.init_db(now=1000.0)   # last_alive = 1000
+    sp.init_db(now=2000.0)   # incident A: 1000..2000
+    sp.init_db(now=5000.0)   # incident B: 2000..5000
+    data = sp.get_status_data(now=6000.0)
+    assert [i["started_at"] for i in data["incidents"]] == [2000.0, 1000.0]
+    assert data["incidents"][0]["kind"] == "server_down"
+
+
+def test_status_data_character_follows_set_character(sp):
+    sp.init_db(now=1000.0)
+    sp.set_character("rudi", "Rudi")
+    try:
+        assert sp.get_status_data(now=2000.0)["character"] == "Rudi"
+    finally:
+        sp.set_character("mario", "Mario")
