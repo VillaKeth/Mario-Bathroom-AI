@@ -3076,6 +3076,7 @@ async def admin_state(request_body: dict = {}):
             {"name": n, "label": (o.get("display") if isinstance(o, dict) else None) or n}
             for n, o in (getattr(_character, "outfits", {}) or {}).items()
         ],
+        "events": sorted(e["name"] for e in shot_event_manager.list_events()) if shot_event_manager else [],
     }
 
 
