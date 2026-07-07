@@ -29,7 +29,7 @@ import numpy as np
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from contextlib import asynccontextmanager
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
@@ -49,6 +49,7 @@ import live_flags
 import memory
 import mario_prompt
 import safety_filter
+import status_page
 import tadc_censor
 from mario_prompt import PHASE_PROMPTS, _infer_guest_type, GUEST_TYPE_HINTS
 import tts_router as tts_router_mod
@@ -775,6 +776,7 @@ async def lifespan(app: FastAPI):
     _game_handlers_mod.set_character(_character.name, _character.display_name)
     _game_handlers_mod.load_character_pools(_character)
     command_handlers.set_character(_character.name, _character.display_name)
+    status_page.set_character(_character.name, _character.display_name)
     # Load character-specific content pools (easter eggs, secrets, dares, etc.)
     _extras = _character.get_extras_content()
     if _extras:
@@ -1133,6 +1135,11 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing memory system...")
     memory.init_memory()
 
+    try:
+        status_page.init_db()
+    except Exception as e:
+        print(f"[status_page] init failed (page will still serve): {e}")
+
     # Initialize semantic memory (Qdrant) and VIP knowledge
     if _HAS_SEMANTIC:
         try:
@@ -1227,6 +1234,8 @@ async def lifespan(app: FastAPI):
     # Memory leak prevention tasks
     _memory_task = asyncio.create_task(_memory_maintenance_loop())
     logger.info("Started memory maintenance loop (gc every 10min, WAL every 30min, cache cap=%d)", TTS_CACHE_MAX)
+
+    asyncio.create_task(status_page.heartbeat_loop())
 
     logger.info("=== Mario AI Server Ready! Let's-a go! ===")
     yield
@@ -2301,6 +2310,48 @@ async def control_page():
             return HTMLResponse(f.read())
     except Exception:
         return HTMLResponse("<h1>control page missing</h1>", status_code=500)
+
+
+_STATUS_HTML_PATH = os.path.join(os.path.dirname(__file__), "static", "status.html")
+
+
+@app.get("/status")
+async def status_page_route():
+    """Public downdetector-style status page. No auth, no secrets on the page."""
+    try:
+        with open(_STATUS_HTML_PATH, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except Exception:
+        return HTMLResponse("<h1>status page missing</h1>", status_code=500)
+
+
+@app.get("/status/data")
+async def status_data_route():
+    """Report tallies + incident timeline (kept off the /health hot path)."""
+    return status_page.get_status_data()
+
+
+@app.post("/status/report")
+async def status_report_route(request: Request):
+    """Guest problem report. Preset reason enum only, rate limited per IP."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = forwarded or (request.client.host if request.client else "unknown")
+    result = status_page.record_report(
+        reason=body.get("reason"),
+        client_ts=body.get("client_ts"),
+        ip_hash=status_page.hash_ip(ip),
+    )
+    if result.get("ok"):
+        return {"status": "ok"}
+    if result.get("error") == "invalid_reason":
+        return JSONResponse({"error": "invalid_reason"}, status_code=400)
+    return JSONResponse(
+        {"error": "rate_limited", "retry_after": result.get("retry_after", 60)},
+        status_code=429)
 
 
 @app.post("/friend/say")
