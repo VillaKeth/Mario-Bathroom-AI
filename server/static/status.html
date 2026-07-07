@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Party Bot — Status</title>
+<style>
+  :root { --bg:#13131f; --card:#1e1e2e; --edge:#33334d; --txt:#e6e6f0; --muted:#9a9ab0;
+          --accent:#7c5cff; --good:#2ecc71; --warn:#f1c40f; --bad:#ff6b6b; --off:#44445a; }
+  * { box-sizing:border-box; }
+  body { margin:0 auto; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg);
+         color:var(--txt); padding:14px; max-width:560px; }
+  .banner { border-radius:14px; padding:22px 16px; text-align:center; margin-bottom:14px;
+            border:1px solid var(--edge); background:var(--card); }
+  .banner .state { font-size:26px; font-weight:800; letter-spacing:.5px; }
+  .banner.up .state { color:var(--good); }
+  .banner.degraded .state { color:var(--warn); }
+  .banner.down .state { color:var(--bad); }
+  .banner .sub { color:var(--muted); font-size:13px; margin-top:6px; }
+  .card { background:var(--card); border:1px solid var(--edge); border-radius:12px;
+          padding:12px 14px; margin-bottom:12px; }
+  .card h2 { font-size:14px; margin:0 0 8px; color:var(--muted); font-weight:600; }
+  .row { display:flex; align-items:center; justify-content:space-between;
+         padding:8px 2px; border-bottom:1px solid #26263a; font-size:14px; }
+  .row:last-child { border-bottom:none; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--off); display:inline-block; }
+  .dot.ok { background:var(--good); }
+  .dot.slow { background:var(--warn); }
+  .dot.failed { background:var(--bad); }
+  .reasons { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .reasons button { cursor:pointer; border:none; border-radius:10px; padding:12px 8px;
+                    font-size:14px; font-weight:600; background:#2a2a3d; color:var(--txt); }
+  .reasons button:disabled { opacity:.4; cursor:not-allowed; }
+  #reportMsg { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+  .bars { display:flex; align-items:flex-end; gap:2px; height:64px; margin-top:6px; }
+  .bars .bar { flex:1; background:var(--accent); border-radius:2px 2px 0 0; min-height:2px; }
+  .bars .bar.empty { background:#2a2a3d; }
+  .tally { font-size:22px; font-weight:800; }
+  .incident { font-size:13px; padding:6px 2px; border-bottom:1px solid #26263a; color:var(--muted); }
+  .incident:last-child { border-bottom:none; }
+  .muted { color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+  <div class="banner" id="banner">
+    <div class="state" id="bannerState">CHECKING</div>
+    <div class="sub" id="bannerSub">Contacting the party bot</div>
+  </div>
+
+  <div class="card">
+    <h2>COMPONENTS</h2>
+    <div class="row"><span>Brain (thinking)</span><span class="dot" id="dot-llm"></span></div>
+    <div class="row"><span>Voice (speaking)</span><span class="dot" id="dot-tts"></span></div>
+    <div class="row"><span>Ears (listening)</span><span class="dot" id="dot-stt"></span></div>
+    <div class="row"><span>Awake for</span><span class="muted" id="uptime">-</span></div>
+  </div>
+
+  <div class="card">
+    <h2>SOMETHING BROKEN? TELL US</h2>
+    <div class="reasons" id="reasons">
+      <button data-reason="not_responding">Not responding</button>
+      <button data-reason="no_voice">No voice</button>
+      <button data-reason="wrong_behavior">Acting weird</button>
+      <button data-reason="other">Something else</button>
+    </div>
+    <div id="reportMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>GUEST REPORTS</h2>
+    <div class="tally"><span id="recentCount">0</span> <span class="muted">in the last 15 minutes</span></div>
+    <div class="bars" id="bars"></div>
+    <div class="muted" id="barsLabel">Reports per 30 minutes tonight</div>
+  </div>
+
+  <div class="card">
+    <h2>OUTAGE HISTORY</h2>
+    <div id="incidents" class="muted">No outages recorded tonight</div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var QUEUE_KEY = "status_report_queue";
+  var QUEUE_CAP = 10;
+  var failCount = 0;
+  var cooldownUntil = 0;
+  var characterName = "the party bot";
+
+  function $(id) { return document.getElementById(id); }
+
+  function fmtDuration(s) {
+    s = Math.max(0, Math.floor(s));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return h > 0 ? h + "h " + m + "m" : m + "m";
+  }
+  function fmtClock(ts) {
+    var d = new Date(ts * 1000);
+    return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+
+  function setBanner(cls, state, sub) {
+    $("banner").className = "banner " + cls;
+    $("bannerState").textContent = state;
+    $("bannerSub").textContent = sub;
+  }
+  function setDot(id, status) {
+    var cls = "dot";
+    if (status === "ok") cls += " ok";
+    else if (status === "slow") cls += " slow";
+    else if (status) cls += " failed";
+    $(id).className = cls;
+  }
+
+  function renderHealth(h) {
+    setDot("dot-llm", h.llm);
+    setDot("dot-tts", h.tts);
+    setDot("dot-stt", h.stt);
+    $("uptime").textContent = fmtDuration(h.uptime_seconds || 0);
+    if (h.degradation_tier === "FULL") {
+      setBanner("up", characterName.toUpperCase() + " IS UP",
+                "All systems go");
+    } else {
+      setBanner("degraded", "DEGRADED",
+                "Partially working (" + (h.degradation_tier || "unknown") + ")");
+    }
+  }
+  function renderDown() {
+    setBanner("down", "UNREACHABLE",
+              "Cannot reach the server. Reports are saved and sent when it returns.");
+    setDot("dot-llm", "failed");
+    setDot("dot-tts", "failed");
+    setDot("dot-stt", "failed");
+  }
+
+  function pollHealth() {
+    fetch("/health", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
+      .then(function (h) {
+        failCount = 0;
+        renderHealth(h);
+        flushQueue();
+        setTimeout(pollHealth, 10000);
+      })
+      .catch(function () {
+        failCount += 1;
+        if (failCount >= 2) renderDown();
+        setTimeout(pollHealth, 5000);
+      });
+  }
+
+  function renderData(d) {
+    if (d.character) characterName = d.character;
+    $("recentCount").textContent = d.reports_last_15min;
+    var bars = $("bars");
+    bars.innerHTML = "";
+    var max = 1;
+    d.report_buckets.forEach(function (b) { if (b.count > max) max = b.count; });
+    d.report_buckets.forEach(function (b) {
+      var el = document.createElement("div");
+      el.className = "bar" + (b.count === 0 ? " empty" : "");
+      el.style.height = Math.max(3, Math.round(b.count / max * 100)) + "%";
+      el.title = fmtClock(b.bucket_start_ts) + " - " + b.count + " reports";
+      bars.appendChild(el);
+    });
+    var inc = $("incidents");
+    if (!d.incidents.length) {
+      inc.textContent = "No outages recorded tonight";
+    } else {
+      inc.innerHTML = "";
+      d.incidents.forEach(function (i) {
+        var mins = Math.max(1, Math.round((i.ended_at - i.started_at) / 60));
+        var el = document.createElement("div");
+        el.className = "incident";
+        el.textContent = "Down " + fmtClock(i.started_at) + " - " +
+                         fmtClock(i.ended_at) + " (" + mins + " min)";
+        inc.appendChild(el);
+      });
+    }
+  }
+
+  function pollData() {
+    fetch("/status/data", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
+      .then(renderData)
+      .catch(function () { /* health poll owns the down state */ })
+      .then(function () { setTimeout(pollData, 30000); });
+  }
+
+  function loadQueue() {
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveQueue(q) {
+    try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-QUEUE_CAP))); }
+    catch (e) { /* storage full or blocked - drop */ }
+  }
+
+  function postReport(reason, clientTs) {
+    return fetch("/status/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason, client_ts: clientTs })
+    });
+  }
+
+  function flushQueue() {
+    var q = loadQueue();
+    if (!q.length) return;
+    var item = q[0];
+    postReport(item.reason, item.client_ts).then(function (r) {
+      if (r.ok || r.status === 400 || r.status === 429) {
+        q.shift();           // delivered or permanently unwanted - drop it
+        saveQueue(q);
+        if (q.length) flushQueue();
+      }
+    }).catch(function () { /* still down - retry on next successful poll */ });
+  }
+
+  function startCooldown(seconds, msg) {
+    cooldownUntil = Date.now() + seconds * 1000;
+    var buttons = $("reasons").querySelectorAll("button");
+    buttons.forEach(function (b) { b.disabled = true; });
+    $("reportMsg").textContent = msg;
+    setTimeout(function () {
+      buttons.forEach(function (b) { b.disabled = false; });
+      $("reportMsg").textContent = "";
+    }, seconds * 1000);
+  }
+
+  $("reasons").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn || Date.now() < cooldownUntil) return;
+    var reason = btn.getAttribute("data-reason");
+    var clientTs = Date.now() / 1000;
+    postReport(reason, clientTs).then(function (r) {
+      if (r.ok) {
+        startCooldown(60, "Thanks, report received");
+        pollData();
+      } else if (r.status === 429) {
+        r.json().then(function (j) {
+          startCooldown(j.retry_after || 60, "Easy there, one report per minute");
+        });
+      } else {
+        startCooldown(10, "Report failed, try again in a moment");
+      }
+    }).catch(function () {
+      var q = loadQueue();
+      q.push({ reason: reason, client_ts: clientTs });
+      saveQueue(q);
+      startCooldown(60, "Server unreachable, report saved and will send later");
+    });
+  });
+
+  pollHealth();
+  pollData();
+})();
+</script>
+</body>
+</html>
