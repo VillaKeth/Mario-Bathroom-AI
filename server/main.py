@@ -5554,13 +5554,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     if not response_text:
         response_text = "Let's keep talking! What's on your mind?"
     _raw_response = response_text
-    _is_long = bool(locals().get("_long"))
-    _to_filter = _raw_response
-    if _is_long:
-        _char_cap = int(live_config.get("long_char_cap", 2000))
-        if len(_to_filter) > _char_cap:
-            _to_filter = _to_filter[:_char_cap]
-    response_text = filter_response(_to_filter, cap=not _is_long)
+    # Single high ceiling (runaway protection) — the character is never
+    # style-truncated; the prompt handles pacing. Hot-reloadable live.
+    _ceiling = int(live_config.get("response_char_ceiling", 4000))
+    response_text = filter_response(_raw_response, cap=True, cap_chars=_ceiling)
     # Uncapped clean version for the chat backlog ("what she meant to say").
     _full_clean = filter_response(_raw_response, cap=False)
     response_text = mario_prompt.maybe_add_question(response_text, text)
