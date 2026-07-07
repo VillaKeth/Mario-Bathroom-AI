@@ -246,6 +246,9 @@ class MarioDisplay:
         self._typewriter_pos = 0
         self._typewriter_speed = 2  # chars per frame (default, overridden by audio sync)
         self._typewriter_audio_synced = False  # True when speed is calculated from audio duration
+        self._typewriter_span_target = None  # char limit for audio-gated reveal (None = no limit)
+        self._span_search_pos = 0            # where the next chunk sentence search starts
+        self._span_stale_frames = 0          # frames held at a span target with no new span
 
         # Page-based text display (auto-advances with speech)
         self._text_pages = []  # list of lists of lines per page
@@ -901,6 +904,10 @@ class MarioDisplay:
         self._current_page = 0
         self._page_transition_alpha = 255
         self._page_transition_frame = 0
+        # Reset audio-gated span state (new utterance)
+        self._typewriter_span_target = None
+        self._span_search_pos = 0
+        self._span_stale_frames = 0
         # Do NOT log to the chat backlog here. set_mario_text shows EVERYTHING in
         # the bubble — including system status ("Connecting…", "Waiting…", filler
         # "Hmm, let me think…") — so logging here both double-logged real replies
@@ -927,6 +934,57 @@ class MarioDisplay:
         speed = remaining / frames_available
         # Clamp: min 0.15 (still visible), max 8 (still readable)
         self._typewriter_speed = max(0.15, min(8.0, speed))
+        self._typewriter_audio_synced = True
+
+    def prepare_span_stream(self):
+        """Hold the typewriter until the first audio span arrives.
+
+        Called when a streamed reply's text lands (its chunk carries
+        chunk_text). Without this the typewriter would run ahead at the
+        default speed before chunk-0 audio starts playing."""
+        self._typewriter_span_target = 0
+        self._span_search_pos = 0
+        self._span_stale_frames = 0
+        self._typewriter_speed = 0.0
+        self._typewriter_audio_synced = True
+
+    def resolve_span_target(self, sentence: str) -> int:
+        """Locate a chunk's display sentence in the bubble text; return the char
+        index just past it. Searches forward from the previous span so repeated
+        sentences resolve in order. Emoji are stripped exactly like
+        set_mario_text strips them, so the needle matches the bubble text. On a
+        miss (whitespace drift etc.) fall back to advancing by needle length."""
+        text = self._typewriter_text or ""
+        needle = _EMOJI_RE.sub("", sentence or "").strip()
+        if not needle or not text:
+            return int(self._typewriter_span_target or 0)
+        start = max(0, int(self._span_search_pos))
+        idx = text.find(needle, start)
+        if idx < 0:
+            idx = text.find(needle)
+        end = (idx + len(needle)) if idx >= 0 else min(start + len(needle) + 1, len(text))
+        self._span_search_pos = end
+        return end
+
+    def set_typewriter_span(self, target_char: int, duration_s: float):
+        """Pace the typewriter to target_char over duration_s, then hold.
+
+        Called from the audio queue's on_start callback the moment a chunk's
+        clip begins playing — the bubble reveals exactly what is being said.
+        Monotonic: a lower target never rewinds already-shown text."""
+        text = self._typewriter_text or ""
+        if not text:
+            return
+        target = max(0, min(int(target_char), len(text)))
+        if self._typewriter_span_target is None or target > self._typewriter_span_target:
+            self._typewriter_span_target = target
+        self._span_stale_frames = 0
+        remaining = self._typewriter_span_target - self._typewriter_pos
+        if remaining <= 0:
+            return
+        # Finish revealing ~0.3s before the clip ends (same feel as full sync)
+        frames = max(1, int(max(0.5, duration_s - 0.3) * 30))
+        self._typewriter_speed = max(0.15, min(8.0, remaining / frames))
         self._typewriter_audio_synced = True
 
     def add_chat_message(self, role, text, full_text=None):
@@ -1165,17 +1223,29 @@ class MarioDisplay:
             return 4
 
     def _update_typewriter(self):
-        """Advance typewriter text effect."""
-        if self._typewriter_text and self._typewriter_pos < len(self._typewriter_text):
+        """Advance typewriter text effect (span-limited when audio-gated)."""
+        if not self._typewriter_text:
+            return
+        limit = len(self._typewriter_text)
+        span = getattr(self, "_typewriter_span_target", None)
+        if span is not None:
+            limit = min(limit, int(span))
+        if self._typewriter_pos < limit:
             if self._typewriter_audio_synced:
                 speed = self._typewriter_speed
             else:
                 speed = self._get_typewriter_speed(len(self._typewriter_text))
-            self._typewriter_pos = min(
-                self._typewriter_pos + speed,
-                len(self._typewriter_text)
-            )
+            self._typewriter_pos = min(self._typewriter_pos + speed, limit)
             self.current_text = self._typewriter_text[:int(self._typewriter_pos)]
+        elif span is not None and limit < len(self._typewriter_text):
+            # Held at a span with text remaining. If no new span arrives for
+            # ~8s while still speaking, the stream died (no is_last) — release
+            # the limit so the bubble never hangs forever.
+            if getattr(self, "_speaking", False):
+                self._span_stale_frames += 1
+                if self._span_stale_frames > 240:
+                    self._typewriter_span_target = None
+                    self._typewriter_audio_synced = False
 
     def _update_transition(self):
         """Update walk-in/walk-out animation progress (time-based)."""
