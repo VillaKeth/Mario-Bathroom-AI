@@ -72,8 +72,11 @@ def test_advanced_surface_present():
         assert hasattr(I, name), name
 
 
-def test_scan_js_receives_avoid_list():
+def test_scan_js_capabilities():
     # The heuristic scorer must be money-safe: AVOID terms drive its disqualifier.
     assert "upgrade" in I.AVOID and "subscribe" in I.AVOID and "start free trial" in I.AVOID
-    assert "([benign, avoid])" in I._JS_SCAN_DISMISS  # both lists passed into JS
-    assert "elementFromPoint" in I._JS_OCCLUSION      # occlusion uses real hit-testing
+    js = I._JS_SCAN_DISMISS
+    assert "avoid" in js and "assumePopup" in js      # money-safe + iframe-as-popup
+    assert "shadowRoot" in js                          # shadow-DOM-aware
+    assert "inPopup" in js                             # popup-context gating (no clean-page misfire)
+    assert "elementFromPoint" in I._JS_OCCLUSION       # occlusion uses real hit-testing

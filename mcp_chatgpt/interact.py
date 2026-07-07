@@ -105,33 +105,53 @@ def _consent_selectors(site):
 # Heuristic dismiss-discovery: score every candidate control and MARK the best
 # one with data-mcp-dismiss='1' so Playwright can click it reliably.
 _JS_SCAN_DISMISS = r"""
-([benign, avoid]) => {
-  const cands = Array.from(document.querySelectorAll(
-    "button, [role=button], a[role=button], [tabindex]:not([tabindex='-1'])"));
+([benign, avoid, assumePopup]) => {
+  // Collect candidates across the doc AND open shadow roots (custom-element UIs
+  // put close buttons inside shadow DOM, where a flat querySelectorAll misses them).
+  const deep = (root, acc) => {
+    try { root.querySelectorAll("button,[role=button],a[role=button],[tabindex]:not([tabindex='-1'])")
+            .forEach(e => acc.push(e)); } catch (e) {}
+    try { root.querySelectorAll("*").forEach(e => { if (e.shadowRoot) deep(e.shadowRoot, acc); }); } catch (e) {}
+    return acc;
+  };
+  const cands = deep(document, []);
   const vis = el => { try { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
     return r.width > 2 && r.height > 2 && s.visibility !== 'hidden' && s.display !== 'none'
-      && s.pointerEvents !== 'none' && parseFloat(s.opacity || '1') > 0.05; } catch(e){ return false; } };
-  const inModal = el => !!el.closest("[role=dialog],[aria-modal='true'],[class*=modal i],[class*=overlay i],dialog");
+      && s.pointerEvents !== 'none' && parseFloat(s.opacity || '1') > 0.05; } catch (e) { return false; } };
+  // "Popup context": inside a dialog/modal/consent/cookie container, OR nested in
+  // a fixed/absolute high-z-index box (a floating overlay). Gates benign-TEXT
+  // clicks so a stray "Close"/"Dismiss" in a clean page's nav is NOT touched.
+  const inPopup = el => {
+    try { if (el.closest("[role=dialog],[aria-modal='true'],[class*=modal i],[class*=overlay i],dialog,[class*=consent i],[id*=cookie i]")) return true; } catch (e) {}
+    let n = el;
+    for (let i = 0; i < 6 && n; i++) {
+      try { const s = getComputedStyle(n); const z = parseInt(s.zIndex || '0', 10) || 0;
+        if ((s.position === 'fixed' || s.position === 'absolute') && z >= 50) return true; } catch (e) {}
+      n = n.parentElement;
+    }
+    return false;
+  };
   const XGLYPH = /^[×✕✖✗✘╳xX⨯]$/;
   const score = el => {
     if (!vis(el)) return -1;
     const label = ((el.getAttribute('aria-label')||'') + ' ' + (el.getAttribute('title')||'')
       + ' ' + (el.textContent||'')).trim().toLowerCase();
     if (avoid.some(a => label.includes(a))) return -1;               // never money/upsell
+    const pop = assumePopup || inPopup(el);
     let sc = 0;
-    if (benign.some(b => label.includes(b))) sc += 10;
-    if (XGLYPH.test((el.textContent||'').trim())) sc += 8;           // bare "×" close glyph
+    if (benign.some(b => label.includes(b))) sc += pop ? 10 : 2;     // benign text only STRONG in a popup
+    if (XGLYPH.test((el.textContent||'').trim())) sc += pop ? 8 : 5;
     const al = (el.getAttribute('aria-label')||'').toLowerCase();
-    if (al.includes('close') || al.includes('dismiss')) sc += 9;
-    if (((el.className||'')+'').toLowerCase().includes('close')) sc += 4;
-    if (inModal(el)) sc += 3;
+    if (al.includes('close') || al.includes('dismiss')) sc += pop ? 9 : 6;
+    if (((el.className||'')+'').toLowerCase().includes('close')) sc += 2;
+    if (pop) sc += 3;
     if (label.length > 40) sc -= 4;                                   // long text = not a dismiss
     return sc;
   };
   let best = null, bestScore = 0;
   for (const el of cands) { const s = score(el); if (s > bestScore) { bestScore = s; best = el; } }
-  document.querySelectorAll("[data-mcp-dismiss]").forEach(e => e.removeAttribute('data-mcp-dismiss'));
-  if (best && bestScore >= 6) {
+  try { cands.forEach(e => e.removeAttribute && e.removeAttribute('data-mcp-dismiss')); } catch (e) {}
+  if (best && bestScore >= 9) {                                       // high bar: no clean-page misfires
     best.setAttribute('data-mcp-dismiss', '1');
     return { found: true, score: bestScore,
              label: ((best.getAttribute('aria-label')||best.textContent||'')+'').trim().slice(0, 60) };
@@ -185,11 +205,14 @@ async def _try_each(page, selectors, timeout=1200) -> bool:
     return False
 
 
-async def _scan_and_click(frame) -> bool:
+async def _scan_and_click(frame, assume_popup=False) -> bool:
     """Heuristic dismiss-discovery on one frame: score+mark the best benign close
-    control in JS, then click it via Playwright. Returns True if it clicked one."""
+    control in JS (shadow-DOM-aware, popup-context-gated), then click it via
+    Playwright. `assume_popup` treats the whole frame as popup context (used for
+    child frames — an overlaying iframe IS a popup). Returns True if it clicked."""
     try:
-        res = await frame.evaluate(_JS_SCAN_DISMISS, [list(BENIGN_DISMISS), list(AVOID)])
+        res = await frame.evaluate(_JS_SCAN_DISMISS,
+                                   [list(BENIGN_DISMISS), list(AVOID), bool(assume_popup)])
     except Exception:  # noqa: BLE001
         return False
     if not (res and res.get("found")):
@@ -270,35 +293,63 @@ def site_name(site) -> str:
         return "site"
 
 
+async def _scan_frames(page) -> bool:
+    """Heuristic dismiss-scan across the main frame (popup-context-gated so it
+    never touches a clean page's stray Close button) + every child frame (treated
+    as popup context — an overlaying iframe is itself a popup, e.g. a consent
+    manager). Returns True if any frame clicked a dismiss control."""
+    acted = False
+    for i, fr in enumerate(_frames(page)):
+        try:
+            if await _scan_and_click(fr, assume_popup=(i != 0)):
+                acted = True
+        except Exception:  # noqa: BLE001
+            continue
+    return acted
+
+
+async def _blocked(page, site) -> bool:
+    """Is something actually blocking the page — an overlay selector present OR the
+    composer occluded (elementFromPoint)? Gate for the aggressive dismissal steps."""
+    if await _overlay_present(page, site):
+        return True
+    occ = await occlusion(page, site)
+    return bool(occ.get("covered"))
+
+
 async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=True) -> int:
-    """Clear whatever is covering the page. Returns how many rounds acted. Safe to
-    call before ANY interaction and repeatedly — stops as soon as a round is a
-    no-op. `benign_only` skips Escape/consent/backdrop (use mid-generation)."""
+    """Clear whatever is covering the page. Returns how many rounds acted. Idempotent
+    — stops the instant a round is a no-op. The generic benign / close-icon /
+    Escape-consent-backdrop steps run ONLY when there is real overlay evidence (an
+    overlay selector or the composer is occluded), so a CLEAN page with a stray
+    'Close'/'Dismiss' button is never disturbed. `benign_only` skips Escape /
+    consent / backdrop (safe to use mid-generation)."""
     dismissed = 0
-    last_cover = None
     for _ in range(max_rounds):
         acted = False
-        # 1) per-site explicit dismiss + intro buttons (most specific, benign)
+        blocked = await _blocked(page, site)
+        # 1) per-site explicit dismiss/intro buttons — specific + vetted, always safe
         site_sels = tuple(getattr(site, "dismiss_buttons", ()) or ()) + tuple(getattr(site, "intro_buttons", ()) or ())
         if await _try_each(page, site_sels):
             acted = True
-        # 2) generic benign text buttons
-        elif await _try_each(page, _benign_selectors()):
+        # 2) heuristic dismiss-discovery (self-gating: benign text only in a popup
+        #    context; iframes treated as popups; shadow-DOM-aware) — always safe
+        elif await _scan_frames(page):
             acted = True
-        # 3) heuristic dismiss-discovery across every frame (main + iframes)
-        elif any([await _scan_and_click(fr) for fr in _frames(page)]):
+        # 3) generic benign text buttons — ONLY when blocked (avoid clean-page misfire)
+        elif blocked and await _try_each(page, _benign_selectors()):
             acted = True
-        # 4) close-icon (X) buttons
-        elif await _try_each(page, CLOSE_ICON_SELECTORS):
+        # 4) close-icon (X) buttons — ONLY when blocked
+        elif blocked and await _try_each(page, CLOSE_ICON_SELECTORS):
             acted = True
-        # 5) escalate only when something still blocks and we're allowed to
-        elif not benign_only and await _overlay_present(page, site):
+        # 5) escalate — Escape → consent → backdrop, only when still blocked
+        elif blocked and not benign_only:
             try:
                 await page.keyboard.press("Escape")
                 await page.wait_for_timeout(300)
             except Exception:  # noqa: BLE001
                 pass
-            if not await _overlay_present(page, site):
+            if not await _blocked(page, site):
                 acted = True
             elif await _try_each(page, _consent_selectors(site)):
                 acted = True
@@ -306,7 +357,7 @@ async def dismiss_overlays(page, site, max_rounds=6, benign_only=False, capture=
                 try:
                     await page.mouse.click(6, 6)
                     await page.wait_for_timeout(250)
-                    acted = not await _overlay_present(page, site)
+                    acted = not await _blocked(page, site)
                 except Exception:  # noqa: BLE001
                     acted = False
         if not acted:
@@ -391,7 +442,14 @@ async def safe_fill(page, site, text: str) -> bool:
                 )
             got = await _read_composer(page, composer)
             if not probe or probe in (got or ""):
-                return True
+                # Honest success only if the composer is actually REACHABLE. The JS
+                # tier can set a value while a modal still covers the composer — a
+                # hollow fill (the subsequent send would fail through the overlay),
+                # so don't claim victory; sweep again and keep trying.
+                occ = await occlusion(page, site)
+                if not occ.get("covered"):
+                    return True
+                await dismiss_overlays(page, site, max_rounds=3)
         except Exception:  # noqa: BLE001
             await dismiss_overlays(page, site, max_rounds=3)
             continue
