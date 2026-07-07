@@ -1688,24 +1688,43 @@ def split_display_sentences(text: str) -> list[str]:
     merging as split_into_sentences, but with NO preclean, so every chunk stays
     a verbatim substring of the display text. The client locates each chunk in
     the bubble text to gate the typewriter to real audio playback.
+
+    Chunks are emitted as offset SLICES of the input, so merged fragments keep
+    their real separator (a lone "\\n" or "\\t" survives analyze_text's display
+    cleanup — rejoining with a hardcoded " " would make the chunk unfindable).
     """
     import re
     if not text or not text.strip():
         return []
-    chunks = re.split(r'(?<=[.!?])\s+', text.strip())
-    merged = []
-    buffer = ""
-    for chunk in chunks:
-        buffer += (" " if buffer else "") + chunk
-        if len(buffer) >= 15:
-            merged.append(buffer)
-            buffer = ""
-    if buffer:
-        if merged:
-            merged[-1] += " " + buffer
+    text = text.strip()
+
+    # Fragment spans (start, end) between sentence separators, as offsets.
+    frag_spans = []
+    prev_end = 0
+    for m in re.finditer(r'(?<=[.!?])\s+', text):
+        frag_spans.append((prev_end, m.start()))
+        prev_end = m.end()
+    frag_spans.append((prev_end, len(text)))
+
+    # Merge short fragments forward until a chunk reaches >= 15 chars. A chunk
+    # is text[start:end] spanning every merged fragment AND the real separators
+    # between them — verbatim by construction, no rejoin logic.
+    chunk_spans = []
+    start = None
+    for s, e in frag_spans:
+        if start is None:
+            start = s
+        if e - start >= 15:
+            chunk_spans.append((start, e))
+            start = None
+    if start is not None:
+        if chunk_spans:
+            # Trailing short fragment(s) merge into the last chunk — extending
+            # its span keeps the true separator between them.
+            chunk_spans[-1] = (chunk_spans[-1][0], len(text))
         else:
-            merged.append(buffer)
-    return merged
+            chunk_spans.append((start, len(text)))
+    return [text[s:e] for s, e in chunk_spans]
 
 
 def build_stream_chunks(display_text: str) -> list[dict]:

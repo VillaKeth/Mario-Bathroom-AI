@@ -86,3 +86,34 @@ def test_short_trailing_emoji_run_merges_into_last_sentence():
     assert len(chunks) == 2
     assert "🎉" in chunks[-1]["display"]
     assert chunks[-1]["tts"].strip() and "🎉" not in chunks[-1]["tts"]
+
+
+def test_newline_separator_survives_analyze_chain_findable():
+    # Regression (reviewer find): a lone "\n" between sentences survives
+    # analyze_text's display cleanup (its collapse only catches \s{2,}), so the
+    # short-fragment merge must keep the REAL separator — a hardcoded " "
+    # makes the merged chunk unfindable in the bubble text and breaks the
+    # client's text.find() audio-gating.
+    from pose_analyzer import analyze_text
+    text = "Yes!\nNo! Okay fine, party people. And here is a second proper sentence for the test."
+    disp = analyze_text(text)["display_text"]
+    chunks = tts.build_stream_chunks(disp)
+    assert "\n" in chunks[0]["display"]  # real separator preserved, not " "
+    cursor = 0
+    for c in chunks:
+        idx = disp.find(c["display"], cursor)
+        assert idx >= 0, f"chunk not verbatim-findable: {c['display']!r}"
+        cursor = idx + len(c["display"])
+
+
+def test_tab_separator_merged_chunk_stays_verbatim():
+    # Same bug, "\t" flavor — straight through the splitter.
+    text = "Ha!\tThat was a good one, friend. And here is the second full sentence for it."
+    sents = tts.split_display_sentences(text)
+    assert len(sents) == 2
+    assert "\t" in sents[0]
+    cursor = 0
+    for s in sents:
+        idx = text.find(s, cursor)
+        assert idx >= 0, f"sentence not verbatim: {s!r}"
+        cursor = idx + len(s)
