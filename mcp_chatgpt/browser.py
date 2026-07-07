@@ -115,6 +115,16 @@ class ChatGPTSession:
         return out
 
     async def _probe(self, page: Page, baseline: set) -> ProbeResult:
+        # Throttled benign-only overlay sweep (~every 6s at 0.5s polls) so a nag
+        # that lands MID-render — idle prompt, rating ask, "still there?" — can't
+        # freeze the wait loop. benign_only skips Escape/consent/backdrop so it
+        # can never mis-click a generation control while an image is rendering.
+        self._probe_ticks = getattr(self, "_probe_ticks", 0) + 1
+        if self._probe_ticks % 12 == 0:
+            try:
+                await interact.sweep_light(page, self.site)
+            except Exception:  # noqa: BLE001
+                pass
         # Some providers (e.g. grok) have no Stop button — treat "no stop selector"
         # as not-generating and let the wait loop rely on text/image stability.
         generating = bool(self.site.stop_button) and \

@@ -51,3 +51,29 @@ def test_overlay_and_close_selector_catalogs():
 def test_norm_handles_none_and_whitespace():
     assert I._norm(None) == ""
     assert I._norm("  Hi There ") == "hi there"
+
+
+def test_site_name_extracts_provider_from_url():
+    class G:
+        url = "https://grok.com/"
+
+    class Bad:
+        url = ""
+
+    assert I.site_name(G()) == "grok"
+    assert I.site_name(Bad()) == "site"
+
+
+def test_advanced_surface_present():
+    # The advanced engine must expose occlusion detection, heuristic scan, the
+    # throttled mid-generation sweep, diagnostics, and the safe_* ladder.
+    for name in ("occlusion", "sweep_light", "dismiss_overlays", "_scan_and_click",
+                 "_capture_stuck", "safe_fill", "safe_send", "safe_click"):
+        assert hasattr(I, name), name
+
+
+def test_scan_js_receives_avoid_list():
+    # The heuristic scorer must be money-safe: AVOID terms drive its disqualifier.
+    assert "upgrade" in I.AVOID and "subscribe" in I.AVOID and "start free trial" in I.AVOID
+    assert "([benign, avoid])" in I._JS_SCAN_DISMISS  # both lists passed into JS
+    assert "elementFromPoint" in I._JS_OCCLUSION      # occlusion uses real hit-testing
