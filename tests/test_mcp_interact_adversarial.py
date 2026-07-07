@@ -127,6 +127,95 @@ SCENARIOS = [
                 _modal("<button onclick=\"__clicked.push('needle');m1.remove()\">No thanks</button>", 2000, "m1") + TAIL,
         "must_click": ["needle"], "must_not_click": [f"dec{i}" for i in range(40)], "uncovered": True, "fill": True,
     },
+    {
+        "name": "native_dialog_showmodal",
+        "html": HEAD + COMPOSER +
+                "<dialog id='d1'><button onclick=\"__clicked.push('native');document.getElementById('d1').close();document.getElementById('d1').remove()\">No thanks</button></dialog>"
+                "<script>document.getElementById('d1').showModal()</script>" + TAIL,
+        "must_click": ["native"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "respawning_modal_bounded",
+        "html": HEAD + COMPOSER + "<script>window.__n=0;function spawn(){var m=document.createElement('div');"
+                "m.id='rm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');"
+                "m.style='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center';"
+                "m.innerHTML=\"<div style='background:#fff;padding:20px'><button>No thanks</button></div>\";"
+                "m.querySelector('button').onclick=function(){window.__clicked.push('rs'+window.__n);m.remove();window.__n++;if(window.__n<3)setTimeout(spawn,40)};"
+                "document.body.appendChild(m)}spawn()</script>" + TAIL,
+        "must_click": ["rs0", "rs1", "rs2"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "nested_iframe_consent",
+        "html": HEAD + COMPOSER +
+                "<iframe style='position:fixed;bottom:0;left:0;width:100%;height:80px;border:0;z-index:1400' "
+                "srcdoc=\"<iframe style='width:100%;height:70px;border:0' srcdoc=&quot;<body><button onclick=&amp;quot;window.top.__clicked.push('nested');document.body.remove()&amp;quot;>Reject all</button></body>&quot;></iframe>\"></iframe>" + TAIL,
+        "must_click": ["nested"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "two_consent_iframes",
+        "html": HEAD + COMPOSER +
+                "<iframe style='position:fixed;top:0;left:0;width:100%;height:60px;border:0;z-index:1400' srcdoc=\"<body><button onclick=&quot;window.parent.__clicked.push('cf1');document.body.remove()&quot;>No thanks</button></body>\"></iframe>"
+                "<iframe style='position:fixed;bottom:0;left:0;width:100%;height:60px;border:0;z-index:1400' srcdoc=\"<body><button onclick=&quot;window.parent.__clicked.push('cf2');document.body.remove()&quot;>Reject all</button></body>\"></iframe>" + TAIL,
+        "must_click": ["cf1", "cf2"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "i18n_close_only",
+        "html": HEAD + COMPOSER +
+                _modal("<button onclick=\"__clicked.push('de');m1.remove()\">Schließen</button>", 2000, "m1") + TAIL,
+        "must_click": ["de"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "link_as_button",
+        "html": HEAD + COMPOSER +
+                _modal("<a href='#' onclick=\"__clicked.push('link');m1.remove();return false\">No thanks</a>", 2000, "m1") + TAIL,
+        "must_click": ["link"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "div_role_button_close",
+        "html": HEAD + COMPOSER +
+                _modal("<div role='button' onclick=\"__clicked.push('divbtn');m1.remove()\">Close</div>", 2000, "m1") + TAIL,
+        "must_click": ["divbtn"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "disabled_button_skipped",
+        "html": HEAD + COMPOSER +
+                _modal("<button disabled onclick=\"__clicked.push('disabled')\">No thanks</button>"
+                       "<button onclick=\"__clicked.push('enabled');m1.remove()\">Dismiss</button>", 2000, "m1") + TAIL,
+        "must_click": ["enabled"], "must_not_click": ["disabled"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "emoji_text_close",
+        "html": HEAD + COMPOSER +
+                _modal("<button onclick=\"__clicked.push('emoji');m1.remove()\">❌ Close</button>", 2000, "m1") + TAIL,
+        "must_click": ["emoji"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "sticky_cookie_bar",
+        "html": HEAD + COMPOSER +
+                "<div id='cookie-bar' style='position:sticky;bottom:0;background:#ffd;padding:10px'>We use cookies "
+                "<button onclick=\"__clicked.push('sticky');document.getElementById('cookie-bar').remove()\">Reject all</button></div>" + TAIL,
+        "must_click": ["sticky"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "max_z_toast",
+        "html": HEAD + COMPOSER +
+                "<div style='position:fixed;top:10px;right:10px;z-index:2147483647;background:#eef;padding:10px'>New feature "
+                "<button aria-label='Close' onclick=\"__clicked.push('toast');this.closest('div').remove()\">×</button></div>" + TAIL,
+        "must_click": ["toast"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "perf_1000_buttons",
+        "html": HEAD + COMPOSER +
+                "".join(f"<button onclick=\"__clicked.push('p{i}')\">Item {i}</button>" for i in range(1000)) +
+                _modal("<button onclick=\"__clicked.push('pneedle');m1.remove()\">No thanks</button>", 2000, "m1") + TAIL,
+        "must_click": ["pneedle"], "uncovered": True, "fill": True,
+    },
+    {
+        "name": "js_error_page",
+        "html": HEAD + "<script>window.onerror=()=>true; setTimeout(()=>{throw new Error('boom')},10)</script>" + COMPOSER +
+                _modal("<button onclick=\"__clicked.push('jserr');m1.remove()\">No thanks</button>", 2000, "m1") + TAIL,
+        "must_click": ["jserr"], "uncovered": True, "fill": True,
+    },
 ]
 
 

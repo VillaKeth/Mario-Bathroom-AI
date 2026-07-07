@@ -46,6 +46,11 @@ BENIGN_DISMISS = (
     "maybe later", "later", "remind me later", "skip", "skip for now",
     "dismiss", "got it", "close", "done", "decline", "reject all", "reject",
     "deny", "don't allow", "cancel", "no, continue", "continue without",
+    # i18n close / no-thanks (providers localize the visible text; aria-label
+    # frequently stays English, but not always — catch the common words too).
+    "schließen", "nein danke", "cerrar", "no gracias", "fermer", "non merci",
+    "chiudi", "fechar", "закрыть", "关闭", "閉じる", "닫기", "sluiten", "stäng",
+    "zamknij", "kapat", "luk", "lukk", "أغلق", "बंद करें",
 )
 # CONSENT / ToS: click ONLY when an overlay still blocks and nothing benign
 # matched — required-to-proceed acknowledgements, NOT purchases.
@@ -109,7 +114,7 @@ _JS_SCAN_DISMISS = r"""
   // Collect candidates across the doc AND open shadow roots (custom-element UIs
   // put close buttons inside shadow DOM, where a flat querySelectorAll misses them).
   const deep = (root, acc) => {
-    try { root.querySelectorAll("button,[role=button],a[role=button],[tabindex]:not([tabindex='-1'])")
+    try { root.querySelectorAll("button,[role=button],a[role=button],a[onclick],[tabindex]:not([tabindex='-1'])")
             .forEach(e => acc.push(e)); } catch (e) {}
     try { root.querySelectorAll("*").forEach(e => { if (e.shadowRoot) deep(e.shadowRoot, acc); }); } catch (e) {}
     return acc;
@@ -117,7 +122,8 @@ _JS_SCAN_DISMISS = r"""
   const cands = deep(document, []);
   const vis = el => { try { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
     return r.width > 2 && r.height > 2 && s.visibility !== 'hidden' && s.display !== 'none'
-      && s.pointerEvents !== 'none' && parseFloat(s.opacity || '1') > 0.05; } catch (e) { return false; } };
+      && s.pointerEvents !== 'none' && parseFloat(s.opacity || '1') > 0.05
+      && !el.disabled && el.getAttribute('aria-disabled') !== 'true'; } catch (e) { return false; } };
   // "Popup context": inside a dialog/modal/consent/cookie container, OR nested in
   // a fixed/absolute high-z-index box (a floating overlay). Gates benign-TEXT
   // clicks so a stray "Close"/"Dismiss" in a clean page's nav is NOT touched.
