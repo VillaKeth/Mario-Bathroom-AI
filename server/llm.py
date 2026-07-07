@@ -338,14 +338,9 @@ def _clean_response(text: str) -> str:
     # Ensure non-empty and meaningful (minimum 3 chars for a real word)
     if not text.strip() or len(text.strip()) < 3:
         text = _default_short_fallback()
-    # Cap response length for TTS streaming (each sentence sent individually)
-    if len(text) > 300:
-        cut = text[:300]
-        last_end = max(cut.rfind('.'), cut.rfind('!'), cut.rfind('?'))
-        if last_end > 80:
-            text = cut[:last_end + 1]
-        else:
-            text = cut.rsplit(' ', 1)[0] + '!'
+    # No length cap here: response length policy is config-owned
+    # (response_char_ceiling via LiveConfig, enforced in main.py) so replies
+    # are never silently amputated by a buried constant.
     return text
 
 

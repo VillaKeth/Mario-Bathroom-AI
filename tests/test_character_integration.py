@@ -62,6 +62,21 @@ def _load_server_module(module_name: str):
     return importlib.import_module(module_name)
 
 
+def test_clean_response_never_amputates_long_replies():
+    """No hardcoded length cap in code: length policy lives in config
+    (response_char_ceiling via LiveConfig in main.py), so a long multi-sentence
+    reply must pass through _clean_response intact. Regression: a buried
+    300-char cap silently cut live ramble replies mid-sentence."""
+    llm = _load_server_module("llm")
+    story = " ".join(
+        f"This is sentence number {i} of a long winding party story."
+        for i in range(1, 13)
+    )
+    assert len(story) > 600  # well past any historic hardcoded cap (300/500)
+    cleaned = llm._clean_response(story)
+    assert cleaned == story
+
+
 def test_llm_fallbacks_drop_mario_specific_text():
     llm = _load_server_module("llm")
     llm.set_character("ani", "Ani AI 💫")
