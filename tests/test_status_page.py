@@ -132,3 +132,18 @@ def test_hash_ip_stable_and_short(sp):
     assert len(a) == 16
     assert a != sp.hash_ip("203.0.113.8")
     assert "203" not in a
+
+
+def test_record_report_retro_near_prior_retro_rate_limited(sp):
+    """Regression: rate limit must key on the NEAREST prior report, not the
+    newest. Two retro reports 30s apart are limited even when both are far
+    from the newest accepted report."""
+    sp.init_db(now=1000.0)
+    t0 = 100000.0
+    assert sp.record_report("no_voice", ip_hash="aaa", now=t0)["ok"] is True
+    assert sp.record_report("no_voice", client_ts=t0 - 3600, ip_hash="aaa",
+                            now=t0 + 5)["ok"] is True
+    result = sp.record_report("no_voice", client_ts=t0 - 3570, ip_hash="aaa",
+                              now=t0 + 10)
+    assert result["ok"] is False
+    assert result["error"] == "rate_limited"

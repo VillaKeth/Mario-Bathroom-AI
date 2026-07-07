@@ -125,14 +125,13 @@ def record_report(reason: str, client_ts: float = None, ip_hash: str = "",
         stored_client_ts = effective_ts
     with _connect() as conn:
         row = conn.execute(
-            "SELECT MAX(COALESCE(client_ts, created_at)) FROM status_reports "
-            "WHERE ip_hash = ?", (ip_hash,)).fetchone()
-        last_effective = row[0] if row else None
-        if last_effective is not None:
-            gap = abs(effective_ts - float(last_effective))
-            if gap < RATE_LIMIT_SECONDS:
-                return {"ok": False, "error": "rate_limited",
-                        "retry_after": int(RATE_LIMIT_SECONDS - gap) + 1}
+            "SELECT MIN(ABS(COALESCE(client_ts, created_at) - ?)) "
+            "FROM status_reports WHERE ip_hash = ?",
+            (effective_ts, ip_hash)).fetchone()
+        min_gap = row[0] if row and row[0] is not None else None
+        if min_gap is not None and min_gap < RATE_LIMIT_SECONDS:
+            return {"ok": False, "error": "rate_limited",
+                    "retry_after": int(RATE_LIMIT_SECONDS - min_gap) + 1}
         conn.execute(
             "INSERT INTO status_reports (created_at, client_ts, ip_hash, reason) "
             "VALUES (?, ?, ?, ?)", (now, stored_client_ts, ip_hash, reason))
