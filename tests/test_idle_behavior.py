@@ -405,13 +405,13 @@ class TestReengagementAndGames:
 class TestEdgeCases:
     """Additional edge-case coverage."""
 
-    def test_get_joke_cycles_deterministically(self):
+    def test_get_joke_shuffle_bag_no_repeat(self):
+        # get_joke() now draws from a JokeEngine shuffle-bag: every joke in the
+        # pool is returned once before any repeat (replaced the old _joke_index cycle).
         ib = _make_mario_ib()
-        ib._joke_index = 0
-        first = ib.get_joke()
-        second = ib.get_joke()
-        assert first == ib._jokes[0]
-        assert second == ib._jokes[1]
+        n = len(ib._jokes)
+        drawn = [ib.get_joke() for _ in range(n)]
+        assert sorted(drawn) == sorted(ib._jokes)
 
     def test_get_song_cycles_deterministically(self):
         ib = _make_mario_ib()
