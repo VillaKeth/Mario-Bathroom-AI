@@ -98,3 +98,42 @@ async def heartbeat_loop() -> None:
     while True:
         heartbeat()
         await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
+
+
+def hash_ip(ip: str) -> str:
+    """Store only a short hash of the reporter IP, never the raw address."""
+    return hashlib.sha256((ip or "unknown").encode("utf-8")).hexdigest()[:16]
+
+
+def record_report(reason: str, client_ts: float = None, ip_hash: str = "",
+                  now: float = None) -> dict:
+    """Record one guest report. Rate limit is keyed on EFFECTIVE report time
+    (client_ts when supplied, else arrival time) so an offline-queue flush of
+    retro-timestamped reports does not trip the limit."""
+    now = time.time() if now is None else now
+    if reason not in VALID_REASONS:
+        return {"ok": False, "error": "invalid_reason"}
+    stored_client_ts = None
+    effective_ts = now
+    if client_ts is not None:
+        try:
+            effective_ts = float(client_ts)
+        except (TypeError, ValueError):
+            effective_ts = now
+        # Sanity clamp: not in the future, not older than 24h.
+        effective_ts = max(now - CLIENT_TS_MAX_AGE_SECONDS, min(effective_ts, now))
+        stored_client_ts = effective_ts
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT MAX(COALESCE(client_ts, created_at)) FROM status_reports "
+            "WHERE ip_hash = ?", (ip_hash,)).fetchone()
+        last_effective = row[0] if row else None
+        if last_effective is not None:
+            gap = abs(effective_ts - float(last_effective))
+            if gap < RATE_LIMIT_SECONDS:
+                return {"ok": False, "error": "rate_limited",
+                        "retry_after": int(RATE_LIMIT_SECONDS - gap) + 1}
+        conn.execute(
+            "INSERT INTO status_reports (created_at, client_ts, ip_hash, reason) "
+            "VALUES (?, ?, ?, ?)", (now, stored_client_ts, ip_hash, reason))
+    return {"ok": True}
