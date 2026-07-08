@@ -5651,7 +5651,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
                 asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model,
-                                                       num_predict=_long_np), timeout=_LLM_TIMEOUT),
+                                                       num_predict=_long_np,
+                                                       is_user_request=True), timeout=_LLM_TIMEOUT),
             )
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
@@ -5686,7 +5687,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 try:
                     llm_response = await asyncio.wait_for(
                         llm.generate_response(ctx, text, model=_fallback_model,
-                                              num_predict=_long_np),
+                                              num_predict=_long_np,
+                                              is_user_request=True),
                         timeout=_LLM_TIMEOUT,
                     )
                     response_text = llm_response["text"]

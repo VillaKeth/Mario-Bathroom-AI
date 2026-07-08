@@ -62,6 +62,44 @@ def test_num_predict_override_used(monkeypatch):
     assert captured["num_predict"] == 512
 
 
+def test_background_gen_yields_to_user_request(monkeypatch):
+    # A non-user (background: idle/joke/greeting) generation must bail the instant
+    # a user request needs the model, so it stops competing for the CPU-bound LLM
+    # and starving the real response. A user request (is_user_request=True) must
+    # NOT bail even while the user-generating flag is set (it IS that request).
+    import gen_guard
+    monkeypatch.setattr(llm_mod, "LLM_PARTIAL_GRACE", 0)  # isolate: no soft-deadline
+    monkeypatch.setattr(gen_guard, "is_user_generating", lambda: True)
+
+    def make_client():
+        class FakeResp:
+            def raise_for_status(self):
+                pass
+            async def aiter_lines(self):
+                yield '{"message":{"content":"background text "},"done":false}'
+                yield '{"message":{"content":"more and "},"done":false}'
+                yield '{"message":{"content":"still more"},"done":true}'
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+        class FakeClient:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            def stream(self, *a, **k): return FakeResp()
+        return FakeClient()
+    monkeypatch.setattr(llm_mod.httpx, "AsyncClient", lambda *a, **k: make_client())
+
+    # background call yields -> fallback, no real content spoken
+    bg = asyncio.run(
+        llm_mod.generate_response([{"role": "user", "content": "x"}], is_user_request=False))
+    assert bg.get("was_fallback") is True
+
+    # the user's own request must complete even though the flag is set
+    user = asyncio.run(
+        llm_mod.generate_response([{"role": "user", "content": "x"}], is_user_request=True))
+    assert user.get("was_fallback") is not True
+    assert "background text" in user["text"]
+
+
 def test_partial_reply_salvaged_on_soft_deadline(monkeypatch):
     # When generation would blow the LLM timeout, return the PARTIAL reply
     # produced so far (marked was_partial) instead of discarding it for a canned

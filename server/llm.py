@@ -13,6 +13,7 @@ import re
 import time
 import threading
 import hardware
+import gen_guard
 
 DEBUG_LLM = os.environ.get("DEBUG_LLM", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
@@ -154,7 +155,7 @@ async def check_ollama():
 
 
 async def generate_response(messages: list[dict], transcript: str = None, model: str = None,
-                            num_predict: int = None) -> dict:
+                            num_predict: int = None, is_user_request: bool = False) -> dict:
     """Send messages to Ollama and get Mario's response with sentiment data.
 
     Uses streaming internally for faster first-token, returns complete text + sentiment.
@@ -239,6 +240,17 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                             break
                     except json.JSONDecodeError:
                         continue
+                    # Yield to the user: a background gen (idle/joke/greeting)
+                    # bails the moment a user request needs the model, so it
+                    # stops competing for the CPU-bound LLM and starving the real
+                    # response. The user's own request (is_user_request=True) is
+                    # exempt — it IS the request everything else yields to.
+                    if not is_user_request and gen_guard.is_user_generating():
+                        logger.info(
+                            f"[GEN_GUARD] background gen yielded to user request "
+                            f"(dropped {len(''.join(chunks))} partial chars)")
+                        return {"text": random.choice(LLM_FALLBACKS), "emotion": "neutral",
+                                "energy": 0.5, "was_fallback": True}
                     # Soft deadline: bail with the partial text we already have
                     # before the outer wait_for cancels us and throws it away.
                     if _soft_deadline is not None and (time.time() - start) > _soft_deadline:
