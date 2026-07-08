@@ -63,7 +63,7 @@ class JokeEngine:
     clean / freaky-bravado / freaky-explicit pools. freak level 0 (default for
     every non-opted-in character) => only the clean pool is ever drawn."""
 
-    def __init__(self, pool, freaky_pool=None, llm_fn=None, llm_chance=0.10,
+    def __init__(self, pool, *, freaky_pool=None, llm_fn=None, llm_chance=0.10,
                  freak_level_fn=None, explicit_ratio=0.25, rng=None):
         fp = freaky_pool or {}
         self._llm_fn = llm_fn
