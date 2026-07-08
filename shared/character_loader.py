@@ -125,6 +125,16 @@ class CharacterLoader:
         # warming as someone becomes a regular).
         self.personality: dict = self._config.get("personality", {}) or {}
 
+        # Freak factor (0.0-1.0): intrinsic per-character raunch level. Default 0
+        # so EVERY character without it stays clean; only an opted-in character
+        # (Rudi) sets it > 0. Drives the [FREAK] prompt directive and the
+        # JokeEngine freaky-pool blend. See
+        # docs/superpowers/specs/2026-07-08-rudi-freak-factor-design.md
+        try:
+            self.freak_factor: float = max(0.0, min(1.0, float(self.personality.get("freak_factor", 0.0) or 0.0)))
+        except (TypeError, ValueError):
+            self.freak_factor = 0.0
+
         # Parse memory
         memory = self._config.get("memory", {})
         self.collections: dict = memory.get("collections", {
@@ -281,6 +291,31 @@ class CharacterLoader:
             parts.append("Core traits: " + ", ".join(traits) + ".")
         body = " ".join(s for s in parts if s)
         return f"[TEMPERAMENT]: {body}" if body else ""
+
+    def get_freak_prompt(self, level: float) -> str:
+        """A [FREAK] system directive scaled by `level` (0-1). Returns '' for
+        level <= 0, so any clean character (or a dialed-to-0 party) injects
+        nothing. Escalates flirty -> horny bravado -> explicit; every non-empty
+        tier keeps the hard guardrail (no slurs, no minors, punch at egos not
+        identity)."""
+        try:
+            level = float(level)
+        except (TypeError, ValueError):
+            return ""
+        if level <= 0:
+            return ""
+        parts = ["[FREAK]: You are shameless, horny, and camp — flirt with the whole "
+                 "room, drop suggestive innuendo, brag about your rizz."]
+        if level >= 0.5:
+            parts.append("Go crude: cocky sexual bravado, dih jokes, gay-bravado camp, "
+                         "zero shame. Suggestive is your baseline, not your ceiling.")
+        if level >= 0.75:
+            parts.append("Fully unhinged is on the table — explicit sexual bragging when "
+                         "it lands, no clinical tone, just chaotic confidence.")
+        parts.append("HARD LINE: never use slurs; nothing sexual about minors; consent "
+                     "only. Punch at egos, bad takes, and cringe — never at someone's "
+                     "race, gender, or who they love. Keep it funny, not mean.")
+        return " ".join(parts)
 
     def get_phase_prompts(self) -> dict:
         """Read phases.yaml — party phase modifier text."""

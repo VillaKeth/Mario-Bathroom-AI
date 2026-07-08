@@ -71,6 +71,40 @@ def test_voice_config_defaults(tmp_chars):
     assert loader.voice_config["preferred_engine"] == "hybrid"
     assert loader.pronunciation == {}
 
+def test_freak_factor_parses_from_yaml(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["personality"] = {"freak_factor": 0.85}
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert abs(loader.freak_factor - 0.85) < 1e-9
+
+def test_freak_factor_defaults_zero_when_absent(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.freak_factor == 0.0
+
+def test_get_freak_prompt_zero_is_empty(tmp_chars):
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    assert loader.get_freak_prompt(0.0) == ""
+    assert loader.get_freak_prompt(-1) == ""
+
+def test_get_freak_prompt_escalates_and_keeps_guardrail(tmp_chars):
+    config_path = tmp_chars / "test_char" / "character.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["personality"] = {"freak_factor": 0.85}
+    config_path.write_text(yaml.dump(config))
+    loader = CharacterLoader(str(tmp_chars), "test_char")
+    low, high = loader.get_freak_prompt(0.2), loader.get_freak_prompt(0.9)
+    assert low and high
+    assert "[FREAK]" in high
+    # explicit only unlocked at high level
+    assert "explicit" in high.lower()
+    assert "explicit" not in low.lower()
+    # guardrail present at every non-empty tier
+    for txt in (low, high):
+        assert "slur" in txt.lower()
+        assert "minor" in txt.lower() or "underage" in txt.lower()
+
 def test_voice_config_invalid_engine(tmp_chars):
     config_path = tmp_chars / "test_char" / "character.yaml"
     config = yaml.safe_load(config_path.read_text())
