@@ -551,6 +551,15 @@ _LONG_INTENT_PATTERNS = [
     r"\btips? for\b", r"\bteach me\b",
     r"\bguide\b", r"\bhow does .+ work\b",
     r"\btell me everything\b", r"\bfull (?:guide|rundown|breakdown)\b",
+    # Storytelling & "give me the long version" — open-ended narrative requests.
+    # Without these a story is tagged "short" and the model is cut off at the
+    # short token budget mid-narrative (party box: story comes out capped short;
+    # slow dev box: story times out with nothing salvaged).
+    r"\btell me (?:a|an|another|the) (?:\w+ ){0,3}stor(?:y|ies)\b",
+    r"\bstory about\b",
+    r"\btell me about (?:the time|when|how)\b",
+    r"\bgive me the (?:long|full|whole|detailed) version\b",
+    r"\bgo into (?:more )?detail\b",
 ]
 _LONG_INTENT_RE = _re_len.compile("|".join(_LONG_INTENT_PATTERNS), _re_len.IGNORECASE)
 

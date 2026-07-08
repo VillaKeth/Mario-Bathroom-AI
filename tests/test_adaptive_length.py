@@ -17,8 +17,25 @@ def test_banter_stays_short():
     for t in [
         "hey rudi!", "lol you're funny", "roast me", "what's up",
         "yes", "I'm Jacob", "haha nice", "explain?",  # too short / not a real request
+        "that's a good story bro",  # passing mention of "story" is NOT a request
+        "no way that's the whole thing",
     ]:
         assert detect_length_intent(t) == "short", t
+
+def test_story_requests_are_long():
+    # Storytelling / "give me the long version" requests must get the long token
+    # budget. Regression: _LONG_INTENT_PATTERNS had how-to/guide patterns but ZERO
+    # storytelling patterns, so "tell me a long story" was tagged "short" and the
+    # model was guillotined at the short budget mid-narrative.
+    for t in [
+        "tell me a long story about a dragon",
+        "tell me a story about a brave knight",
+        "can you tell me a really long story please",
+        "tell me about the time you saved the princess",
+        "give me the long version of that",
+        "go into detail about your adventures",
+    ]:
+        assert detect_length_intent(t) == "long", t
 
 
 import asyncio
