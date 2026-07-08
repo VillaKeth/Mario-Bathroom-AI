@@ -6,7 +6,7 @@ import time
 import logging
 from datetime import datetime
 
-from server.joke_engine import JokeEngine, load_curated_jokes
+from server.joke_engine import JokeEngine, load_curated_jokes, load_freaky_jokes
 
 DEBUG_IDLE = os.environ.get("DEBUG_IDLE", "").lower() in ("1", "true", "yes")
 logger = logging.getLogger(__name__)
@@ -49,7 +49,8 @@ MEMORIAL_FADEOUT = (
 class IdleBehavior:
     """Manages character's autonomous behavior when idle."""
 
-    def __init__(self, character_loader=None, joke_llm_fn=None, joke_llm_chance=0.10):
+    def __init__(self, character_loader=None, joke_llm_fn=None, joke_llm_chance=0.10,
+                 freak_level_fn=None, explicit_ratio=0.25):
         self._last_idle_action = time.time()
         self._idle_interval = 15
         self._action_count = 0
@@ -79,9 +80,14 @@ class IdleBehavior:
         # CharacterLoader exposes the PUBLIC `character_dir` attr; `_char_dir`
         # is kept as a fallback for older/fake loaders (e.g. some tests).
         _char_dir = getattr(character_loader, "character_dir", None) or getattr(character_loader, "_char_dir", None)
+        _freaky = {"bravado": [], "explicit": []}
         if _char_dir:
             self._jokes = load_curated_jokes(str(_char_dir), fallback=self._jokes)
-        self._joke_engine = JokeEngine(self._jokes, llm_fn=joke_llm_fn, llm_chance=joke_llm_chance)
+            _freaky = load_freaky_jokes(str(_char_dir))
+        self._joke_engine = JokeEngine(
+            self._jokes, freaky_pool=_freaky, llm_fn=joke_llm_fn,
+            llm_chance=joke_llm_chance, freak_level_fn=freak_level_fn,
+            explicit_ratio=explicit_ratio)
         self._songs = self._char_pools.get("songs", [])
         self._trivia = self._char_pools.get("trivia_idle", [])
         self._plumbing = self._char_pools.get("deep_thoughts", [])

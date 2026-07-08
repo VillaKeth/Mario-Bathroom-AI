@@ -41,3 +41,22 @@ def test_get_joke_uses_curated_file_via_public_character_dir(tmp_path):
     ib = IdleBehavior(_LoaderWithCharacterDir(str(tmp_path), jokes=["fallback"]), joke_llm_chance=0.0)
     got = {ib.get_joke() for _ in range(20)}
     assert got == {"curated1", "curated2"}
+
+def test_idle_routes_freaky_when_level_high(tmp_path):
+    (tmp_path / "jokes").mkdir()
+    (tmp_path / "jokes" / "freaky.yaml").write_text(
+        yaml.safe_dump({"bravado": ["BRAV1", "BRAV2"], "explicit": ["EXPL1"]}), encoding="utf-8")
+    ib = IdleBehavior(_LoaderWithCharacterDir(str(tmp_path), jokes=["CLEAN1", "CLEAN2"]),
+                      joke_llm_chance=0.0, freak_level_fn=lambda: 1.0, explicit_ratio=0.5)
+    got = [ib.get_joke() for _ in range(40)]
+    assert any(g in ("BRAV1", "BRAV2", "EXPL1") for g in got)
+    assert "CLEAN1" not in got and "CLEAN2" not in got  # level 1.0 -> all freaky
+
+def test_idle_clean_when_no_level_fn(tmp_path):
+    (tmp_path / "jokes").mkdir()
+    (tmp_path / "jokes" / "freaky.yaml").write_text(
+        yaml.safe_dump({"bravado": ["BRAV1"], "explicit": ["EXPL1"]}), encoding="utf-8")
+    ib = IdleBehavior(_LoaderWithCharacterDir(str(tmp_path), jokes=["CLEAN1", "CLEAN2"]),
+                      joke_llm_chance=0.0)  # no freak_level_fn -> level 0
+    got = [ib.get_joke() for _ in range(40)]
+    assert all(g in ("CLEAN1", "CLEAN2") for g in got)
