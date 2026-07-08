@@ -62,6 +62,47 @@ def test_num_predict_override_used(monkeypatch):
     assert captured["num_predict"] == 512
 
 
+def test_partial_reply_salvaged_on_soft_deadline(monkeypatch):
+    # When generation would blow the LLM timeout, return the PARTIAL reply
+    # produced so far (marked was_partial) instead of discarding it for a canned
+    # fallback. Regression: on a slow box a long story generated for the full
+    # timeout, got cancelled, and every token was thrown away -> "I lost my
+    # train of thought" instead of the story.
+    monkeypatch.setattr(llm_mod, "LLM_TIMEOUT", 10.0)
+    monkeypatch.setattr(llm_mod, "LLM_PARTIAL_GRACE", 4.0)  # soft deadline = 6s
+
+    class Clock:
+        t = 0.0
+        def __call__(self):
+            return self.t
+    clock = Clock()
+    monkeypatch.setattr(llm_mod.time, "time", clock)
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+        async def aiter_lines(self):
+            clock.t = 2.0; yield '{"message":{"content":"Once upon a time "},"done":false}'
+            clock.t = 4.0; yield '{"message":{"content":"there was a dragon "},"done":false}'
+            clock.t = 7.0; yield '{"message":{"content":"who guarded gold. "},"done":false}'
+            clock.t = 9.0; yield '{"message":{"content":"PAST THE DEADLINE"},"done":false}'
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        def stream(self, *a, **k): return FakeResp()
+    monkeypatch.setattr(llm_mod.httpx, "AsyncClient", lambda *a, **k: FakeClient())
+
+    out = asyncio.run(
+        llm_mod.generate_response([{"role": "user", "content": "tell me a story"}]))
+    assert "Once upon a time" in out["text"]
+    assert "dragon" in out["text"]
+    assert "PAST THE DEADLINE" not in out["text"]   # stopped at the soft deadline
+    assert out.get("was_partial") is True
+    assert out.get("was_fallback") is not True
+
+
 from mario_prompt import maybe_add_followup
 
 def test_followup_throttled():

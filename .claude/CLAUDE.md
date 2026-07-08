@@ -174,6 +174,9 @@ All Python dependencies (including PyTorch) are installed by setup.bat/sh into t
 - `ramble_chance` (config_live, code default 0.12) — probability a response gets explicit filibuster permission (ramble mode)
 - `long_num_predict` (config_live, code default 1024) — token budget for long-intent/ramble responses; size to the box's LLM speed vs the 75s LLM timeout (slow dev GPUs need ~450 or lower with reasoning models)
 - `joke_llm_chance` (config_live, code default 0.10) — probability a joke is generated live by the LLM vs pulled from the cached pool.
+- `llm_timeout_seconds` (config.json server, code default 30) — hard ceiling on LLM generation; the outer `asyncio.wait_for` in main.py derives from this too, so both layers agree.
+- `llm_partial_grace_seconds` (config.json server, code default 8) — salvage window: generation stops this many seconds before `llm_timeout_seconds` and returns the partial reply already produced (marked `was_partial`) instead of being cancelled and discarded for a canned fallback. `0` disables salvage. On a slow box this is what turns "I lost my train of thought" into the story-so-far.
+- **Long-form intent** — `mario_prompt.detect_length_intent()` classifies a message `long` when it matches how-to/guide/explain **or storytelling** patterns (`_LONG_INTENT_PATTERNS`); `long` routes to `long_num_predict`, else the hardware-tier `llm_num_predict`. Storytelling requests ("tell me a story", "the long version", "go into detail") are `long` so they aren't guillotined at the short budget.
 
 ## Port
 - **WebSocket server**: `ws://localhost:8765` (default)

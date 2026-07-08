@@ -36,6 +36,12 @@ OLLAMA_URL = _get_ollama_url()
 MODEL_NAME = _config.get("llm_model", "llama3")
 MODEL_FALLBACK = "qwen2:1.5b"
 LLM_TIMEOUT = float(_config.get("llm_timeout_seconds", 30))
+# Salvage window: stop streaming this many seconds BEFORE the hard timeout and
+# return the partial reply generated so far, rather than letting the outer
+# wait_for cancel the call and discard every token (which yields a canned "I
+# lost my train of thought" instead of the story the model was mid-way through).
+# Config-driven; set to 0 to disable salvage. Ignored if >= llm_timeout_seconds.
+LLM_PARTIAL_GRACE = float(_config.get("llm_partial_grace_seconds", 8))
 LLM_NUM_PREDICT = hardware.resolve("llm_num_predict", _config.get("llm_num_predict", "auto"))
 LLM_NUM_CTX = hardware.resolve("llm_num_ctx", _config.get("llm_num_ctx", "auto"))
 logger.info(f"[LLM] num_predict={LLM_NUM_PREDICT}, num_ctx={LLM_NUM_CTX} (hardware tier: {hardware.get_tier()})")
@@ -207,6 +213,10 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
     if any(t in str(use_model).lower() for t in ("qwen3", "deepseek-r1", "magistral")):
         payload["think"] = False
 
+    # Stop a few seconds before the hard timeout so a slow box returns the
+    # partial reply instead of being cancelled with nothing. None = disabled.
+    _soft_deadline = (LLM_TIMEOUT - LLM_PARTIAL_GRACE) if (0 < LLM_PARTIAL_GRACE < LLM_TIMEOUT) else None
+    was_partial = False
     try:
         chunks = []
         async with httpx.AsyncClient() as client:
@@ -229,6 +239,14 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                             break
                     except json.JSONDecodeError:
                         continue
+                    # Soft deadline: bail with the partial text we already have
+                    # before the outer wait_for cancels us and throws it away.
+                    if _soft_deadline is not None and (time.time() - start) > _soft_deadline:
+                        was_partial = True
+                        logger.warning(
+                            f"[LLM] soft-deadline {_soft_deadline:.0f}s hit — salvaging "
+                            f"partial reply ({len(''.join(chunks))} chars) instead of timing out")
+                        break
 
         response_text = "".join(chunks).strip()
         logger.info(f"[LLM] RAW response ({len(response_text)} chars): {response_text[:200]}")
@@ -284,7 +302,8 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         if DEBUG_LLM:
             logger.info(f"[DEBUG_LLM] generate_response: {elapsed:.1f}s response={response_text[:100]} emotion={extracted_emotion} energy={extracted_energy}")
         
-        return {"text": response_text, "emotion": extracted_emotion, "energy": extracted_energy}
+        return {"text": response_text, "emotion": extracted_emotion,
+                "energy": extracted_energy, "was_partial": was_partial}
 
     except httpx.TimeoutException:
         elapsed = time.time() - start

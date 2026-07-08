@@ -27,6 +27,7 @@
     "command_cooldown_seconds": 1.0,
     "text_input_cooldown_seconds": 2.0,
     "llm_timeout_seconds": 30,
+    "llm_partial_grace_seconds": 8,
     "idle_interval_min_seconds": 15,
     "idle_interval_max_seconds": 90,
     "admin_api_key": "",
