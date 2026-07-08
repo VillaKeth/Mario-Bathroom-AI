@@ -41,6 +41,7 @@ from shared.character_loader import CharacterLoader
 import stt
 import tts
 import llm
+import gen_guard
 import hardware
 import speaker_id
 import face_enrollment
@@ -3805,6 +3806,8 @@ def _joke_llm_fn() -> str | None:
     The on-loop branch remains only as a defensive fallback.
     """
     try:
+        if gen_guard.is_user_generating():
+            return None  # user request mid-generation — yield the model, don't compete
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
             {"role": "user", "content": (
@@ -3838,6 +3841,8 @@ def _joke_llm_fn() -> str | None:
 async def _generate_llm_idle() -> dict | None:
     """Generate an LLM-powered idle thought. Returns {"text": str, "emotion": str} or None."""
     global _last_llm_idle_time
+    if gen_guard.is_user_generating():
+        return None  # user request mid-generation — yield the model, don't compete
     now = time.time()
     if now - _last_llm_idle_time < 60:  # Min 60s between LLM idle calls
         return None
@@ -5611,6 +5616,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         if DEBUG_SERVER:
             logger.info(f"[ROUTER] type={_response_type} decision={_routing.value} model={_routed_model}")
 
+        # Mark the user request as generating so idle/background LLM calls yield
+        # the (CPU-bound) model to it instead of competing and starving it.
+        gen_guard.set_user_generating(True)
         try:
             _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
@@ -5701,6 +5709,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             ])
             emotion_system.current = Emotion.CONFUSED
             emotion_system.intensity = 0.6
+        finally:
+            gen_guard.set_user_generating(False)
         _timing["llm_ms"] = int((time.time() - _t_llm) * 1000)
         logger.info(f"[DEBUG_PIPELINE] LLM response ({_timing['llm_ms']}ms): '{response_text[:100] if response_text else 'NONE'}'")
         logger.info(f"[DEBUG_PIPELINE] Context had {len(ctx)} messages, {sum(1 for m in ctx if m.get('role')=='system')} system")
