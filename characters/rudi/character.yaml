@@ -114,6 +114,13 @@ games:
   pools_dir: "games/"
   include_shared: true
 
+personality:
+  # Intrinsic raunch level (0-1). Rudi is Bad Rudi — horny bravado + occasional
+  # explicit. Per-character: no other character defines this, so none is affected.
+  # config_live.json freak_factor can dial this down live (0 = clean) but can
+  # NEVER make a character whose freak_factor is 0 freaky (opt-in only).
+  freak_factor: 0.85
+
 memory:
   collections:
     faces: "rudi_faces"

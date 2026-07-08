@@ -61,6 +61,7 @@ from emotions import EmotionSystem, Emotion
 from party_stats import PartyStats
 from safety_filter import filter_response, check_input
 from idle_behavior import IdleBehavior, MEMORIAL_ANNOUNCEMENT, MEMORIAL_SILENCE, MEMORIAL_TOAST, MEMORIAL_FADEOUT
+from joke_engine import effective_freak_level
 from pose_analyzer import analyze_text
 import command_handlers
 import recognition_events
@@ -905,7 +906,8 @@ async def lifespan(app: FastAPI):
     global idle_behavior, _face_memory
     _joke_chance = live_config.get("joke_llm_chance", 0.10)
     idle_behavior = IdleBehavior(character_loader=_character, joke_llm_fn=_joke_llm_fn,
-                                  joke_llm_chance=_joke_chance)
+                                  joke_llm_chance=_joke_chance,
+                                  freak_level_fn=_effective_freak_level)
     # Give TTS precache access to character-specific idle pools
     tts._idle_behavior_ref = idle_behavior
 
@@ -2011,6 +2013,9 @@ async def admin_probe(request_body: dict = {}):
         temperament = _character.get_temperament_prompt(visit_count)
         if temperament:
             ctx.append({"role": "system", "content": temperament})
+        _freak = _character.get_freak_prompt(_effective_freak_level())
+        if _freak:
+            ctx.append({"role": "system", "content": _freak})
     except Exception:
         pass
     ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
@@ -3017,7 +3022,8 @@ async def admin_switch_character(request_body: dict = {}):
         # startup (main.py, in main()).
         _joke_chance = live_config.get("joke_llm_chance", 0.10)
         idle_behavior = IdleBehavior(character_loader=_character, joke_llm_fn=_joke_llm_fn,
-                                      joke_llm_chance=_joke_chance)
+                                      joke_llm_chance=_joke_chance,
+                                      freak_level_fn=_effective_freak_level)
         tts._idle_behavior_ref = idle_behavior
 
         # Update config.json for persistence across restarts
@@ -3788,6 +3794,17 @@ def _get_idle_prompt():
     return _LLM_IDLE_SYSTEM_PROMPT
 
 
+def _effective_freak_level() -> float:
+    """Live per-character freak level for jokes + prompt. 0.0 for any character
+    whose yaml freak_factor is 0 (opt-in only), else the config_live override
+    scales it. See docs/superpowers/specs/2026-07-08-rudi-freak-factor-design.md."""
+    try:
+        base = getattr(_character, "freak_factor", 0.0)
+    except Exception:
+        base = 0.0
+    return effective_freak_level(base, live_config.get("freak_factor"))
+
+
 def _joke_llm_fn() -> str | None:
     """Sync callback for JokeEngine's 10% live-LLM joke path.
 
@@ -3807,14 +3824,18 @@ def _joke_llm_fn() -> str | None:
     """
     try:
         if gen_guard.is_user_generating():
+            logger.info("[GEN_GUARD] idle joke skipped — user request generating")
             return None  # user request mid-generation — yield the model, don't compete
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
-            {"role": "user", "content": (
-                "Tell ONE short, original, in-character joke. One or two sentences. "
-                "No preamble, just the joke."
-            )},
         ]
+        _freak = _character.get_freak_prompt(_effective_freak_level())
+        if _freak:
+            ctx.append({"role": "system", "content": _freak})
+        ctx.append({"role": "user", "content": (
+            "Tell ONE short, original, in-character joke. One or two sentences. "
+            "No preamble, just the joke."
+        )})
         _model = llm_router.get_model(llm_router.classify("joke", response_type="one_liner"))
         coro = asyncio.wait_for(llm.generate_response(ctx, model=_model), timeout=8)
 
@@ -3842,6 +3863,7 @@ async def _generate_llm_idle() -> dict | None:
     """Generate an LLM-powered idle thought. Returns {"text": str, "emotion": str} or None."""
     global _last_llm_idle_time
     if gen_guard.is_user_generating():
+        logger.info("[GEN_GUARD] idle LLM thought skipped — user request generating")
         return None  # user request mid-generation — yield the model, don't compete
     now = time.time()
     if now - _last_llm_idle_time < 60:  # Min 60s between LLM idle calls
@@ -3851,6 +3873,9 @@ async def _generate_llm_idle() -> dict | None:
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
         ]
+        _freak = _character.get_freak_prompt(_effective_freak_level())
+        if _freak:
+            ctx.append({"role": "system", "content": _freak})
         # Idle chatter bypasses build_context(), so the character-prompt's date
         # grounding doesn't reach here — a date-named character then riffs "on
         # this March 7th day". Inject the real date + a name-vs-date note so idle
@@ -4628,6 +4653,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             _temperament = _character.get_temperament_prompt(_visits)
             if _temperament:
                 ctx.append({"role": "system", "content": _temperament})
+            _freak = _character.get_freak_prompt(_effective_freak_level())
+            if _freak:
+                ctx.append({"role": "system", "content": _freak})
         except Exception as _e:
             logger.debug(f"[TEMPERAMENT] skipped: {_e}")
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
