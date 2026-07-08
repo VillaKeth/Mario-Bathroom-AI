@@ -116,13 +116,18 @@ def _effective_freak_level() -> float:
   egos not identity.
 - The directive text lives in code (not yaml) so it's uniform and can't be half-authored.
 
-Injected at three sites in `main.py`, each reading `_effective_freak_level()`:
-1. **Chat/greetings/exits:** appended to the character system prompt where it's wired in
-   (main.py ~801-803, `_char_sys_prompt`). Because every `mario_prompt.build_context()`
-   emits that system prompt, one injection covers chat + all event flows. Re-applied on
-   `/config/reload` and char-switch (existing rebuild paths) so the level tracks the dial.
+Injected **per-response** (so the live dial is hot for chat, not frozen at startup) at
+the sites that already append the `[TEMPERAMENT]` line, each reading
+`_effective_freak_level()` fresh:
+1. **Chat responses:** appended right after `get_temperament_prompt` at each chat
+   build_context site (main.py ~2010 and ~4623). Live every reply.
 2. **Idle LLM joke** (`_joke_llm_fn`, ~3808): appended to its ctx.
 3. **Idle LLM chatter** (~3845): appended to its ctx.
+
+Per-response injection is preferred over baking the directive into the once-wired startup
+system prompt precisely so a `config_live.json` dial change lands on the next reply with no
+rebuild. Greeting/exit event flows are short and canned-flavored; they intentionally do NOT
+carry the directive (keeps blast radius to conversational + idle surfaces).
 
 ### 4E. Guardrail fix (in-scope — it IS the held line)
 
