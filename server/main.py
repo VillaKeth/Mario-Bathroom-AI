@@ -803,7 +803,7 @@ async def lifespan(app: FastAPI):
     # Wire character prompts into mario_prompt module (used by build_context)
     _char_sys_prompt = _character.get_system_prompt()
     if _char_sys_prompt:
-        mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
+        mario_prompt.set_character_prompt(_char_sys_prompt)
         logger.info(f"[CHARACTER] System prompt loaded ({len(_char_sys_prompt)} chars)")
 
     # Set the character's resting emotional state (baseline temperament) so it
@@ -3013,7 +3013,7 @@ async def admin_switch_character(request_body: dict = {}):
         
         _char_sys_prompt = _character.get_system_prompt()
         if _char_sys_prompt:
-            mario_prompt.MARIO_SYSTEM_PROMPT = _char_sys_prompt
+            mario_prompt.set_character_prompt(_char_sys_prompt)
 
         # Rebuild idle behavior for the new character — without this,
         # idle_behavior (and its _joke_engine/_jokes pool) stays pinned to the
