@@ -171,7 +171,27 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
 
     if transcript:
         messages.append({"role": "user", "content": transcript})
-    
+
+    # Character isolation guard: injected at THE chokepoint every guest-facing
+    # path shares, so chat, greetings, idle, jokes, and even hardcoded-Mario game
+    # prompts can't leak Mario for a non-Mario character. Fail-safe: never let a
+    # prompt-layer hiccup break generation. (Live-caught: Rudi said "a Mario AI bot".)
+    try:
+        # Resolve the SAME mario_prompt instance set_character() mutated. At runtime
+        # main.py imports it bare ("mario_prompt"); repo-root is also on sys.path
+        # (main.py:38), so `from server import mario_prompt` would grab a SEPARATE,
+        # unmutated copy (_CHARACTER_NAME stuck at "mario" → empty guard). Mirror
+        # mario_prompt.py's own __package__ idiom so both contexts hit one object.
+        if __package__:
+            from server import mario_prompt as _mp
+        else:
+            import mario_prompt as _mp
+        _guard = _mp.non_mario_guard()
+        if _guard:
+            messages.insert(1, {"role": "system", "content": _guard})
+    except Exception:
+        pass
+
     # Log full context for debugging
     for i, m in enumerate(messages):
         logger.info(f"[LLM_CTX {i:02d}] {m.get('role'):9s} | {m.get('content', '')[:80]}")

@@ -6227,11 +6227,12 @@ async def _answer_twenty_questions(transcript: str) -> str | None:
 
     gs["questions_left"] = int(gs.get("questions_left", 1)) - 1
     ql = gs["questions_left"]
+    _host = mario_prompt._CHARACTER_DISPLAY_NAME or "your host"
     sys_prompt = (
-        f'You are Mario hosting 20 Questions at a party. You are SECRETLY thinking '
+        f'You are {_host} hosting 20 Questions at a party. You are SECRETLY thinking '
         f'of: "{answer}" (category: {gs.get("category", "thing")}). The player just '
         f'asked a yes-or-no question. Reply in ONE short line: start with a clear Yes '
-        f'or No that is TRUTHFUL about "{answer}", then a tiny playful Mario reaction. '
+        f'or No that is TRUTHFUL about "{answer}", then a tiny playful in-character reaction. '
         f'NEVER say, spell, or directly hint the word "{answer}". Under 15 words.'
     )
     try:

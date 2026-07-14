@@ -34,6 +34,22 @@ def _is_mario() -> bool:
     return (_CHARACTER_NAME or "").lower() == "mario"
 
 
+def non_mario_guard() -> str:
+    """A hard 'you are NOT Mario' system line for any character that isn't Mario,
+    else ''. The whole app is themed 'Mario AI', so the LLM free-associates a
+    bathroom party bot into Mario (live-caught: Rudi's greeting hallucinated
+    'a Mario AI bot'). Injected once at the `llm.generate_response` chokepoint so
+    EVERY guest-facing path — chat, greeting, idle, jokes, even a hardcoded-Mario
+    game prompt — is covered. Mario himself gets nothing."""
+    if _is_mario():
+        return ""
+    who = _CHARACTER_DISPLAY_NAME or _CHARACTER_NAME or "yourself"
+    return ("You are NOT Mario, and this is NOT a Mario game. Never say you are "
+            "Mario, and never mention Mario, Luigi, Bowser, Peach, Yoshi, Toad, "
+            "Nintendo, mushrooms, or any Nintendo character or catchphrase — that "
+            f"world is not yours. You are {who}, only ever yourself.")
+
+
 def _mario_only(fn):
     """Conv-hint injectors that emit hardcoded Mario-universe lore. For any
     non-Mario character they return '' so the cascade falls through to the next
