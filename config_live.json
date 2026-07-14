@@ -5,5 +5,6 @@
   "warmth": 7,
   "tts_engine": "auto",
   "burst_debounce_ms": 1200,
-  "joke_llm_chance": 0.10
+  "joke_llm_chance": 0.10,
+  "freak_factor": 0.85
 }
