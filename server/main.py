@@ -2428,6 +2428,55 @@ async def friend_say(request_body: dict = {}):
     return await _dispatch_user_text(text, guest_name=name)
 
 
+@app.post("/friend/say_audio")
+async def friend_say_audio(request_body: dict = {}):
+    """Remote guest VOICE input (hold-to-talk over the tunnel): a base64 audio blob
+    in whatever container the browser's MediaRecorder made -> STT -> the same drive
+    path as /friend/say. Mirrors its auth + one-talker-at-a-time turn gate; the turn
+    is only claimed once we actually recognize speech, so silence never steals it."""
+    token = request_body.get("token") or ""
+    pin = request_body.get("pin") or ""
+    name = (request_body.get("name") or "").strip() or "Guest"
+    client_id = (request_body.get("id") or "").strip()
+    ok, reason = mirror_relay.authorize_friend_input(
+        token, pin, _MIRROR_CFG, mirror_relay.get_control_mode()
+    )
+    if not ok:
+        return {"status": "error", "reason": reason}
+    if not client_id:
+        return {"status": "error", "reason": "no_client_id"}
+    try:
+        audio_bytes = base64.b64decode(request_body.get("audio_b64") or "")
+    except Exception as e:
+        return {"status": "error", "message": f"bad audio: {e}"}
+    if not audio_bytes:
+        return {"status": "error", "message": "no audio"}
+    # STT is CPU-heavy — keep it off the event loop so the mirror stays smooth.
+    try:
+        loop = asyncio.get_event_loop()
+        text = await loop.run_in_executor(None, stt.transcribe_any, audio_bytes)
+    except Exception as e:
+        logger.warning(f"[FRIEND_AUDIO] STT failed: {e}")
+        return {"status": "error", "message": "could not transcribe"}
+    text = (text or "").strip()
+    if not text:
+        return {"status": "ok", "transcript": "", "note": "no speech detected"}
+    # Same one-talker gate as /friend/say — claim the turn now that we have words.
+    now = time.time()
+    granted, holder = mirror_relay.acquire_or_refresh_turn(client_id, name, now)
+    if not granted:
+        return {"status": "busy", "holder": holder, "transcript": text}
+    try:
+        await mirror_relay.broadcast_text({"type": "turn", **mirror_relay.turn_state(now)})
+    except Exception:
+        pass
+    result = await _dispatch_user_text(text, guest_name=name)
+    # Surface the transcript so the browser can echo what it heard back to the guest.
+    if isinstance(result, dict):
+        return {**result, "transcript": text}
+    return {"status": "ok", "transcript": text}
+
+
 @app.post("/friend/log")
 async def friend_log(request_body: dict = {}):
     """Return the full rolling chat log for the scrollable 'full log' panel on the

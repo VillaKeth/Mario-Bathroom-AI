@@ -23,6 +23,10 @@
   #setup input#pin,#setup input#name{flex:1}
   #bar button,#setup button{padding:12px 16px;font-size:16px;border-radius:8px;border:0;background:#e23;color:#fff}
   #bar button:disabled{background:#555}
+  #mic{background:#2a2a2a;border:1px solid #555;min-width:54px;font-size:20px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
+  #mic.rec{background:#e23;border-color:#f88;animation:micpulse .8s infinite}
+  #mic:disabled{background:#333;opacity:.5}
+  @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(238,34,51,.6)}50%{box-shadow:0 0 0 9px rgba(238,34,51,0)}}
   #tapcover{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
   #topright{display:flex;align-items:center;gap:10px}
   #logToggle{padding:4px 10px;font-size:13px;border-radius:6px;border:1px solid #444;background:#2a2a2a;color:#fc8;cursor:pointer}
@@ -58,6 +62,7 @@
   </div>
   <div id="bar" class="hidden">
     <input id="msg" type="text" placeholder="Say something…" autocomplete="off">
+    <button id="mic" title="Hold to talk">🎤</button>
     <button id="send">Send</button>
   </div>
 </div>
@@ -119,6 +124,7 @@ const msgEl = document.getElementById("msg");
 const pinEl = document.getElementById("pin");
 const nameEl = document.getElementById("name");
 const saveBtn = document.getElementById("save");
+const micBtn = document.getElementById("mic");
 
 function showChatUI(){
   if (CONTROL_MODE !== "remote") return;
@@ -129,13 +135,13 @@ function renderTurn(){
   if (CONTROL_MODE !== "remote"){ turnEl.textContent = ""; return; }
   const mine = turnHolder && myName && turnHolder.toLowerCase() === myName.toLowerCase();
   if (turnHolder && !mine){
-    turnEl.textContent = "💬 March is chatting with " + turnHolder + "…";
+    turnEl.textContent = "💬 chatting with " + turnHolder + "…";
     turnEl.classList.remove("you");
-    sendBtn.disabled = true; msgEl.disabled = true;
+    sendBtn.disabled = true; msgEl.disabled = true; if (micBtn) micBtn.disabled = true;
   } else {
-    turnEl.textContent = mine ? "🎤 You're talking" : "🎤 Your turn — say hi!";
+    turnEl.textContent = mine ? "🎤 You're talking" : "🎤 Your turn — say hi or hold 🎤";
     turnEl.classList.toggle("you", !!mine);
-    sendBtn.disabled = false; msgEl.disabled = false;
+    sendBtn.disabled = false; msgEl.disabled = false; if (micBtn) micBtn.disabled = false;
   }
 }
 function renderLog(lines){
@@ -288,6 +294,70 @@ async function send(){
 }
 sendBtn.onclick = send;
 msgEl.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+// --- hold-to-talk voice input (getUserMedia needs a secure context: the tunnel is
+// HTTPS and localhost is exempt, so this works over the party link) --------------
+let mediaRec = null, micChunks = [], micStream = null, recording = false;
+function blobToB64(blob){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onloadend = () => res(String(r.result).split(",")[1] || "");
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+function releaseMic(){
+  try { micStream && micStream.getTracks().forEach(t => t.stop()); } catch(e){}
+  micStream = null;   // release the mic between utterances (indicator off, privacy)
+}
+async function startRec(){
+  if (recording || !myName || (micBtn && micBtn.disabled)) return;
+  if (!navigator.mediaDevices || !window.MediaRecorder){ statusEl.textContent = "🎤 not supported here"; return; }
+  try { micStream = await navigator.mediaDevices.getUserMedia({audio: true}); }
+  catch(e){ statusEl.textContent = "🎤 allow mic access"; return; }
+  recording = true; micChunks = [];
+  micBtn.classList.add("rec");
+  turnEl.textContent = "🎤 Listening… release to send";
+  try { mediaRec = new MediaRecorder(micStream); }
+  catch(e){ recording = false; releaseMic(); statusEl.textContent = "🎤 not supported"; return; }
+  mediaRec.ondataavailable = e => { if (e.data && e.data.size) micChunks.push(e.data); };
+  mediaRec.onstop = onRecStop;
+  mediaRec.start();
+}
+function stopRec(){
+  if (!recording) return;
+  recording = false;
+  micBtn.classList.remove("rec");
+  try { if (mediaRec && mediaRec.state !== "inactive") mediaRec.stop(); } catch(e){}
+}
+async function onRecStop(){
+  const type = (micChunks[0] && micChunks[0].type) || "audio/webm";
+  const blob = new Blob(micChunks, {type});
+  micChunks = []; releaseMic();
+  if (blob.size < 800){ renderTurn(); return; }   // accidental tap / silence
+  statusEl.textContent = "…hearing you";
+  try {
+    const b64 = await blobToB64(blob);
+    const r = await fetch("/friend/say_audio", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({audio_b64: b64, token: TOKEN, pin: (localStorage.getItem("mirror_pin")||pinEl.value.trim()), name: myName, id: clientId})
+    });
+    const j = await r.json();
+    if (j.status === "ok"){
+      statusEl.textContent = j.transcript ? "🗣 " + j.transcript : "🤷 didn't catch that — try again";
+    } else if (j.status === "busy"){
+      turnHolder = j.holder; statusEl.textContent = "✋ " + j.holder + " is talking";
+    } else {
+      statusEl.textContent = "✋ " + (j.message || j.reason || "try again");
+    }
+  } catch(e){ statusEl.textContent = "🎤 send failed"; }
+  finally { renderTurn(); }
+}
+micBtn.addEventListener("pointerdown",  e => { e.preventDefault(); startRec(); });
+micBtn.addEventListener("pointerup",    e => { e.preventDefault(); stopRec(); });
+micBtn.addEventListener("pointerleave", () => stopRec());
+micBtn.addEventListener("pointercancel",() => stopRec());
+micBtn.addEventListener("contextmenu",  e => e.preventDefault());   // no long-press menu on mobile
 </script>
 </body>
 </html>

@@ -120,3 +120,48 @@ def transcribe(audio_data: bytes, sample_rate: int = 16000) -> str:
         logger.info(f"[DEBUG_STT] transcribe: result='{text}' lang={info.language} prob={info.language_probability:.2f}")
 
     return text
+
+
+def transcribe_any(data: bytes) -> str:
+    """Transcribe an ENCODED audio blob in whatever container a browser's
+    MediaRecorder produces (webm/opus, ogg, mp4/aac, wav). Decodes to 16kHz mono
+    via faster-whisper's decode_audio (PyAV) then runs the model. Use this for the
+    remote /friend voice path; use transcribe() for raw int16 PCM from the mic.
+
+    Returns '' on empty/undersized/undecodable input (never raises for those)."""
+    if not _HAS_WHISPER:
+        return ""
+    if _model is None:
+        raise RuntimeError("Whisper model not initialized. Call init_model() first.")
+    if not data or len(data) < 16:
+        if DEBUG_STT:
+            logger.info("[DEBUG_STT] transcribe_any: empty/tiny blob, skipping")
+        return ""
+
+    from faster_whisper import decode_audio
+    try:
+        audio_np = decode_audio(io.BytesIO(data), sampling_rate=16000)
+    except Exception as e:
+        logger.warning(f"[DEBUG_STT] transcribe_any: decode failed: {e}")
+        return ""
+
+    # Guard against sub-0.3s clips (accidental taps) — nothing to transcribe.
+    if audio_np is None or len(audio_np) < int(16000 * 0.3):
+        if DEBUG_STT:
+            logger.info("[DEBUG_STT] transcribe_any: audio too short, skipping")
+        return ""
+
+    segments, info = _model.transcribe(
+        audio_np,
+        beam_size=5,
+        language="en",
+        vad_filter=True,
+        vad_parameters=dict(
+            min_silence_duration_ms=500,
+            speech_pad_ms=200,
+        ),
+    )
+    text = " ".join(seg.text.strip() for seg in segments).strip()
+    if DEBUG_STT:
+        logger.info(f"[DEBUG_STT] transcribe_any: result='{text}' lang={info.language} prob={info.language_probability:.2f}")
+    return text
