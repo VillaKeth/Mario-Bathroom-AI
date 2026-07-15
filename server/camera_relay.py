@@ -7,6 +7,7 @@ lives here. State is module-level and cleared by reset_state() for tests.
 import re
 
 DEBUG_CAMERA = True
+_MAX_CLIENTS = 256   # hard cap: bound memory + defeat client-id cycling abuse
 
 _last_frame_ts: dict = {}      # client_id -> ts of last ACCEPTED frame
 _frames: dict = {}             # client_id -> (jpeg_bytes, ts)
@@ -57,6 +58,18 @@ def clear_client(client_id: str) -> None:
     _last_frame_ts.pop(client_id, None)
     _noface.pop(client_id, None)
     _wants_greet.discard(client_id)
+
+
+def sweep(now: float, frame_ttl: float) -> None:
+    """Reap stale camera state: drop cached frames older than frame_ttl (privacy),
+    and if more than _MAX_CLIENTS are tracked, evict the least-recently-active ones
+    wholesale (memory + id-cycling abuse). Cheap enough to call opportunistically."""
+    for cid in [c for c, (jpeg, ts) in list(_frames.items()) if (now - ts) > frame_ttl]:
+        _frames.pop(cid, None)
+    if len(_last_frame_ts) > _MAX_CLIENTS:
+        victims = sorted(_last_frame_ts, key=_last_frame_ts.get)[:len(_last_frame_ts) - _MAX_CLIENTS]
+        for cid in victims:
+            clear_client(cid)
 
 
 def request_greet(client_id: str) -> None:

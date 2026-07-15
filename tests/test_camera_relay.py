@@ -145,3 +145,24 @@ def test_config_example_documents_camera_keys():
     for k in ("camera_enabled", "camera_vision_enabled", "camera_vision_model",
               "camera_frame_min_interval", "camera_vision_min_gap", "camera_frame_ttl"):
         assert k in blob, k
+
+
+def test_sweep_evicts_expired_frames():
+    cr.cache_frame("a", b"x", now=100.0)
+    cr.allow_frame("a", now=100.0, min_interval=2.0)
+    cr.sweep(now=200.0, frame_ttl=30.0)          # 100s later, past the 30s frame TTL
+    assert cr.get_cached_frame("a", now=200.0, ttl=30.0) is None
+    assert "a" not in cr._frames
+
+
+def test_sweep_keeps_fresh_frames():
+    cr.cache_frame("a", b"x", now=100.0)
+    cr.sweep(now=110.0, frame_ttl=30.0)          # within TTL
+    assert cr.get_cached_frame("a", now=110.0, ttl=30.0) == b"x"
+
+
+def test_sweep_caps_total_clients():
+    for i in range(cr._MAX_CLIENTS + 25):
+        cr.allow_frame(f"c{i}", now=float(i), min_interval=0.0)
+    cr.sweep(now=1_000_000.0, frame_ttl=30.0)
+    assert len(cr._last_frame_ts) <= cr._MAX_CLIENTS

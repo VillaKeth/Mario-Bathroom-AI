@@ -100,6 +100,13 @@ def test_see_face_true_and_requests_greet_on_camera_on(monkeypatch):
     assert greeted["n"] == 1                  # camera_on requested a pending greet
 
 
+def test_see_arms_greet_even_when_first_frame_has_no_face(monkeypatch):
+    monkeypatch.setattr(camera_relay, "encode_face_from_b64", lambda b: (True, None))  # no face
+    r = asyncio.run(main.friend_see(_good(reason="camera_on")))
+    assert r["face"] is False
+    assert camera_relay.take_greet("c1") is True   # greet armed despite the faceless first frame
+
+
 class _FakeFaceMem:
     def __init__(self, match=None):
         self._match = match

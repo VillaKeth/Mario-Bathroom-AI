@@ -390,12 +390,17 @@ async function postSee(reason){
       CAM_CANVAS.getContext("2d").drawImage(selfView, 0, 0, CAM_CANVAS.width, CAM_CANVAS.height);
       image_b64 = CAM_CANVAS.toDataURL("image/jpeg", 0.6).split(",")[1] || "";
     }
+    const body = JSON.stringify({
+      token: TOKEN, pin: (localStorage.getItem("mirror_pin")||""),
+      name: myName, id: clientId, image_b64, reason
+    });
+    if (reason === "camera_off" && navigator.sendBeacon){
+      navigator.sendBeacon("/friend/see", new Blob([body], {type: "application/json"}));
+      return;
+    }
     await fetch("/friend/see", {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        token: TOKEN, pin: (localStorage.getItem("mirror_pin")||""),
-        name: myName, id: clientId, image_b64, reason
-      })
+      body, keepalive: reason === "camera_off"
     });
   } catch(e){}
 }

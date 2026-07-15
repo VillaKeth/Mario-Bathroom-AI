@@ -2577,7 +2577,7 @@ async def friend_see(request_body: dict = {}):
     on top. Frames are RAM-only; only embeddings persist."""
     token = request_body.get("token") or ""
     pin = request_body.get("pin") or ""
-    name = (request_body.get("name") or "").strip() or "Guest"
+    name = ((request_body.get("name") or "").strip()[:40]) or "Guest"
     client_id = (request_body.get("id") or "").strip()
     reason = (request_body.get("reason") or "tick").strip()
     ok, why = mirror_relay.authorize_friend_input(
@@ -2589,15 +2589,23 @@ async def friend_see(request_body: dict = {}):
     if not live_config.get("camera_enabled", True):
         return {"status": "error", "reason": "camera_disabled"}
     now = time.time()
+    try:
+        _see_ttl = float(live_config.get("camera_frame_ttl", 30))
+    except (TypeError, ValueError):
+        _see_ttl = 30.0
     if reason == "camera_off":
         camera_relay.clear_client(client_id)
         return {"status": "ok"}
     image_b64 = request_body.get("image_b64") or ""
     if len(image_b64) > 8_000_000:
         return {"status": "error", "reason": "too_large"}
-    min_interval = float(live_config.get("camera_frame_min_interval", 2.0))
+    try:
+        min_interval = float(live_config.get("camera_frame_min_interval", 2.0))
+    except (TypeError, ValueError):
+        min_interval = 2.0
     if not camera_relay.allow_frame(client_id, now, min_interval):
         return {"status": "ok", "throttled": True}
+    camera_relay.sweep(now, _see_ttl)   # reap stale frames + cap tracked clients
     # dlib encode is CPU-heavy — keep it off the event loop (like STT).
     loop = asyncio.get_event_loop()
     available, enc = await loop.run_in_executor(
@@ -2608,12 +2616,12 @@ async def friend_see(request_body: dict = {}):
         camera_relay.cache_frame(client_id, base64.b64decode(image_b64), now)
     except Exception:
         pass
+    if reason == "camera_on":
+        camera_relay.request_greet(client_id)   # arm greet on connect, even if THIS frame has no face
     if enc is None:
         camera_relay.note_face(client_id, False)
         return {"status": "ok", "face": False}
     camera_relay.note_face(client_id, True)
-    if reason == "camera_on":
-        camera_relay.request_greet(client_id)
     recognized = None
     is_new = False
     if _face_memory is not None:
@@ -2634,8 +2642,7 @@ async def friend_see(request_body: dict = {}):
     if _face_memory is not None and camera_relay.take_greet(client_id):
         commented = await _camera_vision_comment(frame_bytes_for(client_id, now), name, reason="camera_on")
     elif reason == "tick":
-        frame = camera_relay.get_cached_frame(
-            client_id, now, float(live_config.get("camera_frame_ttl", 30)))
+        frame = camera_relay.get_cached_frame(client_id, now, _see_ttl)
         if frame is not None:
             commented = await _camera_vision_comment(frame, name, reason="lull")
     return {"status": "ok", "face": True, "recognized": recognized,
