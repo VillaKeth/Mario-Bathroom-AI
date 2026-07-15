@@ -67,6 +67,7 @@ import command_handlers
 import recognition_events
 from game_handlers import check_game_timeout
 import game_handlers as _game_handlers_mod
+import performed_songs
 import yaml
 from tts_auditor import TTSAuditor
 
@@ -822,6 +823,13 @@ async def lifespan(app: FastAPI):
         sound_events.set_character_sfx_dir(_char_sfx if os.path.isdir(_char_sfx) else None)
     except Exception as _e:
         logger.debug(f"[CHARACTER] sfx dir skipped: {_e}")
+
+    # Per-character performed songs (characters/<char>/songs/ — real audio covers)
+    try:
+        performed_songs.set_character(_character.name, _character.display_name)
+        performed_songs.load_songs(os.path.join(_character.character_dir, "songs"))
+    except Exception as _e:
+        logger.debug(f"[CHARACTER] songs dir skipped: {_e}")
 
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
@@ -3209,6 +3217,8 @@ async def admin_switch_character(request_body: dict = {}):
         _game_handlers_mod.set_character(_character.name, _character.display_name)
         _game_handlers_mod.load_character_pools(_character)
         command_handlers.set_character(_character.name, _character.display_name)
+        performed_songs.set_character(_character.name, _character.display_name)
+        performed_songs.load_songs(os.path.join(_character.character_dir, "songs"))
 
         _extras = _character.get_extras_content()
         if _extras:
