@@ -2429,12 +2429,19 @@ async def friend_say(request_body: dict = {}):
     # On-demand "look at me": if this is a vision request and we have a fresh camera
     # frame for this guest, answer by LOOKING instead of the normal text reply.
     if camera_relay.is_vision_request(text):
-        frame = camera_relay.get_cached_frame(
-            client_id, time.time(), float(live_config.get("camera_frame_ttl", 30)))
+        try:
+            _ttl = float(live_config.get("camera_frame_ttl", 30))
+        except (TypeError, ValueError):
+            _ttl = 30.0
+        frame = camera_relay.get_cached_frame(client_id, time.time(), _ttl)
         if frame is not None:
             await _log_guest_turn(_active_ws, _resolve_guest_name(name), text)
             spoke = await _camera_vision_comment(frame, name, reason="on_demand")
-            return {"status": "ok", "commented": bool(spoke)}
+            if spoke:
+                return {"status": "ok", "commented": True}
+            # vision couldn't produce a comment -> fall back to a normal reply
+            # (turn already logged above, so skip_log=True to avoid double-logging)
+            return await _dispatch_user_text(text, guest_name=name, skip_log=True)
     return await _dispatch_user_text(text, guest_name=name)
 
 
@@ -2483,12 +2490,20 @@ async def friend_say_audio(request_body: dict = {}):
     # On-demand "look at me": if this is a vision request and we have a fresh camera
     # frame for this guest, answer by LOOKING instead of the normal text reply.
     if camera_relay.is_vision_request(text):
-        frame = camera_relay.get_cached_frame(
-            client_id, time.time(), float(live_config.get("camera_frame_ttl", 30)))
+        try:
+            _ttl = float(live_config.get("camera_frame_ttl", 30))
+        except (TypeError, ValueError):
+            _ttl = 30.0
+        frame = camera_relay.get_cached_frame(client_id, time.time(), _ttl)
         if frame is not None:
             await _log_guest_turn(_active_ws, _resolve_guest_name(name), text)
             spoke = await _camera_vision_comment(frame, name, reason="on_demand")
-            return {"status": "ok", "commented": bool(spoke), "transcript": text}
+            if spoke:
+                return {"status": "ok", "commented": True, "transcript": text}
+            result = await _dispatch_user_text(text, guest_name=name, skip_log=True)
+            if isinstance(result, dict):
+                return {**result, "transcript": text}
+            return {"status": "ok", "transcript": text}
     result = await _dispatch_user_text(text, guest_name=name)
     # Surface the transcript so the browser can echo what it heard back to the guest.
     if isinstance(result, dict):

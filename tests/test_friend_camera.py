@@ -239,6 +239,30 @@ def test_say_routes_vision_request_to_camera_when_frame_cached(monkeypatch):
     assert dispatched["n"] == 0          # normal text reply was skipped
 
 
+def test_say_vision_request_falls_back_to_text_when_no_comment(monkeypatch):
+    mirror_relay.set_control_mode("remote")
+    camera_relay.cache_frame("c1", b"frame", now=main.time.time())
+    async def fake_comment(frame, name, reason):
+        return False   # vision disabled / no model / failed
+    monkeypatch.setattr(main, "_camera_vision_comment", fake_comment)
+    logs = {"n": 0}
+    async def fake_log(ws, who, text):
+        logs["n"] += 1
+    monkeypatch.setattr(main, "_log_guest_turn", fake_log)
+    monkeypatch.setattr(main, "_active_ws", object(), raising=False)
+    dispatched = {"n": 0, "skip": None}
+    async def fake_dispatch(text, guest_name=None, skip_log=False, **k):
+        dispatched["n"] += 1
+        dispatched["skip"] = skip_log
+        return {"status": "ok"}
+    monkeypatch.setattr(main, "_dispatch_user_text", fake_dispatch)
+    body = {"token": "T", "pin": "P", "name": "Jake", "id": "c1", "text": "how do I look?"}
+    r = asyncio.run(main.friend_say(body))
+    assert dispatched["n"] == 1          # fell back to a normal reply
+    assert dispatched["skip"] is True    # did NOT double-log
+    assert logs["n"] == 1                # turn logged exactly once
+
+
 def test_say_normal_text_still_dispatches(monkeypatch):
     mirror_relay.set_control_mode("remote")
     monkeypatch.setattr(main, "_active_ws", object(), raising=False)
