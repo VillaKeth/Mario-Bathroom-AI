@@ -2493,9 +2493,13 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
     if not model:
         return False
     now = time.time()
-    if reason == "lull" and not camera_relay.vision_allowed(
-            now, float(live_config.get("camera_vision_min_gap", 45))):
-        return False
+    if reason == "lull":
+        try:
+            gap = float(live_config.get("camera_vision_min_gap", 45))
+        except (TypeError, ValueError):
+            gap = 45.0
+        if not camera_relay.vision_allowed(now, gap):
+            return False
     try:
         img_b64 = base64.b64encode(frame_bytes).decode("ascii")
         instr = (f"You can see {guest_name} on their camera right now. In one or two short, "

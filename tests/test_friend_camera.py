@@ -19,6 +19,12 @@ def _clean(monkeypatch):
     mirror_relay.reset_state()
     mirror_relay.set_control_mode("remote")
     monkeypatch.setattr(main, "_MIRROR_CFG", {"token": "T", "pin": "P"}, raising=False)
+    # Default the vision layer OFF for every test; the vision tests opt in by
+    # replacing live_config.get wholesale. This keeps recognition/endpoint tests
+    # hermetic even after Task 8 populates camera_vision_* in config_live.json.
+    _real_get = main.live_config.get
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: False if k == "camera_vision_enabled" else _real_get(k, d))
     yield
     camera_relay.reset_state()
     mirror_relay.reset_state()
