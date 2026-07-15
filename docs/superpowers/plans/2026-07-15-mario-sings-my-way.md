@@ -360,7 +360,12 @@ At the top of `command_handlers.py` (with the other `import <module>` lines, e.g
 import performed_songs
 ```
 
-Then, immediately BEFORE the Karaoke block at `command_handlers.py:1255` (`# Karaoke mode`), insert:
+Then, immediately BEFORE the generic **Sing** block at `command_handlers.py:552`
+(`# Sing — use word boundaries ...`), insert the check. **This placement is
+critical:** the Sing handler matches `\bsing\b`/`\bsong\b` and would otherwise
+intercept "sing my way" and return `idle_behavior.get_song()` before the song
+check is reached. (Placing it before the Karaoke block at line ~1256, as an
+earlier draft suggested, is too late.)
 
 ```python
     # Performed song (real pre-rendered audio cover, e.g. "sing my way").
