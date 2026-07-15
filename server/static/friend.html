@@ -409,8 +409,11 @@ async function camStart(){
     if (!camConsented) return;
   }
   camOn = true; camBtn.classList.add("on");   // claim the slot BEFORE any await (double-tap guard)
-  try { camStream = await navigator.mediaDevices.getUserMedia({video: true, audio: false}); }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false}); }
   catch(e){ camOn = false; camBtn.classList.remove("on"); statusEl.textContent = "📷 allow camera access"; return; }
+  if (!camOn){ stream.getTracks().forEach(t => t.stop()); return; }   // turned off while acquiring -> release, don't resurrect
+  camStream = stream;
   selfView.srcObject = camStream;
   selfWrap.classList.add("on");
   // videoWidth/Height are not ready until loadedmetadata fires; the FIRST post must wait
