@@ -174,3 +174,6 @@ logs/
 
 characters/*/jokes/candidates.jsonl
 characters/*/jokes/scored.jsonl
+
+# Performed-song audio (copyright — kept local only)
+characters/*/songs/*.wav
