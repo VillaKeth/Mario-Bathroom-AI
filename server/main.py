@@ -2523,8 +2523,24 @@ async def friend_see(request_body: dict = {}):
     camera_relay.note_face(client_id, True)
     if reason == "camera_on":
         camera_relay.request_greet(client_id)
-    # Recognition + vision are wired in Tasks 4 and 5.
-    return {"status": "ok", "face": True}
+    recognized = None
+    is_new = False
+    if _face_memory is not None:
+        try:
+            m = _face_memory.find_match(enc)
+            if m:
+                recognized = m["name"]
+                recognition_events.push("face", recognized,
+                                        m.get("confidence", 0.0), False, "remote_cam")
+            else:
+                _face_memory.learn_guest(name, enc)   # remote guests always have a name
+                recognized = name
+                is_new = True
+                recognition_events.push("face", name, 1.0, True, "remote_cam")
+        except Exception as e:
+            logger.warning(f"[CAMERA] recognition failed: {e}")
+    # Vision commentary is wired in Task 5.
+    return {"status": "ok", "face": True, "recognized": recognized, "is_new": is_new}
 
 
 @app.post("/friend/log")
