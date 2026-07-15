@@ -41,6 +41,13 @@
   #fulllog-body .row.bot .bubble{background:#2a241a}
   #fulllog-body .empty{color:#888;text-align:center;margin-top:40px}
   .hidden{display:none!important}
+  #selfwrap{position:fixed;right:10px;bottom:70px;width:120px;z-index:15;display:none}
+  #selfwrap.on{display:block}
+  #selfview{width:120px;border-radius:10px;border:2px solid #e23;background:#000}
+  #camdot{position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;
+          background:#e23;box-shadow:0 0 6px #e23}
+  #camnote{font-size:12px;color:#fc8;padding:2px 4px;text-align:center}
+  #cam.on{background:#e23;border-color:#f88}
 </style>
 </head>
 <body>
@@ -53,6 +60,11 @@
     </span>
   </div>
   <div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
+  <div id="selfwrap">
+    <video id="selfview" autoplay muted playsinline></video>
+    <span id="camdot"></span>
+    <div id="camnote">Mario can see you</div>
+  </div>
   <div id="turn"></div>
   <div id="log"></div>
   <div id="setup" class="hidden">
@@ -62,6 +74,7 @@
   </div>
   <div id="bar" class="hidden">
     <input id="msg" type="text" placeholder="Say something…" autocomplete="off">
+    <button id="cam" title="Turn camera on/off">📷</button>
     <button id="mic" title="Hold to talk">🎤</button>
     <button id="send">Send</button>
   </div>
@@ -358,6 +371,60 @@ micBtn.addEventListener("pointerup",    e => { e.preventDefault(); stopRec(); })
 micBtn.addEventListener("pointerleave", () => stopRec());
 micBtn.addEventListener("pointercancel",() => stopRec());
 micBtn.addEventListener("contextmenu",  e => e.preventDefault());   // no long-press menu on mobile
+
+// --- opt-in camera: guest -> POST /friend/see (recognition + vision) -----------
+const camBtn = document.getElementById("cam");
+const selfWrap = document.getElementById("selfwrap");
+const selfView = document.getElementById("selfview");
+let camStream = null, camTimer = null, camOn = false, camConsented = false;
+const CAM_CANVAS = document.createElement("canvas");
+
+async function postSee(reason){
+  try {
+    let image_b64 = "";
+    if (reason !== "camera_off" && camStream && selfView.videoWidth){
+      const vw = selfView.videoWidth, vh = selfView.videoHeight;
+      const scale = Math.min(1, 480 / Math.max(vw, vh));
+      CAM_CANVAS.width = Math.round(vw * scale);
+      CAM_CANVAS.height = Math.round(vh * scale);
+      CAM_CANVAS.getContext("2d").drawImage(selfView, 0, 0, CAM_CANVAS.width, CAM_CANVAS.height);
+      image_b64 = CAM_CANVAS.toDataURL("image/jpeg", 0.6).split(",")[1] || "";
+    }
+    await fetch("/friend/see", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        token: TOKEN, pin: (localStorage.getItem("mirror_pin")||""),
+        name: myName, id: clientId, image_b64, reason
+      })
+    });
+  } catch(e){}
+}
+async function camStart(){
+  if (camOn || !myName) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    statusEl.textContent = "📷 not supported here"; return;
+  }
+  if (!camConsented){
+    camConsented = confirm("Mario can see you and may remember your face. Turn the camera off anytime. Turn it on now?");
+    if (!camConsented) return;
+  }
+  try { camStream = await navigator.mediaDevices.getUserMedia({video: true, audio: false}); }
+  catch(e){ statusEl.textContent = "📷 allow camera access"; return; }
+  selfView.srcObject = camStream;
+  camOn = true; camBtn.classList.add("on"); selfWrap.classList.add("on");
+  postSee("camera_on");
+  camTimer = setInterval(() => { if (!document.hidden) postSee("tick"); }, 2500);
+}
+function camStop(){
+  if (!camOn) return;
+  camOn = false; camBtn.classList.remove("on"); selfWrap.classList.remove("on");
+  if (camTimer){ clearInterval(camTimer); camTimer = null; }
+  try { camStream && camStream.getTracks().forEach(t => t.stop()); } catch(e){}
+  camStream = null; selfView.srcObject = null;
+  postSee("camera_off");
+}
+camBtn.addEventListener("click", () => { camOn ? camStop() : camStart(); });
+window.addEventListener("beforeunload", () => { if (camOn) camStop(); });
 </script>
 </body>
 </html>

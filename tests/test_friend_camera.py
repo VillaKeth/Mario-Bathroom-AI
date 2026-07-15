@@ -278,3 +278,13 @@ def test_say_normal_text_still_dispatches(monkeypatch):
     body = {"token": "T", "pin": "P", "name": "Jake", "id": "c1", "text": "tell me a joke"}
     r = asyncio.run(main.friend_say(body))
     assert dispatched["n"] == 1          # ordinary path unaffected
+
+
+def test_friend_html_ships_camera_ui():
+    path = os.path.join(os.path.dirname(__file__), "..", "server", "static", "friend.html")
+    with open(path, encoding="utf-8") as f:
+        html = f.read()
+    assert 'id="cam"' in html            # the camera toggle button
+    assert "/friend/see" in html         # posts frames to the new endpoint
+    assert "getUserMedia" in html        # opens the camera
+    assert "camera_on" in html and "camera_off" in html
