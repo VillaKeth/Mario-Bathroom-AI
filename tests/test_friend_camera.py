@@ -210,3 +210,47 @@ def test_lull_comment_respects_global_throttle(monkeypatch):
     second = asyncio.run(main._camera_vision_comment(b"f", "Jake", reason="lull"))
     assert first is True
     assert second is False    # throttled: two lull comments back-to-back
+
+
+def test_say_routes_vision_request_to_camera_when_frame_cached(monkeypatch):
+    mirror_relay.set_control_mode("remote")
+    camera_relay.cache_frame("c1", b"frame", now=main.time.time())
+    calls = {}
+    async def fake_comment(frame, name, reason):
+        calls["reason"] = reason
+        calls["frame"] = frame
+        return True
+    monkeypatch.setattr(main, "_camera_vision_comment", fake_comment)
+    async def fake_log(ws, who, text):
+        return None
+    monkeypatch.setattr(main, "_log_guest_turn", fake_log)
+    monkeypatch.setattr(main, "_active_ws", object(), raising=False)
+    dispatched = {"n": 0}
+    async def fake_dispatch(*a, **k):
+        dispatched["n"] += 1
+        return {"status": "ok"}
+    monkeypatch.setattr(main, "_dispatch_user_text", fake_dispatch)
+
+    body = {"token": "T", "pin": "P", "name": "Jake", "id": "c1",
+            "text": "how do I look?"}
+    r = asyncio.run(main.friend_say(body))
+    assert r.get("commented") is True
+    assert calls["reason"] == "on_demand"
+    assert dispatched["n"] == 0          # normal text reply was skipped
+
+
+def test_say_normal_text_still_dispatches(monkeypatch):
+    mirror_relay.set_control_mode("remote")
+    monkeypatch.setattr(main, "_active_ws", object(), raising=False)
+    dispatched = {"n": 0}
+    async def fake_dispatch(text, guest_name=None, **k):
+        dispatched["n"] += 1
+        return {"status": "ok"}
+    monkeypatch.setattr(main, "_dispatch_user_text", fake_dispatch)
+    async def fake_bt(obj):
+        return None
+    monkeypatch.setattr(main.mirror_relay, "broadcast_text", fake_bt)
+
+    body = {"token": "T", "pin": "P", "name": "Jake", "id": "c1", "text": "tell me a joke"}
+    r = asyncio.run(main.friend_say(body))
+    assert dispatched["n"] == 1          # ordinary path unaffected
