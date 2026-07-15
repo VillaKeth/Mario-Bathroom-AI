@@ -89,6 +89,7 @@ from birthday_vip import BirthdayVIP
 from sound_events import SoundEventManager
 from catchphrase_mirror import CatchphraseMirror
 import mirror as mirror_relay
+import camera_relay
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -2425,6 +2426,22 @@ async def friend_say(request_body: dict = {}):
         await mirror_relay.broadcast_text({"type": "turn", **mirror_relay.turn_state(now)})
     except Exception:
         pass
+    # On-demand "look at me": if this is a vision request and we have a fresh camera
+    # frame for this guest, answer by LOOKING instead of the normal text reply.
+    if camera_relay.is_vision_request(text):
+        try:
+            _ttl = float(live_config.get("camera_frame_ttl", 30))
+        except (TypeError, ValueError):
+            _ttl = 30.0
+        frame = camera_relay.get_cached_frame(client_id, time.time(), _ttl)
+        if frame is not None:
+            await _log_guest_turn(_active_ws, _resolve_guest_name(name), text)
+            spoke = await _camera_vision_comment(frame, name, reason="on_demand")
+            if spoke:
+                return {"status": "ok", "commented": True}
+            # vision couldn't produce a comment -> fall back to a normal reply
+            # (turn already logged above, so skip_log=True to avoid double-logging)
+            return await _dispatch_user_text(text, guest_name=name, skip_log=True)
     return await _dispatch_user_text(text, guest_name=name)
 
 
@@ -2470,11 +2487,166 @@ async def friend_say_audio(request_body: dict = {}):
         await mirror_relay.broadcast_text({"type": "turn", **mirror_relay.turn_state(now)})
     except Exception:
         pass
+    # On-demand "look at me": if this is a vision request and we have a fresh camera
+    # frame for this guest, answer by LOOKING instead of the normal text reply.
+    if camera_relay.is_vision_request(text):
+        try:
+            _ttl = float(live_config.get("camera_frame_ttl", 30))
+        except (TypeError, ValueError):
+            _ttl = 30.0
+        frame = camera_relay.get_cached_frame(client_id, time.time(), _ttl)
+        if frame is not None:
+            await _log_guest_turn(_active_ws, _resolve_guest_name(name), text)
+            spoke = await _camera_vision_comment(frame, name, reason="on_demand")
+            if spoke:
+                return {"status": "ok", "commented": True, "transcript": text}
+            result = await _dispatch_user_text(text, guest_name=name, skip_log=True)
+            if isinstance(result, dict):
+                return {**result, "transcript": text}
+            return {"status": "ok", "transcript": text}
     result = await _dispatch_user_text(text, guest_name=name)
     # Surface the transcript so the browser can echo what it heard back to the guest.
     if isinstance(result, dict):
         return {**result, "transcript": text}
     return {"status": "ok", "transcript": text}
+
+
+async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: str) -> bool:
+    """Turn the guest's camera frame into a short in-character spoken reaction, via the
+    multimodal model. Reuses the /admin/watch_frame speak chain; the pygame client plays
+    it and the mirror relays that audio to the remote browser. Returns True iff spoken.
+
+    reason: 'camera_on' | 'on_demand' | 'lull'. camera_on / on_demand bypass the
+    spontaneous-comment throttle (they are explicitly warranted)."""
+    if not frame_bytes or _active_ws is None:
+        return False
+    if not live_config.get("camera_vision_enabled", True):
+        return False
+    model = live_config.get("camera_vision_model", "") or GAME_CONFIG.get("camera_vision_model", "")
+    if not model:
+        return False
+    now = time.time()
+    if reason == "lull":
+        try:
+            gap = float(live_config.get("camera_vision_min_gap", 45))
+        except (TypeError, ValueError):
+            gap = 45.0
+        if not camera_relay.vision_allowed(now, gap):
+            return False
+    try:
+        img_b64 = base64.b64encode(frame_bytes).decode("ascii")
+        instr = (f"You can see {guest_name} on their camera right now. In one or two short, "
+                 f"warm sentences, react to what you actually see, like their look, expression, "
+                 f"or surroundings. Stay in character. Do not mention cameras or being an AI.")
+        messages = [
+            {"role": "system", "content": _get_idle_prompt()},
+            {"role": "user", "content": instr, "images": [img_b64]},
+        ]
+        llm_response = await asyncio.wait_for(
+            llm.generate_response(messages, model=model), timeout=_LLM_IDLE_TIMEOUT)
+        text = filter_response((llm_response.get("text") or "").strip())
+        if not text or len(text) < 3:
+            return False
+        analyzed = analyze_text(text)
+        loop = asyncio.get_event_loop()
+        audio = await loop.run_in_executor(
+            _tts_executor, lambda: tts.synthesize_user(analyzed["tts_text"]))
+        sent = await _idle_send_if_safe(
+            _active_ws, analyzed["display_text"], audio,
+            emotion=llm_response.get("emotion", "happy"),
+            pose_hint=analyzed.get("pose_hint"))
+        if sent:
+            camera_relay.mark_vision(now)
+        return bool(sent)
+    except Exception as e:
+        logger.warning(f"[CAMERA_VISION] failed: {e}")
+        return False
+
+
+def frame_bytes_for(client_id: str, now: float):
+    """The frame we cached for this client this request (long TTL read; used for the
+    camera_on greeting so we react to the frame that just arrived)."""
+    return camera_relay.get_cached_frame(client_id, now, ttl=60.0)
+
+
+@app.post("/friend/see")
+async def friend_see(request_body: dict = {}):
+    """Remote guest CAMERA input (opt-in, FaceTime-style over the tunnel): a base64
+    JPEG frame. Same friend auth as /friend/say. Server-side dlib encode feeds the
+    SAME face gallery as the in-person camera; vision commentary (Task 5) is layered
+    on top. Frames are RAM-only; only embeddings persist."""
+    token = request_body.get("token") or ""
+    pin = request_body.get("pin") or ""
+    name = ((request_body.get("name") or "").strip()[:40]) or "Guest"
+    client_id = (request_body.get("id") or "").strip()
+    reason = (request_body.get("reason") or "tick").strip()
+    ok, why = mirror_relay.authorize_friend_input(
+        token, pin, _MIRROR_CFG, mirror_relay.get_control_mode())
+    if not ok:
+        return {"status": "error", "reason": why}
+    if not client_id:
+        return {"status": "error", "reason": "no_client_id"}
+    if not live_config.get("camera_enabled", True):
+        return {"status": "error", "reason": "camera_disabled"}
+    now = time.time()
+    try:
+        _see_ttl = float(live_config.get("camera_frame_ttl", 30))
+    except (TypeError, ValueError):
+        _see_ttl = 30.0
+    if reason == "camera_off":
+        camera_relay.clear_client(client_id)
+        return {"status": "ok"}
+    image_b64 = request_body.get("image_b64") or ""
+    if len(image_b64) > 8_000_000:
+        return {"status": "error", "reason": "too_large"}
+    try:
+        min_interval = float(live_config.get("camera_frame_min_interval", 2.0))
+    except (TypeError, ValueError):
+        min_interval = 2.0
+    if not camera_relay.allow_frame(client_id, now, min_interval):
+        return {"status": "ok", "throttled": True}
+    camera_relay.sweep(now, _see_ttl)   # reap stale frames + cap tracked clients
+    # dlib encode is CPU-heavy — keep it off the event loop (like STT).
+    loop = asyncio.get_event_loop()
+    available, enc = await loop.run_in_executor(
+        None, camera_relay.encode_face_from_b64, image_b64)
+    if not available:
+        return {"status": "ok", "recognition": "unavailable"}
+    try:
+        camera_relay.cache_frame(client_id, base64.b64decode(image_b64), now)
+    except Exception:
+        pass
+    if reason == "camera_on":
+        camera_relay.request_greet(client_id)   # arm greet on connect, even if THIS frame has no face
+    if enc is None:
+        camera_relay.note_face(client_id, False)
+        return {"status": "ok", "face": False}
+    camera_relay.note_face(client_id, True)
+    recognized = None
+    is_new = False
+    if _face_memory is not None:
+        try:
+            m = _face_memory.find_match(enc)
+            if m:
+                recognized = m["name"]
+                recognition_events.push("face", recognized,
+                                        m.get("confidence", 0.0), False, "remote_cam")
+            else:
+                _face_memory.learn_guest(name, enc)   # remote guests always have a name
+                recognized = name
+                is_new = True
+                recognition_events.push("face", name, 1.0, True, "remote_cam")
+        except Exception as e:
+            logger.warning(f"[CAMERA] recognition failed: {e}")
+    commented = False
+    if _face_memory is not None and camera_relay.take_greet(client_id):
+        commented = await _camera_vision_comment(frame_bytes_for(client_id, now), name, reason="camera_on")
+    elif reason == "tick":
+        frame = camera_relay.get_cached_frame(client_id, now, _see_ttl)
+        if frame is not None:
+            commented = await _camera_vision_comment(frame, name, reason="lull")
+    return {"status": "ok", "face": True, "recognized": recognized,
+            "is_new": is_new, "commented": bool(commented)}
 
 
 @app.post("/friend/log")
@@ -2818,19 +2990,11 @@ async def recognition_face(body: dict):
         return {"error": "unauthorized"}
     if len(body.get("image_b64", "")) > 8_000_000:
         return {"error": "too_large"}
-    try:
-        import base64, io
-        import face_recognition
-        import numpy as _np
-        img_bytes = base64.b64decode(body.get("image_b64", ""))
-        img = face_recognition.load_image_file(io.BytesIO(img_bytes))
-        encs = face_recognition.face_encodings(img)
-    except Exception as e:
-        logger.warning(f"[RECOG] face decode/encode failed: {e}")
-        return {"error": "recognition_unavailable", "detail": str(e)[:200]}
-    if not encs:
+    available, enc = camera_relay.encode_face_from_b64(body.get("image_b64", ""))
+    if not available:
+        return {"error": "recognition_unavailable"}
+    if enc is None:
         return {"detected": False, "reason": "no_face"}
-    enc = _np.array(encs[0], dtype=_np.float64)
     name = (body.get("name") or "").strip()
     if name:
         pid = recognition_events.person_id_for_name(name)

@@ -42,3 +42,10 @@ PyYAML>=6.0
 
 # === Screen capture (screen-watch game-coach feature) ===
 mss
+
+# === Optional: server-side face recognition (remote camera over the tunnel) ===
+# Needed by POST /friend/see and POST /admin/recognition/face to encode faces on
+# the server. Requires cmake + dlib + (Windows) Visual C++ Build Tools. The feature
+# degrades gracefully if absent (recognition returns "unavailable"; self-view still works).
+#   pip install cmake && pip install dlib && pip install face_recognition
+# face_recognition>=1.3.0

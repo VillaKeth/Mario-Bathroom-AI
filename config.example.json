@@ -82,6 +82,12 @@
     "client_console_level": "WARNING",
     "chat_overlay_max": 40
   },
+  "camera_enabled": true,
+  "camera_vision_enabled": true,
+  "camera_vision_model": "gemma3:27b",
+  "camera_frame_min_interval": 2.0,
+  "camera_vision_min_gap": 45,
+  "camera_frame_ttl": 30,
   "elevenlabs_api_key": "",
   "alert_webhook_url": ""
 }
