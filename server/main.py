@@ -2478,6 +2478,55 @@ async def friend_say_audio(request_body: dict = {}):
     return {"status": "ok", "transcript": text}
 
 
+@app.post("/friend/see")
+async def friend_see(request_body: dict = {}):
+    """Remote guest CAMERA input (opt-in, FaceTime-style over the tunnel): a base64
+    JPEG frame. Same friend auth as /friend/say. Server-side dlib encode feeds the
+    SAME face gallery as the in-person camera; vision commentary (Task 5) is layered
+    on top. Frames are RAM-only; only embeddings persist."""
+    token = request_body.get("token") or ""
+    pin = request_body.get("pin") or ""
+    name = (request_body.get("name") or "").strip() or "Guest"
+    client_id = (request_body.get("id") or "").strip()
+    reason = (request_body.get("reason") or "tick").strip()
+    ok, why = mirror_relay.authorize_friend_input(
+        token, pin, _MIRROR_CFG, mirror_relay.get_control_mode())
+    if not ok:
+        return {"status": "error", "reason": why}
+    if not client_id:
+        return {"status": "error", "reason": "no_client_id"}
+    if not live_config.get("camera_enabled", True):
+        return {"status": "error", "reason": "camera_disabled"}
+    now = time.time()
+    if reason == "camera_off":
+        camera_relay.clear_client(client_id)
+        return {"status": "ok"}
+    image_b64 = request_body.get("image_b64") or ""
+    if len(image_b64) > 8_000_000:
+        return {"status": "error", "reason": "too_large"}
+    min_interval = float(live_config.get("camera_frame_min_interval", 2.0))
+    if not camera_relay.allow_frame(client_id, now, min_interval):
+        return {"status": "ok", "throttled": True}
+    # dlib encode is CPU-heavy — keep it off the event loop (like STT).
+    loop = asyncio.get_event_loop()
+    available, enc = await loop.run_in_executor(
+        None, camera_relay.encode_face_from_b64, image_b64)
+    if not available:
+        return {"status": "ok", "recognition": "unavailable"}
+    try:
+        camera_relay.cache_frame(client_id, base64.b64decode(image_b64), now)
+    except Exception:
+        pass
+    if enc is None:
+        camera_relay.note_face(client_id, False)
+        return {"status": "ok", "face": False}
+    camera_relay.note_face(client_id, True)
+    if reason == "camera_on":
+        camera_relay.request_greet(client_id)
+    # Recognition + vision are wired in Tasks 4 and 5.
+    return {"status": "ok", "face": True}
+
+
 @app.post("/friend/log")
 async def friend_log(request_body: dict = {}):
     """Return the full rolling chat log for the scrollable 'full log' panel on the
