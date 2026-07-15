@@ -10,6 +10,7 @@ from datetime import datetime
 from emotions import Emotion
 import game_handlers
 from game_handlers import _deflavor
+import performed_songs
 import speaker_id
 from chat_identity import resolve_chat_identity
 
@@ -473,6 +474,13 @@ def _handle_special_commands_impl(
     """Handle special commands/requests in the transcript. Returns response text or None."""
     lower = transcript.lower()
 
+    # Stop an in-progress performed song. Checked first — before the cooldown and
+    # before the generic "nothing to stop" handler — so "stop" cuts the song.
+    if state.get("_performing_song_until", 0.0) > time.time():
+        if any(w in lower for w in ["stop", "enough", "quiet", "shut up", "cut it"]):
+            print("[SONGS] stop requested during performance")
+            return "__STOP_SONG__"
+
     # Command cooldown — prevent rapid-fire command spam (1s)
     # Only checked here; timestamp is set by caller when a command actually matches
     now = time.time()
@@ -548,6 +556,15 @@ def _handle_special_commands_impl(
     if any(w in lower for w in ["tell me a fact", "fun fact", "did you know"]):
         emotion_system.current = "excited"
         return idle_behavior.get_trivia()
+
+    # Performed song (real pre-rendered audio cover, e.g. "sing my way").
+    # MUST precede the generic "sing"/"song" handler below so a specific song
+    # wins over the idle song pool. Returns a sentinel that main.py detects to
+    # ship the pre-rendered WAV directly (no TTS).
+    _song_id = performed_songs.match(lower)
+    if _song_id:
+        print(f"[SONGS] performed-song trigger matched: {_song_id}")
+        return f"__PERFORMED_SONG__:{_song_id}"
 
     # Sing — use word boundaries to avoid matching "embarrassing", "processing", etc.
     if any(w in lower for w in ["sing a song", "sing for me", "sing me"]) or \
