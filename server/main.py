@@ -2478,6 +2478,60 @@ async def friend_say_audio(request_body: dict = {}):
     return {"status": "ok", "transcript": text}
 
 
+async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: str) -> bool:
+    """Turn the guest's camera frame into a short in-character spoken reaction, via the
+    multimodal model. Reuses the /admin/watch_frame speak chain; the pygame client plays
+    it and the mirror relays that audio to the remote browser. Returns True iff spoken.
+
+    reason: 'camera_on' | 'on_demand' | 'lull'. camera_on / on_demand bypass the
+    spontaneous-comment throttle (they are explicitly warranted)."""
+    if not frame_bytes or _active_ws is None:
+        return False
+    if not live_config.get("camera_vision_enabled", True):
+        return False
+    model = live_config.get("camera_vision_model", "") or GAME_CONFIG.get("camera_vision_model", "")
+    if not model:
+        return False
+    now = time.time()
+    if reason == "lull" and not camera_relay.vision_allowed(
+            now, float(live_config.get("camera_vision_min_gap", 45))):
+        return False
+    try:
+        img_b64 = base64.b64encode(frame_bytes).decode("ascii")
+        instr = (f"You can see {guest_name} on their camera right now. In one or two short, "
+                 f"warm sentences, react to what you actually see, like their look, expression, "
+                 f"or surroundings. Stay in character. Do not mention cameras or being an AI.")
+        messages = [
+            {"role": "system", "content": _get_idle_prompt()},
+            {"role": "user", "content": instr, "images": [img_b64]},
+        ]
+        llm_response = await asyncio.wait_for(
+            llm.generate_response(messages, model=model), timeout=_LLM_IDLE_TIMEOUT)
+        text = filter_response((llm_response.get("text") or "").strip())
+        if not text or len(text) < 3:
+            return False
+        analyzed = analyze_text(text)
+        loop = asyncio.get_event_loop()
+        audio = await loop.run_in_executor(
+            _tts_executor, lambda: tts.synthesize_user(analyzed["tts_text"]))
+        sent = await _idle_send_if_safe(
+            _active_ws, analyzed["display_text"], audio,
+            emotion=llm_response.get("emotion", "happy"),
+            pose_hint=analyzed.get("pose_hint"))
+        if sent:
+            camera_relay.mark_vision(now)
+        return bool(sent)
+    except Exception as e:
+        logger.warning(f"[CAMERA_VISION] failed: {e}")
+        return False
+
+
+def frame_bytes_for(client_id: str, now: float):
+    """The frame we cached for this client this request (long TTL read; used for the
+    camera_on greeting so we react to the frame that just arrived)."""
+    return camera_relay.get_cached_frame(client_id, now, ttl=60.0)
+
+
 @app.post("/friend/see")
 async def friend_see(request_body: dict = {}):
     """Remote guest CAMERA input (opt-in, FaceTime-style over the tunnel): a base64
@@ -2539,8 +2593,16 @@ async def friend_see(request_body: dict = {}):
                 recognition_events.push("face", name, 1.0, True, "remote_cam")
         except Exception as e:
             logger.warning(f"[CAMERA] recognition failed: {e}")
-    # Vision commentary is wired in Task 5.
-    return {"status": "ok", "face": True, "recognized": recognized, "is_new": is_new}
+    commented = False
+    if _face_memory is not None and camera_relay.take_greet(client_id):
+        commented = await _camera_vision_comment(frame_bytes_for(client_id, now), name, reason="camera_on")
+    elif reason == "tick":
+        frame = camera_relay.get_cached_frame(
+            client_id, now, float(live_config.get("camera_frame_ttl", 30)))
+        if frame is not None:
+            commented = await _camera_vision_comment(frame, name, reason="lull")
+    return {"status": "ok", "face": True, "recognized": recognized,
+            "is_new": is_new, "commented": bool(commented)}
 
 
 @app.post("/friend/log")

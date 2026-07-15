@@ -134,3 +134,73 @@ def test_see_matches_known_face_without_reenroll(monkeypatch):
     assert r["recognized"] == "Rosa"
     assert r["is_new"] is False
     assert fm.learned == []                        # NOT re-enrolled
+
+
+def _stub_speak_chain(monkeypatch, captured):
+    """Make the speak chain deterministic and capture the spoken text."""
+    async def fake_gen(messages, model=None, **k):
+        captured["messages"] = messages
+        return {"text": "Nice party hat, Jake!", "emotion": "happy", "energy": 0.6}
+    monkeypatch.setattr(main.llm, "generate_response", fake_gen)
+    monkeypatch.setattr(main, "filter_response", lambda t: t)
+    monkeypatch.setattr(main, "analyze_text",
+                        lambda t: {"tts_text": t, "display_text": t, "pose_hint": None})
+    monkeypatch.setattr(main.tts, "synthesize_user", lambda t: b"WAV")
+
+    async def fake_idle_send(ws, text, audio, **k):
+        captured["spoke"] = text
+        return True
+    monkeypatch.setattr(main, "_idle_send_if_safe", fake_idle_send)
+    monkeypatch.setattr(main, "_active_ws", object(), raising=False)
+    monkeypatch.setattr(main, "_get_idle_prompt", lambda: "You are the character.")
+
+
+def test_vision_comment_speaks_and_sends_image(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b"}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is True
+    assert cap["spoke"] == "Nice party hat, Jake!"
+    # the frame rode along as an Ollama image on the user message
+    user_msgs = [m for m in cap["messages"] if m.get("role") == "user"]
+    assert user_msgs and "images" in user_msgs[-1] and user_msgs[-1]["images"]
+
+
+def test_vision_comment_skips_when_disabled(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": False}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is False
+    assert "spoke" not in cap
+
+
+def test_vision_comment_skips_when_no_model(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": ""}.get(k, d))
+    # GAME_CONFIG is a plain dict in this codebase (main.py: GAME_CONFIG = {...}),
+    # so its "get" method can't be monkeypatched directly (attribute is read-only
+    # on a built-in dict instance) — set the item instead for the same effect.
+    monkeypatch.setitem(main.GAME_CONFIG, "camera_vision_model", "")
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is False
+
+
+def test_lull_comment_respects_global_throttle(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b",
+                                           "camera_vision_min_gap": 45}.get(k, d))
+    first = asyncio.run(main._camera_vision_comment(b"f", "Jake", reason="lull"))
+    second = asyncio.run(main._camera_vision_comment(b"f", "Jake", reason="lull"))
+    assert first is True
+    assert second is False    # throttled: two lull comments back-to-back
