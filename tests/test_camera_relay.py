@@ -106,3 +106,20 @@ def test_encode_unavailable_on_bad_base64():
     available, enc = cr.encode_face_from_b64("!!!not base64!!!")
     assert available is False
     assert enc is None
+
+
+def test_encode_tolerates_whitespace_in_base64(monkeypatch):
+    import numpy as np
+    _install_fake_face_recognition(monkeypatch, [np.zeros(128, dtype=float)])
+    b64 = base64.b64encode(b"payload").decode()
+    wrapped = b64[:4] + "\n" + b64[4:] + "  "   # newlines/spaces like a wrapped encoder
+    available, enc = cr.encode_face_from_b64(wrapped)
+    assert available is True
+    assert enc is not None
+
+
+def test_encode_unavailable_on_empty_string(monkeypatch):
+    _install_fake_face_recognition(monkeypatch, [])
+    available, enc = cr.encode_face_from_b64("")
+    assert available is False
+    assert enc is None

@@ -121,17 +121,18 @@ def encode_face_from_b64(image_b64: str):
     try:
         import base64
         import io
+        import re as _re
         import face_recognition
         import numpy as np
-        raw = base64.b64decode(image_b64 or "", validate=True)
+        raw = base64.b64decode(_re.sub(r"\s+", "", image_b64 or ""), validate=True)
         if not raw:
             return (False, None)
         img = face_recognition.load_image_file(io.BytesIO(raw))
         encs = face_recognition.face_encodings(img)
+        if not encs:
+            return (True, None)
+        return (True, np.array(encs[0], dtype=np.float64))
     except Exception as e:
         if DEBUG_CAMERA:
             print(f"[camera] encode unavailable: {e}")
         return (False, None)
-    if not encs:
-        return (True, None)
-    return (True, np.array(encs[0], dtype=np.float64))
