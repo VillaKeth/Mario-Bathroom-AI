@@ -5,6 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
 
+import numpy as np
 import pytest
 
 import main  # heavy but cached
@@ -77,3 +78,14 @@ def test_see_no_face_returns_face_false(monkeypatch):
     r = asyncio.run(main.friend_see(_good()))
     assert r["status"] == "ok"
     assert r["face"] is False
+
+
+def test_see_face_true_and_requests_greet_on_camera_on(monkeypatch):
+    monkeypatch.setattr(camera_relay, "encode_face_from_b64",
+                        lambda b: (True, np.zeros(128)))
+    greeted = {"n": 0}
+    monkeypatch.setattr(camera_relay, "request_greet",
+                        lambda cid: greeted.__setitem__("n", greeted["n"] + 1))
+    r = asyncio.run(main.friend_see(_good(reason="camera_on")))
+    assert r["face"] is True                 # success path returns face True
+    assert greeted["n"] == 1                  # camera_on requested a pending greet
