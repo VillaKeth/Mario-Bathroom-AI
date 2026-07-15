@@ -123,3 +123,25 @@ def test_encode_unavailable_on_empty_string(monkeypatch):
     available, enc = cr.encode_face_from_b64("")
     assert available is False
     assert enc is None
+
+
+def test_live_flags_include_camera_toggles():
+    import live_flags as lf
+    keys = {f["key"] for f in lf.LIVE_FLAGS}
+    assert {"camera_enabled", "camera_vision_enabled", "camera_vision_min_gap"} <= keys
+    # defaults are sane
+    d = lf.flag_defaults()
+    assert d["camera_enabled"] is True
+    assert d["camera_vision_enabled"] is True
+    assert d["camera_vision_min_gap"] == 45
+
+
+def test_config_example_documents_camera_keys():
+    import json
+    path = os.path.join(os.path.dirname(__file__), "..", "config.example.json")
+    with open(path, encoding="utf-8") as f:
+        cfg = json.load(f)   # must remain valid JSON
+    blob = json.dumps(cfg)
+    for k in ("camera_enabled", "camera_vision_enabled", "camera_vision_model",
+              "camera_frame_min_interval", "camera_vision_min_gap", "camera_frame_ttl"):
+        assert k in blob, k

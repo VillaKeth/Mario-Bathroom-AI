@@ -62,6 +62,12 @@ LIVE_FLAGS = [
     {"key": "llm_idle_chance", "label": "Idle AI chance", "type": "number",
      "default": 0.25, "min": 0.0, "max": 1.0, "group": "setup",
      "coerce": _num(0.0, 1.0, float)},
+    {"key": "camera_enabled", "label": "Remote camera", "type": "bool",
+     "default": True, "group": "features", "coerce": _b},
+    {"key": "camera_vision_enabled", "label": "Camera vision comments", "type": "bool",
+     "default": True, "group": "features", "coerce": _b},
+    {"key": "camera_vision_min_gap", "label": "Camera comment gap (s)", "type": "number",
+     "default": 45, "min": 5, "max": 600, "group": "setup", "coerce": _num(5, 600, int)},
 ]
 
 FLAG_BY_KEY = {f["key"]: f for f in LIVE_FLAGS}
