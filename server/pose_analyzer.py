@@ -551,6 +551,47 @@ def _strip_md_asterisks(text: str) -> str:
     return t
 
 
+# Stage directions the model wraps in *...*: roleplay actions that belong in the
+# speech BUBBLE (fun to read) but must never be SPOKEN aloud ("dramatic gasp").
+# Distinguished from emphasis (*so*, *don't*) which the bot SHOULD still say.
+_STAGE_ACTION_VERBS = {
+    "laughs", "laughing", "sighs", "sighing", "gasps", "gasping", "grins", "grinning",
+    "winks", "winking", "shrugs", "shrugging", "chuckles", "chuckling", "nods", "nodding",
+    "smirks", "smirking", "blinks", "blinking", "coughs", "groans", "gulps", "waves",
+    "waving", "claps", "clapping", "giggles", "giggling", "cackles", "cackling", "yawns",
+    "sniffs", "snickers", "scoffs", "frowns", "frowning", "smiles", "smiling", "rolls",
+    "facepalms", "gasp", "pauses", "whispers", "whispering", "shouts", "screams", "screaming",
+}
+
+
+def _is_stage_direction(inner: str) -> bool:
+    """A *...* span is a stage direction (don't SPEAK it) if it's multiple words
+    ('dramatic gasp', 'taps foot impatiently') or a single action verb ('laughs',
+    'grinning'). Single emphasis words ('so', 'don't', 'Rudi') are NOT stage
+    directions — the bot must still say them (dropping *don't* would invert meaning)."""
+    words = inner.strip().split()
+    if len(words) >= 2:
+        return True
+    if not words:
+        return False
+    w = words[0].lower().strip(".,!?;:\"'")
+    return w.endswith("ing") or w in _STAGE_ACTION_VERBS
+
+
+def _speech_from_markup(text: str) -> str:
+    """Build the SPOKEN line from raw model text: DROP stage-direction *...* spans
+    entirely (they stay in the bubble via display_text, just aren't voiced), but keep
+    emphasis words (strip only their * markers). Stray/unpaired * are removed."""
+    def _resolve(m):
+        inner = m.group(1)
+        return " " if _is_stage_direction(inner) else inner
+    t = re.sub(r'\*([^*]+)\*', _resolve, text)   # paired *...* : drop actions, keep emphasis words
+    t = re.sub(r'\*+', ' ', t)                    # any stray/unpaired markers -> space
+    t = re.sub(r'\s+([.,!?;:])', r'\1', t)        # tidy space left before punctuation
+    t = re.sub(r'\s+', ' ', t).strip()            # collapse runs
+    return t
+
+
 def analyze_text(text: str) -> dict:
     """Analyze Mario's response text for pose hints and clean TTS text.
 
@@ -565,13 +606,13 @@ def analyze_text(text: str) -> dict:
     if not text:
         return {"tts_text": "", "display_text": "", "pose_hint": None, "actions": []}
 
-    # Detect roleplay actions (*waves*) to drive the sprite pose below — but do NOT
-    # delete them from speech. The LLM mostly uses asterisks for emphasis (**Rudi**,
-    # *so* good), so the bot should still SAY those words. We read the action text for
-    # the pose hint, while the spoken line keeps every word with only the asterisk
-    # markers removed — exactly like the bubble (see _strip_md_asterisks).
+    # Roleplay actions the model wraps in *...*. Read them for the sprite pose hint,
+    # but the SPOKEN line drops full stage directions (*dramatic gasp*, *mischievous
+    # grin*, *taps foot impatiently*) while keeping emphasis words (*so*, *don't*).
+    # The bubble (display_text below) still shows the actions — bubble and speech
+    # intentionally DIVERGE here (see _speech_from_markup / _is_stage_direction).
     actions = re.findall(r'\*([^*]+)\*', text)
-    tts_text = _strip_md_asterisks(text)
+    tts_text = _speech_from_markup(text)
 
     # Normalize the "WOOHOO" excitement shout for the SPOKEN text only: ALL-CAPS
     # + repeated vowels make sovits garble it and trip the caps->high-energy
