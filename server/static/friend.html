@@ -47,7 +47,7 @@
   #camdot{position:absolute;top:4px;left:4px;width:10px;height:10px;border-radius:50%;
           background:#e23;box-shadow:0 0 6px #e23}
   #camnote{font-size:12px;color:#fc8;padding:2px 4px;text-align:center}
-  #cam.on{background:#e23;border-color:#f88}
+  #cam.on{background:#e23;border:2px solid #f88}
 </style>
 </head>
 <body>
@@ -63,7 +63,7 @@
   <div id="selfwrap">
     <video id="selfview" autoplay muted playsinline></video>
     <span id="camdot"></span>
-    <div id="camnote">Mario can see you</div>
+    <div id="camnote">Camera on</div>
   </div>
   <div id="turn"></div>
   <div id="log"></div>
@@ -405,14 +405,17 @@ async function camStart(){
     statusEl.textContent = "📷 not supported here"; return;
   }
   if (!camConsented){
-    camConsented = confirm("Mario can see you and may remember your face. Turn the camera off anytime. Turn it on now?");
+    camConsented = confirm("This character can see you and may remember your face. Turn the camera off anytime. Turn it on now?");
     if (!camConsented) return;
   }
+  camOn = true; camBtn.classList.add("on");   // claim the slot BEFORE any await (double-tap guard)
   try { camStream = await navigator.mediaDevices.getUserMedia({video: true, audio: false}); }
-  catch(e){ statusEl.textContent = "📷 allow camera access"; return; }
+  catch(e){ camOn = false; camBtn.classList.remove("on"); statusEl.textContent = "📷 allow camera access"; return; }
   selfView.srcObject = camStream;
-  camOn = true; camBtn.classList.add("on"); selfWrap.classList.add("on");
-  postSee("camera_on");
+  selfWrap.classList.add("on");
+  // videoWidth/Height are not ready until loadedmetadata fires; the FIRST post must wait
+  // for it, otherwise the camera_on frame ships empty and the server greet never arms.
+  selfView.addEventListener("loadedmetadata", () => postSee("camera_on"), {once: true});
   camTimer = setInterval(() => { if (!document.hidden) postSee("tick"); }, 2500);
 }
 function camStop(){
