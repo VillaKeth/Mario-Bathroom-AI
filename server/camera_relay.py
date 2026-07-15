@@ -5,7 +5,6 @@ main.py holds only the thin FastAPI wiring; every gate/throttle/cache decision
 lives here. State is module-level and cleared by reset_state() for tests.
 """
 import re
-import time
 
 DEBUG_CAMERA = True
 
@@ -41,7 +40,7 @@ def cache_frame(client_id: str, jpeg: bytes, now: float) -> None:
     _frames[client_id] = (jpeg, now)
 
 
-def get_cached_frame(client_id: str, now: float, ttl: float):
+def get_cached_frame(client_id: str, now: float, ttl: float) -> "bytes | None":
     """Return the cached JPEG if present and younger than ttl, else None."""
     item = _frames.get(client_id)
     if not item:
@@ -94,8 +93,13 @@ def note_face(client_id: str, seen: bool) -> int:
 
 
 _VISION_INTENT = re.compile(
-    r"\b(what do you see|see me|look at me|looking at me|how do i look|"
-    r"do i look|my outfit|my hat|check .*out|can you see)\b",
+    r"(what do you see"
+    r"|can you see me"
+    r"|see me\b"
+    r"|look(ing)? at me"
+    r"|do i look(?!\s+at)"
+    r"|my (outfit|hat|look|drip|fit|hair)"
+    r"|check\b.{0,20}?(outfit|hat|look|fit|drip|hair))",
     re.IGNORECASE,
 )
 

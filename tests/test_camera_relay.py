@@ -59,5 +59,7 @@ def test_is_vision_request_matches_look_intent():
     for t in ["what do you see", "How do I look?", "can you see me?",
               "do i look ok", "check out my outfit", "look at me"]:
         assert cr.is_vision_request(t) is True, t
-    for t in ["tell me a joke", "what's up", "play a game", "sing a song", ""]:
+    for t in ["tell me a joke", "what's up", "play a game", "sing a song", "",
+              "check the score out", "check my messages and then head out",
+              "do I look at the map first?", "check this trick out"]:
         assert cr.is_vision_request(t) is False, t
