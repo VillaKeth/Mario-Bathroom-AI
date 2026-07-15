@@ -107,3 +107,31 @@ _VISION_INTENT = re.compile(
 def is_vision_request(text: str) -> bool:
     """True if the guest is explicitly asking the character to look at them."""
     return bool(text and _VISION_INTENT.search(text))
+
+
+def encode_face_from_b64(image_b64: str):
+    """Decode a base64 image and return the FIRST face's 128-d encoding.
+
+    Returns (available, encoding):
+      (False, None) -> encoder could not run (missing face_recognition, bad image)
+      (True, None)  -> ran fine, but no face was found
+      (True, enc)   -> enc is a numpy float64 array, shape (128,)
+    Never raises. CPU-heavy — callers should run this in an executor.
+    """
+    try:
+        import base64
+        import io
+        import face_recognition
+        import numpy as np
+        raw = base64.b64decode(image_b64 or "", validate=True)
+        if not raw:
+            return (False, None)
+        img = face_recognition.load_image_file(io.BytesIO(raw))
+        encs = face_recognition.face_encodings(img)
+    except Exception as e:
+        if DEBUG_CAMERA:
+            print(f"[camera] encode unavailable: {e}")
+        return (False, None)
+    if not encs:
+        return (True, None)
+    return (True, np.array(encs[0], dtype=np.float64))

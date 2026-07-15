@@ -89,6 +89,7 @@ from birthday_vip import BirthdayVIP
 from sound_events import SoundEventManager
 from catchphrase_mirror import CatchphraseMirror
 import mirror as mirror_relay
+import camera_relay
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("mario-server")
@@ -2818,19 +2819,11 @@ async def recognition_face(body: dict):
         return {"error": "unauthorized"}
     if len(body.get("image_b64", "")) > 8_000_000:
         return {"error": "too_large"}
-    try:
-        import base64, io
-        import face_recognition
-        import numpy as _np
-        img_bytes = base64.b64decode(body.get("image_b64", ""))
-        img = face_recognition.load_image_file(io.BytesIO(img_bytes))
-        encs = face_recognition.face_encodings(img)
-    except Exception as e:
-        logger.warning(f"[RECOG] face decode/encode failed: {e}")
-        return {"error": "recognition_unavailable", "detail": str(e)[:200]}
-    if not encs:
+    available, enc = camera_relay.encode_face_from_b64(body.get("image_b64", ""))
+    if not available:
+        return {"error": "recognition_unavailable"}
+    if enc is None:
         return {"detected": False, "reason": "no_face"}
-    enc = _np.array(encs[0], dtype=_np.float64)
     name = (body.get("name") or "").strip()
     if name:
         pid = recognition_events.person_id_for_name(name)

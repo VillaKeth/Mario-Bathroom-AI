@@ -63,3 +63,46 @@ def test_is_vision_request_matches_look_intent():
               "check the score out", "check my messages and then head out",
               "do I look at the map first?", "check this trick out"]:
         assert cr.is_vision_request(t) is False, t
+
+
+import base64
+import types
+
+
+def _install_fake_face_recognition(monkeypatch, encs):
+    """Inject a fake `face_recognition` module that returns `encs` from face_encodings."""
+    fake = types.SimpleNamespace(
+        load_image_file=lambda buf: "IMG",
+        face_encodings=lambda img: encs,
+    )
+    monkeypatch.setitem(sys.modules, "face_recognition", fake)
+
+
+def test_encode_returns_encoding_for_a_face(monkeypatch):
+    import numpy as np
+    _install_fake_face_recognition(monkeypatch, [np.zeros(128, dtype=float)])
+    b64 = base64.b64encode(b"not-a-real-jpeg-but-decodes").decode()
+    available, enc = cr.encode_face_from_b64(b64)
+    assert available is True
+    assert enc is not None and enc.shape == (128,)
+
+
+def test_encode_true_but_none_when_no_face(monkeypatch):
+    _install_fake_face_recognition(monkeypatch, [])
+    b64 = base64.b64encode(b"whatever").decode()
+    available, enc = cr.encode_face_from_b64(b64)
+    assert available is True
+    assert enc is None
+
+
+def test_encode_unavailable_when_import_missing(monkeypatch):
+    monkeypatch.setitem(sys.modules, "face_recognition", None)  # import -> ImportError
+    available, enc = cr.encode_face_from_b64(base64.b64encode(b"x").decode())
+    assert available is False
+    assert enc is None
+
+
+def test_encode_unavailable_on_bad_base64():
+    available, enc = cr.encode_face_from_b64("!!!not base64!!!")
+    assert available is False
+    assert enc is None
