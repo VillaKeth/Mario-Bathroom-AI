@@ -67,6 +67,7 @@ import command_handlers
 import recognition_events
 from game_handlers import check_game_timeout
 import game_handlers as _game_handlers_mod
+import performed_songs
 import yaml
 from tts_auditor import TTSAuditor
 
@@ -822,6 +823,13 @@ async def lifespan(app: FastAPI):
         sound_events.set_character_sfx_dir(_char_sfx if os.path.isdir(_char_sfx) else None)
     except Exception as _e:
         logger.debug(f"[CHARACTER] sfx dir skipped: {_e}")
+
+    # Per-character performed songs (characters/<char>/songs/ — real audio covers)
+    try:
+        performed_songs.set_character(_character.name, _character.display_name)
+        performed_songs.load_songs(os.path.join(_character.character_dir, "songs"))
+    except Exception as _e:
+        logger.debug(f"[CHARACTER] songs dir skipped: {_e}")
 
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
@@ -3209,6 +3217,8 @@ async def admin_switch_character(request_body: dict = {}):
         _game_handlers_mod.set_character(_character.name, _character.display_name)
         _game_handlers_mod.load_character_pools(_character)
         command_handlers.set_character(_character.name, _character.display_name)
+        performed_songs.set_character(_character.name, _character.display_name)
+        performed_songs.load_songs(os.path.join(_character.character_dir, "songs"))
 
         _extras = _character.get_extras_content()
         if _extras:
@@ -4147,6 +4157,9 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    if time.time() < state_current.get("_performing_song_until", 0.0):
+        logger.debug("[IDLE] Suppressed idle send — performing a song")
+        return False
     if _reply_paused():
         logger.debug("[IDLE] Suppressed idle send — bot paused")
         return False
@@ -4810,6 +4823,18 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_text = await _answer_twenty_questions(text)
     if response_text is None:
         response_text = await _handle_special_commands(text)
+    # Performed song: "stop" cuts the audio; a match ships the pre-rendered WAV.
+    # Both bypass TTS entirely, so handle them before the LLM/TTS convergence.
+    if response_text == "__STOP_SONG__":
+        state_current["_performing_song_until"] = 0.0
+        try:
+            await ws.send_json({"type": "clear_audio"})
+        except Exception as _e:
+            logger.debug(f"[SONGS] clear_audio send failed: {_e}")
+        return
+    if response_text and response_text.startswith("__PERFORMED_SONG__:"):
+        await _deliver_performed_song(ws, response_text.split(":", 1)[1])
+        return
     _timing["commands_ms"] = int((time.time() - _t_cmd) * 1000)
     if response_text is not None:
         logger.info(f"[DEBUG_PIPELINE] Special command intercepted: '{text[:50]}' → '{response_text[:80]}'")
@@ -7312,6 +7337,24 @@ async def _handle_text_input(ws: WebSocket, text: str):
             await ws.send_json({"type": "mario_response", "text": _generic_error_text(), "emotion": "confused"})
         except Exception as e2:
             logger.debug(f"[WS] Error response send also failed: {e2}")
+
+
+async def _deliver_performed_song(ws: WebSocket, song_id: str):
+    """Ship a pre-rendered song cover (real audio) to the client, bypassing TTS.
+    Sets a timestamp guard so the idle loop stays quiet while it plays."""
+    song = performed_songs.get(song_id)
+    if not song:
+        logger.warning(f"[SONGS] deliver: unknown/unreadable song '{song_id}'")
+        return
+    wav = song["wav_bytes"]
+    try:
+        dur = _wav_secs(wav)
+    except Exception:
+        dur = 30.0
+    # Guard covers playback + a small tail so idle can't jump in at the end.
+    state_current["_performing_song_until"] = time.time() + dur + 3.0
+    logger.info(f"[SONGS] performing '{song_id}' ({dur:.0f}s): {song['title']}")
+    await send_response(ws, song["bubble"], audio=wav, emotion="excited")
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):

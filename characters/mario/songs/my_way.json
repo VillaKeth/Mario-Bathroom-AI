@@ -1,0 +1,12 @@
+{
+  "id": "my_way",
+  "title": "My Way",
+  "triggers": ["sing my way", "my way", "do it your way"],
+  "wav": "my_way.wav",
+  "lyric_pages": [
+    "And now, the end is near ♪",
+    "And so I face the final curtain ♪"
+  ],
+  "bubble": "🎤 Mario sings My Way ♪",
+  "credits": "AI cover — private party use only, not for distribution"
+}
