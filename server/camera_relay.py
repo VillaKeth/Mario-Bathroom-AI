@@ -122,6 +122,26 @@ def is_vision_request(text: str) -> bool:
     return bool(text and _VISION_INTENT.search(text))
 
 
+# Small multimodal models sometimes open with assistant boilerplate — or emit ONLY
+# it (seen live 2026-07-16: llava's entire reply was "Here's my response:", which
+# got spoken verbatim). Strip one leading meta-preamble; keys on response-ish nouns
+# so in-character openers like "Here's the deal, we party!" are left alone.
+_META_PREAMBLE = re.compile(
+    r"^\s*(?:(?:sure|okay|ok|alright|certainly)[,!.]?\s+)?"
+    r"(?:here(?:'s|\s+is)\s+)?"
+    r"(?:my|the|your|a\s+)?\s*"
+    r"(?:short\s+|warm\s+)?"
+    r"(?:response|reply|reaction|comment|description|answer|what\s+i\s+(?:can\s+)?see)"
+    r"\s*[:.!]\s*",
+    re.IGNORECASE)
+
+
+def strip_meta_preamble(text: str) -> str:
+    """Drop one leading LLM meta-preamble ('Here's my response:' etc.) from a line
+    destined for TTS. Bare preamble strips to '' — callers treat that as no-speech."""
+    return _META_PREAMBLE.sub("", text or "", count=1).strip()
+
+
 def encode_face_from_b64(image_b64: str):
     """Decode a base64 image and return the FIRST face's 128-d encoding.
 
