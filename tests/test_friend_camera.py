@@ -206,6 +206,53 @@ def test_vision_comment_skips_when_no_model(monkeypatch):
     assert spoke is False
 
 
+def test_vision_comment_rejects_bare_meta_preamble(monkeypatch):
+    """Live flake 2026-07-16: llava returned ONLY 'Here's my response:' and it was
+    spoken verbatim. Bare meta-preamble must strip to nothing -> no speech."""
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+
+    async def flaky_gen(messages, model=None, **k):
+        return {"text": "Here's my response:", "emotion": "happy", "energy": 0.6}
+    monkeypatch.setattr(main.llm, "generate_response", flaky_gen)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b"}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is False
+    assert "spoke" not in cap
+
+
+def test_vision_comment_strips_preamble_speaks_content(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+
+    async def gen(messages, model=None, **k):
+        return {"text": "Here's my response: Nice hat, Jake!", "emotion": "happy", "energy": 0.6}
+    monkeypatch.setattr(main.llm, "generate_response", gen)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b"}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is True
+    assert cap["spoke"] == "Nice hat, Jake!"
+
+
+def test_vision_instruction_addresses_guest_not_self(monkeypatch):
+    """Perspective guard: llava described ITSELF wearing the guest's outfit. The
+    instruction must pin who is in the frame and demand second person."""
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b"}.get(k, d))
+    asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    instr = [m for m in cap["messages"] if m.get("role") == "user"][-1]["content"]
+    assert "The person in the image is Jake, not you" in instr
+    assert "as 'you'" in instr
+    assert "Never describe yourself" in instr
+
+
 def test_vision_comment_honors_dedicated_timeout(monkeypatch):
     """Vision generation must be budgeted by camera_vision_timeout, NOT the 15s
     text-idle timeout — multimodal gen + model swap routinely exceeds 15s."""

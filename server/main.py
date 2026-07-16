@@ -2550,9 +2550,11 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
             return False
     try:
         img_b64 = base64.b64encode(frame_bytes).decode("ascii")
-        instr = (f"You can see {guest_name} on their camera right now. In one or two short, "
-                 f"warm sentences, react to what you actually see, like their look, expression, "
-                 f"or surroundings. Stay in character. Do not mention cameras or being an AI.")
+        instr = (f"You can see {guest_name} on their camera right now. The person in the "
+                 f"image is {guest_name}, not you. Never describe yourself. In one or two "
+                 f"short, warm sentences, speak directly to {guest_name} as 'you' and react "
+                 f"to what you actually see about them, their look, expression, or "
+                 f"surroundings. Stay in character. Do not mention cameras or being an AI.")
         messages = [
             {"role": "system", "content": _get_idle_prompt()},
             {"role": "user", "content": instr, "images": [img_b64]},
@@ -2560,6 +2562,9 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
         llm_response = await asyncio.wait_for(
             llm.generate_response(messages, model=model), timeout=vision_timeout)
         text = filter_response((llm_response.get("text") or "").strip())
+        # small multimodal models sometimes emit ONLY boilerplate ("Here's my
+        # response:") — strip it so it is never spoken; bare preamble -> no speech
+        text = camera_relay.strip_meta_preamble(text)
         if not text or len(text) < 3:
             return False
         analyzed = analyze_text(text)

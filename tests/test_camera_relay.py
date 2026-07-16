@@ -166,3 +166,31 @@ def test_sweep_caps_total_clients():
         cr.allow_frame(f"c{i}", now=float(i), min_interval=0.0)
     cr.sweep(now=1_000_000.0, frame_ttl=30.0)
     assert len(cr._last_frame_ts) <= cr._MAX_CLIENTS
+
+
+# --- meta-preamble stripping (LLM output hygiene for spoken vision lines) ---
+
+def test_strip_meta_preamble_bare_preamble_becomes_empty():
+    # llava-llama3 flake seen live 2026-07-16: whole response was this string
+    assert cr.strip_meta_preamble("Here's my response:") == ""
+
+
+def test_strip_meta_preamble_removes_lead_keeps_content():
+    assert cr.strip_meta_preamble("Here's my response: Wahoo! Nice hat!") == "Wahoo! Nice hat!"
+    assert cr.strip_meta_preamble("Here is the description: You look sharp.") == "You look sharp."
+    assert cr.strip_meta_preamble("Sure, here's my reply: Looking good!") == "Looking good!"
+    assert cr.strip_meta_preamble("Response: You look great!") == "You look great!"
+    assert cr.strip_meta_preamble("Here's what I see: A star is born!") == "A star is born!"
+
+
+def test_strip_meta_preamble_leaves_real_speech_alone():
+    assert cr.strip_meta_preamble("Wahoo! Nice hat!") == "Wahoo! Nice hat!"
+    assert cr.strip_meta_preamble("Here's the deal, we party!") == "Here's the deal, we party!"
+    assert cr.strip_meta_preamble("") == ""
+    assert cr.strip_meta_preamble(None) == ""
+
+
+def test_strip_meta_preamble_only_strips_once_at_start():
+    # a mid-text "response:" is content, not preamble
+    t = "You look great! My response: always party."
+    assert cr.strip_meta_preamble(t) == t
