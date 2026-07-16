@@ -48,17 +48,43 @@ def isolate_vocals(input_path: str, outdir: str, python_exe: str = sys.executabl
     return stem
 
 
+def _fallback_normalize(wav_bytes: bytes) -> bytes:
+    """Peak-normalize to -3dB without server deps (numpy+soundfile only)."""
+    import io
+    import numpy as np
+    import soundfile as sf
+    data, rate = sf.read(io.BytesIO(wav_bytes))
+    peak = float(abs(data).max() or 1.0)
+    data = data * (10 ** (-3.0 / 20.0) / peak)
+    buf = io.BytesIO()
+    sf.write(buf, data, rate, format="WAV", subtype="PCM_16")
+    return buf.getvalue()
+
+
+def _load_voice_backend():
+    """Prefer the server's tts module (exact party settings); fall back to
+    local constants when its deps (edge_tts etc.) aren't in this env."""
+    try:
+        import tts
+        return tts.RVC_MODEL_PATH, tts._normalize_audio
+    except Exception as e:
+        print(f"[note] server tts module unavailable here ({e}); using fallback paths")
+        model = os.path.join(_ROOT, "mario_models_new", "MarioSwitch",
+                             "SuperMario-NintendoSwitchEra.pth")
+        return model, _fallback_normalize
+
+
 def convert_to_character(vocals_path: str, out_wav: str, params: dict) -> str:
     from rvc_python.infer import RVCInference
-    import tts
+    model_path, normalize = _load_voice_backend()
     rvc = RVCInference()
-    rvc.load_model(tts.RVC_MODEL_PATH)
+    rvc.load_model(model_path)
     rvc.set_params(**params)
     tmp = out_wav + ".raw.wav"
     rvc.infer_file(vocals_path, tmp)
     with open(tmp, "rb") as f:
         raw = f.read()
-    normalized = tts._normalize_audio(raw)
+    normalized = normalize(raw)
     with open(out_wav, "wb") as f:
         f.write(normalized)
     try:
@@ -68,9 +94,11 @@ def convert_to_character(vocals_path: str, out_wav: str, params: dict) -> str:
     return out_wav
 
 
-def main(argv=None):
+def build_argparser():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", required=True, help="source audio (mp3/wav)")
+    ap.add_argument("--in", dest="inp", default=None, help="source audio (mp3/wav) — vocals get isolated with demucs")
+    ap.add_argument("--vocals-in", dest="vocals_in", default=None,
+                    help="already-isolated vocal wav (acapella) — skips demucs")
     ap.add_argument("--char", default="mario")
     ap.add_argument("--id", dest="song_id", required=True)
     ap.add_argument("--title", required=True)
@@ -78,14 +106,25 @@ def main(argv=None):
     ap.add_argument("--index-rate", type=float, default=0.6)
     ap.add_argument("--protect", type=float, default=0.25)
     ap.add_argument("--workdir", default=os.path.join(_ROOT, "scripts", "_song_work"))
+    return ap
+
+
+def main(argv=None):
+    ap = build_argparser()
     args = ap.parse_args(argv)
+    if bool(args.inp) == bool(args.vocals_in):
+        ap.error("give exactly one of --in (full mix) or --vocals-in (acapella)")
 
     songs_dir = os.path.join(_ROOT, "characters", args.char, "songs")
     os.makedirs(songs_dir, exist_ok=True)
     out_wav = os.path.join(songs_dir, f"{args.song_id}.wav")
 
-    print(f"[1/3] isolating vocals from {args.inp}")
-    vocals = isolate_vocals(args.inp, args.workdir)
+    if args.vocals_in:
+        print(f"[1/3] using provided acapella: {args.vocals_in} (demucs skipped)")
+        vocals = args.vocals_in
+    else:
+        print(f"[1/3] isolating vocals from {args.inp}")
+        vocals = isolate_vocals(args.inp, args.workdir)
     params = rvc_params(args.f0_up_key, args.index_rate, args.protect)
     print(f"[2/3] RVC -> {args.char} timbre  params={params}")
     convert_to_character(vocals, out_wav, params)

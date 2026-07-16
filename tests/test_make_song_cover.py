@@ -24,3 +24,15 @@ def test_rvc_params_coerce_types():
     assert params["f0up_key"] == 3 and isinstance(params["f0up_key"], int)
     assert params["index_rate"] == 0.5 and isinstance(params["index_rate"], float)
     assert params["protect"] == 0.2 and isinstance(params["protect"], float)
+
+
+def test_argparser_accepts_vocals_in():
+    args = m.build_argparser().parse_args(
+        ["--vocals-in", "acapella.wav", "--id", "hb", "--title", "Happy Birthday"])
+    assert args.vocals_in == "acapella.wav" and args.inp is None
+
+
+def test_argparser_accepts_full_mix_in():
+    args = m.build_argparser().parse_args(
+        ["--in", "song.mp3", "--id", "x", "--title", "X"])
+    assert args.inp == "song.mp3" and args.vocals_in is None

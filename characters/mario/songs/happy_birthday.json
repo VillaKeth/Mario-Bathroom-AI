@@ -1,0 +1,12 @@
+{
+  "id": "happy_birthday",
+  "title": "Happy Birthday",
+  "triggers": ["sing happy birthday", "happy birthday song", "birthday song"],
+  "wav": "happy_birthday.wav",
+  "lyric_pages": [
+    "Happy birthday to you ♪",
+    "Happy birthday dear friend, happy birthday to you ♪"
+  ],
+  "bubble": "🎂 Mario sings Happy Birthday ♪",
+  "credits": "Melody public domain; source vocal: Wikimedia Commons Happy_Birthday_Gerard.ogg (public domain)"
+}
