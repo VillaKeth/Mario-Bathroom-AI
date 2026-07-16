@@ -206,6 +206,46 @@ def test_vision_comment_skips_when_no_model(monkeypatch):
     assert spoke is False
 
 
+def test_vision_comment_honors_dedicated_timeout(monkeypatch):
+    """Vision generation must be budgeted by camera_vision_timeout, NOT the 15s
+    text-idle timeout — multimodal gen + model swap routinely exceeds 15s."""
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+
+    async def slow_gen(messages, model=None, **k):
+        await asyncio.sleep(0.2)
+        return {"text": "Nice party hat, Jake!", "emotion": "happy", "energy": 0.6}
+    monkeypatch.setattr(main.llm, "generate_response", slow_gen)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b",
+                                           "camera_vision_timeout": 0.05}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is False                          # 0.2s gen > 0.05s budget -> timed out
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b",
+                                           "camera_vision_timeout": 5}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is True                           # same slow gen fits a 5s budget
+
+
+def test_vision_comment_timeout_garbage_falls_back(monkeypatch):
+    cap = {}
+    _stub_speak_chain(monkeypatch, cap)
+
+    async def slow_gen(messages, model=None, **k):
+        await asyncio.sleep(0.2)
+        return {"text": "Nice party hat, Jake!", "emotion": "happy", "energy": 0.6}
+    monkeypatch.setattr(main.llm, "generate_response", slow_gen)
+    monkeypatch.setattr(main.live_config, "get",
+                        lambda k, d=None: {"camera_vision_enabled": True,
+                                           "camera_vision_model": "gemma3:27b",
+                                           "camera_vision_timeout": "garbage"}.get(k, d))
+    spoke = asyncio.run(main._camera_vision_comment(b"frame", "Jake", reason="camera_on"))
+    assert spoke is True                           # unparsable -> default 60s, gen fits
+
+
 def test_lull_comment_respects_global_throttle(monkeypatch):
     cap = {}
     _stub_speak_chain(monkeypatch, cap)
