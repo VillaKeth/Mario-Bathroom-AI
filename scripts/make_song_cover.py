@@ -48,17 +48,43 @@ def isolate_vocals(input_path: str, outdir: str, python_exe: str = sys.executabl
     return stem
 
 
+def _fallback_normalize(wav_bytes: bytes) -> bytes:
+    """Peak-normalize to -3dB without server deps (numpy+soundfile only)."""
+    import io
+    import numpy as np
+    import soundfile as sf
+    data, rate = sf.read(io.BytesIO(wav_bytes))
+    peak = float(abs(data).max() or 1.0)
+    data = data * (10 ** (-3.0 / 20.0) / peak)
+    buf = io.BytesIO()
+    sf.write(buf, data, rate, format="WAV", subtype="PCM_16")
+    return buf.getvalue()
+
+
+def _load_voice_backend():
+    """Prefer the server's tts module (exact party settings); fall back to
+    local constants when its deps (edge_tts etc.) aren't in this env."""
+    try:
+        import tts
+        return tts.RVC_MODEL_PATH, tts._normalize_audio
+    except Exception as e:
+        print(f"[note] server tts module unavailable here ({e}); using fallback paths")
+        model = os.path.join(_ROOT, "mario_models_new", "MarioSwitch",
+                             "SuperMario-NintendoSwitchEra.pth")
+        return model, _fallback_normalize
+
+
 def convert_to_character(vocals_path: str, out_wav: str, params: dict) -> str:
     from rvc_python.infer import RVCInference
-    import tts
+    model_path, normalize = _load_voice_backend()
     rvc = RVCInference()
-    rvc.load_model(tts.RVC_MODEL_PATH)
+    rvc.load_model(model_path)
     rvc.set_params(**params)
     tmp = out_wav + ".raw.wav"
     rvc.infer_file(vocals_path, tmp)
     with open(tmp, "rb") as f:
         raw = f.read()
-    normalized = tts._normalize_audio(raw)
+    normalized = normalize(raw)
     with open(out_wav, "wb") as f:
         f.write(normalized)
     try:
