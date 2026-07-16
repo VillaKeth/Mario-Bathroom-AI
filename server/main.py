@@ -2533,6 +2533,13 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
     model = live_config.get("camera_vision_model", "") or GAME_CONFIG.get("camera_vision_model", "")
     if not model:
         return False
+    # Own budget — NOT _LLM_IDLE_TIMEOUT (15s): multimodal generation plus an Ollama
+    # model swap routinely takes 20-40s, and the greet is one-shot, so a guillotined
+    # first comment means the guest never gets greeted.
+    try:
+        vision_timeout = float(live_config.get("camera_vision_timeout", 60))
+    except (TypeError, ValueError):
+        vision_timeout = 60.0
     now = time.time()
     if reason == "lull":
         try:
@@ -2551,7 +2558,7 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
             {"role": "user", "content": instr, "images": [img_b64]},
         ]
         llm_response = await asyncio.wait_for(
-            llm.generate_response(messages, model=model), timeout=_LLM_IDLE_TIMEOUT)
+            llm.generate_response(messages, model=model), timeout=vision_timeout)
         text = filter_response((llm_response.get("text") or "").strip())
         if not text or len(text) < 3:
             return False
@@ -2567,7 +2574,8 @@ async def _camera_vision_comment(frame_bytes: bytes, guest_name: str, reason: st
             camera_relay.mark_vision(now)
         return bool(sent)
     except Exception as e:
-        logger.warning(f"[CAMERA_VISION] failed: {e}")
+        # repr, not str — asyncio.TimeoutError stringifies to "" and hides the cause
+        logger.warning(f"[CAMERA_VISION] failed: {e!r}")
         return False
 
 

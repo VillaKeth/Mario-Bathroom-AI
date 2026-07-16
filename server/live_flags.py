@@ -68,6 +68,8 @@ LIVE_FLAGS = [
      "default": True, "group": "features", "coerce": _b},
     {"key": "camera_vision_min_gap", "label": "Camera comment gap (s)", "type": "number",
      "default": 45, "min": 5, "max": 600, "group": "setup", "coerce": _num(5, 600, int)},
+    {"key": "camera_vision_timeout", "label": "Camera vision timeout (s)", "type": "number",
+     "default": 60, "min": 5, "max": 300, "group": "setup", "coerce": _num(5, 300, int)},
 ]
 
 FLAG_BY_KEY = {f["key"]: f for f in LIVE_FLAGS}

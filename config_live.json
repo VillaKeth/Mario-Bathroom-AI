@@ -12,5 +12,6 @@
   "camera_vision_model": "gemma3:27b",
   "camera_frame_min_interval": 2.0,
   "camera_vision_min_gap": 45,
+  "camera_vision_timeout": 60,
   "camera_frame_ttl": 30
 }
