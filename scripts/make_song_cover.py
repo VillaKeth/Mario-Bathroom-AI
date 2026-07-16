@@ -68,9 +68,11 @@ def convert_to_character(vocals_path: str, out_wav: str, params: dict) -> str:
     return out_wav
 
 
-def main(argv=None):
+def build_argparser():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", required=True, help="source audio (mp3/wav)")
+    ap.add_argument("--in", dest="inp", default=None, help="source audio (mp3/wav) — vocals get isolated with demucs")
+    ap.add_argument("--vocals-in", dest="vocals_in", default=None,
+                    help="already-isolated vocal wav (acapella) — skips demucs")
     ap.add_argument("--char", default="mario")
     ap.add_argument("--id", dest="song_id", required=True)
     ap.add_argument("--title", required=True)
@@ -78,14 +80,25 @@ def main(argv=None):
     ap.add_argument("--index-rate", type=float, default=0.6)
     ap.add_argument("--protect", type=float, default=0.25)
     ap.add_argument("--workdir", default=os.path.join(_ROOT, "scripts", "_song_work"))
+    return ap
+
+
+def main(argv=None):
+    ap = build_argparser()
     args = ap.parse_args(argv)
+    if bool(args.inp) == bool(args.vocals_in):
+        ap.error("give exactly one of --in (full mix) or --vocals-in (acapella)")
 
     songs_dir = os.path.join(_ROOT, "characters", args.char, "songs")
     os.makedirs(songs_dir, exist_ok=True)
     out_wav = os.path.join(songs_dir, f"{args.song_id}.wav")
 
-    print(f"[1/3] isolating vocals from {args.inp}")
-    vocals = isolate_vocals(args.inp, args.workdir)
+    if args.vocals_in:
+        print(f"[1/3] using provided acapella: {args.vocals_in} (demucs skipped)")
+        vocals = args.vocals_in
+    else:
+        print(f"[1/3] isolating vocals from {args.inp}")
+        vocals = isolate_vocals(args.inp, args.workdir)
     params = rvc_params(args.f0_up_key, args.index_rate, args.protect)
     print(f"[2/3] RVC -> {args.char} timbre  params={params}")
     convert_to_character(vocals, out_wav, params)
