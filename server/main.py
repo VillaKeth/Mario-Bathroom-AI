@@ -4696,6 +4696,13 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         audio_chunk = bytes(state_current["audio_buffer"][:process_size])
         state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
         state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
+        # Capture time of this chunk's END on the audio timeline (16k mono
+        # int16 = 32000 B/s). The distress tracker's coherence window must
+        # follow capture time, not processing time — on a slow box chunks
+        # process farther apart than the window and could never confirm.
+        buf_start = state_current.get("_last_buffer_time") or time.time()
+        chunk_ts = min(buf_start + process_size / 32000.0, time.time())
+        state_current["_last_buffer_time"] = chunk_ts  # leftover bytes start here
 
     async with _state_lock:
         state_current["_user_request_active"] = True
@@ -4715,7 +4722,7 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
             pass
 
     try:
-        await _process_audio(ws, audio_chunk)
+        await _process_audio(ws, audio_chunk, chunk_ts)
     finally:
         await asyncio.sleep(1.5)
         async with _state_lock:
@@ -6316,8 +6323,11 @@ def _voice_commit_ok(speaker_info, now):
     return bool(decision["name"]) and decision["name"] == speaker_info.get("name")
 
 
-async def _process_audio(ws: WebSocket, audio_chunk: bytes):
-    """Inner audio processing — STT + speaker ID, then shared pipeline."""
+async def _process_audio(ws: WebSocket, audio_chunk: bytes, chunk_ts: float = None):
+    """Inner audio processing — STT + speaker ID, then shared pipeline.
+
+    chunk_ts: capture-time of the chunk's end on the audio timeline; feeds the
+    distress tracker so its coherence window ignores processing lag."""
     _response_start = time.time()
     loop = asyncio.get_event_loop()
 
@@ -6342,7 +6352,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     # Audio-based vomit detection: feed frame through DistressTracker for
     # volume-spike + temporal-coherence gating (requires 2+ frames in 5s)
     if distress_result and _distress_tracker is not None and _feature_on("distress_enabled"):
-        tracked = _distress_tracker.update(distress_result, audio_chunk)
+        tracked = _distress_tracker.update(distress_result, audio_chunk, now=chunk_ts)
         logger.debug(f"[AUDIO_DISTRESS] tracker: confirmed={tracked['confirmed_distress']}, "
                      f"conf={tracked['combined_confidence']:.2f}, "
                      f"frames={tracked['distress_frame_count']}, "
@@ -7521,4 +7531,7 @@ if __name__ == "__main__":
         app,
         host=server_config.get("host", "0.0.0.0"),
         port=_port,
+        # STT + PANNs + LLM + TTS bursts can peg every core for >20s; the
+        # default 20s ws ping timeout then drops live clients mid-pipeline.
+        ws_ping_timeout=float(server_config.get("ws_ping_timeout", 90)),
     )
