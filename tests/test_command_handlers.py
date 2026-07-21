@@ -324,6 +324,28 @@ class TestExitCommands:
 # ===================================================================
 # TestNoMatch
 # ===================================================================
+class TestSickRecovery:
+    """Natural recovery phrasings must clear the sick mood latch."""
+
+    @pytest.mark.parametrize("phrase", [
+        "ok I feel better now",
+        "I'm feeling better",
+        "im okay now",
+        "I feel fine",
+        "much better",
+    ])
+    def test_recovery_clears_sick_mood(self, phrase):
+        state = _make_state(_detected_mood="sick")
+        result = _call(phrase, state=state)
+        assert result is not None, f"Recovery phrase must be intercepted: {phrase!r}"
+        assert state["_detected_mood"] is None, f"Sick mood must clear on: {phrase!r}"
+
+    def test_recovery_phrase_inert_when_not_sick(self):
+        state = _make_state()
+        _call("I feel better now", state=state)
+        assert state["_detected_mood"] is None
+
+
 class TestNoMatch:
     """Inputs that should fall through (return None)."""
 

@@ -989,7 +989,8 @@ def _handle_special_commands_impl(
     # Recovery from sickness — clear sick mood
     _recovery_words = ["feeling better", "i'm better", "im better", "i'm okay", "im okay",
                        "i'm fine", "im fine", "i'm good", "im good", "all better",
-                       "feeling good", "much better", "recovered", "not sick"]
+                       "feeling good", "much better", "recovered", "not sick",
+                       "feel better", "better now", "feel fine", "feel okay", "feel good"]
     if any(w in lower for w in _recovery_words) and state.get("_detected_mood") == "sick":
         state["_detected_mood"] = None
         emotion_system.current = "happy"
