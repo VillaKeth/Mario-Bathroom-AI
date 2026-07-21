@@ -64,13 +64,13 @@
 - [ ] Placeholder sprites immediately so stage mode renders all seven before AI sprites land.
 - [ ] Commit sprites per character.
 
-## Task 6: Vomit comfort real-audio E2E
+## Task 6: Vomit comfort real-audio E2E — DONE (82c5dd2, 080ec3a)
 
-- [ ] Obtain CC0 retching sample (or record); inject via debug MCP inject-audio against a live server.
-- [ ] Confirm chain: detection log → comfort line → TTS → `_play_wav` pair. Record combined confidences seen.
-- [ ] Tune from evidence only: single-frame trigger at high confidence OR widen window; add regression unit test for chosen gate.
-- [ ] Verify text paths: "i feel sick", "my friend is puking", recovery-clear, plus mood expiry.
-- [ ] Commit tune + tests.
+- [x] Real freesound retch WAVs (8 clips, untracked in main-checkout tests/); streamed over binary WS like a mic (inject_audio MCP is STT-only — cannot reach PANNs, documented). Harness: scratchpad vomit_e2e_real.py — tiles the clip's loudest 3s window (sustained retching) + trailing near-silence frames (server only flushes its 96000B buffer on frame arrival).
+- [x] Chain confirmed live: PANNs Grunt 0.74/Groan 0.35 → `[AUDIO_DISTRESS] Confirmed distress (tracker): conf=0.65, frames=2` → sick latch → comfort lines + SoVITS audio delivered over WS.
+- [x] Tuned from evidence: coherence window now keyed on chunk CAPTURE time (`DistressTracker.update(now=)`) — wall-clock coherence could never see 2 frames in 5s on a slow box where chunks process 15-20s apart. Thresholds unchanged. +3 unit tests (TestCaptureTimeCoherence). Also `ws_ping_timeout` 90s — CPU-pegged pipeline dropped live sockets at uvicorn's 20s default.
+- [x] Text paths live-verified: sick latch ("I think I'm gonna throw up" → comfort pool), friend-sick ("my friend is throwing up" → helper line), recovery-clear in same session ("ok I feel better now" → welcome-back pool; required adding the plain "feel better"/"better now" keyword family — TestSickRecovery). Mood expiry = existing auto-recover (main.py ~4849), code-inspected. New primary connection resets mood by design.
+- [x] Committed: 82c5dd2 (capture-time + ping + E2E enablers), 080ec3a (recovery keywords).
 
 ## Task 7: Token-streaming LLM→TTS
 
