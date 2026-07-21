@@ -144,6 +144,7 @@ import ws_client as _ws_client_module
 _ws_client_module.CHARACTER_NAME = _character.display_name
 from mirror_sender import MirrorSender
 from sound_effects import SoundEffects
+import group_cut
 
 SERVER_URL = client_config.get("server_url", "ws://localhost:8765/ws")
 
@@ -194,6 +195,11 @@ class MarioClient:
         self._stream_is_last_seen = True   # False while a chunked stream is still arriving
         self._pending_character_switch = None  # Queued switch for main thread
         self._pending_outfit_switch = None  # Queued outfit change for main thread
+        # Group mode: roster sprite cache + per-line camera-cut state.
+        self._sprite_cache = {}          # char_id -> {sprites, emotion_map, state_map, ...}
+        self._pending_roster = None      # roster msg queued for main thread (pygame loads)
+        self._pending_group_line = None  # group line awaiting its audio (cut at play start)
+        self._current_cut_id = _character_name  # whose sprites are on screen right now
         # Track the active character so an outfit swap resolves against the
         # right character.yaml even after a runtime character hot-swap.
         self._current_character_name = _character_name
@@ -217,6 +223,7 @@ class MarioClient:
         self.ws.on_mirror_request = self._on_mirror_request
         self.ws.on_set_volume = self._on_set_volume
         self.ws.on_user_message = self._on_user_message
+        self.ws.on_group_roster = self._on_group_roster
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit
@@ -304,6 +311,10 @@ class MarioClient:
                 if self._pending_outfit_switch:
                     self._apply_outfit(self._pending_outfit_switch)
                     self._pending_outfit_switch = None
+                # Preload group roster sprites on main thread (pygame-safe)
+                if self._pending_roster:
+                    roster, self._pending_roster = self._pending_roster, None
+                    self._preload_roster_sprites(roster.get("members", []))
                 # Keep reconnect info fresh for display
                 if not self.display.connected:
                     self.display._reconnect_info = self.ws.reconnect_info
@@ -407,6 +418,22 @@ class MarioClient:
             if DEBUG_CLIENT:
                 logger.info("[DEBUG_CLIENT] Suppressed idle text during memorial")
             return
+        # Group line: present it when ITS clip starts playing (the previous
+        # speaker may still be talking). _on_mario_audio applies the stash.
+        if group_cut.should_defer(metadata):
+            self._pending_group_line = {
+                "speaker_id": metadata.get("speaker_id"),
+                "speaker": metadata.get("speaker"),
+                "text": text,
+                "emotion": metadata.get("emotion"),
+            }
+            if DEBUG_CLIENT:
+                logger.info(f"[DEBUG_CLIENT] group line stashed: {metadata.get('speaker')}: {text[:50]}")
+            self.display.add_chat_message(
+                "mario", group_cut.backlog_label(metadata.get("speaker"), text),
+                full_text=metadata.get("full_text"))
+            return
+
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] {_character.display_name} says: {text}")
         self.display.set_thinking(False)
@@ -519,6 +546,27 @@ class MarioClient:
             return
         if DEBUG_CLIENT:
             logger.info(f"[DEBUG_CLIENT] Playing audio: {len(wav_bytes)} bytes")
+        # Group line: this clip belongs to a specific speaker — cut the display
+        # to them exactly when it starts playing, then present bubble + pose.
+        if self._pending_group_line is not None:
+            line, self._pending_group_line = self._pending_group_line, None
+            duration = wav_duration_s(wav_bytes)
+
+            def _present(l=line, d=duration):
+                self._apply_speaker_cut(l["speaker_id"])
+                self.display.set_thinking(False)
+                self.display.set_mario_text(l["text"])
+                self.display.set_state(STATE_TALKING)
+                self.display._speaking = True
+                if l.get("emotion"):
+                    self.display.set_emotion(l["emotion"])
+                self.display.sync_typewriter_to_audio(d)
+
+            self.audio_playback.play(wav_bytes, on_start=_present, text=line["text"])
+            self.mirror.send_audio(wav_bytes)
+            self._last_play_end_time = time.time() + duration
+            self._start_audio_watchdog()
+            return
         # If a countdown number is pending, reveal it exactly when this clip
         # starts playing — so the visual countdown is driven by the audio.
         pending = getattr(self, "_pending_countdown_number", None)
@@ -691,6 +739,82 @@ class MarioClient:
             logger.info(f"Character switch complete: {new_name} ({len(self.display._sprites)} sprites)")
         except Exception as e:
             logger.warning(f"Failed to apply character switch: {e}")
+
+    def _on_group_roster(self, data: dict):
+        """Group mode announced its cast — queue sprite preloading for the main
+        thread so speaker cuts later are a pure reference swap (no disk I/O)."""
+        self._pending_roster = data
+        logger.info(f"Group roster queued: {[m.get('id') for m in data.get('members', [])]}")
+
+    def _preload_roster_sprites(self, members: list):
+        """Load every roster member's sprite set once (main thread, pygame-safe).
+
+        Reuses the display's own loader by pointing the module globals at each
+        member in turn, then restoring the active character exactly as it was."""
+        import mario_display as md
+        characters_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "characters")
+        from shared.character_loader import CharacterLoader as CL
+        saved_globals = (md.SPRITE_DIR, md.AI_POSES_DIR, md.EMOTION_SPRITE_MAP,
+                         md.STATE_SPRITE_MAP, md.AI_POSE_DISPLAY_SIZE, md.BANNER_TITLE)
+        saved_sprites = self.display._sprites
+        # Seed the active character so cutting back to it is also instant.
+        if self._current_cut_id not in self._sprite_cache:
+            self._sprite_cache[self._current_cut_id] = {
+                "sprites": saved_sprites,
+                "emotion_map": md.EMOTION_SPRITE_MAP, "state_map": md.STATE_SPRITE_MAP,
+                "ai_poses_dir": md.AI_POSES_DIR, "ai_pose_size": md.AI_POSE_DISPLAY_SIZE,
+                "display_name": md.BANNER_TITLE,
+            }
+        for m in members:
+            cid = (m or {}).get("id")
+            if not cid or cid in self._sprite_cache:
+                continue
+            try:
+                cl = CL(characters_dir, cid)
+                if cl.sprite_dir:
+                    md.SPRITE_DIR = cl.sprite_dir
+                if cl.ai_poses_dir:
+                    md.AI_POSES_DIR = cl.ai_poses_dir
+                if cl.emotion_sprite_map:
+                    md.EMOTION_SPRITE_MAP = cl.emotion_sprite_map
+                if cl.state_sprite_map:
+                    md.STATE_SPRITE_MAP = cl.state_sprite_map
+                if cl.ai_pose_size:
+                    md.AI_POSE_DISPLAY_SIZE = cl.ai_pose_size
+                self.display._sprites = {}
+                self.display._load_sprites()
+                self._sprite_cache[cid] = {
+                    "sprites": self.display._sprites,
+                    "emotion_map": md.EMOTION_SPRITE_MAP, "state_map": md.STATE_SPRITE_MAP,
+                    "ai_poses_dir": md.AI_POSES_DIR, "ai_pose_size": md.AI_POSE_DISPLAY_SIZE,
+                    "display_name": m.get("display_name") or cl.display_name,
+                }
+                logger.info(f"Preloaded {cid}: {len(self.display._sprites)} sprites")
+            except Exception as e:
+                logger.warning(f"Roster preload failed for {cid}: {e}")
+        (md.SPRITE_DIR, md.AI_POSES_DIR, md.EMOTION_SPRITE_MAP,
+         md.STATE_SPRITE_MAP, md.AI_POSE_DISPLAY_SIZE, md.BANNER_TITLE) = saved_globals
+        self.display._sprites = saved_sprites
+
+    def _apply_speaker_cut(self, speaker_id: str):
+        """Cut the display to a group speaker: pure reference swaps from the
+        preloaded cache (safe to call from the playback thread — no pygame
+        surface creation, no disk)."""
+        apply, entry = group_cut.cut_plan(self._sprite_cache, self._current_cut_id, speaker_id)
+        if not apply:
+            if speaker_id and speaker_id != self._current_cut_id:
+                logger.warning(f"Speaker cut to {speaker_id} skipped: not preloaded")
+            return
+        import mario_display as md
+        md.EMOTION_SPRITE_MAP = entry["emotion_map"]
+        md.STATE_SPRITE_MAP = entry["state_map"]
+        md.AI_POSES_DIR = entry["ai_poses_dir"]
+        if entry.get("ai_pose_size"):
+            md.AI_POSE_DISPLAY_SIZE = entry["ai_pose_size"]
+        md.BANNER_TITLE = entry.get("display_name") or speaker_id
+        self.display._sprites = entry["sprites"]
+        self._current_cut_id = speaker_id
+        logger.info(f"Speaker cut -> {speaker_id}")
 
     def _on_outfit_switched(self, data: dict):
         """Handle an outfit-change notification from the server.

@@ -35,6 +35,7 @@ class MarioWSClient:
         self.on_memorial_event = None   # Called with (data: dict)
         self.on_clear_audio = None      # Called when server requests audio interruption
         self.on_character_switched = None  # Called with (data: dict) on hot-swap
+        self.on_group_roster = None  # Called with (data: dict) when group mode announces its cast
         self.on_outfit_switched = None  # Called with (data: dict) on outfit change
         self.on_mirror_request = None   # Called with (active: bool) — start/stop mirror capture
         self.on_set_volume = None       # Called with (gain: float) — remote volume set
@@ -189,6 +190,11 @@ class MarioWSClient:
                         logger.info(f"[DEBUG_WS] memorial event: phase={data.get('phase')}")
                     if self.on_memorial_event:
                         self.on_memorial_event(data)
+
+                elif msg_type == "group_roster":
+                    logger.info(f"[DEBUG_WS] group roster: {[m.get('id') for m in data.get('members', [])]}")
+                    if self.on_group_roster:
+                        self.on_group_roster(data)
 
                 elif msg_type == "character_switched":
                     logger.info(f"[DEBUG_WS] character switched to: {data.get('display_name')}")
