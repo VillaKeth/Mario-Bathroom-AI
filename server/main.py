@@ -4312,6 +4312,12 @@ async def _idle_loop(ws: WebSocket):
     _IDLE_MIN_INTERVAL = 25.0  # Never send idle messages faster than this (seconds)
     loop = asyncio.get_event_loop()
     while True:
+        # Group mode: don't even GENERATE single-character idle lines — the
+        # send gate already blocks them, but generation burns LLM time the
+        # ensemble needs (and it's all wrong-character content anyway).
+        if _GROUP_CTX:
+            await asyncio.sleep(30)
+            continue
         # Conversation-aware spacing: longer delays during active conversation
         async with _state_lock:
             _last_msg = state_current.get("_last_user_msg_time", 0.0)
