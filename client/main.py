@@ -145,6 +145,8 @@ _ws_client_module.CHARACTER_NAME = _character.display_name
 from mirror_sender import MirrorSender
 from sound_effects import SoundEffects
 import group_cut
+import barge_gate
+import numpy as np
 
 SERVER_URL = client_config.get("server_url", "ws://localhost:8765/ws")
 
@@ -379,6 +381,13 @@ class MarioClient:
         """Continuously stream audio to the server."""
         SEND_INTERVAL = 0.25  # Send audio every 250ms
         audio_buffer = bytearray()
+        # Voice barge-in: while the character speaks, an energy gate watches
+        # the (otherwise dropped) mic audio for someone talking over them.
+        _barge_enabled = bool(client_config.get("voice_barge_in", True))
+        _gate = barge_gate.BargeGate(
+            margin=float(client_config.get("barge_margin", 2.5)),
+            sustain_s=float(client_config.get("barge_sustain_s", 0.8)))
+        _barge_tail = bytearray()  # rolling preroll so the barge keeps its onset
 
         while self._running:
             # Collect audio
@@ -394,6 +403,22 @@ class MarioClient:
                     self.ws.send_audio(bytes(audio_buffer))
                     self.display.set_state(STATE_LISTENING)
                     self.display.set_thinking(True)
+                elif _barge_enabled:
+                    # Playing: feed the gate instead of dropping outright.
+                    batch = bytes(audio_buffer)
+                    arr = np.frombuffer(batch, dtype=np.int16)
+                    rms = float(np.sqrt(np.mean((arr / 32767.0) ** 2))) if arr.size else 0.0
+                    chunk_s = len(arr) / 16000.0
+                    _barge_tail.extend(batch)
+                    if len(_barge_tail) > 64000:  # keep ~2s of preroll
+                        _barge_tail = _barge_tail[-64000:]
+                    if _gate.update(rms, chunk_s, playing=True):
+                        logger.info(f"[BARGE] voice interrupt: rms={rms:.3f} floor={_gate.echo_floor:.3f}")
+                        self.audio_playback.clear()  # stop our own voice NOW
+                        self.ws.send_audio(bytes(_barge_tail))
+                        _barge_tail = bytearray()
+                        self.display.set_state(STATE_LISTENING)
+                        self.display.set_thinking(True)
                 audio_buffer = bytearray()
             elif len(audio_buffer) > 64000:
                 if self.ws.connected:
