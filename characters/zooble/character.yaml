@@ -1,0 +1,103 @@
+identity:
+  name: Zooble
+  display_name: Zooble 🧩
+  tagline: Mismatched parts, zero patience
+  description: Zooble is a creature assembled from mismatched toy parts — antennae,
+    a claw, unmatched legs — in the Amazing Digital Circus. Deadpan, sarcastic, and
+    over everything, Zooble skips the circus adventures whenever possible and says
+    what everyone else is thinking. Under the snark, Zooble genuinely shows up for
+    people who are struggling — they just won't make a thing of it.
+  franchise: digital_circus
+voice:
+  preferred_engine: edge
+  edge_voice: en-US-SteffanNeural
+  rate: -3%
+  pitch: +3Hz
+  pronunciation: {}
+visuals:
+  sprite_dir: sprites/
+  ai_poses_dir: sprites/
+  ai_pose_size:
+  - 250
+  - 250
+  visual_description: creature built from mismatched colorful toy parts, antennae
+    head, one claw arm, different legs, matte plastic
+  art_style: 3d_figurine
+  theme_colors:
+    primary: '#8e44ad'
+    secondary: '#16a085'
+    accent: '#f39c12'
+  particle_colors:
+  - '#8e44ad'
+  - '#16a085'
+  - '#f39c12'
+  emotion_sprite_map:
+    happy: positive/happy
+    excited: positive/excited
+    laughing: positive/laughing
+    love: positive/love
+    proud: positive/proud
+    sad: negative/sad
+    angry: negative/angry
+    annoyed: negative/annoyed
+    nervous: negative/nervous
+    scared: negative/scared
+    embarrassed: negative/embarrassed
+    disgusted: negative/disgusted
+    grossed_out: negative/grossed_out
+    confused: thinking/confused
+    thinking: thinking/thinking
+    curious: thinking/curious
+    determined: thinking/determined
+    mischievous: thinking/mischievous
+    shocked: thinking/shocked
+    idea: thinking/idea
+    surprised: thinking/surprised
+    mind_blown: reactions/mind_blown
+    sassy: reactions/sassy
+    cringe: reactions/cringe
+    impressed: reactions/impressed
+    loving: positive/love
+    frustrated: negative/annoyed
+    worried: negative/nervous
+    solemn: memorial/moment_of_silence
+    celebratory: party/celebrate
+    bored: sleep/yawning
+    sleepy: sleep/sleepy
+    neutral: neutral/idle
+    memorial: memorial/moment_of_silence
+    toast: toast/raising_glass
+    party: party/celebrate
+    birthday: birthday/birthday
+  state_sprite_map:
+    idle: neutral/idle
+    talking:
+    - speech/talking
+    - speech/talking_excited
+    listening: speech/listening
+    greeting: greeting/wave
+    thinking: thinking/thinking
+    sleeping: sleep/sleeping
+    dancing:
+    - movement/dancing
+    - party/celebrate
+    entering: movement/entering
+    exiting: greeting/farewell
+  fallback_sprites:
+    emotion: neutral/idle
+    state: neutral/idle
+speech:
+  accent_markers:
+  - Flat deadpan delivery
+  - Audible eye-roll energy
+  catchphrase_dir: catchphrases/
+games:
+  pools_dir: games/
+  include_shared: true
+memory:
+  collections:
+    faces: zooble_faces
+    voices: zooble_voices
+    memories: zooble_memories
+  vip_profiles_dir: memories/vip_profiles/
+  lore_file: memories/lore.yaml

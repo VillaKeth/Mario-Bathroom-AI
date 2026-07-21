@@ -1,11 +1,14 @@
 # The Amazing Digital Circus ensemble.
 # shared_model = the default "brain" every member uses unless they override `model:`
 # in their own character.yaml. To give a member a separate brain, set model: there.
-# Dev box runs llama3; party box (RTX 3090 Ti 24GB) can use llama3.1:8b shared +
-# a small fast director model.
 name: tadc
 shared_model: llama3
 director_model: llama3
 roster:
-  - id: pomni
-  - id: jax
+- id: pomni
+- id: jax
+- id: ragatha
+- id: kinger
+- id: gangle
+- id: zooble
+- id: caine
