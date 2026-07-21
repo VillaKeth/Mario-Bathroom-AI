@@ -1,5 +1,7 @@
 {
   "active_outfit": null,
+  "mode": "single",
+  "group": "tadc",
   "server": {
     "host": "0.0.0.0",
     "port": 8765,
