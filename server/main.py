@@ -2022,9 +2022,7 @@ async def admin_probe(request_body: dict = {}):
         temperament = _character.get_temperament_prompt(visit_count)
         if temperament:
             ctx.append({"role": "system", "content": temperament})
-        _freak = _character.get_freak_prompt(_effective_freak_level())
-        if _freak:
-            ctx.append({"role": "system", "content": _freak})
+        _apply_freak(ctx)
     except Exception:
         pass
     ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
@@ -4041,6 +4039,27 @@ def _effective_freak_level() -> float:
     return effective_freak_level(base, live_config.get("freak_factor"))
 
 
+def _apply_freak(ctx: list) -> None:
+    """Wire the [FREAK] directive into a context. Fuses the escalation into the
+    FIRST system message (the persona) for primacy — instead of appending it as a
+    late, buried system message — and appends the hard-line guardrail as a SEPARATE
+    later message so it is not adjacent to the escalation (adjacency was dampening
+    it). No-op at freak level 0. See
+    docs/superpowers/specs/2026-07-08-rudi-freak-factor-design.md."""
+    try:
+        lvl = _effective_freak_level()
+        if lvl <= 0 or not ctx:
+            return
+        escalation = _character.get_freak_prompt(lvl, include_guardrail=False)
+        if escalation:
+            ctx[0]["content"] = (ctx[0].get("content") or "").rstrip() + "\n\n" + escalation
+        guardrail = _character.get_freak_guardrail(lvl)
+        if guardrail:
+            ctx.append({"role": "system", "content": guardrail})
+    except Exception:
+        pass
+
+
 def _joke_llm_fn() -> str | None:
     """Sync callback for JokeEngine's 10% live-LLM joke path.
 
@@ -4065,9 +4084,7 @@ def _joke_llm_fn() -> str | None:
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
         ]
-        _freak = _character.get_freak_prompt(_effective_freak_level())
-        if _freak:
-            ctx.append({"role": "system", "content": _freak})
+        _apply_freak(ctx)
         ctx.append({"role": "user", "content": (
             "Tell ONE short, original, in-character joke. One or two sentences. "
             "No preamble, just the joke."
@@ -4109,9 +4126,7 @@ async def _generate_llm_idle() -> dict | None:
         ctx = [
             {"role": "system", "content": _get_idle_prompt()},
         ]
-        _freak = _character.get_freak_prompt(_effective_freak_level())
-        if _freak:
-            ctx.append({"role": "system", "content": _freak})
+        _apply_freak(ctx)
         # Idle chatter bypasses build_context(), so the character-prompt's date
         # grounding doesn't reach here — a date-named character then riffs "on
         # this March 7th day". Inject the real date + a name-vs-date note so idle
@@ -4904,9 +4919,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
             _temperament = _character.get_temperament_prompt(_visits)
             if _temperament:
                 ctx.append({"role": "system", "content": _temperament})
-            _freak = _character.get_freak_prompt(_effective_freak_level())
-            if _freak:
-                ctx.append({"role": "system", "content": _freak})
+            _apply_freak(ctx)
         except Exception as _e:
             logger.debug(f"[TEMPERAMENT] skipped: {_e}")
         ctx.append({"role": "system", "content": emotion_system.get_prompt_addition()})
@@ -5903,7 +5916,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 _send_thinking_audio(),
                 asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model,
                                                        num_predict=_long_np,
-                                                       is_user_request=True), timeout=_LLM_TIMEOUT),
+                                                       is_user_request=True,
+                                                       temp_bump=_effective_freak_level() * 0.3), timeout=_LLM_TIMEOUT),
             )
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
@@ -5939,7 +5953,8 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     llm_response = await asyncio.wait_for(
                         llm.generate_response(ctx, text, model=_fallback_model,
                                               num_predict=_long_np,
-                                              is_user_request=True),
+                                              is_user_request=True,
+                                              temp_bump=_effective_freak_level() * 0.3),
                         timeout=_LLM_TIMEOUT,
                     )
                     response_text = llm_response["text"]

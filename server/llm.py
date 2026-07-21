@@ -155,7 +155,8 @@ async def check_ollama():
 
 
 async def generate_response(messages: list[dict], transcript: str = None, model: str = None,
-                            num_predict: int = None, is_user_request: bool = False) -> dict:
+                            num_predict: int = None, is_user_request: bool = False,
+                            temp_bump: float = 0.0) -> dict:
     """Send messages to Ollama and get Mario's response with sentiment data.
 
     Uses streaming internally for faster first-token, returns complete text + sentiment.
@@ -207,6 +208,9 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
         elif any(w in lower for w in ["sad", "upset", "angry", "mad", "hate", "crying"]):
             base_temp = 0.70  # More careful/empathetic for emotional topics
     temp = base_temp + random.uniform(-0.05, 0.05)
+    if temp_bump:
+        # Freaky characters generate hotter (more unhinged); capped to stay coherent.
+        temp = min(1.2, temp + float(temp_bump))
     if DEBUG_LLM:
         logger.info(f"[DEBUG_LLM] generate: temp={temp:.2f}, base={base_temp}, model={use_model}")
 
