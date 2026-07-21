@@ -795,6 +795,18 @@ class MarioClient:
         (md.SPRITE_DIR, md.AI_POSES_DIR, md.EMOTION_SPRITE_MAP,
          md.STATE_SPRITE_MAP, md.AI_POSE_DISPLAY_SIZE, md.BANNER_TITLE) = saved_globals
         self.display._sprites = saved_sprites
+        # Stage mode: hand the display the cast (only members that preloaded).
+        stage = [{"id": m.get("id"),
+                  "name": (self._sprite_cache[m["id"]].get("display_name") or m.get("id")),
+                  "sprites": self._sprite_cache[m["id"]]["sprites"]}
+                 for m in members if m.get("id") in self._sprite_cache]
+        self.display.set_stage_roster(stage)
+        self.display.set_stage_active(self._current_cut_id)
+        # If the configured single character isn't in the cast (e.g. Mario
+        # config + TADC group), open on the first member instead of them.
+        stage_ids = [s["id"] for s in stage]
+        if stage_ids and self._current_cut_id not in stage_ids:
+            self._apply_speaker_cut(stage_ids[0])
 
     def _apply_speaker_cut(self, speaker_id: str):
         """Cut the display to a group speaker: pure reference swaps from the
@@ -814,6 +826,7 @@ class MarioClient:
         md.BANNER_TITLE = entry.get("display_name") or speaker_id
         self.display._sprites = entry["sprites"]
         self._current_cut_id = speaker_id
+        self.display.set_stage_active(speaker_id)
         logger.info(f"Speaker cut -> {speaker_id}")
 
     def _on_outfit_switched(self, data: dict):

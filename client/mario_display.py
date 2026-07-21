@@ -56,6 +56,12 @@ STATE_DANCING = "dancing"
 
 SPRITE_DIR = os.path.join(os.path.dirname(__file__), "assets", "mario")
 
+# Group stage mode: bystander (non-speaking cast) rendering
+STAGE_BYSTANDER_SCALE = 0.62          # of the speaker's sprite size
+STAGE_BYSTANDER_DIM = (120, 120, 120)  # RGB multiply — speaker owns the light
+
+import stage_layout
+
 # AI-generated 3D poses directory (transparent PNGs)
 AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                             "mario_3d_assets", "ai_poses_transparent")
@@ -376,6 +382,12 @@ class MarioDisplay:
         self._crossfade_from_surface = None
         self._crossfade_duration = 0.5  # 500ms crossfade for smooth transitions
         self._last_sprite_key = None
+
+        # Group stage mode: whole cast on screen, active speaker center-stage.
+        self._stage_roster = []       # [{"id","name","sprites"}] set from group_roster
+        self._stage_active_id = None  # who is center-stage (the speaker)
+        self._stage_enabled = True    # F2 toggles; only draws when roster is set
+        self._stage_surface_cache = {}  # id -> (scaled, dimmed) bystander Surface
 
         # Talking word-bounce
         self._talk_bounce_start = 0.0
@@ -722,6 +734,8 @@ class MarioDisplay:
                     elif event.key == pygame.K_F8:
                         self._bg_auto_cycle = not self._bg_auto_cycle
                         logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
+                    elif event.key == pygame.K_F2:
+                        self.toggle_stage()
                     elif event.key == pygame.K_F9:
                         if self.on_volume_change:
                             self.on_volume_change(-0.1)
@@ -2098,6 +2112,9 @@ class MarioDisplay:
         self._update_particles()
         self._emotion_timer += 1
 
+        # Group stage: flank the speaker with the rest of the cast (under them)
+        self._draw_stage_bystanders()
+
         # Draw Mario sprite
         self._draw_mario()
 
@@ -2492,6 +2509,65 @@ class MarioDisplay:
             tag = msg_font.render("newer below", True, (255, 200, 80))
             surface.blit(tag, (panel_x + panel_w - tag.get_width() - 18,
                                panel_y + panel_h - line_h - 8))
+
+    def set_stage_roster(self, members: list):
+        """Group mode cast for stage rendering: [{"id","name","sprites"}].
+        `sprites` are references to preloaded per-character sprite dicts."""
+        self._stage_roster = members or []
+        self._stage_surface_cache.clear()
+
+    def set_stage_active(self, char_id):
+        """Center-stage character (the current speaker)."""
+        if char_id != self._stage_active_id:
+            self._stage_active_id = char_id
+
+    def toggle_stage(self):
+        self._stage_enabled = not self._stage_enabled
+        logger.info(f"[DISPLAY] Stage mode: {'ON' if self._stage_enabled else 'OFF'} (camera-cut when off)")
+
+    def _bystander_surface(self, member: dict):
+        """Scaled + dimmed listening-pose surface for a bystander (cached)."""
+        cid = member.get("id")
+        cached = self._stage_surface_cache.get(cid)
+        if cached is not None:
+            return cached
+        sprites = member.get("sprites") or {}
+        spr = (sprites.get("speech/listening") or sprites.get("neutral/idle")
+               or sprites.get("idle") or next(iter(sprites.values()), None))
+        if spr is None:
+            return None
+        w = max(1, int(spr.get_width() * STAGE_BYSTANDER_SCALE))
+        h = max(1, int(spr.get_height() * STAGE_BYSTANDER_SCALE))
+        small = pygame.transform.smoothscale(spr, (w, h)).copy()
+        # Dim: multiply toward gray so the speaker visibly owns the light.
+        small.fill(STAGE_BYSTANDER_DIM, special_flags=pygame.BLEND_RGB_MULT)
+        self._stage_surface_cache[cid] = small
+        return small
+
+    def _draw_stage_bystanders(self):
+        """Group stage: draw the non-speaking cast flanking the speaker.
+        Drawn before the active sprite so the speaker layers on top."""
+        if not (self._stage_enabled and self._stage_roster):
+            return
+        order = stage_layout.bystander_order(
+            [m.get("id") for m in self._stage_roster], self._stage_active_id)
+        if not order:
+            return
+        slots = stage_layout.bystander_slots(len(order), WINDOW_WIDTH)
+        by_id = {m.get("id"): m for m in self._stage_roster}
+        for cid, x_center in zip(order, slots):
+            member = by_id.get(cid)
+            surf = self._bystander_surface(member) if member else None
+            if surf is None:
+                continue
+            bx = x_center - surf.get_width() // 2
+            by = WINDOW_HEIGHT - surf.get_height() - SPRITE_FLOOR_MARGIN
+            self._screen.blit(surf, (bx, by))
+            if self._font_small:
+                label = self._font_small.render(
+                    member.get("name") or cid, True, (185, 185, 185))
+                lx = x_center - label.get_width() // 2
+                self._screen.blit(label, (lx, by + surf.get_height() + 4))
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,
