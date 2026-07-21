@@ -224,6 +224,8 @@ class MarioClient:
         self.ws.on_set_volume = self._on_set_volume
         self.ws.on_user_message = self._on_user_message
         self.ws.on_group_roster = self._on_group_roster
+        # Lip-flap: the display polls real playback amplitude for mouth poses.
+        self.display.level_provider = self.audio_playback.playback_level
 
         self.presence.on_enter = self._on_presence_enter
         self.presence.on_exit = self._on_presence_exit

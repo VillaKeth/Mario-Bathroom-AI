@@ -61,6 +61,7 @@ STAGE_BYSTANDER_SCALE = 0.62          # of the speaker's sprite size
 STAGE_BYSTANDER_DIM = (120, 120, 120)  # RGB multiply — speaker owns the light
 
 import stage_layout
+import lip_flap
 
 # AI-generated 3D poses directory (transparent PNGs)
 AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -388,6 +389,11 @@ class MarioDisplay:
         self._stage_active_id = None  # who is center-stage (the speaker)
         self._stage_enabled = True    # F2 toggles; only draws when roster is set
         self._stage_surface_cache = {}  # id -> (scaled, dimmed) bystander Surface
+
+        # Lip-flap: amplitude-driven mouth poses while talking.
+        self.level_provider = None    # callable -> 0..1 playback RMS, wired by client
+        self._lip_pose = None
+        self._lip_pose_change_t = 0.0
 
         # Talking word-bounce
         self._talk_bounce_start = 0.0
@@ -1447,6 +1453,22 @@ class MarioDisplay:
 
         # State-based selection
         if self.state == STATE_TALKING:
+            # Lip-flap: drive the mouth from the real playback amplitude when a
+            # level provider is wired and the speech poses exist.
+            if self.level_provider is not None:
+                try:
+                    level = self.level_provider()
+                except Exception:
+                    level = None
+                if level is not None:
+                    now = time.time()
+                    pose = lip_flap.pick_pose(
+                        level, self._lip_pose, now - self._lip_pose_change_t)
+                    if pose != self._lip_pose:
+                        self._lip_pose = pose
+                        self._lip_pose_change_t = now
+                    if pose in self._sprites:
+                        return pose
             sprites = STATE_SPRITE_MAP[STATE_TALKING]
             cycle = int(time.time() / 0.3) % len(sprites)
             return sprites[cycle]
@@ -2565,9 +2587,11 @@ class MarioDisplay:
             self._screen.blit(surf, (bx, by))
             if self._font_small:
                 label = self._font_small.render(
-                    member.get("name") or cid, True, (185, 185, 185))
+                    member.get("name") or cid, True, (215, 215, 215))
                 lx = x_center - label.get_width() // 2
-                self._screen.blit(label, (lx, by + surf.get_height() + 4))
+                # Inside the sprite's bottom edge — below it sits the hint bar.
+                ly = by + surf.get_height() - label.get_height() - 4
+                self._screen.blit(label, (lx, ly))
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,
