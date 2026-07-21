@@ -1,0 +1,163 @@
+# Gangle 🎭 — sprite image prompts (mcp_chatgpt batch format).
+# art_style: 3d_figurine. Generate on a plain background; the app cuts it out.
+# Each block is [NN] sprites/<path>.png then the full prompt to generate.
+
+[01] sprites/birthday/birthday.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus holding a birthday cake with candles, warm smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[02] sprites/greeting/farewell.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a exiting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[03] sprites/greeting/wave.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a greeting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[04] sprites/memorial/moment_of_silence.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a solemn expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[05] sprites/movement/dancing.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[06] sprites/movement/entering.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus walking in confidently, dramatic entrance, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[07] sprites/negative/angry.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with intense angry expression, fists clenched, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[08] sprites/negative/annoyed.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with arms crossed, one eyebrow raised, clearly unimpressed look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[09] sprites/negative/disgusted.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus leaning away with disgusted face, hand up in stop gesture, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[10] sprites/negative/embarrassed.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus scratching back of head sheepishly, embarrassed half-smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[11] sprites/negative/grossed_out.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus holding nose in disgust, leaning away, revolted face, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[12] sprites/negative/nervous.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus looking nervously to the side, hands fidgeting, uncertain expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[13] sprites/negative/sad.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus looking down sadly, shoulders slumped, disappointed expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[14] sprites/negative/scared.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus jumping back with wide eyes, arms up in surprise, startled and scared, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[15] sprites/neutral/idle.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus standing relaxed, casual confident stance, neutral expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[16] sprites/party/celebrate.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a celebratory expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[17] sprites/positive/excited.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus jumping with excitement, fist pumped, huge grin, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[18] sprites/positive/happy.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a warm genuine smile, arms open, welcoming happy pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[19] sprites/positive/laughing.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus laughing hard, head thrown back, genuine amusement, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[20] sprites/positive/love.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with heart eyes, hands clasped near face, love-struck expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[21] sprites/positive/proud.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus standing tall, hands on hips, chin up, supremely confident proud pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[22] sprites/reactions/cringe.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus cringing hard, one eye closed, teeth gritted, looking away, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[23] sprites/reactions/impressed.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus nodding approvingly, arms crossed, raised eyebrow, genuine respect, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[24] sprites/reactions/mind_blown.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with hands on sides of head, amazed shocked expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[25] sprites/reactions/sassy.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with hand on hip, head tilted, finger wagging, sassy attitude, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[26] sprites/sleep/sleeping.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus curled up sleeping, peaceful expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[27] sprites/sleep/sleepy.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus mid-yawn, hand covering mouth, half-closed eyes, sleepy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[28] sprites/sleep/yawning.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a bored expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[29] sprites/speech/listening.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with head slightly tilted, attentive listening pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[30] sprites/speech/talking.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[31] sprites/speech/talking_excited.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[32] sprites/thinking/confused.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with head tilted, confused expression, one eyebrow raised high, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[33] sprites/thinking/curious.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus leaning forward with curiosity, eyes bright, interested expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[34] sprites/thinking/determined.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with intense focused eyes, determined expression, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[35] sprites/thinking/idea.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with index finger raised, bright idea moment, excited eyes, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[36] sprites/thinking/mischievous.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with a mischievous grin, fingers steepled, plotting look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[37] sprites/thinking/shocked.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus with mouth wide open in shock, eyes huge, absolutely stunned, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[38] sprites/thinking/surprised.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus doing a dramatic double take, wide eyes, surprised, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[39] sprites/thinking/thinking.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus looking upward thoughtfully, finger tapping chin, pondering, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[40] sprites/toast/raising_glass.png
+----------------------------------------------------------------------
+Gangle from The Amazing Digital Circus raising a glass high, confident smile, toasting, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame

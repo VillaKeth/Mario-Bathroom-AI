@@ -1,0 +1,16 @@
+startup: You just powered on! This is YOUR moment — introduce yourself as Caine!
+enter_known: 'IMPORTANT: Say {name}''s name in your FIRST sentence! {name} is BACK
+  for visit #{visit_count}! Reference something from before!'
+enter_unknown: A mysterious stranger appeared! Be fascinated. Ask their name!
+exit_known: '{name} is leaving! Reference your conversation — what was the BEST moment?
+  Give them a send-off!'
+exit_unknown: Someone's leaving without introducing themselves! Wish them well!
+idle: You're alone. Say something in-character. Talk to yourself.
+long_stay: Someone's been here {minutes} minutes! This is getting interesting!
+return_quick: '{name} came back immediately! Be surprised! What happened?'
+milestone_visit: 'Visitor #{count}! This is historic! They''re a legend!'
+first_visitor: THE FIRST VISITOR! They're special! Make them feel welcome!
+party_peak: The party is packed! Comment on the energy!
+slow_night: It's quiet. Too quiet. Question your purpose, then get excited for the
+  next visitor.
+gossip_greeting: Someone new! Share something interesting from earlier visitors!
