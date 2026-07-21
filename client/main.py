@@ -457,8 +457,8 @@ class MarioClient:
             if DEBUG_CLIENT:
                 logger.info(f"[DEBUG_CLIENT] group line stashed: {metadata.get('speaker')}: {text[:50]}")
             self.display.add_chat_message(
-                "mario", group_cut.backlog_label(metadata.get("speaker"), text),
-                full_text=metadata.get("full_text"))
+                "mario", text, full_text=metadata.get("full_text"),
+                speaker=metadata.get("speaker"))
             return
 
         if DEBUG_CLIENT:

@@ -12,7 +12,7 @@ safety:
   enabled: false      # swears pass filter_response so the TADC censor styles them (████ + bleep)
   block_slurs: true   # hard-block tier stays ON — slurs are never just bleeped
 voice:
-  preferred_engine: fish_speech
+  preferred_engine: sovits
   edge_voice: en-US-GuyNeural
   rate: +0%
   pitch: +0Hz

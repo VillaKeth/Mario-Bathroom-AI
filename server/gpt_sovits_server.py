@@ -21,6 +21,15 @@ import numpy as np
 DEBUG_SOVITS = True
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if not os.path.isdir(os.path.join(BASE_DIR, "gpt_sovits_repo")):
+    # Git worktrees under .claude/worktrees lack the untracked SoVITS repo/env;
+    # fall back to the main checkout they belong to (mirrors tts._resource_root).
+    _marker = os.sep + os.path.join(".claude", "worktrees") + os.sep
+    _probe = BASE_DIR + os.sep
+    if _marker in _probe:
+        _main = _probe[:_probe.index(_marker)]
+        if os.path.isdir(os.path.join(_main, "gpt_sovits_repo")):
+            BASE_DIR = _main
 REPO_DIR = os.path.join(BASE_DIR, "gpt_sovits_repo")
 GPT_SOVITS_DIR = os.path.join(REPO_DIR, "GPT_SoVITS")
 sys.path.insert(0, REPO_DIR)

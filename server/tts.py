@@ -183,15 +183,35 @@ _user_tts_waiting = threading.Event()  # Set when a user TTS call is waiting for
 _idle_precache_paused = threading.Event()  # Set to pause idle precache (e.g. during testing)
 _idle_behavior_ref = None  # Set by main.py to provide character-specific idle pools for precache
 
+def _resource_root() -> str:
+    """Root for heavy UNTRACKED resources (gpt_sovits_env/, gpt_sovits_repo/).
+
+    A git worktree under .claude/worktrees has the tracked tree but not these;
+    fall back to the main checkout the worktree belongs to so SoVITS works in
+    worktree test runs too."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(os.path.join(root, "gpt_sovits_env")):
+        marker = os.sep + os.path.join(".claude", "worktrees") + os.sep
+        probe = root + os.sep
+        if marker in probe:
+            main = probe[:probe.index(marker)]
+            if os.path.isdir(os.path.join(main, "gpt_sovits_env")):
+                return main
+    return root
+
+
+_RESOURCE_ROOT = _resource_root()
+
 # GPT-SoVITS venv python path
-SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
+SOVITS_PYTHON = os.path.join(_RESOURCE_ROOT, "gpt_sovits_env", "Scripts", "python.exe")
 SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
 
 # --- Modular GPT-SoVITS (per-character zero-shot) ---
 # Characters with a fine-tuned model in mario_models_new/GPT_SoVITS_<Name>/ use it;
 # everyone else uses the shared v2 base weights + their own reference clip + transcript.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-SOVITS_V2_BASE_DIR = os.path.join(_PROJECT_ROOT, "gpt_sovits_repo", "GPT_SoVITS",
+# gpt_sovits_repo is untracked like the env — resolve through the same root.
+SOVITS_V2_BASE_DIR = os.path.join(_RESOURCE_ROOT, "gpt_sovits_repo", "GPT_SoVITS",
                                   "pretrained_models", "gsv-v2final-pretrained")
 SOVITS_V2_GPT = os.path.join(SOVITS_V2_BASE_DIR, "s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt")
 SOVITS_V2_SOVITS = os.path.join(SOVITS_V2_BASE_DIR, "s2G2333k.pth")

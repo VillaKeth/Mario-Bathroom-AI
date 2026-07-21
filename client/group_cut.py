@@ -24,11 +24,3 @@ def cut_plan(cache: dict, current_id, speaker_id):
         return False, None
     entry = (cache or {}).get(speaker_id)
     return (entry is not None), entry
-
-
-def backlog_label(speaker, text) -> str:
-    """Chat-backlog line for a group utterance: name-prefixed so the F3
-    history reads like a script."""
-    if speaker:
-        return f"[{speaker}] {text}"
-    return text

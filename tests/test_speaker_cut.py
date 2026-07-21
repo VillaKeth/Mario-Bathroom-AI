@@ -35,8 +35,3 @@ def test_cut_plan_missing_member_keeps_current_sprites():
 def test_cut_plan_handles_empty_cache_and_id():
     assert group_cut.cut_plan(None, "pomni", "jax") == (False, None)
     assert group_cut.cut_plan({"jax": {}}, "pomni", None) == (False, None)
-
-
-def test_backlog_label():
-    assert group_cut.backlog_label("Jax", "ha!") == "[Jax] ha!"
-    assert group_cut.backlog_label(None, "hi") == "hi"

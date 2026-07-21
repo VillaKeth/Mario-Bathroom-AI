@@ -1011,11 +1011,13 @@ class MarioDisplay:
         self._typewriter_speed = max(0.15, min(8.0, remaining / frames))
         self._typewriter_audio_synced = True
 
-    def add_chat_message(self, role, text, full_text=None):
+    def add_chat_message(self, role, text, full_text=None, speaker=None):
         """Add a message to the chat backlog. role is 'mario' or 'user'.
 
         full_text is the complete "what she meant to say" reply (may be longer
-        than the spoken `text`); defaults to text when not provided.
+        than the spoken `text`); defaults to text when not provided. speaker
+        overrides the label for THIS line (group mode: per-character names
+        instead of the single configured character).
         """
         if not isinstance(text, str):
             text = str(text) if text is not None else ""
@@ -1024,7 +1026,8 @@ class MarioDisplay:
         if not isinstance(full_text, str) or not full_text.strip():
             full_text = text
         self._chat_history.append({"role": role, "text": text,
-                                   "full_text": full_text, "time": time.time()})
+                                   "full_text": full_text, "time": time.time(),
+                                   "speaker": (speaker or "").strip() or None})
         if len(self._chat_history) > self._MAX_CHAT_HISTORY:
             self._chat_history.pop(0)
 
@@ -2482,8 +2485,8 @@ class MarioDisplay:
         for m in self._chat_history:
             role = m.get("role", "")
             is_bot = role == "mario"
-            who = self._chat_char_name if is_bot else (
-                "You" if role == "user" else (role.title() or "?"))
+            who = m.get("speaker") or (self._chat_char_name if is_bot else (
+                "You" if role == "user" else (role.title() or "?")))
             who = _EMOJI_RE.sub("", who).strip() or ("AI" if is_bot else "You")
             name_color = (255, 184, 102) if is_bot else (140, 200, 255)
             bubble_color = (44, 37, 26) if is_bot else (30, 30, 44)
