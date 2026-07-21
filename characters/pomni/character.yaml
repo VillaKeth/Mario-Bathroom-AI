@@ -8,8 +8,8 @@ identity:
     wanting to escape. She has a red and blue jester hat, mismatched eyes, and a classic
     jester outfit.
 safety:
-  enabled: false      # swears pass filter_response so the TADC censor styles them (████ + bleep)
-  block_slurs: true   # hard-block tier stays ON — slurs are never just bleeped
+  enabled: false
+  block_slurs: true
 voice:
   preferred_engine: sovits
   edge_voice: en-US-AnaNeural
@@ -24,18 +24,10 @@ voice:
   prompt_text: This is a dream and I should just play along until I wake up, right?
     Is that all there is that wait. What's that wait wait?
   prompt_lang: en
-  finetuned_model: GPT_SoVITS_Pomni (s2=e8, s1=e4, trained 2026-06-19, 64-seg curated; user A/B pick)
+  finetuned_model: GPT_SoVITS_Pomni (s2=e8, s1=e4, trained 2026-06-19, 64-seg curated;
+    user A/B pick)
 visuals:
-  visual_description: Pomni from The Amazing Digital Circus, a small humanoid jester
-    girl with completely white skin and a round white face, tiny pink blush marks
-    under the eyes; two large circular eyes, each with a red and blue spinning pinwheel
-    spiral pattern and thick black outlines (eyes are red and blue, not pink); she
-    wears a red and blue jester jumpsuit with poofy puffed short sleeves and shorts,
-    the red and blue split asymmetrically into bold stripes and plain blocks with
-    bright yellow trim accents; a two-pointed jester hat striped in red and blue with
-    a yellow brim and small yellow bells at the tips; mismatched gloves with one blue
-    glove and one red glove, and pointed jester shoes with one red shoe and one blue
-    shoe, each with a yellow ring; cheerful but anxious expression
+  visual_description: Pomni from The Amazing Digital Circus
   art_style: 3d_figurine
   sprite_dir: sprites/
   ai_poses_dir: sprites/
