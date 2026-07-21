@@ -74,9 +74,12 @@ def _load_voice_backend():
         return model, _fallback_normalize
 
 
-def convert_to_character(vocals_path: str, out_wav: str, params: dict) -> str:
+def convert_to_character(vocals_path: str, out_wav: str, params: dict,
+                         model_path: str = None) -> str:
     from rvc_python.infer import RVCInference
-    model_path, normalize = _load_voice_backend()
+    default_model, normalize = _load_voice_backend()
+    model_path = model_path or default_model
+    print(f"[model] {model_path}")
     rvc = RVCInference()
     rvc.load_model(model_path)
     rvc.set_params(**params)
@@ -106,6 +109,8 @@ def build_argparser():
     ap.add_argument("--index-rate", type=float, default=0.6)
     ap.add_argument("--protect", type=float, default=0.25)
     ap.add_argument("--workdir", default=os.path.join(_ROOT, "scripts", "_song_work"))
+    ap.add_argument("--model", dest="model_path", default=None,
+                    help="RVC .pth override (default: the server's model / MarioSwitch fallback)")
     return ap
 
 
@@ -127,7 +132,7 @@ def main(argv=None):
         vocals = isolate_vocals(args.inp, args.workdir)
     params = rvc_params(args.f0_up_key, args.index_rate, args.protect)
     print(f"[2/3] RVC -> {args.char} timbre  params={params}")
-    convert_to_character(vocals, out_wav, params)
+    convert_to_character(vocals, out_wav, params, model_path=args.model_path)
     print(f"[3/3] wrote {out_wav}")
     print(f"Now create characters/{args.char}/songs/{args.song_id}.json (see the design spec).")
 
