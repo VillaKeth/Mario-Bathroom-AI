@@ -20,8 +20,7 @@ visuals:
   ai_pose_size:
   - 250
   - 250
-  visual_description: creature built from mismatched colorful toy parts, antennae
-    head, one claw arm, different legs, matte plastic
+  visual_description: Zooble from The Amazing Digital Circus
   art_style: 3d_figurine
   theme_colors:
     primary: '#8e44ad'

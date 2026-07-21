@@ -20,8 +20,7 @@ visuals:
   ai_pose_size:
   - 250
   - 250
-  visual_description: red ribbon creature wearing a white porcelain comedy mask, delicate,
-    floating tangle of silk ribbon
+  visual_description: Gangle from The Amazing Digital Circus
   art_style: 3d_figurine
   theme_colors:
     primary: '#b03a48'
