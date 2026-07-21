@@ -2128,7 +2128,8 @@ async def _group_turn_task(ws, text):
             if hasattr(tts, "set_voice_config"):
                 tts.set_voice_config(ln["voice_config"], ln["display_name"])
             audio = await loop.run_in_executor(_tts_executor, lambda t=ln["text"]: tts.synthesize(t))
-            await send_response(ws, ln["text"], audio, emotion=ln["emotion"], speaker=ln["display_name"])
+            await send_response(ws, ln["text"], audio, emotion=ln["emotion"],
+                                speaker=ln["display_name"], speaker_id=ln["id"])
             # Single-mode bot lines are logged in _generate_and_send_response;
             # group mode bypasses it, so mirror each speaker's line here.
             try:
@@ -3599,6 +3600,16 @@ async def websocket_endpoint(ws: WebSocket):
     _is_primary = len(_ws_clients) == 1
     logger.info(f"Client connected! (live /ws clients: {len(_ws_clients)}, primary={_is_primary})")
 
+    # Group mode: tell the client the full roster up front so it can preload
+    # every member's sprites once (speaker camera-cuts + stage mode need them).
+    if _GROUP_CTX:
+        try:
+            await ws.send_json({"type": "group_roster", "members": [
+                {"id": m.id, "display_name": m.display_name}
+                for m in _GROUP_CTX["members"].values()]})
+        except Exception as e:
+            logger.warning(f"[group] roster push failed: {e}")
+
     if _is_primary:
         # Reset per-connection state (games, conversation, identity, etc.)
         state_current["_active_game"] = None
@@ -3687,7 +3698,10 @@ async def websocket_endpoint(ws: WebSocket):
     _loop = asyncio.get_event_loop()
     # Only the primary client gets the opening greeting; a stray/extra connection
     # must not talk over or reset the live session.
-    greeting_task = asyncio.create_task(_send_startup_greeting()) if _is_primary else None
+    # Group mode: the startup greeting builds from the single configured
+    # character's prompt (Mario) — wrong voice AND wrong persona over a group.
+    # A director-driven ensemble greeting is a future feature; skip for now.
+    greeting_task = asyncio.create_task(_send_startup_greeting()) if (_is_primary and not _GROUP_CTX) else None
 
     # Start idle behavior loop — ONLY the primary client drives idle. A second
     # /ws connection (extra tab, e2e test) must not spawn its own idle loop, or
@@ -4170,6 +4184,12 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    if _GROUP_CTX:
+        # Group mode: the idle pool belongs to the single configured character
+        # (e.g. Mario) — speaking it over a TADC ensemble is a character leak.
+        # Group-aware idle banter is a future feature; suppress for now.
+        logger.debug("[IDLE] Suppressed idle send — group mode")
+        return False
     if time.time() < state_current.get("_performing_song_until", 0.0):
         logger.debug("[IDLE] Suppressed idle send — performing a song")
         return False
@@ -7388,7 +7408,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None, is_idle: bool = False,
                         full_text: str = None, censor: bool = False,
-                        speaker: str = None, chunk_text: str = None):
+                        speaker: str = None, speaker_id: str = None,
+                        chunk_text: str = None):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
@@ -7427,6 +7448,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["censor"] = True
     if speaker:
         msg["speaker"] = speaker
+    if speaker_id:
+        msg["speaker_id"] = speaker_id
     if chunk_text is not None:
         msg["chunk_text"] = chunk_text
     # Sentence streaming metadata
