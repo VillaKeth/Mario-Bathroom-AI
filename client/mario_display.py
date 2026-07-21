@@ -2554,7 +2554,10 @@ class MarioDisplay:
         if cached is not None:
             return cached
         sprites = member.get("sprites") or {}
-        spr = (sprites.get("speech/listening") or sprites.get("neutral/idle")
+        # neutral/idle first: it is the pose most likely to have real AI art
+        # (the cast bootstraps with idles); listening is the nicer pose only
+        # once it exists as real art too.
+        spr = (sprites.get("neutral/idle") or sprites.get("speech/listening")
                or sprites.get("idle") or next(iter(sprites.values()), None))
         if spr is None:
             return None
