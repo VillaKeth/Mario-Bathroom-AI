@@ -46,11 +46,35 @@ except ImportError:
 _CNN_TIERS = ("ultra", "high")
 
 
+def _dlib_has_cuda() -> bool:
+    """True only if dlib was built with CUDA and a usable device is present.
+
+    The normal pip `dlib` / `face_recognition` wheel is CPU-only. There, dlib's MMOD
+    CNN face detector runs at roughly 1-2 s per frame — with the adaptive frame skip
+    dropping to every frame while someone is at the door and presence polling at ~15 Hz,
+    that starves the presence thread. So CNN is only ever auto-selected when the GPU
+    path actually exists; otherwise HOG. Any import/attribute failure means "no CUDA".
+    """
+    try:
+        import dlib
+        return bool(getattr(dlib, "DLIB_USE_CUDA", False)) and dlib.cuda.get_num_devices() > 0
+    except Exception:
+        return False
+
+
 def resolve_detector_model(tier: str, env_override: Optional[str] = None) -> str:
-    """Pick the dlib face detector for a hardware tier. Env override always wins."""
+    """Pick the dlib face detector for a hardware tier.
+
+    The FACE_DETECTOR_MODEL env override wins over everything, so a human can still
+    force 'cnn' (or 'hog') regardless of tier or CUDA. Absent an override, 'cnn' is
+    chosen only on a CNN-capable tier AND when dlib reports CUDA — on a CPU-only dlib
+    build MMOD CNN is far too slow for the doorway cadence, so fall back to 'hog'.
+    """
     if env_override:
         return env_override
-    return "cnn" if tier in _CNN_TIERS else "hog"
+    if tier in _CNN_TIERS and _dlib_has_cuda():
+        return "cnn"
+    return "hog"
 
 
 def _detect_tier() -> str:
@@ -151,7 +175,12 @@ class PersonDetector:
         self.yolo_confidence = yolo_confidence if yolo_confidence is not None else self.YOLO_CONFIDENCE
         self.frame_skip = frame_skip if frame_skip is not None else self.YOLO_FRAME_SKIP
 
-        # W3: enrollment quality thresholds (env-overridable for field tuning)
+        # W3: enrollment quality SUB-thresholds. These are CLIENT-SIDE ONLY and are
+        # tuned exclusively through the FACE_MIN_BOX_PX / FACE_MIN_SHARPNESS env vars.
+        # They are deliberately NOT in server recognition_config: the client is a
+        # separate process and must not import server config, and the server only cares
+        # about the COMBINED quality float this scoring produces (gated there against
+        # face_min_quality). Keep the two scales here in sync with that floor by hand.
         self.min_box_px = int(os.environ.get("FACE_MIN_BOX_PX", "80"))
         self.min_sharpness = float(os.environ.get("FACE_MIN_SHARPNESS", "40.0"))
 

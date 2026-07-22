@@ -60,8 +60,6 @@
     "face_match_tolerance": 0.6,
     "face_match_margin": 0.05,
     "voice_match_margin": 0.06,
-    "face_min_box_px": 80,
-    "face_min_sharpness": 40.0,
     "face_min_quality": 0.5,
     "voice_consistency_tau": 0.60,
     "voice_max_flatness": 1.0,

@@ -13,8 +13,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from client.person_detector import PersonDetector  # noqa: E402
 
 
-def test_default_detector_model_is_hog():
-    assert PersonDetector().face_detector_model == "hog"
+def test_default_detector_model_is_hog(monkeypatch):
+    # MINOR 8: pass an explicit tier so this is portable. With no tier, PersonDetector
+    # auto-detects, so it passed on the 'low' dev box but would FAIL on the 'ultra'
+    # party box (which, with CUDA dlib, selects 'cnn').
+    monkeypatch.delenv("FACE_DETECTOR_MODEL", raising=False)
+    assert PersonDetector(hardware_tier="low").face_detector_model == "hog"
 
 
 def test_detector_model_is_configurable():
@@ -37,14 +41,26 @@ def test_frame_skip_is_configurable():
     assert PersonDetector(frame_skip=1).frame_skip == 1
 
 
-def test_ultra_tier_selects_cnn():
+def test_ultra_tier_selects_cnn(monkeypatch):
+    # IMPORTANT 6: 'cnn' auto-selection is gated on dlib CUDA. Force it available.
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: True)
     from client.person_detector import resolve_detector_model
     assert resolve_detector_model("ultra", None) == "cnn"
 
 
-def test_high_tier_selects_cnn():
+def test_high_tier_selects_cnn(monkeypatch):
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: True)
     from client.person_detector import resolve_detector_model
     assert resolve_detector_model("high", None) == "cnn"
+
+
+def test_cnn_tier_without_cuda_falls_back_to_hog(monkeypatch):
+    """IMPORTANT 6: a CNN-capable tier on a CPU-only dlib build must stay on HOG —
+    MMOD CNN on CPU is ~1-2 s/frame and starves the presence thread."""
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: False)
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("ultra", None) == "hog"
+    assert resolve_detector_model("high", None) == "hog"
 
 
 def test_low_tier_selects_hog():
@@ -60,6 +76,14 @@ def test_medium_tier_selects_hog():
 def test_env_override_wins_over_tier():
     from client.person_detector import resolve_detector_model
     assert resolve_detector_model("ultra", "hog") == "hog"
+
+
+def test_env_override_cnn_wins_even_without_cuda(monkeypatch):
+    """The human override must beat everything, including the CUDA gate — a human can
+    force cnn on a box where auto-selection would have refused it."""
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: False)
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("low", "cnn") == "cnn"
 
 
 def test_unknown_tier_falls_back_to_hog():
@@ -207,9 +231,19 @@ def test_last_person_ts_refreshes_when_people_detected(monkeypatch):
 
 def test_hardware_tier_ultra_selects_cnn_detector(monkeypatch):
     monkeypatch.delenv("FACE_DETECTOR_MODEL", raising=False)
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: True)
     det = PersonDetector(hardware_tier="ultra")
     assert det.hardware_tier == "ultra"
     assert det.face_detector_model == "cnn"
+
+
+def test_hardware_tier_ultra_without_cuda_selects_hog(monkeypatch):
+    """IMPORTANT 6 at the constructor level: the party box wiring must also fall back
+    to HOG when dlib has no CUDA, not just resolve_detector_model in isolation."""
+    monkeypatch.delenv("FACE_DETECTOR_MODEL", raising=False)
+    monkeypatch.setattr("client.person_detector._dlib_has_cuda", lambda: False)
+    det = PersonDetector(hardware_tier="ultra")
+    assert det.face_detector_model == "hog"
 
 
 def test_hardware_tier_low_selects_hog_detector(monkeypatch):

@@ -29,9 +29,13 @@ DEFAULTS = {
     # a real sweep, not left unchanged for lack of one. See results.json's
     # voice_margin_sweep / tuned_thresholds.voice_match_margin.
     "voice_match_margin": 0.06,       # best vs runner-up cosine gap (Fix wave 2: confirmed via sweep)
-    "face_min_box_px": 80,            # shorter side of the face box
-    "face_min_sharpness": 40.0,       # laplacian variance floor
-    "face_min_quality": 0.5,          # combined score required to ENROLL
+    # NOTE: the face quality SUB-thresholds (box px, laplacian sharpness) are NOT here.
+    # They are scored inside the client process (client/person_detector.py), which is
+    # separate from the server and cannot read this config. They live as client env
+    # vars FACE_MIN_BOX_PX / FACE_MIN_SHARPNESS. Only the combined FLOOR the server
+    # gates enrollment against belongs here — advertising the sub-thresholds as server
+    # config was dead config that silently drifted from the client's actual scale.
+    "face_min_quality": 0.5,          # combined score required to ENROLL (server-side gate)
     # Fix wave 1 (task-8-report.md "## Fix wave 1"): reverses W8's disable. W8's
     # own sweep (measured with voice_max_flatness still at W8's 0.55) found, at
     # tau=0.60, single_kept=1.0 (zero false-rejects on genuine solo speech) and
