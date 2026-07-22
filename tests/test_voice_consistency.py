@@ -31,6 +31,22 @@ def test_spectral_flatness_tone_is_low():
 
 
 def test_stage_a_rejects_white_noise():
+    """Explicitly pins voice_max_flatness rather than reading the ambient default:
+    Fix wave 1 (task-8-report.md, "## Fix wave 1") deliberately disabled the
+    flatness sub-check by default (voice_max_flatness=1.0, the top of its
+    bounded [0, 1] range) after an extended lab sweep found no ceiling in
+    [0.45, 0.80] separates real noise-mixed speech from real party noise on
+    that corpus (tests/recognition_lab/results.json). 1.0 would trivially
+    "pass" this test for the wrong reason (nothing is ever rejected on
+    flatness grounds any more), so the ceiling under test must be pinned to
+    verify the sub-check's MECHANISM still works on an unambiguous synthetic
+    signal, independent of whatever the current shipped default is -- exactly
+    the same reasoning already applied to voice_consistency_tau below. 0.45 is
+    the original pre-hardening-effort default (this white noise fixture's own
+    measured flatness is ~0.85, per test_spectral_flatness_noise_is_high above,
+    comfortably over it).
+    """
+    recognition_config.override("voice_max_flatness", 0.45)
     assert speaker_id.stage_a_ok(_white_noise()) is False
 
 

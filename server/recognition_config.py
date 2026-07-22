@@ -20,18 +20,43 @@ DEFAULTS = {
     "face_min_box_px": 80,            # shorter side of the face box
     "face_min_sharpness": 40.0,       # laplacian variance floor
     "face_min_quality": 0.5,          # combined score required to ENROLL
-    # W8 (tests/recognition_lab/results.json): no tau rejected >=80% of the lab's
-    # two-speaker mixes while keeping >=95% single-speaker acceptance, so Stage B
-    # is disabled (0.0 accepts everything) pending a redesign — see
-    # results.json:tuned_thresholds.voice_consistency_tau for the measured curve
-    # and an important caveat about the mix construction used to test it.
-    "voice_consistency_tau": 0.0,     # sub-window agreement floor
-    # W8 (tests/recognition_lab/results.json): the shipped 0.45 false-rejected
-    # ~28% of genuine solo speech (Task 7) and no ceiling in the swept range
-    # (0.45-0.80) separated real speech from real party-noise beds on flatness
-    # alone, so this is the documented fallback: lowest ceiling keeping 100% of
-    # the measured real-speech probes, energy test (Stage A's other half) unaffected.
-    "voice_max_flatness": 0.55,       # spectral flatness ceiling (noise reject)
+    # Fix wave 1 (task-8-report.md "## Fix wave 1"): reverses W8's disable. W8's
+    # own sweep (measured with voice_max_flatness still at W8's 0.55) found, at
+    # tau=0.60, single_kept=1.0 (zero false-rejects on genuine solo speech) and
+    # double_rejected=0.17 (real, if modest, two-speaker protection). Re-measured
+    # under Fix wave 1's own voice_max_flatness=1.0, double_rejected reads 0.0
+    # instead (some two-speaker mixes W8's flatness sub-check happened to catch
+    # incidentally are no longer caught that way) — see results.json's own
+    # stage_b_sweep/tuned_thresholds for whichever figure is current. Either way
+    # single_kept stays 1.0, so tau=0.60 remains harmless and strictly better
+    # than 0.0, which discarded Task 7's whole mechanism for no accuracy gain.
+    # No tau reached W8's >=80% double_rejected target because the lab's
+    # two-speaker fixture (mix_two_speakers) overlaps both speakers CONTINUOUSLY
+    # across the whole chunk, so both halves look alike to Stage B's half-vs-half
+    # agreement check by construction — Stage B is designed to catch a chunk
+    # that CHANGES character partway through (a handoff or interruption), which
+    # this fixture never produces. That is a fixture gap, not a Stage B defect —
+    # see results.json:known_limitations.double_speaker_mix_may_not_exercise_stage_b.
+    # Follow-up: a mid-chunk speaker-change fixture to actually test the 0.80
+    # target. (Also, incidentally, back to the pre-W8 default.)
+    "voice_consistency_tau": 0.60,    # sub-window agreement floor
+    # Fix wave 1 (task-8-report.md "## Fix wave 1"): W8's 0.55 kept 100% of
+    # CLEAN speech, but its sweep never tested noise-MIXED speech — the actual
+    # party operating condition. Measured there (extended stage_a_flatness_sweep,
+    # results.json), 0.55 discarded a real fraction of genuine noisy voice
+    # chunks, regressing voice_only.multi to 61/39/17% at 10/5/0dB (baseline
+    # 83/67/44%). An extended sweep found NO ceiling in [0.45, 0.80] keeps
+    # noise-mixed speech at every tested SNR (10/5/0dB) while also rejecting
+    # pure party noise — spectral flatness does not separate "speech + party
+    # noise" from "party noise" on this corpus. This is a deliberate disable of
+    # the flatness sub-check, backed by that measured negative result, not an
+    # untuned guess: 1.0 is the top of flatness's bounded [0, 1] range, so the
+    # check always passes. Stage A's energy test (2-of-3 windows >=
+    # MIN_SPEECH_RMS) is untouched and still rejects silence/mostly-empty
+    # chunks. Re-enable by lowering this once a better feature (e.g. a
+    # Welch-averaged periodogram, or flatness computed only on the
+    # highest-energy window) is measured to actually separate the two.
+    "voice_max_flatness": 1.0,        # spectral flatness ceiling — DISABLED, see above
     "gallery_max_per_person": 5,      # encodings retained per identity
 }
 

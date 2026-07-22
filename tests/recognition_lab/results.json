@@ -3,15 +3,15 @@
   "voice_only": {
     "single": {
       "clean": 1.0,
-      "10dB": 0.6111111111111112,
-      "5dB": 0.3333333333333333,
-      "0dB": 0.2222222222222222
+      "10dB": 0.7222222222222222,
+      "5dB": 0.5,
+      "0dB": 0.2777777777777778
     },
     "multi": {
       "clean": 1.0,
-      "10dB": 0.6111111111111112,
-      "5dB": 0.3888888888888889,
-      "0dB": 0.16666666666666666
+      "10dB": 0.7777777777777778,
+      "5dB": 0.6111111111111112,
+      "0dB": 0.2222222222222222
     }
   },
   "face_only": 1.0,
@@ -26,65 +26,90 @@
   "stage_a_flatness_sweep": {
     "0.45": {
       "speech_kept": 0.5,
-      "noise_rejected": 1.0
+      "noise_rejected": 1.0,
+      "speech_kept_10dB": 0.5,
+      "speech_kept_5dB": 0.16666666666666666,
+      "speech_kept_0dB": 0.0
     },
     "0.50": {
       "speech_kept": 0.6666666666666666,
-      "noise_rejected": 1.0
+      "noise_rejected": 1.0,
+      "speech_kept_10dB": 0.5,
+      "speech_kept_5dB": 0.5,
+      "speech_kept_0dB": 0.3333333333333333
     },
     "0.55": {
       "speech_kept": 1.0,
-      "noise_rejected": 0.6666666666666666
+      "noise_rejected": 0.6666666666666666,
+      "speech_kept_10dB": 0.8333333333333334,
+      "speech_kept_5dB": 0.5,
+      "speech_kept_0dB": 0.6666666666666666
     },
     "0.60": {
       "speech_kept": 1.0,
-      "noise_rejected": 0.3333333333333333
+      "noise_rejected": 0.3333333333333333,
+      "speech_kept_10dB": 0.8333333333333334,
+      "speech_kept_5dB": 0.8333333333333334,
+      "speech_kept_0dB": 0.8333333333333334
     },
     "0.65": {
       "speech_kept": 1.0,
-      "noise_rejected": 0.3333333333333333
+      "noise_rejected": 0.3333333333333333,
+      "speech_kept_10dB": 1.0,
+      "speech_kept_5dB": 0.8333333333333334,
+      "speech_kept_0dB": 0.8333333333333334
     },
     "0.70": {
       "speech_kept": 1.0,
-      "noise_rejected": 0.0
+      "noise_rejected": 0.0,
+      "speech_kept_10dB": 1.0,
+      "speech_kept_5dB": 1.0,
+      "speech_kept_0dB": 1.0
     },
     "0.80": {
       "speech_kept": 1.0,
-      "noise_rejected": 0.0
+      "noise_rejected": 0.0,
+      "speech_kept_10dB": 1.0,
+      "speech_kept_5dB": 1.0,
+      "speech_kept_0dB": 1.0
     }
   },
   "chosen_flatness": null,
+  "legacy_clean_speech_only_fallback": 0.55,
+  "stage_a_viable_ceiling_exists": false,
   "flatness_fallback_applied": true,
-  "applied_flatness": 0.55,
+  "flatness_disabled_deliberately": true,
+  "applied_flatness": 1.0,
   "stage_b_sweep": {
     "0.50": {
       "single_kept": 1.0,
-      "double_rejected": 0.16666666666666666
+      "double_rejected": 0.0
     },
     "0.55": {
       "single_kept": 1.0,
-      "double_rejected": 0.16666666666666666
+      "double_rejected": 0.0
     },
     "0.60": {
       "single_kept": 1.0,
-      "double_rejected": 0.16666666666666666
+      "double_rejected": 0.0
     },
     "0.65": {
       "single_kept": 1.0,
-      "double_rejected": 0.16666666666666666
+      "double_rejected": 0.0
     },
     "0.70": {
       "single_kept": 1.0,
-      "double_rejected": 0.16666666666666666
+      "double_rejected": 0.0
     },
     "0.75": {
       "single_kept": 0.6666666666666666,
-      "double_rejected": 0.3333333333333333
+      "double_rejected": 0.16666666666666666
     }
   },
   "chosen_tau": null,
-  "tau_fallback_applied": true,
-  "applied_tau": 0.0,
+  "tau_fallback_applied": false,
+  "tau_reenabled_fix_wave_1": true,
+  "applied_tau": 0.6,
   "gallery_gain": {
     "single_encoding": 1.0,
     "multi_encoding": 1.0,
@@ -119,14 +144,14 @@
   },
   "tuned_thresholds": {
     "voice_max_flatness": {
-      "old_default": 0.45,
-      "new_default": 0.55,
-      "measurement": "stage_a_flatness_sweep (fallback: no candidate ceiling met both the speech-kept and noise-rejected targets; kept >=99% of speech instead)"
+      "old_default": 0.55,
+      "new_default": 1.0,
+      "measurement": "Fix wave 1 (task-8-report.md): stage_a_flatness_sweep extended to measure noise-MIXED speech at 10dB/5dB/0dB (mix_party), not just clean speech vs pure noise beds (W8's original scope). Every ceiling that keeps most noise-mixed speech (0.70+) also rejects 0% of these 3 real party-noise beds, and every ceiling that rejects noise (<=0.50) also discards a real fraction of noise-mixed speech -- stage_a_viable_ceiling_exists=False confirms no swept candidate clears both floors at once across every SNR. This is a genuine negative result about the feature on this corpus, not a tuning gap, so voice_max_flatness is deliberately fixed at 1.0 (the top of flatness's bounded [0, 1] range, a mathematical no-op) rather than mechanically re-applying W8's clean-speech-only fallback (which would still pick 0.55, and measurably regresses noisy-SNR voice matching -- see known_limitations). Stage A's energy sub-check (2-of-3 windows >= MIN_SPEECH_RMS) is untouched."
     },
     "voice_consistency_tau": {
-      "old_default": 0.6,
-      "new_default": 0.0,
-      "measurement": "stage_b_sweep, measured with voice_max_flatness=0.55 already applied (fallback: no candidate tau met both Task 7 targets; Stage B disabled pending redesign)"
+      "old_default": 0.0,
+      "new_default": 0.6,
+      "measurement": "Fix wave 1 (task-8-report.md): reverses W8's fallback (no tau met the >=80% double_rejected / >=95% single_kept dual target -> disable Stage B). At tau=0.60 (stage_b_sweep, voice_max_flatness=1.00 already applied): single_kept=1.00 (zero false-rejects on genuine solo speech) and double_rejected=0.00 -- note this is measured with voice_max_flatness=1.0 (Fix wave 1), not W8's original 0.55, so it differs from W8's own reported 0.17: some two-speaker mixes W8's flatness sub-check happened to catch incidentally are no longer caught that way. Regardless of the exact figure, zero false-rejects on solo speech makes tau=0.60 harmless and strictly better than disabling the gate for no accuracy gain. The 0.80 target is very likely unreachable because mix_two_speakers overlaps both speakers continuously for the WHOLE chunk (known_limitations.double_speaker_mix_may_not_exercise_stage_b): Stage B detects a speaker CHANGE across the chunk's two halves, while this fixture is continuous overlap, so both halves look alike to it by construction -- a fixture gap, not a Stage B defect. Also, incidentally, back to the pre-W8 default."
     },
     "face_match_margin": {
       "old_default": 0.05,
@@ -165,8 +190,8 @@
     }
   },
   "known_limitations": {
-    "flatness_sweep_is_clean_speech_only": "stage_a_flatness_sweep compares CLEAN real-speech probes against PURE party-noise beds, never noise-MIXED-into-speech. Diagnostic during this task (see task-8-report.md) found Stage A's flatness sub-check, even at the retuned 0.55 ceiling, still rejects a real fraction of noisy chunks that clear it clean: 0/18 rejected at clean, rising to 3, 7, 6 of 18 at 10dB/5dB/0dB respectively -- the RMS sub-check never fails. This shows up as voice_only single/multi 10-0dB rows measurably BELOW results_baseline.json despite clean being fully restored to 100%. A follow-up sweep should test candidate ceilings against noise-mixed speech at party-realistic SNR directly, not clean speech alone.",
-    "double_speaker_mix_may_not_exercise_stage_b": "mix_two_speakers overlaps two full clips continuously for the whole chunk duration, which produced half-vs-half agreement of 0.72-0.79 for these 6 pairs -- squarely inside Task 7's own measured range for genuine SOLO speech (0.68-0.85). Stage B's half-vs-half check targets a chunk that changes character partway through (a speaker handoff, interruption); a continuous simultaneous overlap instead produces a stationary blended voiceprint that looks internally consistent to that check. This is believed to be why no tau reached 80% double_rejected, and is not evidence that Stage B's mechanism itself is implemented incorrectly. A turn-taking construction (first half = speaker A only, second half = speaker B only) would more directly probe what Stage B is designed to catch, but was not substituted here -- doing so now, after seeing this result, would be changing the test to fit the answer.",
+    "flatness_no_viable_ceiling_confirmed_with_noise_mixed_speech": "Fix wave 1 (task-8-report.md) closed the gap this note used to flag (previously named flatness_sweep_is_clean_speech_only): stage_a_flatness_sweep now ALSO measures noise-MIXED speech at 10dB/5dB/0dB per candidate ceiling (mix_party), not just clean speech vs pure noise beds. Result: every ceiling that keeps most noise-mixed speech (0.70+) also rejects 0% of these 3 real party-noise beds, and every ceiling that rejects noise (<=0.50) also discards a real fraction of noise-mixed speech -- there is no ceiling where both floors clear at once, across every SNR tested (stage_a_viable_ceiling_exists=False, see the extended sweep table above). This confirms, as a measured and checkable result rather than a diagnostic aside, that spectral flatness does not separate 'speech + party noise' from 'party noise' on this corpus. voice_max_flatness is therefore fixed at 1.0 (a mathematical no-op, since spectral flatness is bounded [0, 1]) rather than any candidate ceiling in the swept range -- W8's clean-speech-only fallback (0.55) is what regressed voice_only.multi to 61/39/17% at 10/5/0dB against a 83/67/44% baseline; disabling the check instead restores those rows (see the before/after table in task-8-report.md's Fix wave 1 section). Stage A's other half (the energy/RMS test) is untouched and still rejects silence/mostly-empty chunks. Follow-up: a better feature (Welch-averaged periodogram, or flatness computed only on the highest-energy window) could let this be re-enabled with a real ceiling.",
+    "double_speaker_mix_may_not_exercise_stage_b": "mix_two_speakers overlaps two full clips continuously for the whole chunk duration, which produced half-vs-half agreement of 0.72-0.79 for these 6 pairs -- squarely inside Task 7's own measured range for genuine SOLO speech (0.68-0.85). Stage B's half-vs-half check targets a chunk that changes character partway through (a speaker handoff, interruption); a continuous simultaneous overlap instead produces a stationary blended voiceprint that looks internally consistent to that check. This is believed to be why no tau reached 80% double_rejected, and is not evidence that Stage B's mechanism itself is implemented incorrectly. A turn-taking construction (first half = speaker A only, second half = speaker B only) would more directly probe what Stage B is designed to catch, but was not substituted here -- doing so now, after seeing this result, would be changing the test to fit the answer. Fix wave 1 (task-8-report.md) acted on this diagnosis: rather than leaving Stage B disabled pending a redesign of this fixture, voice_consistency_tau was restored to 0.60 (harmless at this corpus's measured single_kept=1.00, double_rejected=0.00 -- lower than W8's own reported 0.17 for this same tau, because this sweep now runs with voice_max_flatness=1.0 rather than W8's 0.55, so flatness is no longer incidentally catching a few of these mixes before Stage B ever sees them) because a fixture that cannot reach the 0.80 target by construction is not evidence the gate itself should be off. The follow-up (a mid-chunk speaker-change fixture, not continuous overlap) is still needed to actually test the 0.80 target.",
     "gallery_gain_ceiling_effect": "single_encoding and multi_encoding both measured 100% on this corpus, so the multi-encoding gallery could not demonstrate a gain -- there was no headroom left for it to fill. This corpus's cross-angle photos are evidently easy enough that one canonical front encoding already generalizes to every probed angle (Section B's face-only score is also 100% from a single enrolled pose). The gallery's mechanism (per-person minimum distance across multiple stored encodings) is unchanged and sound; a harder corpus (extreme profile angles, poor lighting) would be needed to measure an actual gain.",
     "margin_sweep_false_accept_never_rises": "false_accept measured 0% at every swept margin (0.00-0.12) -- these 6 real people's face encodings are apparently distinct enough that none of them are ever confused for another, at any margin tested. true_accept does fall (100% -> 83.3%) once the margin gets large enough to start rejecting a genuine match as ambiguous, showing margin has a real cost past a point, but the sweep cannot demonstrate the false_accept-reducing benefit the margin exists for on this corpus."
   }
