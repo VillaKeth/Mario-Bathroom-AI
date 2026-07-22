@@ -1611,12 +1611,66 @@ def mix_two_speakers(sig_a, sig_b, ratio_db=0.0):
     return mixed / peak * 0.95 if peak > 0 else mixed
 ```
 
-- [ ] **Step 3: Add the Stage B sweep**
+- [ ] **Step 3a: Add a public config override for tuning**
 
-Add a function that sweeps `voice_consistency_tau` against single-speaker (must pass) and two-speaker (must reject) chunks:
+The sweeps need to vary a tunable at runtime. Reaching into `recognition_config._cache` from the lab would couple it to a private attribute, so add a small public API to `server/recognition_config.py` instead:
 
 ```python
-def stage_b_sweep(speaker_id, people, source):
+def override(name: str, value):
+    """Force a tunable to `value` for the current process (tuning sweeps, tests).
+
+    Raises KeyError for an unknown tunable, same as get().
+    """
+    values = _load()
+    if name not in values:
+        raise KeyError(f"unknown recognition tunable: {name}")
+    values[name] = value
+
+
+def clear_overrides():
+    """Drop all overrides and re-read from config on next access."""
+    reset_cache()
+```
+
+Add a test to `tests/test_recognition_config.py` covering both — an override changes what `get` returns, `clear_overrides` restores the default, and an unknown name raises `KeyError`.
+
+- [ ] **Step 3b: Add the Stage A flatness sweep**
+
+**This is the highest-priority measurement in the task.** Task 7 found that the shipped `voice_max_flatness` of 0.45 false-rejects roughly 28% of genuine solo speech: real speech measures 0.45–0.57, overlapping the ceiling. A reviewer confirmed the flatness formula itself is mathematically correct, so the default is simply mis-calibrated. Left unchanged, Stage A silently discards a quarter of real voice input and voice ID regresses badly.
+
+Sweep it against real speech (must pass) and party noise (must reject):
+
+```python
+def stage_a_flatness_sweep(speaker_id, people, source, noise_bed):
+    """Choose voice_max_flatness from measured curves.
+
+    Reports, per candidate ceiling, the fraction of genuine solo-speech chunks kept
+    and the fraction of pure-noise chunks correctly rejected. Stage A costs no
+    embedding, so this sweep is cheap.
+    """
+    import recognition_config
+    speech = [probe_signal(p, source) for p in people]
+    noise = [noise_bed[:len(speech[0])] for _ in people]
+
+    out = {}
+    for ceiling in (0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.80):
+        recognition_config.override("voice_max_flatness", ceiling)
+        kept = sum(1 for s in speech if speaker_id.stage_a_ok(to_pcm16(s)))
+        rejected = sum(1 for n in noise if not speaker_id.stage_a_ok(to_pcm16(n)))
+        out[f"{ceiling:.2f}"] = {
+            "speech_kept": kept / max(len(speech), 1),
+            "noise_rejected": rejected / max(len(noise), 1),
+        }
+    recognition_config.clear_overrides()
+    return out
+```
+
+- [ ] **Step 3c: Add the Stage B sweep**
+
+Sweeps `voice_consistency_tau` against single-speaker (must pass) and two-speaker (must reject) chunks. Run this AFTER choosing the flatness ceiling, and set the chosen ceiling first — otherwise Stage A rejects a quarter of the singles before Stage B sees them and the tau curve is measured on a biased sample:
+
+```python
+def stage_b_sweep(speaker_id, people, source, chosen_flatness):
     """Pick tau from measured curves rather than assumption.
 
     Reports, per candidate tau, the fraction of genuine single-speaker chunks kept
@@ -1630,9 +1684,8 @@ def stage_b_sweep(speaker_id, people, source):
 
     out = {}
     for tau in (0.50, 0.55, 0.60, 0.65, 0.70, 0.75):
-        recognition_config.reset_cache()
-        recognition_config._cache = dict(recognition_config.DEFAULTS)
-        recognition_config._cache["voice_consistency_tau"] = tau
+        recognition_config.override("voice_max_flatness", chosen_flatness)
+        recognition_config.override("voice_consistency_tau", tau)
 
         kept = sum(1 for s in singles
                    if speaker_id.get_embedding(to_pcm16(s).tobytes()) is not None)
@@ -1642,7 +1695,7 @@ def stage_b_sweep(speaker_id, people, source):
             "single_kept": kept / max(len(singles), 1),
             "double_rejected": rejected / max(len(doubles), 1),
         }
-    recognition_config.reset_cache()
+    recognition_config.clear_overrides()
     return out
 ```
 
@@ -1687,9 +1740,7 @@ def margin_sweep(FaceMemory, people):
 
     out = {}
     for margin in (0.00, 0.03, 0.05, 0.08, 0.12):
-        recognition_config.reset_cache()
-        recognition_config._cache = dict(recognition_config.DEFAULTS)
-        recognition_config._cache["face_match_margin"] = margin
+        recognition_config.override("face_match_margin", margin)
 
         mem = FaceMemory(tmp_db("margin", f"{margin:.2f}".replace(".", "")))
         for person in people:
@@ -1710,7 +1761,7 @@ def margin_sweep(FaceMemory, people):
         denominator = max(len(eligible), 1)
         out[f"{margin:.2f}"] = {"true_accept": true_accept / denominator,
                                 "false_accept": false_accept / denominator}
-    recognition_config.reset_cache()
+    recognition_config.clear_overrides()
     return out
 ```
 
@@ -1753,10 +1804,26 @@ Import the two server modules the new blocks need at the top of `main()` (the la
     from face_memory import FaceMemory
     import face_enrollment
 
-    results["stage_b_sweep"] = stage_b_sweep(speaker_id, people, source)
+    results["stage_a_flatness_sweep"] = stage_a_flatness_sweep(
+        speaker_id, people, source, noise_bed)
+    chosen_flatness = pick_flatness_ceiling(results["stage_a_flatness_sweep"])
+    results["chosen_flatness"] = chosen_flatness
+    results["stage_b_sweep"] = stage_b_sweep(speaker_id, people, source, chosen_flatness)
     results["gallery_gain"] = gallery_gain(FaceMemory, people)
     results["margin_sweep"] = margin_sweep(FaceMemory, people)
     results["group_enrollment"] = group_enrollment_check(face_enrollment, FaceMemory, people)
+```
+
+`noise_bed` is the party-noise signal the existing lab already loads for its SNR mixing — reuse it rather than loading a second copy. `pick_flatness_ceiling` selects the lowest ceiling that keeps at least 95% of real speech while still rejecting at least 80% of pure noise:
+
+```python
+def pick_flatness_ceiling(sweep, min_speech_kept=0.95, min_noise_rejected=0.80):
+    """Lowest ceiling meeting both targets; None if no candidate does."""
+    for ceiling in sorted(sweep, key=float):
+        row = sweep[ceiling]
+        if row["speech_kept"] >= min_speech_kept and row["noise_rejected"] >= min_noise_rejected:
+            return float(ceiling)
+    return None
 ```
 
 - [ ] **Step 7: Run the lab and record the numbers**
@@ -1767,8 +1834,11 @@ Expected: completes and rewrites `tests/recognition_lab/results.json` with the n
 Then verify against the spec's acceptance criteria:
 - `group_enrollment.single_unknown_enrolled` is `true` and `group_enrollment.group_enrolled_nobody` is `true` (Task 1).
 - `gallery_gain.multi_encoding` exceeds `gallery_gain.single_encoding` (Task 3).
+- **`chosen_flatness` is not `None`** — some ceiling keeps ≥95% of real speech while rejecting ≥80% of pure noise (Task 7's 28%-false-reject finding).
 - Some tau in `stage_b_sweep` reaches `double_rejected >= 0.80` while `single_kept >= 0.95` (Task 7 target: reject 80% of two-speaker chunks, false-reject at most 5% of genuine ones).
 - `margin_sweep` shows a margin where `false_accept` drops without `true_accept` collapsing (Task 4).
+
+If `chosen_flatness` comes back `None`, no ceiling separates speech from noise on this metric. Do NOT relax the targets to manufacture a pass. Report it, and set `voice_max_flatness` to a value that keeps ≥99% of speech (effectively disabling Stage A's flatness test while leaving its energy test intact) — Stage B is the load-bearing half of the gate and had zero false rejects in Task 7's probe.
 
 - [ ] **Step 8: Set the tuned thresholds**
 
