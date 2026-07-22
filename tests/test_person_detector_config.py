@@ -33,3 +33,33 @@ def test_frame_skip_defaults_to_class_constant():
 
 def test_frame_skip_is_configurable():
     assert PersonDetector(frame_skip=1).frame_skip == 1
+
+
+def test_ultra_tier_selects_cnn():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("ultra", None) == "cnn"
+
+
+def test_high_tier_selects_cnn():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("high", None) == "cnn"
+
+
+def test_low_tier_selects_hog():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("low", None) == "hog"
+
+
+def test_medium_tier_selects_hog():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("medium", None) == "hog"
+
+
+def test_env_override_wins_over_tier():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("ultra", "hog") == "hog"
+
+
+def test_unknown_tier_falls_back_to_hog():
+    from client.person_detector import resolve_detector_model
+    assert resolve_detector_model("banana", None) == "hog"

@@ -40,6 +40,33 @@ except ImportError:
     )
 
 
+# Tiers that can afford the GPU-backed CNN face detector. `hardware.get_tier()`
+# returns ultra/high/medium/low (four tiers, lowercase). The party box (24GB VRAM,
+# 256GB RAM, 64 cores) resolves to "ultra"; the P1000 dev box resolves to "low".
+_CNN_TIERS = ("ultra", "high")
+
+
+def resolve_detector_model(tier: str, env_override: Optional[str] = None) -> str:
+    """Pick the dlib face detector for a hardware tier. Env override always wins."""
+    if env_override:
+        return env_override
+    return "cnn" if tier in _CNN_TIERS else "hog"
+
+
+def _detect_tier() -> str:
+    """Best-effort hardware tier. The client may not have server/ importable."""
+    try:
+        import sys as _sys
+        _server_dir = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "server")
+        if _server_dir not in _sys.path:
+            _sys.path.insert(0, _server_dir)
+        from hardware import get_tier
+        return get_tier()
+    except Exception:
+        return "low"
+
+
 class DetectedPerson:
     """A person detected in a frame."""
     __slots__ = ("bbox", "confidence", "face_encoding", "face_location", "face_quality")
@@ -103,7 +130,7 @@ class PersonDetector:
 
     def __init__(self, yolo_model: str = "yolov8n.pt", face_detector_model: str = None,
                  match_tolerance: float = None, yolo_confidence: float = None,
-                 frame_skip: int = None):
+                 frame_skip: int = None, hardware_tier: str = None):
         self._yolo_model_name = yolo_model
         self._yolo = None
         self._frame_count = 0
@@ -115,7 +142,9 @@ class PersonDetector:
         # model can be raised to "cnn" on a GPU box (e.g. the RTX 3090 party machine)
         # for much better detection of non-frontal / low-light faces at the doorway.
         # Override in code or via env: FACE_DETECTOR_MODEL / FACE_MATCH_TOLERANCE.
-        self.face_detector_model = face_detector_model or os.environ.get("FACE_DETECTOR_MODEL", "hog")
+        self.hardware_tier = hardware_tier or _detect_tier()
+        self.face_detector_model = face_detector_model or resolve_detector_model(
+            self.hardware_tier, os.environ.get("FACE_DETECTOR_MODEL"))
         if match_tolerance is None:
             match_tolerance = float(os.environ.get("FACE_MATCH_TOLERANCE", self.FACE_MATCH_TOLERANCE))
         self.match_tolerance = match_tolerance
@@ -125,6 +154,10 @@ class PersonDetector:
         # W3: enrollment quality thresholds (env-overridable for field tuning)
         self.min_box_px = int(os.environ.get("FACE_MIN_BOX_PX", "80"))
         self.min_sharpness = float(os.environ.get("FACE_MIN_SHARPNESS", "40.0"))
+
+        # W5: run every frame while someone is at the door, back off when idle.
+        self._last_person_ts = 0.0
+        self.person_active_window = float(os.environ.get("PERSON_ACTIVE_WINDOW", "2.0"))
 
         if DEBUG_PERSON:
             logger.info(f"[person_detector] init: yolo={yolo_model} detector={self.face_detector_model} "
@@ -146,8 +179,13 @@ class PersonDetector:
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0 or frame.ndim < 2:
             return []
 
+        # W5: while a person was seen recently, examine every frame — more chances
+        # at a good frontal capture. Fall back to the idle cadence after the window.
+        now = time.time()
+        effective_skip = 1 if (now - self._last_person_ts) < self.person_active_window \
+            else self.frame_skip
         self._frame_count += 1
-        if self._frame_count % self.frame_skip != 0:
+        if effective_skip > 1 and self._frame_count % effective_skip != 0:
             return []
 
         try:
@@ -169,6 +207,8 @@ class PersonDetector:
                     if _face_rec_available:
                         person.face_encoding, person.face_quality = self._encode_face(frame, person.bbox)
                     people.append(person)
+            if people:
+                self._last_person_ts = now
             return people
         except Exception as e:
             logger.error(f"[person_detector] detect error: {e}")
