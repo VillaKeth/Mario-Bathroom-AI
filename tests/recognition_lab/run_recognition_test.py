@@ -68,6 +68,48 @@ def label(snr):
     return "clean" if snr is None else f"{snr}dB"
 
 
+def to_pcm16_array(x):
+    """int16 ndarray view of a float signal — what stage_a_ok expects.
+
+    Not the same as to_pcm16(): that returns bytes for get_embedding /
+    identify_speaker, which decode PCM bytes themselves. stage_a_ok takes the
+    decoded ndarray directly (see server/speaker_id.py's own
+    `np.frombuffer(audio_data, dtype=np.int16)` call before it invokes stage_a_ok).
+    """
+    return np.frombuffer(to_pcm16(x), dtype=np.int16)
+
+
+def tmp_db(*parts):
+    """Fresh scratch SQLite path under the lab dir (removed if it already exists)."""
+    path = os.path.join(HERE, "_tmp", "_".join(str(p) for p in parts) + ".db")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path):
+        os.remove(path)
+    return path
+
+
+def face_files(person, role=None):
+    """Absolute paths of a person's encodable face images, optionally by role."""
+    return [abspath(f["file"]) for f in person.get("faces", [])
+            if f.get("encodes") and (role is None or f.get("role") == role)]
+
+
+def probe_signal(person, source, index=0):
+    """Load one probe utterance for a person as a float signal."""
+    _enroll_files, probe_files = voice_block(person, source)
+    return load_float(abspath(probe_files[index]))
+
+
+def mix_two_speakers(sig_a, sig_b, ratio_db=0.0):
+    """Overlap two speakers at a given level ratio — the chunk Stage B must reject."""
+    n = min(len(sig_a), len(sig_b))
+    a, b = sig_a[:n], sig_b[:n]
+    gain = 10 ** (ratio_db / 20.0)
+    mixed = a + gain * b * (rms(a) / max(rms(b), 1e-9))
+    peak = np.max(np.abs(mixed))
+    return mixed / peak * 0.95 if peak > 0 else mixed
+
+
 # ----------------------------- face helpers ------------------------------
 def face_encoding(path):
     import face_recognition
@@ -77,6 +119,11 @@ def face_encoding(path):
         locs = face_recognition.face_locations(img, model="hog", number_of_times_to_upsample=2)
     encs = face_recognition.face_encodings(img, locs) if locs else []
     return encs[0] if encs else None
+
+
+def _person_views(person):
+    """Encoded face views for a person, skipping images dlib cannot encode."""
+    return [e for e in (face_encoding(p) for p in face_files(person)) if e is not None]
 
 
 # ----------------------------- library load ------------------------------
@@ -109,13 +156,26 @@ def reset_speakers(speaker_id):
 
 
 def enroll_voices(speaker_id, people, source, mode):
+    """Enroll every person's voice. Tolerates a person whose enroll clip(s) get
+    rejected by Stage A/B (get_embedding returns None / register_speaker* raises
+    ValueError) rather than crashing the whole lab run — this is a REAL, measured
+    outcome at the shipped voice_max_flatness=0.45 default (see task-8-report.md:
+    Ben/Dan/Eli's primary enroll clip measure 0.45-0.57 flatness, over the ceiling;
+    Eli's all three enroll clips are rejected, so even multi-mode enrollment fails
+    for him at the old default), not a bug in this lab script. An unenrolled
+    person simply shows 0% match for every SNR level in the curve that follows,
+    which honestly reflects the party-night failure Task 8 exists to fix.
+    """
     for p in people:
         enroll_files, _ = voice_block(p, source)
         chunks = [to_pcm16(load_float(abspath(f))) for f in enroll_files]
-        if mode == "multi":
-            speaker_id.register_speaker_multi(p["name"], chunks)
-        else:
-            speaker_id.register_speaker(p["name"], chunks[0])
+        try:
+            if mode == "multi":
+                speaker_id.register_speaker_multi(p["name"], chunks)
+            else:
+                speaker_id.register_speaker(p["name"], chunks[0])
+        except ValueError as e:
+            print(f"  [enroll_voices] {mode}-mode enroll FAILED for {p['name']}: {e}")
 
 
 def voice_only_curve(speaker_id, people, source, beds):
@@ -132,6 +192,229 @@ def voice_only_curve(speaker_id, people, source, beds):
                 correct += 1 if info["name"] == p["name"] else 0
         acc[label(snr)] = (correct, total)
     return acc
+
+
+# ----------------------------- W8: threshold sweeps -----------------------
+# Every function below is deliberately side-effect-isolated via
+# recognition_config.override(...) / clear_overrides() (Task 8, Step 3a) rather
+# than reaching into recognition_config._cache directly.
+def stage_a_flatness_sweep(speaker_id, people, source, beds):
+    """Choose voice_max_flatness from measured curves.
+
+    Reports, per candidate ceiling, the fraction of genuine solo-speech chunks kept
+    and the fraction of pure-noise chunks correctly rejected. Stage A costs no
+    embedding, so this sweep is cheap.
+
+    `beds` is the lab's existing list of party-noise beds (see `main()` — there is
+    no single `noise_bed` signal in this file, only the `beds` list already loaded
+    for SNR mixing); a same-length slice is drawn from a cycled bed per person
+    rather than always reusing bed[0], so the sweep exercises more than one noise
+    recording.
+    """
+    import recognition_config
+    speech = [probe_signal(p, source) for p in people]
+    noise = [beds[i % len(beds)][:len(speech[i])] if beds else np.zeros(len(speech[i]))
+             for i in range(len(people))]
+
+    out = {}
+    for ceiling in (0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.80):
+        recognition_config.override("voice_max_flatness", ceiling)
+        kept = sum(1 for s in speech if speaker_id.stage_a_ok(to_pcm16_array(s)))
+        rejected = sum(1 for n in noise if not speaker_id.stage_a_ok(to_pcm16_array(n)))
+        out[f"{ceiling:.2f}"] = {
+            "speech_kept": kept / max(len(speech), 1),
+            "noise_rejected": rejected / max(len(noise), 1),
+        }
+    recognition_config.clear_overrides()
+    return out
+
+
+def pick_flatness_ceiling(sweep, min_speech_kept=0.95, min_noise_rejected=0.80):
+    """Lowest ceiling meeting both targets; None if no candidate does."""
+    for ceiling in sorted(sweep, key=float):
+        row = sweep[ceiling]
+        if row["speech_kept"] >= min_speech_kept and row["noise_rejected"] >= min_noise_rejected:
+            return float(ceiling)
+    return None
+
+
+def pick_flatness_fallback(sweep, min_speech_kept=0.99):
+    """Lowest swept ceiling keeping >=99% of speech, ignoring noise rejection.
+
+    Documented fallback (task resolution) for when pick_flatness_ceiling finds no
+    ceiling meeting both targets: keep Stage A's energy test but effectively
+    disable its flatness test rather than false-reject real speech. Returns None
+    if no swept candidate reaches even this looser bar, in which case the caller
+    falls back further to a ceiling above flatness's [0, 1] range.
+    """
+    for ceiling in sorted(sweep, key=float):
+        if sweep[ceiling]["speech_kept"] >= min_speech_kept:
+            return float(ceiling)
+    return None
+
+
+def stage_b_sweep(speaker_id, people, source, chosen_flatness):
+    """Pick tau from measured curves rather than assumption.
+
+    Reports, per candidate tau, the fraction of genuine single-speaker chunks kept
+    and the fraction of two-speaker chunks correctly rejected. Must run AFTER
+    choosing the flatness ceiling, with `chosen_flatness` held constant throughout
+    — otherwise Stage A rejects a biased subset of the singles before Stage B ever
+    sees them and the tau curve is measured on a skewed sample.
+    """
+    import recognition_config
+    singles = [probe_signal(p, source) for p in people]
+    doubles = [mix_two_speakers(probe_signal(people[i], source),
+                                probe_signal(people[(i + 1) % len(people)], source))
+               for i in range(len(people))]
+
+    out = {}
+    for tau in (0.50, 0.55, 0.60, 0.65, 0.70, 0.75):
+        recognition_config.override("voice_max_flatness", chosen_flatness)
+        recognition_config.override("voice_consistency_tau", tau)
+
+        kept = sum(1 for s in singles
+                   if speaker_id.get_embedding(to_pcm16(s)) is not None)
+        rejected = sum(1 for d in doubles
+                       if speaker_id.get_embedding(to_pcm16(d)) is None)
+        out[f"{tau:.2f}"] = {
+            "single_kept": kept / max(len(singles), 1),
+            "double_rejected": rejected / max(len(doubles), 1),
+        }
+    recognition_config.clear_overrides()
+    return out
+
+
+def pick_tau(sweep, min_single_kept=0.95, min_double_rejected=0.80):
+    """Highest tau meeting Task 7's dual target (>=80% double-speaker rejection,
+    >=95% single-speaker kept i.e. <=5% false-reject); None if none do.
+
+    Higher tau is stricter (more double-rejected, less single-kept) — the mirror
+    image of pick_flatness_ceiling, where lower is stricter — so the knee here is
+    the HIGHEST tau that still clears both floors, maximizing double-speaker
+    rejection without giving up the false-reject budget.
+    """
+    candidates = [float(t) for t in sweep
+                  if sweep[t]["single_kept"] >= min_single_kept
+                  and sweep[t]["double_rejected"] >= min_double_rejected]
+    return max(candidates) if candidates else None
+
+
+def gallery_gain(FaceMemory, people, views_by_person):
+    """Cross-view match rate with a single encoding vs the multi-view gallery.
+
+    `views_by_person` (slug -> list of encodings) is computed once by the caller
+    and shared with margin_sweep/group_enrollment_check — dlib encoding is the
+    lab's single most expensive step (~1s/image), and each of these three
+    functions needs the same encodings, so computing them three times would
+    triple that cost for no measurement benefit.
+    """
+    single_hits = 0
+    gallery_hits = 0
+    eligible = 0
+    for person in people:
+        views = views_by_person[person["slug"]]
+        if len(views) < 2:
+            continue
+        eligible += 1
+
+        mem_single = FaceMemory(tmp_db("single", person["slug"]))
+        mem_single.learn_guest(person["name"], views[0])
+        single_hits += 1 if mem_single.find_match(views[-1]) else 0
+
+        mem_gallery = FaceMemory(tmp_db("gallery", person["slug"]))
+        for view in views[:-1]:
+            mem_gallery.learn_guest(person["name"], view)
+        gallery_hits += 1 if mem_gallery.find_match(views[-1]) else 0
+
+    return {"single_encoding": single_hits / max(eligible, 1),
+            "multi_encoding": gallery_hits / max(eligible, 1),
+            "eligible_people": eligible}
+
+
+def margin_sweep(FaceMemory, people, views_by_person):
+    """True-accept vs false-accept as face_match_margin varies. Pick the knee."""
+    import recognition_config
+    eligible = [p for p in people if len(views_by_person[p["slug"]]) >= 2]
+
+    out = {}
+    for margin in (0.00, 0.03, 0.05, 0.08, 0.12):
+        recognition_config.override("face_match_margin", margin)
+
+        mem = FaceMemory(tmp_db("margin", f"{margin:.2f}".replace(".", "")))
+        for person in people:
+            views = views_by_person[person["slug"]]
+            if views:
+                mem.learn_guest(person["name"], views[0])
+
+        true_accept = 0
+        false_accept = 0
+        for person in eligible:
+            probe = views_by_person[person["slug"]][-1]
+            got = (mem.find_match(probe) or {}).get("name")
+            if got == person["name"]:
+                true_accept += 1
+            elif got is not None:
+                false_accept += 1
+
+        denominator = max(len(eligible), 1)
+        out[f"{margin:.2f}"] = {"true_accept": true_accept / denominator,
+                                "false_accept": false_accept / denominator}
+    recognition_config.clear_overrides()
+    return out
+
+
+def pick_margin(sweep, shipped_default=0.05):
+    """Pick face_match_margin from the measured true/false-accept curve.
+
+    Decision rule (fixed before this task's data was seen, so the sweep can only
+    confirm or move the default, never be reverse-engineered to fit one):
+    if the shipped default already reaches the sweep's lowest observed
+    false-accept rate, it is already the knee — keep it. Otherwise, move to the
+    smallest margin that reaches that same lowest false-accept rate without
+    costing any true-accepts relative to the shipped default.
+    """
+    key = f"{shipped_default:.2f}"
+    if key not in sweep:
+        return shipped_default
+    shipped_false_accept = sweep[key]["false_accept"]
+    shipped_true_accept = sweep[key]["true_accept"]
+    min_false_accept = min(row["false_accept"] for row in sweep.values())
+
+    if shipped_false_accept <= min_false_accept:
+        return shipped_default
+
+    for m in sorted((float(k) for k in sweep), key=float):
+        row = sweep[f"{m:.2f}"]
+        if row["false_accept"] <= min_false_accept and row["true_accept"] >= shipped_true_accept:
+            return m
+    return shipped_default
+
+
+def group_enrollment_check(face_enrollment, FaceMemory, people, views_by_person):
+    """W1 end-to-end: 1 unknown face enrolls, 2+ enroll nobody."""
+    encs = []
+    for person in people:
+        views = views_by_person[person["slug"]]
+        if views:
+            encs.append(views[0])
+        if len(encs) == 3:
+            break
+    if len(encs) < 3:
+        return {"skipped": "need 3 encodable people"}
+
+    mem_one = FaceMemory(tmp_db("group", "one"))
+    face_enrollment.resolve_faces([{"encoding": encs[0].tolist(), "quality": 1.0}],
+                                  mem_one, "Jacob")
+
+    mem_many = FaceMemory(tmp_db("group", "many"))
+    face_enrollment.resolve_faces([{"encoding": e.tolist(), "quality": 1.0} for e in encs],
+                                  mem_many, "Jacob")
+
+    return {
+        "single_unknown_enrolled": mem_one.find_match(encs[0]) is not None,
+        "group_enrolled_nobody": all(mem_many.find_match(e) is None for e in encs),
+    }
 
 
 # ----------------------------- main --------------------------------------
@@ -284,6 +567,193 @@ def main():
     results["imposter"] = {"face_false": face_false, "face_total": face_total,
                            "voice_false": voice_false, "voice_total": voice_total}
 
+    # ---- E. STAGE A flatness sweep (voice_max_flatness) ----
+    # Highest-priority measurement in this task (see task-8-brief.md): Task 7 found
+    # the shipped 0.45 ceiling false-rejects ~28% of genuine solo speech. Must run
+    # BEFORE the Stage B tau sweep, and its chosen ceiling held constant during that
+    # sweep, or Stage A biases which "single" chunks reach Stage B at all.
+    print("\n== E. STAGE A flatness sweep (voice_max_flatness) ==")
+    results["stage_a_flatness_sweep"] = stage_a_flatness_sweep(speaker_id, people, source, beds)
+    for ceiling, row in results["stage_a_flatness_sweep"].items():
+        print(f"  ceiling {ceiling}: speech_kept={row['speech_kept']*100:5.1f}%  "
+              f"noise_rejected={row['noise_rejected']*100:5.1f}%")
+
+    chosen_flatness = pick_flatness_ceiling(results["stage_a_flatness_sweep"])
+    results["chosen_flatness"] = chosen_flatness
+    if chosen_flatness is not None:
+        applied_flatness = chosen_flatness
+        results["flatness_fallback_applied"] = False
+        print(f"  -> chosen_flatness = {chosen_flatness:.2f} "
+              f"(>=95% speech_kept AND >=80% noise_rejected)")
+    else:
+        fallback = pick_flatness_fallback(results["stage_a_flatness_sweep"])
+        applied_flatness = fallback if fallback is not None else 1.01
+        results["flatness_fallback_applied"] = True
+        print(f"  -> NO ceiling met both targets. Applying documented fallback: "
+              f"{applied_flatness:.2f} (keeps >=99% of speech; Stage A energy test "
+              f"stays active, only the flatness sub-check is effectively disabled)")
+    results["applied_flatness"] = applied_flatness
+
+    # ---- F. STAGE B tau sweep (voice_consistency_tau) ----
+    # Run AFTER E, with the chosen/applied flatness ceiling held constant.
+    print("\n== F. STAGE B tau sweep (voice_consistency_tau) ==")
+    results["stage_b_sweep"] = stage_b_sweep(speaker_id, people, source, applied_flatness)
+    for tau, row in results["stage_b_sweep"].items():
+        print(f"  tau {tau}: single_kept={row['single_kept']*100:5.1f}%  "
+              f"double_rejected={row['double_rejected']*100:5.1f}%")
+
+    chosen_tau = pick_tau(results["stage_b_sweep"])
+    results["chosen_tau"] = chosen_tau
+    if chosen_tau is not None:
+        applied_tau = chosen_tau
+        results["tau_fallback_applied"] = False
+        print(f"  -> chosen_tau = {chosen_tau:.2f} "
+              f"(>=80% double_rejected AND >=95% single_kept)")
+    else:
+        applied_tau = 0.0
+        results["tau_fallback_applied"] = True
+        print("  -> NO tau met both Task 7 targets. Disabling Stage B "
+              "(voice_consistency_tau=0.0, accepts everything) pending redesign.")
+    results["applied_tau"] = applied_tau
+
+    # views_by_person is computed once (dlib encoding is the lab's slowest step)
+    # and shared across G/H/I below.
+    print("\n[encoding face views for G/H/I -- shared across the three checks]")
+    views_by_person = {p["slug"]: _person_views(p) for p in people}
+
+    # ---- G. Face gallery gain (single vs multi-encoding, Task 3) ----
+    print("\n== G. Face gallery gain (single-encoding vs multi-encoding gallery) ==")
+    results["gallery_gain"] = gallery_gain(FaceMemory, people, views_by_person)
+    gg = results["gallery_gain"]
+    print(f"  single_encoding={gg['single_encoding']*100:.0f}%  "
+          f"multi_encoding={gg['multi_encoding']*100:.0f}%  "
+          f"(eligible people={gg['eligible_people']})")
+
+    # ---- H. Face margin sweep (face_match_margin, Task 4) ----
+    print("\n== H. Face margin sweep (face_match_margin) ==")
+    results["margin_sweep"] = margin_sweep(FaceMemory, people, views_by_person)
+    for margin, row in results["margin_sweep"].items():
+        print(f"  margin {margin}: true_accept={row['true_accept']*100:5.1f}%  "
+              f"false_accept={row['false_accept']*100:5.1f}%")
+    chosen_margin = pick_margin(results["margin_sweep"])
+    results["chosen_margin"] = chosen_margin
+    print(f"  -> chosen_margin = {chosen_margin:.2f}")
+
+    # ---- I. Group enrollment, end-to-end fail-closed check (Task 1) ----
+    print("\n== I. Group enrollment (fail-closed check) ==")
+    results["group_enrollment"] = group_enrollment_check(face_enrollment, FaceMemory, people, views_by_person)
+    print(f"  {results['group_enrollment']}")
+
+    # ---- tuned_thresholds: what changed (or was confirmed), and why ----
+    results["tuned_thresholds"] = {
+        "voice_max_flatness": {
+            "old_default": 0.45,
+            "new_default": applied_flatness,
+            "measurement": "stage_a_flatness_sweep" + (
+                "" if not results["flatness_fallback_applied"]
+                else " (fallback: no candidate ceiling met both the speech-kept and "
+                     "noise-rejected targets; kept >=99% of speech instead)"),
+        },
+        "voice_consistency_tau": {
+            "old_default": 0.60,
+            "new_default": applied_tau,
+            "measurement": "stage_b_sweep, measured with voice_max_flatness="
+                           f"{applied_flatness:.2f} already applied" + (
+                "" if not results["tau_fallback_applied"]
+                else " (fallback: no candidate tau met both Task 7 targets; "
+                     "Stage B disabled pending redesign)"),
+        },
+        "face_match_margin": {
+            "old_default": 0.05,
+            "new_default": chosen_margin,
+            "measurement": "margin_sweep" + (
+                " (shipped default was already the knee: no swept margin lowered "
+                "false_accept further without cost to true_accept)"
+                if chosen_margin == 0.05 else ""),
+        },
+        "voice_match_margin": {
+            "old_default": 0.06,
+            "new_default": 0.06,
+            "measurement": "not swept in this task (no voice-margin sweep helper in "
+                           "scope); retained at its Task 4 default.",
+        },
+        "face_match_tolerance": {
+            "old_default": 0.6, "new_default": 0.6,
+            "measurement": "not swept in this task; retained at its Task 7 default.",
+        },
+        "face_min_box_px": {
+            "old_default": 80, "new_default": 80,
+            "measurement": "not swept in this task; retained at its Task 3 default.",
+        },
+        "face_min_sharpness": {
+            "old_default": 40.0, "new_default": 40.0,
+            "measurement": "not swept in this task; retained at its Task 3 default.",
+        },
+        "face_min_quality": {
+            "old_default": 0.5, "new_default": 0.5,
+            "measurement": "not swept in this task; retained at its Task 3 default.",
+        },
+        "gallery_max_per_person": {
+            "old_default": 5, "new_default": 5,
+            "measurement": "gallery_gain validates the gallery's cross-view gain, not "
+                           "the cap value itself; retained at its Task 3 default.",
+        },
+    }
+
+    # ---- known_limitations: measured caveats a reader of the numbers above
+    # should not miss, captured here (not just in a chat log) so they survive
+    # to the next person who picks this lab up. None of these were "fixed" by
+    # retuning past what the specified sweep actually produced.
+    results["known_limitations"] = {
+        "flatness_sweep_is_clean_speech_only": (
+            "stage_a_flatness_sweep compares CLEAN real-speech probes against PURE "
+            "party-noise beds, never noise-MIXED-into-speech. Diagnostic during this "
+            "task (see task-8-report.md) found Stage A's flatness sub-check, even at "
+            "the retuned 0.55 ceiling, still rejects a real fraction of noisy chunks "
+            "that clear it clean: 0/18 rejected at clean, rising to 3, 7, 6 of 18 at "
+            "10dB/5dB/0dB respectively -- the RMS sub-check never fails. This shows up "
+            "as voice_only single/multi 10-0dB rows measurably BELOW "
+            "results_baseline.json despite clean being fully restored to 100%. A "
+            "follow-up sweep should test candidate ceilings against noise-mixed speech "
+            "at party-realistic SNR directly, not clean speech alone."
+        ),
+        "double_speaker_mix_may_not_exercise_stage_b": (
+            "mix_two_speakers overlaps two full clips continuously for the whole "
+            "chunk duration, which produced half-vs-half agreement of 0.72-0.79 for "
+            "these 6 pairs -- squarely inside Task 7's own measured range for genuine "
+            "SOLO speech (0.68-0.85). Stage B's half-vs-half check targets a chunk "
+            "that changes character partway through (a speaker handoff, interruption); "
+            "a continuous simultaneous overlap instead produces a stationary blended "
+            "voiceprint that looks internally consistent to that check. This is "
+            "believed to be why no tau reached 80% double_rejected, and is not "
+            "evidence that Stage B's mechanism itself is implemented incorrectly. A "
+            "turn-taking construction (first half = speaker A only, second half = "
+            "speaker B only) would more directly probe what Stage B is designed to "
+            "catch, but was not substituted here -- doing so now, after seeing this "
+            "result, would be changing the test to fit the answer."
+        ),
+        "gallery_gain_ceiling_effect": (
+            "single_encoding and multi_encoding both measured 100% on this corpus, so "
+            "the multi-encoding gallery could not demonstrate a gain -- there was no "
+            "headroom left for it to fill. This corpus's cross-angle photos are "
+            "evidently easy enough that one canonical front encoding already "
+            "generalizes to every probed angle (Section B's face-only score is also "
+            "100% from a single enrolled pose). The gallery's mechanism (per-person "
+            "minimum distance across multiple stored encodings) is unchanged and "
+            "sound; a harder corpus (extreme profile angles, poor lighting) would be "
+            "needed to measure an actual gain."
+        ),
+        "margin_sweep_false_accept_never_rises": (
+            "false_accept measured 0% at every swept margin (0.00-0.12) -- these 6 "
+            "real people's face encodings are apparently distinct enough that none of "
+            "them are ever confused for another, at any margin tested. true_accept "
+            "does fall (100% -> 83.3%) once the margin gets large enough to start "
+            "rejecting a genuine match as ambiguous, showing margin has a real cost "
+            "past a point, but the sweep cannot demonstrate the false_accept-reducing "
+            "benefit the margin exists for on this corpus."
+        ),
+    }
+
     # ---- summary ----
     print("\n" + "=" * 60 + "\nSUMMARY  (voice source: " + source.upper() + ")")
     vs = results["voice_only"]
@@ -293,6 +763,14 @@ def main():
     print(f"  Voice+Face fused  : {results['voice_face_fused']*100:.0f}%")
     print(f"  Cross-modal enroll: {'works' if results['cross_modal_enroll'] else 'FAILED'}")
     print(f"  Imposter false-acc: face {face_false}/{face_total}  voice {voice_false}/{voice_total}")
+    print(f"  Chosen flatness   : {applied_flatness:.2f}"
+          f"{' (fallback)' if results['flatness_fallback_applied'] else ''}")
+    print(f"  Chosen tau        : {applied_tau:.2f}"
+          f"{' (fallback: Stage B disabled)' if results['tau_fallback_applied'] else ''}")
+    print(f"  Chosen face margin: {chosen_margin:.2f}")
+    print(f"  Gallery gain      : single {gg['single_encoding']*100:.0f}% -> "
+          f"multi {gg['multi_encoding']*100:.0f}%")
+    print(f"  Group enrollment  : {results['group_enrollment']}")
 
     with open(os.path.join(HERE, "results.json"), "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)

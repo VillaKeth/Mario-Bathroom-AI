@@ -1,0 +1,173 @@
+{
+  "voice_source": "real",
+  "voice_only": {
+    "single": {
+      "clean": 1.0,
+      "10dB": 0.6111111111111112,
+      "5dB": 0.3333333333333333,
+      "0dB": 0.2222222222222222
+    },
+    "multi": {
+      "clean": 1.0,
+      "10dB": 0.6111111111111112,
+      "5dB": 0.3888888888888889,
+      "0dB": 0.16666666666666666
+    }
+  },
+  "face_only": 1.0,
+  "voice_face_fused": 1.0,
+  "cross_modal_enroll": true,
+  "imposter": {
+    "face_false": 0,
+    "face_total": 2,
+    "voice_false": 0,
+    "voice_total": 1
+  },
+  "stage_a_flatness_sweep": {
+    "0.45": {
+      "speech_kept": 0.5,
+      "noise_rejected": 1.0
+    },
+    "0.50": {
+      "speech_kept": 0.6666666666666666,
+      "noise_rejected": 1.0
+    },
+    "0.55": {
+      "speech_kept": 1.0,
+      "noise_rejected": 0.6666666666666666
+    },
+    "0.60": {
+      "speech_kept": 1.0,
+      "noise_rejected": 0.3333333333333333
+    },
+    "0.65": {
+      "speech_kept": 1.0,
+      "noise_rejected": 0.3333333333333333
+    },
+    "0.70": {
+      "speech_kept": 1.0,
+      "noise_rejected": 0.0
+    },
+    "0.80": {
+      "speech_kept": 1.0,
+      "noise_rejected": 0.0
+    }
+  },
+  "chosen_flatness": null,
+  "flatness_fallback_applied": true,
+  "applied_flatness": 0.55,
+  "stage_b_sweep": {
+    "0.50": {
+      "single_kept": 1.0,
+      "double_rejected": 0.16666666666666666
+    },
+    "0.55": {
+      "single_kept": 1.0,
+      "double_rejected": 0.16666666666666666
+    },
+    "0.60": {
+      "single_kept": 1.0,
+      "double_rejected": 0.16666666666666666
+    },
+    "0.65": {
+      "single_kept": 1.0,
+      "double_rejected": 0.16666666666666666
+    },
+    "0.70": {
+      "single_kept": 1.0,
+      "double_rejected": 0.16666666666666666
+    },
+    "0.75": {
+      "single_kept": 0.6666666666666666,
+      "double_rejected": 0.3333333333333333
+    }
+  },
+  "chosen_tau": null,
+  "tau_fallback_applied": true,
+  "applied_tau": 0.0,
+  "gallery_gain": {
+    "single_encoding": 1.0,
+    "multi_encoding": 1.0,
+    "eligible_people": 6
+  },
+  "margin_sweep": {
+    "0.00": {
+      "true_accept": 1.0,
+      "false_accept": 0.0
+    },
+    "0.03": {
+      "true_accept": 1.0,
+      "false_accept": 0.0
+    },
+    "0.05": {
+      "true_accept": 1.0,
+      "false_accept": 0.0
+    },
+    "0.08": {
+      "true_accept": 0.8333333333333334,
+      "false_accept": 0.0
+    },
+    "0.12": {
+      "true_accept": 0.8333333333333334,
+      "false_accept": 0.0
+    }
+  },
+  "chosen_margin": 0.05,
+  "group_enrollment": {
+    "single_unknown_enrolled": true,
+    "group_enrolled_nobody": true
+  },
+  "tuned_thresholds": {
+    "voice_max_flatness": {
+      "old_default": 0.45,
+      "new_default": 0.55,
+      "measurement": "stage_a_flatness_sweep (fallback: no candidate ceiling met both the speech-kept and noise-rejected targets; kept >=99% of speech instead)"
+    },
+    "voice_consistency_tau": {
+      "old_default": 0.6,
+      "new_default": 0.0,
+      "measurement": "stage_b_sweep, measured with voice_max_flatness=0.55 already applied (fallback: no candidate tau met both Task 7 targets; Stage B disabled pending redesign)"
+    },
+    "face_match_margin": {
+      "old_default": 0.05,
+      "new_default": 0.05,
+      "measurement": "margin_sweep (shipped default was already the knee: no swept margin lowered false_accept further without cost to true_accept)"
+    },
+    "voice_match_margin": {
+      "old_default": 0.06,
+      "new_default": 0.06,
+      "measurement": "not swept in this task (no voice-margin sweep helper in scope); retained at its Task 4 default."
+    },
+    "face_match_tolerance": {
+      "old_default": 0.6,
+      "new_default": 0.6,
+      "measurement": "not swept in this task; retained at its Task 7 default."
+    },
+    "face_min_box_px": {
+      "old_default": 80,
+      "new_default": 80,
+      "measurement": "not swept in this task; retained at its Task 3 default."
+    },
+    "face_min_sharpness": {
+      "old_default": 40.0,
+      "new_default": 40.0,
+      "measurement": "not swept in this task; retained at its Task 3 default."
+    },
+    "face_min_quality": {
+      "old_default": 0.5,
+      "new_default": 0.5,
+      "measurement": "not swept in this task; retained at its Task 3 default."
+    },
+    "gallery_max_per_person": {
+      "old_default": 5,
+      "new_default": 5,
+      "measurement": "gallery_gain validates the gallery's cross-view gain, not the cap value itself; retained at its Task 3 default."
+    }
+  },
+  "known_limitations": {
+    "flatness_sweep_is_clean_speech_only": "stage_a_flatness_sweep compares CLEAN real-speech probes against PURE party-noise beds, never noise-MIXED-into-speech. Diagnostic during this task (see task-8-report.md) found Stage A's flatness sub-check, even at the retuned 0.55 ceiling, still rejects a real fraction of noisy chunks that clear it clean: 0/18 rejected at clean, rising to 3, 7, 6 of 18 at 10dB/5dB/0dB respectively -- the RMS sub-check never fails. This shows up as voice_only single/multi 10-0dB rows measurably BELOW results_baseline.json despite clean being fully restored to 100%. A follow-up sweep should test candidate ceilings against noise-mixed speech at party-realistic SNR directly, not clean speech alone.",
+    "double_speaker_mix_may_not_exercise_stage_b": "mix_two_speakers overlaps two full clips continuously for the whole chunk duration, which produced half-vs-half agreement of 0.72-0.79 for these 6 pairs -- squarely inside Task 7's own measured range for genuine SOLO speech (0.68-0.85). Stage B's half-vs-half check targets a chunk that changes character partway through (a speaker handoff, interruption); a continuous simultaneous overlap instead produces a stationary blended voiceprint that looks internally consistent to that check. This is believed to be why no tau reached 80% double_rejected, and is not evidence that Stage B's mechanism itself is implemented incorrectly. A turn-taking construction (first half = speaker A only, second half = speaker B only) would more directly probe what Stage B is designed to catch, but was not substituted here -- doing so now, after seeing this result, would be changing the test to fit the answer.",
+    "gallery_gain_ceiling_effect": "single_encoding and multi_encoding both measured 100% on this corpus, so the multi-encoding gallery could not demonstrate a gain -- there was no headroom left for it to fill. This corpus's cross-angle photos are evidently easy enough that one canonical front encoding already generalizes to every probed angle (Section B's face-only score is also 100% from a single enrolled pose). The gallery's mechanism (per-person minimum distance across multiple stored encodings) is unchanged and sound; a harder corpus (extreme profile angles, poor lighting) would be needed to measure an actual gain.",
+    "margin_sweep_false_accept_never_rises": "false_accept measured 0% at every swept margin (0.00-0.12) -- these 6 real people's face encodings are apparently distinct enough that none of them are ever confused for another, at any margin tested. true_accept does fall (100% -> 83.3%) once the margin gets large enough to start rejecting a genuine match as ambiguous, showing margin has a real cost past a point, but the sweep cannot demonstrate the false_accept-reducing benefit the margin exists for on this corpus."
+  }
+}

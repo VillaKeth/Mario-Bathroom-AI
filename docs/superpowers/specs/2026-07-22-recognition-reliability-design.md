@@ -346,3 +346,88 @@ client when switching characters for a live test.
   problem, materially larger change, deserves its own spec.
 - **Privacy retention policy** (audit OQ3). No bulk wipe between parties. Separate concern.
 - Rewriting fusion, the open-set gate, or TTS-bleed suppression — all already correct.
+
+---
+
+## 7. Measured results (W8)
+
+Measured via `tests/recognition_lab/run_recognition_test.py` on
+`feature/recognition-reliability` (Tasks 1-7 applied, thresholds retuned per below),
+compared against `tests/recognition_lab/results_baseline.json` (pre-change, commit
+`3c9b427`). Full sweep tables and the `known_limitations` notes referenced below live
+in `tests/recognition_lab/results.json`.
+
+### 7.1 Before / after
+
+| | baseline (pre-change) | after (Tasks 1-7 + W8 tuning) |
+|---|---|---|
+| Voice single, clean | 100% | 100% |
+| Voice single, 10dB | 78% | 61% |
+| Voice single, 5dB | 56% | 33% |
+| Voice single, 0dB | 28% | 22% |
+| Voice multi, clean | 100% | 100% |
+| Voice multi, 10dB | 83% | 61% |
+| Voice multi, 5dB | 67% | 39% |
+| Voice multi, 0dB | 44% | 17% |
+| Face (cross-angle) | 100% | 100% |
+| Voice+Face fused @5dB | 100% | 100% |
+| Imposters (face / voice false-accept) | 0/2, 0/1 | 0/2, 0/1 |
+
+Clean-room voice enrollment, which had silently collapsed to 44%/61% single/multi
+under the un-tuned Stage A gate before this task even completed a lab run (three of
+six lab people's primary enroll clip measured 0.45-0.57 flatness, over the shipped
+0.45 ceiling — Ben, Dan, Eli; Eli's all three enroll clips were rejected, so
+multi-mode enrollment failed for him too, raising `ValueError` where the lab's
+pre-existing `enroll_voices` had no handling for it), is now fully restored to 100%,
+matching the pre-Stage-A baseline exactly.
+
+Noisy-SNR rows (10/5/0dB) are measurably *below* baseline even after retuning. The
+flatness sweep specified for this task (Step 3b) compares clean speech against pure
+noise beds only, never noise-mixed-into-speech — and mixing party noise into a clean
+chunk raises its measured flatness enough to push extra chunks over even the retuned
+0.55 ceiling (Stage A's flatness sub-check alone: 0/18 rejected at clean, rising to
+3/18, 7/18, 6/18 at 10dB/5dB/0dB; the RMS sub-check never fails). This is a real,
+newly-measured gap in the specified sweep's scope, not something this task's fallback
+rule was designed to address — see `known_limitations.flatness_sweep_is_clean_speech_only`
+in results.json. A follow-up sweep should test candidate ceilings against
+noise-mixed speech at party-realistic SNR directly.
+
+### 7.2 Tuned thresholds
+
+| Tunable | Old default | New default | Justification |
+|---|---|---|---|
+| `voice_max_flatness` | 0.45 | 0.55 | No candidate ceiling (0.45-0.80) kept >=95% of real speech while rejecting >=80% of party-noise beds — party noise measured well below white noise's flatness, so it is not cleanly separable from speech on this metric. Applied the documented fallback: lowest ceiling keeping 100% of the 6 measured speech probes. |
+| `voice_consistency_tau` | 0.60 | 0.0 | No candidate tau (0.50-0.75) rejected >=80% of two-speaker mixes while keeping >=95% single-speaker acceptance (best observed: 33% double-rejected at tau=0.75, where single-kept had already fallen to 67%). Applied the documented fallback, disabling Stage B pending redesign. See §7.1's caveat and `known_limitations.double_speaker_mix_may_not_exercise_stage_b` — the continuous-overlap test construction measured half-agreement of 0.72-0.79, inside genuine solo speech's own range (0.68-0.85 per Task 7), so this may under-measure Stage B's real coverage of an actual mid-chunk speaker change. |
+| `face_match_margin` | 0.05 | 0.05 (confirmed) | Already the knee: false_accept measured 0% at every swept margin (0.00-0.12); true_accept starts falling (100% -> 83%) at margin >= 0.08. No swept margin lowers false_accept further without cost. |
+| `voice_match_margin` | 0.06 | 0.06 (unswept) | No voice-margin sweep helper was in scope for W8; retained at its Task 4 default. |
+| `face_match_tolerance`, `face_min_box_px`, `face_min_sharpness`, `face_min_quality`, `gallery_max_per_person` | unchanged | unchanged | Not swept in W8; retained at their Tasks 3/7 defaults. |
+
+### 7.3 Acceptance criteria (task-8-brief.md Step 7)
+
+- **PASS** — `group_enrollment.single_unknown_enrolled` is `true` and
+  `group_enrolled_nobody` is `true`.
+- **NOT MET** — `gallery_gain.multi_encoding` exceeds `gallery_gain.single_encoding`:
+  both measured 100% (ceiling effect — this corpus's cross-angle photos are easy
+  enough that a single front encoding already generalizes to every probed angle, so
+  there was no headroom left for the multi-view gallery to demonstrate a gain over it).
+- **NOT MET** — `chosen_flatness` is not `None`: it is `null` in results.json. No
+  ceiling separated real speech from these 3 party-noise beds well enough to satisfy
+  both floors; the documented fallback (0.55) was applied instead, per instruction.
+- **NOT MET** — some tau reaches `double_rejected >= 0.80` with `single_kept >= 0.95`:
+  best observed was 33%/67% (tau=0.75). The documented fallback (disable Stage B,
+  tau=0.0) was applied, with the important caveat above about what the test
+  construction actually measures.
+- **PARTIALLY MET** — `margin_sweep` shows a margin where `false_accept` drops without
+  `true_accept` collapsing: false_accept is 0% at every margin tested (never "drops"
+  since there is nothing to drop from), so this transition is not observable on this
+  corpus; what IS shown is that the shipped default (0.05) already sits at the best
+  observed corner (0% false_accept, 100% true_accept) and that pushing the margin
+  higher only costs true_accept (down to 83% by 0.08), confirming 0.05 as the correct,
+  conservative choice without asserting the sweep proves a gain.
+
+### 7.4 Real-DB verification
+
+Unchanged across all lab runs in this task (three full runs plus several smaller
+diagnostic probes): `server/data/memory.db` — `face_encodings=0`, `people=0`,
+`party_visits=83`, `party_events=6`, no `face_gallery` table;
+`server/data/voices.db` — `speakers=0`.

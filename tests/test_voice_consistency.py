@@ -160,12 +160,22 @@ def _rig(monkeypatch, samples_int16, vec_first, vec_second, vec_full=VEC_FULL):
 
 
 def test_stage_b_rejects_when_halves_disagree(monkeypatch):
-    """Below-tau half agreement -> get_embedding returns None (default tau=0.60).
+    """Below-tau half agreement -> get_embedding returns None.
+
+    Explicitly overrides tau to 0.60 rather than reading the ambient default: W8
+    (tests/recognition_lab/results.json) found no tau rejected >=80% of the lab's
+    two-speaker mixes while keeping >=95% single-speaker acceptance, and disabled
+    Stage B by default (voice_consistency_tau=0.0, accepts everything) pending a
+    redesign. This test's job is to verify the half-vs-half rejection MECHANISM
+    itself still works at a representative tau, independent of whatever the
+    current shipped default is -- 0.0 would trivially "pass" this test for the
+    wrong reason (nothing is ever rejected), so the tau under test must be pinned.
 
     Catches: comparison inverted (agreement 0.30 would then NOT be rejected);
     a half-embedded-twice bug (self-agreement is always 1.0, so it would wrongly
     accept instead of reject).
     """
+    recognition_config.override("voice_consistency_tau", 0.60)
     samples = _tone(221, seconds=3.0)  # 221, not 220: see _rig's identical-halves guard
     fake = _rig(monkeypatch, samples, vec_first=PROBE, vec_second=_vec_at_similarity(0.30))
 

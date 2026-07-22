@@ -15,13 +15,23 @@ logger = logging.getLogger(__name__)
 
 DEFAULTS = {
     "face_match_tolerance": 0.6,      # dlib euclidean, calibrated
-    "face_match_margin": 0.05,        # best vs runner-up distance gap
+    "face_match_margin": 0.05,        # best vs runner-up distance gap (W8: confirmed the knee)
     "voice_match_margin": 0.06,       # best vs runner-up cosine gap
     "face_min_box_px": 80,            # shorter side of the face box
     "face_min_sharpness": 40.0,       # laplacian variance floor
     "face_min_quality": 0.5,          # combined score required to ENROLL
-    "voice_consistency_tau": 0.60,    # sub-window agreement floor
-    "voice_max_flatness": 0.45,       # spectral flatness ceiling (noise reject)
+    # W8 (tests/recognition_lab/results.json): no tau rejected >=80% of the lab's
+    # two-speaker mixes while keeping >=95% single-speaker acceptance, so Stage B
+    # is disabled (0.0 accepts everything) pending a redesign — see
+    # results.json:tuned_thresholds.voice_consistency_tau for the measured curve
+    # and an important caveat about the mix construction used to test it.
+    "voice_consistency_tau": 0.0,     # sub-window agreement floor
+    # W8 (tests/recognition_lab/results.json): the shipped 0.45 false-rejected
+    # ~28% of genuine solo speech (Task 7) and no ceiling in the swept range
+    # (0.45-0.80) separated real speech from real party-noise beds on flatness
+    # alone, so this is the documented fallback: lowest ceiling keeping 100% of
+    # the measured real-speech probes, energy test (Stage A's other half) unaffected.
+    "voice_max_flatness": 0.55,       # spectral flatness ceiling (noise reject)
     "gallery_max_per_person": 5,      # encodings retained per identity
 }
 
@@ -60,7 +70,23 @@ def get(name: str):
     return values[name]
 
 
+def override(name: str, value):
+    """Force a tunable to `value` for the current process (tuning sweeps, tests).
+
+    Raises KeyError for an unknown tunable, same as get().
+    """
+    values = _load()
+    if name not in values:
+        raise KeyError(f"unknown recognition tunable: {name}")
+    values[name] = value
+
+
 def reset_cache():
     """Drop the cached values (tests, config hot-reload)."""
     global _cache
     _cache = None
+
+
+def clear_overrides():
+    """Drop all overrides and re-read from config on next access."""
+    reset_cache()

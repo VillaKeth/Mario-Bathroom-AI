@@ -63,8 +63,8 @@
     "face_min_box_px": 80,
     "face_min_sharpness": 40.0,
     "face_min_quality": 0.5,
-    "voice_consistency_tau": 0.60,
-    "voice_max_flatness": 0.45,
+    "voice_consistency_tau": 0.0,
+    "voice_max_flatness": 0.55,
     "gallery_max_per_person": 5
   },
   "client": {
