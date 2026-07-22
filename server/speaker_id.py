@@ -84,6 +84,53 @@ def _has_speech_energy(audio_data: bytes, min_rms: float = None) -> bool:
     return _audio_rms(audio_data) >= floor
 
 
+def spectral_flatness(samples: np.ndarray) -> float:
+    """Wiener entropy: geometric mean / arithmetic mean of the magnitude spectrum.
+
+    Near 1.0 for noise-like signals (white noise, room hiss, dense music), low for
+    the peaky harmonic structure of speech. Costs one FFT and no embedding.
+    """
+    if samples is None or samples.size == 0:
+        return 1.0
+    windowed = samples.astype(np.float64) * np.hanning(len(samples))
+    spectrum = np.abs(np.fft.rfft(windowed))
+    spectrum = spectrum[spectrum > 1e-10]
+    if spectrum.size == 0:
+        return 1.0
+    geometric = np.exp(np.mean(np.log(spectrum)))
+    arithmetic = np.mean(spectrum)
+    return float(geometric / arithmetic) if arithmetic > 0 else 1.0
+
+
+def stage_a_ok(samples_int16: np.ndarray, min_rms: float = None,
+               max_flatness: float = None) -> bool:
+    """Cheap pre-embedding gate: enough speech energy, not noise-like.
+
+    Splits the chunk into 3 windows. Requires at least 2 of 3 above the speech
+    energy floor (rejects mostly-silent chunks) and a mean spectral flatness under
+    the ceiling (rejects music and room noise). No embedding cost.
+    """
+    if samples_int16 is None or len(samples_int16) < 3:
+        return False
+    if max_flatness is None:
+        max_flatness = recognition_config.get("voice_max_flatness")
+    floor = MIN_SPEECH_RMS if min_rms is None else min_rms
+
+    third = len(samples_int16) // 3
+    windows = [samples_int16[i * third:(i + 1) * third] for i in range(3)]
+
+    loud = 0
+    for window in windows:
+        vals = window.astype(np.float64)
+        if vals.size and float(np.sqrt(np.mean(vals * vals))) >= floor:
+            loud += 1
+    if loud < 2:
+        return False
+
+    mean_flatness = float(np.mean([spectral_flatness(w.astype(np.float64)) for w in windows]))
+    return mean_flatness <= max_flatness
+
+
 def _average_embeddings(embeddings):
     """L2-normalized mean of several voice embeddings (multi-sample enrollment, F5).
 
@@ -155,13 +202,38 @@ def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
             logger.info(f"[DEBUG_SPEAKER] get_embedding: below speech-energy floor (rms={_audio_rms(audio_data):.0f})")
         return None
 
-    audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
-    processed = preprocess_wav(audio_np, source_sr=sample_rate)
+    audio_np = np.frombuffer(audio_data, dtype=np.int16)
+
+    # Stage A (W6): no embedding cost — reject noise/music/mostly-silence outright.
+    if not stage_a_ok(audio_np):
+        if DEBUG_SPEAKER:
+            logger.info("[DEBUG_SPEAKER] get_embedding: rejected by stage A (energy/flatness)")
+        return None
+
+    processed = preprocess_wav(audio_np.astype(np.float32) / 32768.0, source_sr=sample_rate)
 
     if len(processed) < sample_rate * 1.0:
         if DEBUG_SPEAKER:
             logger.info("[DEBUG_SPEAKER] get_embedding: audio too short for embedding")
         return None
+
+    # Stage B (W6): two extra CPU embeddings. Halves, not thirds — resemblyzer's
+    # partial-utterance window is 1.6s, so 1.0s thirds would be zero-padded and
+    # noisy. Disagreement between halves means two speakers or heavy interference.
+    half = len(processed) // 2
+    first, second = processed[:half], processed[half:]
+    if min(len(first), len(second)) >= sample_rate * 1.0:
+        emb_a = _encoder.embed_utterance(first)
+        emb_b = _encoder.embed_utterance(second)
+        denominator = np.linalg.norm(emb_a) * np.linalg.norm(emb_b)
+        if denominator > 0:
+            agreement = float(np.dot(emb_a, emb_b) / denominator)
+            tau = recognition_config.get("voice_consistency_tau")
+            if agreement < tau:
+                if DEBUG_SPEAKER:
+                    logger.info(f"[DEBUG_SPEAKER] get_embedding: rejected by stage B "
+                                f"(agreement {agreement:.3f} < {tau})")
+                return None
 
     embedding = _encoder.embed_utterance(processed)
     if DEBUG_SPEAKER:
