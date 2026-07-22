@@ -1154,25 +1154,31 @@ In `server/face_enrollment.py`, add `import recognition_config` at the top, then
             unknown.append((enc, float(face_data.get("quality", 1.0))))
 ```
 
-and replace the single-unknown block:
+and replace the single-unknown decision block. **Preserve the `new_face_count` semantics Task 1 delivered** — 0 when the face was enrolled (it is no longer "new"), 1 when it was stashed or rejected, `len(unknown)` when ambiguous. Those values feed the group greeting and the `recognition_events` stream in `main.py`, and a pre-existing test asserts the enrolled case is 0:
 
 ```python
-    if new_face_count == 1:
+    if len(unknown) == 1:
         enc, quality = unknown[0]
         min_quality = recognition_config.get("face_min_quality")
         if quality < min_quality:
             # Too blurry / small / off-angle to become someone's stored reference.
-            # Still counted as a new face so the greeting logic is unaffected.
-            pass
+            # Still counted as new so the greeting logic is unaffected.
+            new_face_count = 1
         elif speaker_name:
             # Exactly one unknown face and we know who is talking -> safe to bind.
             if face_memory is not None:
                 face_memory.learn_guest(speaker_name, enc, quality)
             detected.append({"name": speaker_name, "person_id": None,
                              "visit_count": None, "confidence": None})
+            # Face was enrolled, so it is not "new" anymore.
+            new_face_count = 0
         else:
             # Nobody identified yet -> remember it until a name arrives.
             pending_encoding = enc
+            new_face_count = 1
+    else:
+        # Multiple unknowns (or none): count them as new, unenrolled faces.
+        new_face_count = len(unknown)
 ```
 
 - [ ] **Step 7: Update the existing test double for the new signature**
