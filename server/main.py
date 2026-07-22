@@ -7235,8 +7235,16 @@ async def handle_event(ws: WebSocket, event: dict):
         new_face_count = face_result["new_face_count"]
         if face_result["pending_encoding"] is not None:
             # F2: stash the unknown face so it can be named when the guest speaks.
+            # W1: resolve_faces only supplies this when exactly ONE unknown face was
+            # present, so we can never bind a name to the wrong stranger.
             state_current["detected_guest"] = None
             state_current["_last_face_encoding"] = face_result["pending_encoding"]
+        elif face_result.get("ambiguous"):
+            # Two or more unknown faces — greet the group but enroll nobody.
+            state_current["detected_guest"] = None
+            state_current["_last_face_encoding"] = None
+            logger.info(f"[FACE_ENROLL] {new_face_count} unknown faces in frame — "
+                        f"enrollment deferred (fail-closed)")
 
         # Remember the most recent CONFIRMED face match so the voice path can fuse
         # with it (open-set confirmation across the voice/face event boundary).

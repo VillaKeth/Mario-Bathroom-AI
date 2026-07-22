@@ -111,3 +111,42 @@ def test_link_pending_face_noops_without_name():
     fm = FakeFaceMemory()
     assert face_enrollment.link_pending_face(fm, "", np.zeros(128)) is False
     assert fm.learned == []
+
+
+def _enc(seed):
+    """Deterministic distinct 128-dim encoding."""
+    rng = np.random.default_rng(seed)
+    return rng.random(128).tolist()
+
+
+def test_single_unknown_face_with_speaker_enrolls_one():
+    mem = FakeFaceMemory(match_result=None)
+    out = face_enrollment.resolve_faces([{"encoding": _enc(1)}], mem, "Jacob")
+    assert len(mem.learned) == 1
+    assert mem.learned[0][0] == "Jacob"
+    assert out["ambiguous"] is False
+
+
+def test_multiple_unknown_faces_with_speaker_enroll_nothing():
+    """Three strangers + a known speaker must NOT all become that speaker."""
+    mem = FakeFaceMemory(match_result=None)
+    faces = [{"encoding": _enc(1)}, {"encoding": _enc(2)}, {"encoding": _enc(3)}]
+    out = face_enrollment.resolve_faces(faces, mem, "Jacob")
+    assert mem.learned == []
+    assert out["ambiguous"] is True
+    assert out["new_face_count"] == 3
+
+
+def test_multiple_unknown_faces_no_speaker_stash_nothing():
+    mem = FakeFaceMemory(match_result=None)
+    faces = [{"encoding": _enc(1)}, {"encoding": _enc(2)}]
+    out = face_enrollment.resolve_faces(faces, mem, None)
+    assert out["pending_encoding"] is None
+    assert out["ambiguous"] is True
+
+
+def test_single_unknown_face_no_speaker_stashes():
+    mem = FakeFaceMemory(match_result=None)
+    out = face_enrollment.resolve_faces([{"encoding": _enc(1)}], mem, None)
+    assert out["pending_encoding"] is not None
+    assert out["ambiguous"] is False

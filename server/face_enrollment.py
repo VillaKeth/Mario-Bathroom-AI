@@ -27,16 +27,15 @@ def _valid_encoding(enc) -> Optional[np.ndarray]:
 def resolve_faces(faces: list, face_memory, speaker_name: Optional[str]) -> dict:
     """Match/enroll a batch of detected faces.
 
-    For each face:
-      - known face        -> add {name, person_id, visit_count} to `detected`
-      - unknown + speaker  -> enroll the face to the current speaker (learn_guest)
-      - unknown + nobody   -> count as new and stash the encoding for later naming
+    Known faces are always reported. Enrollment is FAIL-CLOSED: it happens only when
+    the batch contains exactly ONE unknown face. With two or more unknowns we cannot
+    tell which face belongs to the name we are about to hear, and a wrong binding is
+    permanent and silent — so we enroll nothing and report `ambiguous`.
 
-    Returns: {"detected": list[dict], "new_face_count": int, "pending_encoding": np.ndarray | None}
+    Returns: {"detected", "new_face_count", "pending_encoding", "ambiguous"}
     """
     detected = []
-    new_face_count = 0
-    pending_encoding = None
+    unknown = []
 
     for face_data in faces or []:
         if not isinstance(face_data, dict):
@@ -53,21 +52,36 @@ def resolve_faces(faces: list, face_memory, speaker_name: Optional[str]) -> dict
                 "visit_count": match.get("visit_count"),
                 "confidence": match.get("confidence"),
             })
-        elif speaker_name:
-            # Unknown face, but we know who is speaking -> link face to that guest.
+        else:
+            unknown.append(enc)
+
+    ambiguous = len(unknown) > 1
+    pending_encoding = None
+    new_face_count = 0
+
+    if len(unknown) == 1:
+        enc = unknown[0]
+        if speaker_name:
+            # Exactly one unknown face and we know who is talking -> safe to bind.
             if face_memory is not None:
                 face_memory.learn_guest(speaker_name, enc)
             detected.append({"name": speaker_name, "person_id": None,
                              "visit_count": None, "confidence": None})
+            # Face was enrolled, so it's not "new" anymore.
+            new_face_count = 0
         else:
-            # Unknown face, nobody identified yet -> remember it until a name arrives.
-            new_face_count += 1
+            # Nobody identified yet -> remember it until a name arrives.
             pending_encoding = enc
+            new_face_count = 1
+    else:
+        # Multiple unknowns: count them as new (unenrolled) faces.
+        new_face_count = len(unknown)
 
     return {
         "detected": detected,
         "new_face_count": new_face_count,
         "pending_encoding": pending_encoding,
+        "ambiguous": ambiguous,
     }
 
 
