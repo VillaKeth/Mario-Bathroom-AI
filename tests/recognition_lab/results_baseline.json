@@ -1,0 +1,26 @@
+{
+  "voice_source": "real",
+  "voice_only": {
+    "single": {
+      "clean": 1.0,
+      "10dB": 0.7777777777777778,
+      "5dB": 0.5555555555555556,
+      "0dB": 0.2777777777777778
+    },
+    "multi": {
+      "clean": 1.0,
+      "10dB": 0.8333333333333334,
+      "5dB": 0.6666666666666666,
+      "0dB": 0.4444444444444444
+    }
+  },
+  "face_only": 1.0,
+  "voice_face_fused": 1.0,
+  "cross_modal_enroll": true,
+  "imposter": {
+    "face_false": 0,
+    "face_total": 2,
+    "voice_false": 0,
+    "voice_total": 1
+  }
+}
