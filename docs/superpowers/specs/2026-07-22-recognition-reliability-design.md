@@ -359,16 +359,20 @@ in `tests/recognition_lab/results.json`.
 
 ### 7.1 Before / after
 
-| | baseline (pre-change) | after (Tasks 1-7 + W8 tuning) |
+Numbers below are the FINAL shipped state, after Fix waves 1 and 2. (An earlier
+revision of this section reported Task 8's pre-fix-wave figures, when
+`voice_max_flatness` was 0.55 and Stage B was disabled; those are superseded.)
+
+| | baseline (pre-change) | after (Tasks 1-7 + W8 final) |
 |---|---|---|
 | Voice single, clean | 100% | 100% |
-| Voice single, 10dB | 78% | 61% |
-| Voice single, 5dB | 56% | 33% |
-| Voice single, 0dB | 28% | 22% |
+| Voice single, 10dB | 78% | 72% |
+| Voice single, 5dB | 56% | 50% |
+| Voice single, 0dB | 28% | 28% |
 | Voice multi, clean | 100% | 100% |
-| Voice multi, 10dB | 83% | 61% |
-| Voice multi, 5dB | 67% | 39% |
-| Voice multi, 0dB | 44% | 17% |
+| Voice multi, 10dB | 83% | 78% |
+| Voice multi, 5dB | 67% | 61% |
+| Voice multi, 0dB | 44% | 22% |
 | Face (cross-angle) | 100% | 100% |
 | Voice+Face fused @5dB | 100% | 100% |
 | Imposters (face / voice false-accept) | 0/2, 0/1 | 0/2, 0/1 |
@@ -381,25 +385,41 @@ multi-mode enrollment failed for him too, raising `ValueError` where the lab's
 pre-existing `enroll_voices` had no handling for it), is now fully restored to 100%,
 matching the pre-Stage-A baseline exactly.
 
-Noisy-SNR rows (10/5/0dB) are measurably *below* baseline even after retuning. The
-flatness sweep specified for this task (Step 3b) compares clean speech against pure
-noise beds only, never noise-mixed-into-speech — and mixing party noise into a clean
-chunk raises its measured flatness enough to push extra chunks over even the retuned
-0.55 ceiling (Stage A's flatness sub-check alone: 0/18 rejected at clean, rising to
-3/18, 7/18, 6/18 at 10dB/5dB/0dB; the RMS sub-check never fails). This is a real,
-newly-measured gap in the specified sweep's scope, not something this task's fallback
-rule was designed to address — see `known_limitations.flatness_sweep_is_clean_speech_only`
-in results.json. A follow-up sweep should test candidate ceilings against
-noise-mixed speech at party-realistic SNR directly.
+Noisy-SNR rows remain modestly below baseline, and that residual gap is now fully
+attributed: **it is `voice_match_margin` doing exactly its job.** Fix wave 1 proved by
+ablation that the Stage A/B voice gate contributes nothing to it (disabling Stage B
+entirely gives identical numbers). Fix wave 2 then swept the margin against
+noise-mixed speech, classifying every probe as `correct` / `wrong` (matched a
+*different* enrolled guest — a wrong-name greeting) / `unknown` (fail-closed):
+
+- margins 0.00, 0.02, 0.04 → real wrong-name greetings at 10dB and/or 5dB
+  (2 of 18 probes at margin 0.00, 10dB)
+- margins 0.06, 0.09, 0.12 → zero wrong names at every SNR
+
+So margin 0.00 "restores baseline recall" only by mistaking enrolled guests for one
+another. `0.06` is the lowest value with zero wrong-name greetings, which is why it
+stands. The lost recall is a deliberate, measured trade: those probes now return
+`unknown`, and Mario greets the guest as new rather than calling them by someone
+else's name. Fused identification is unaffected at 100%.
+
+The one genuinely open item is 0dB voice multi (44% → 22%), where degraded embeddings
+shrink best-vs-runner-up gaps enough that many correct matches fall inside the margin.
+0dB is a regime where voice was already unreliable and face carries identity.
+
+Separately, the Stage A flatness ceiling was **disabled** (`voice_max_flatness = 1.0`,
+inert since flatness is bounded [0,1]) after the extended sweep showed no viable
+operating point: every ceiling that keeps noise-mixed speech rejects 0% of noise, and
+every ceiling that rejects noise discards real speech. Stage A's RMS energy sub-check
+is unaffected and still runs. See `known_limitations` in results.json.
 
 ### 7.2 Tuned thresholds
 
 | Tunable | Old default | New default | Justification |
 |---|---|---|---|
-| `voice_max_flatness` | 0.45 | 0.55 | No candidate ceiling (0.45-0.80) kept >=95% of real speech while rejecting >=80% of party-noise beds — party noise measured well below white noise's flatness, so it is not cleanly separable from speech on this metric. Applied the documented fallback: lowest ceiling keeping 100% of the 6 measured speech probes. |
-| `voice_consistency_tau` | 0.60 | 0.0 | No candidate tau (0.50-0.75) rejected >=80% of two-speaker mixes while keeping >=95% single-speaker acceptance (best observed: 33% double-rejected at tau=0.75, where single-kept had already fallen to 67%). Applied the documented fallback, disabling Stage B pending redesign. See §7.1's caveat and `known_limitations.double_speaker_mix_may_not_exercise_stage_b` — the continuous-overlap test construction measured half-agreement of 0.72-0.79, inside genuine solo speech's own range (0.68-0.85 per Task 7), so this may under-measure Stage B's real coverage of an actual mid-chunk speaker change. |
+| `voice_max_flatness` | 0.45 | **1.0 (disabled)** | Extended sweep (Fix wave 1) measured candidate ceilings against *noise-mixed* speech, not just clean speech vs pure noise. No viable operating point exists: ceilings that keep noise-mixed speech reject 0% of noise; ceilings that reject noise discard real speech. 0.45 was silently dropping ~28% of genuine solo speech and an interim 0.55 still cost 22-28pp at party SNR. Set to 1.0, which is inert since flatness is bounded [0,1], leaving Stage A's RMS energy sub-check active. The code remains in place so a redesigned feature (e.g. Welch-averaged periodogram) can re-enable it via config alone. |
+| `voice_consistency_tau` | 0.60 | **0.60 (restored)** | Task 8 initially set 0.0 (disabling Stage B) because no tau met the 80%-double-rejected target. Fix wave 1 restored 0.60: its own sweep shows `single_kept = 1.0` at that value — **zero** false rejects on genuine solo speech — so the gate is harmless, and disabling it discarded Task 7 for no accuracy gain. The low double-rejected figure is a fixture artifact: Stage B detects a speaker *change* between the chunk's two halves, while the lab's fixture is continuous *overlap*, which blends consistently across both halves and so looks self-consistent. See `known_limitations.double_speaker_mix_may_not_exercise_stage_b`. A mid-chunk speaker-change fixture is the follow-up. |
 | `face_match_margin` | 0.05 | 0.05 (confirmed) | Already the knee: false_accept measured 0% at every swept margin (0.00-0.12); true_accept starts falling (100% -> 83%) at margin >= 0.08. No swept margin lowers false_accept further without cost. |
-| `voice_match_margin` | 0.06 | 0.06 (unswept) | No voice-margin sweep helper was in scope for W8; retained at its Task 4 default. |
+| `voice_match_margin` | 0.06 | **0.06 (confirmed by sweep)** | Swept in Fix wave 2 against noise-mixed speech, classifying each probe `correct` / `wrong` (matched a different enrolled guest) / `unknown`. Margins 0.00/0.02/0.04 produced real wrong-name greetings at 10dB and/or 5dB; 0.06/0.09/0.12 produced none. 0.06 is the lowest value with zero wrong names at every SNR. This is the sole cause of the residual noisy-SNR recall gap in §7.1, and it is a deliberate trade — see that section. Caveat: 18 probes per cell over 6 people, so the knee could shift one step on a different roster. |
 | `face_match_tolerance`, `face_min_box_px`, `face_min_sharpness`, `face_min_quality`, `gallery_max_per_person` | unchanged | unchanged | Not swept in W8; retained at their Tasks 3/7 defaults. |
 
 ### 7.3 Acceptance criteria (task-8-brief.md Step 7)
@@ -411,12 +431,18 @@ noise-mixed speech at party-realistic SNR directly.
   enough that a single front encoding already generalizes to every probed angle, so
   there was no headroom left for the multi-view gallery to demonstrate a gain over it).
 - **NOT MET** — `chosen_flatness` is not `None`: it is `null` in results.json. No
-  ceiling separated real speech from these 3 party-noise beds well enough to satisfy
-  both floors; the documented fallback (0.55) was applied instead, per instruction.
+  ceiling separated real speech from party noise well enough to satisfy both floors.
+  Fix wave 1 extended the sweep to noise-mixed speech, confirmed no viable operating
+  point exists at all, and disabled the flatness test (`voice_max_flatness = 1.0`)
+  rather than shipping an interim value that cost 22-28pp at party SNR.
 - **NOT MET** — some tau reaches `double_rejected >= 0.80` with `single_kept >= 0.95`:
-  best observed was 33%/67% (tau=0.75). The documented fallback (disable Stage B,
-  tau=0.0) was applied, with the important caveat above about what the test
-  construction actually measures.
+  best observed was 33%/67% (tau=0.75). Stage B was nevertheless **restored to 0.60**
+  in Fix wave 1, because `single_kept = 1.0` there means it costs nothing, and the
+  low double-rejected figure is a fixture artifact (continuous overlap rather than a
+  mid-chunk speaker change). The target is unmet because the fixture cannot exercise
+  the mechanism, not because the gate misbehaves.
+- **PASS (added in Fix wave 2)** — `voice_margin_sweep` identifies a margin with zero
+  wrong-name greetings at every SNR: `0.06`, the lowest such value.
 - **PARTIALLY MET** — `margin_sweep` shows a margin where `false_accept` drops without
   `true_accept` collapsing: false_accept is 0% at every margin tested (never "drops"
   since there is nothing to drop from), so this transition is not observable on this
