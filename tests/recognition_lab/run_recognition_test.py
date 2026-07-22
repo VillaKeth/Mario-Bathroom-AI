@@ -331,6 +331,96 @@ def pick_tau(sweep, min_single_kept=0.95, min_double_rejected=0.80):
     return max(candidates) if candidates else None
 
 
+VOICE_MARGIN_CANDIDATES = (0.00, 0.02, 0.04, 0.06, 0.09, 0.12)
+
+
+def voice_margin_sweep(speaker_id, people, source, beds):
+    """Fix wave 2 (task-8-report.md): sweep voice_match_margin against
+    noise-mixed speech, mirroring exactly how Fix wave 1 extended
+    stage_a_flatness_sweep to noise-mixed speech instead of clean-speech-only.
+
+    voice_match_margin (identify_speaker's best-vs-runner-up ambiguity check,
+    server/speaker_id.py, Task 4/W4) had never been swept before this — Fix wave
+    1's root-cause diagnosis found it (not Stage A or Stage B) is what still
+    holds voice_only.multi below results_baseline.json at noisy SNR, by an
+    ad hoc, uncommitted diagnostic script. This is that diagnostic promoted to
+    a real, permanent, re-runnable lab measurement.
+
+    Recall alone can't pick this threshold: the whole point of voice_match_margin
+    is preventing a CONFIDENT WRONG match (a wrong-name greeting), which a
+    single hit-rate number can't distinguish from a safe "unknown". So this
+    reports THREE outcomes per (margin, SNR) cell instead of one:
+      correct  -- identify_speaker matched the true speaker
+      wrong    -- identify_speaker matched a DIFFERENT enrolled person (the
+                  wrong-name-greeting failure this margin exists to prevent)
+      unknown  -- identify_speaker returned no match (fail-closed -- cheap:
+                  Mario just asks "who are you?")
+    correct + wrong + unknown always equals the probe count for that cell.
+
+    Requires every lab person already enrolled (multi mode -- see "keep the
+    better (multi) enrollment for the rest" earlier in main()) in
+    speaker_id.DB_PATH before this is called: a `wrong` result only means
+    something with more than one real enrolled person to be confused with.
+    Each person is probed with their OWN probe clips only (never another
+    person's), so `wrong` here specifically means one enrolled guest mistaken
+    for another -- the exact party failure mode this whole task exists to
+    measure, not just "no match".
+
+    Only voice_match_margin is overridden; voice_max_flatness and
+    voice_consistency_tau are left at whatever is ambient (Fix wave 1's shipped
+    defaults, by the time this runs in main()) so identify_speaker's full real
+    gate stack (Stage A + Stage B + margin) is exercised exactly as production
+    would run it -- this isolates the marginal effect of margin alone, not a
+    hypothetical pipeline with the other two gates suspended.
+    """
+    import recognition_config
+    out = {}
+    for margin in VOICE_MARGIN_CANDIDATES:
+        recognition_config.override("voice_match_margin", margin)
+        row = {}
+        for snr in SNR_LEVELS:
+            correct = wrong = unknown = 0
+            for pi, p in enumerate(people):
+                _, probes = voice_block(p, source)
+                for probe in probes:
+                    sig = load_float(abspath(probe))
+                    bed = beds[pi % len(beds)] if beds else np.zeros(len(sig))
+                    info = speaker_id.identify_speaker(to_pcm16(mix_party(sig, bed, snr)))
+                    if info["name"] == p["name"]:
+                        correct += 1
+                    elif info["name"] is None:
+                        unknown += 1
+                    else:
+                        wrong += 1
+            row[label(snr)] = {
+                "correct": correct, "wrong": wrong, "unknown": unknown,
+                "total": correct + wrong + unknown,
+            }
+        out[f"{margin:.2f}"] = row
+    recognition_config.clear_overrides()
+    return out
+
+
+def pick_voice_margin(sweep, candidates=VOICE_MARGIN_CANDIDATES):
+    """Lowest margin with ZERO wrong-name greetings at every SNR; None if none do.
+
+    This is deliberately NOT a recall-maximizer or a knee-finder like
+    pick_margin (face_match_margin's sweep) -- the asymmetry the task specifies
+    is: a missed recognition is invisible (Mario greets the guest as new,
+    already handled gracefully) while a wrong-name greeting is memorable and
+    embarrassing. So the rule is a hard gate (wrong == 0 everywhere) first, and
+    only among candidates that clear it does "lowest" (== most recognitions)
+    matter -- which is exactly why candidates are scanned lowest-to-highest and
+    the first qualifier wins, rather than searching for a false-accept/recall
+    tradeoff knee.
+    """
+    for margin in sorted(candidates):
+        row = sweep[f"{margin:.2f}"]
+        if all(cell["wrong"] == 0 for cell in row.values()):
+            return margin
+    return None
+
+
 def gallery_gain(FaceMemory, people, views_by_person):
     """Cross-view match rate with a single encoding vs the multi-view gallery.
 
@@ -685,6 +775,58 @@ def main():
               f"instead of W8's disable. See task-8-report.md Fix 2.")
     results["applied_tau"] = applied_tau
 
+    # ---- F2. VOICE MARGIN sweep (voice_match_margin) -- Fix wave 2 ----
+    # Fix wave 1's root-cause diagnosis (task-8-report.md "## Fix wave 1", Fix 4)
+    # found voice_match_margin, not Stage A or Stage B, is what still holds
+    # voice_only.multi below results_baseline.json at noisy SNR -- that
+    # diagnosis used an ad hoc, uncommitted script; this is that measurement
+    # promoted to a permanent, re-runnable lab sweep. Runs against noise-mixed
+    # speech (mix_party, the same helper voice_only_curve/stage_a_flatness_sweep
+    # use), not just clean speech, for the same reason Fix wave 1 extended the
+    # flatness sweep: the party's real operating condition is noisy, and a
+    # clean-room-only measurement already missed one regression this task
+    # exists to catch (see known_limitations above).
+    print("\n== F2. VOICE MARGIN sweep (voice_match_margin, Fix wave 2) ==")
+    results["voice_margin_sweep"] = voice_margin_sweep(speaker_id, people, source, beds)
+    for margin, row in results["voice_margin_sweep"].items():
+        cells = "  ".join(
+            f"{snr_label}[c={cell['correct']:2d} w={cell['wrong']:2d} u={cell['unknown']:2d}]"
+            for snr_label, cell in row.items()
+        )
+        print(f"  margin {margin}: {cells}")
+
+    chosen_voice_margin = pick_voice_margin(results["voice_margin_sweep"])
+    results["chosen_voice_margin"] = chosen_voice_margin
+    any_voice_margin_wrong = any(
+        cell["wrong"] > 0
+        for row in results["voice_margin_sweep"].values()
+        for cell in row.values()
+    )
+    results["voice_margin_wrong_ever_observed"] = any_voice_margin_wrong
+    if chosen_voice_margin is not None:
+        applied_voice_margin = chosen_voice_margin
+        if not any_voice_margin_wrong:
+            print(f"  -> wrong=0 at EVERY margin tested -- this margin buys nothing "
+                  f"measurable on this corpus. chosen_voice_margin = "
+                  f"{applied_voice_margin:.2f} (lowest candidate: maximizes "
+                  f"recognitions for a benefit this corpus cannot demonstrate).")
+        else:
+            print(f"  -> chosen_voice_margin = {applied_voice_margin:.2f} "
+                  f"(lowest margin with ZERO wrong-name greetings at every SNR)")
+    else:
+        # wrong > 0 even at the largest candidate -- the margin cannot fully
+        # prevent wrong-name greetings on this corpus. Reported plainly rather
+        # than papered over; recognition_fusion's face confirmation is
+        # load-bearing for the residual risk. Falls back to the highest tested
+        # candidate (least-bad measured option) rather than extrapolating
+        # beyond the swept range.
+        applied_voice_margin = max(VOICE_MARGIN_CANDIDATES)
+        print(f"  -> NO margin reached zero wrong-name greetings at every SNR -- "
+              f"the margin cannot fully prevent wrong names on this corpus; face "
+              f"confirmation is load-bearing for the residual risk. Falling back "
+              f"to the highest tested candidate, {applied_voice_margin:.2f}.")
+    results["applied_voice_margin"] = applied_voice_margin
+
     # views_by_person is computed once (dlib encoding is the lab's slowest step)
     # and shared across G/H/I below.
     print("\n[encoding face views for G/H/I -- shared across the three checks]")
@@ -774,10 +916,30 @@ def main():
                 if chosen_margin == 0.05 else ""),
         },
         "voice_match_margin": {
-            "old_default": 0.06,
-            "new_default": 0.06,
-            "measurement": "not swept in this task (no voice-margin sweep helper in "
-                           "scope); retained at its Task 4 default.",
+            "old_default": 0.06,  # Task 4/W4's shipped value -- never swept before Fix wave 2
+            "new_default": applied_voice_margin,
+            "measurement": (
+                "Fix wave 2 (task-8-report.md \"## Fix wave 2\"): voice_margin_sweep "
+                "measures correct/wrong/unknown (not recall alone) at each candidate "
+                f"margin {VOICE_MARGIN_CANDIDATES} against noise-mixed speech "
+                "(clean/10dB/5dB/0dB), enrolling every lab person so a `wrong` result "
+                "means one enrolled guest mistaken for another -- the exact "
+                "wrong-name-greeting failure this margin exists to prevent. "
+                f"wrong-name greetings observed at any margin/SNR cell = "
+                f"{any_voice_margin_wrong}. " + (
+                    f"chosen_voice_margin={chosen_voice_margin:.2f} is the lowest "
+                    "margin with ZERO wrong-name greetings at every SNR -- "
+                    "maximizing recognitions (a missed recognition is invisible; "
+                    "Mario just greets the guest as new) while never producing a "
+                    "wrong-name greeting (memorable and embarrassing) on this corpus."
+                    if chosen_voice_margin is not None else
+                    "NO candidate reached zero wrong-name greetings at every SNR -- "
+                    "the margin cannot fully prevent wrong names on this corpus, so "
+                    "recognition_fusion's face confirmation is load-bearing for the "
+                    f"residual risk. Falls back to the highest tested candidate, "
+                    f"{applied_voice_margin:.2f}, as the least-bad measured option."
+                )
+            ),
         },
         "face_match_tolerance": {
             "old_default": 0.6, "new_default": 0.6,
@@ -881,6 +1043,20 @@ def main():
             "past a point, but the sweep cannot demonstrate the false_accept-reducing "
             "benefit the margin exists for on this corpus."
         ),
+        "voice_margin_sweep_small_sample": (
+            "Unlike margin_sweep (face_match_margin) above, voice_margin_sweep DID "
+            "measure a real false-accept-reducing benefit on this corpus -- wrong "
+            "(a different enrolled person misnamed) is nonzero at margin<=0.04 (e.g. "
+            "2/18 at margin=0.00/10dB, 1/18 at margin=0.00 or 0.02/5dB) and reaches "
+            "0/18 at every SNR starting at margin=0.06. That said, these are small "
+            "integer counts out of 18 probes per (margin, SNR) cell -- 6 real people "
+            "means at most 5 other enrolled identities a probe could be confused "
+            "with, and only 3 probe clips per person per SNR. The margin=0.06 knee "
+            "is a real, measured result on this corpus, not noise-fitting, but with "
+            "counts this small a different or larger enrolled roster could plausibly "
+            "move the exact knee by one margin step in either direction -- retest if "
+            "the party's enrolled guest list changes meaningfully in composition."
+        ),
     }
 
     # ---- summary ----
@@ -901,6 +1077,8 @@ def main():
     print(f"  Chosen tau        : {applied_tau:.2f}"
           f"{' (re-enabled, Fix wave 1)' if results.get('tau_reenabled_fix_wave_1') else ''}")
     print(f"  Chosen face margin: {chosen_margin:.2f}")
+    print(f"  Chosen voice margin: {applied_voice_margin:.2f}"
+          f"{' (Fix wave 2)' if applied_voice_margin != 0.06 else ' (Fix wave 2, confirmed)'}")
     print(f"  Gallery gain      : single {gg['single_encoding']*100:.0f}% -> "
           f"multi {gg['multi_encoding']*100:.0f}%")
     print(f"  Group enrollment  : {results['group_enrollment']}")

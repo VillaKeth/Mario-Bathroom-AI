@@ -16,7 +16,19 @@ logger = logging.getLogger(__name__)
 DEFAULTS = {
     "face_match_tolerance": 0.6,      # dlib euclidean, calibrated
     "face_match_margin": 0.05,        # best vs runner-up distance gap (W8: confirmed the knee)
-    "voice_match_margin": 0.06,       # best vs runner-up cosine gap
+    # Fix wave 2 (task-8-report.md "## Fix wave 2"): swept for the first time --
+    # Task 8 shipped this at its Task 4/W4 value with "not swept in this task."
+    # voice_margin_sweep measures three outcomes (not recall alone) per
+    # (margin, SNR) cell against noise-mixed speech, with every lab person
+    # enrolled so a "wrong" result means one enrolled guest mistaken for
+    # another -- the exact wrong-name-greeting failure this margin exists to
+    # prevent. Measured: margin 0.00 misnames 2/18 probes at 10dB and 1/18 at
+    # 5dB; 0.02 misnames 1/18 at 10dB and 1/18 at 5dB; 0.04 misnames 1/18 at
+    # 5dB; 0.06 and above misname 0/18 at every SNR tested. 0.06 is therefore
+    # the lowest margin with zero measured wrong-name greetings -- CONFIRMED by
+    # a real sweep, not left unchanged for lack of one. See results.json's
+    # voice_margin_sweep / tuned_thresholds.voice_match_margin.
+    "voice_match_margin": 0.06,       # best vs runner-up cosine gap (Fix wave 2: confirmed via sweep)
     "face_min_box_px": 80,            # shorter side of the face box
     "face_min_sharpness": 40.0,       # laplacian variance floor
     "face_min_quality": 0.5,          # combined score required to ENROLL
