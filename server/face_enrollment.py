@@ -2,14 +2,26 @@
 
 Extracted from main.py so it can be unit-tested with an injected face store.
 `face_memory` is duck-typed: it must provide
-    find_match(encoding) -> dict | None     # dict has "name", "person_id", "visit_count"
-    learn_guest(name, encoding) -> None      # name-keyed enrollment
+    find_match(encoding) -> dict | None                # dict has "name", "person_id", "visit_count"
+    learn_guest(name, encoding, quality=0.0) -> int     # name-keyed enrollment
 
 See AUDIT_VOICE_FACE_RECOGNITION.md (F1, F2, F4).
+See docs/superpowers/specs/2026-07-22-recognition-reliability-design.md (W3) for the
+enrollment quality gate: a face's `quality` score is scored client-side and never
+rejects a match, only an enrollment below `recognition_config.get("face_min_quality")`.
 """
 from typing import Optional
 
 import numpy as np
+
+# Sibling import: this repo loads server/ modules as both bare top-level copies
+# and server.* package copies (independent module instances). recognition_config
+# holds a module-global cache, so every module in a process must resolve the
+# SAME instance of it. Mirrors server/face_memory.py and server/speaker_id.py.
+if __package__:
+    from server import recognition_config
+else:
+    import recognition_config
 
 ENCODING_DIM = 128
 
@@ -32,6 +44,12 @@ def resolve_faces(faces: list, face_memory, speaker_name: Optional[str]) -> dict
     tell which face belongs to the name we are about to hear, and a wrong binding is
     permanent and silent — so we enroll nothing and report `ambiguous`.
 
+    W3 quality gate: a single unknown face below `face_min_quality` is never enrolled
+    or stashed as pending — it is too blurry/small/off-angle to trust as a stored
+    reference — but it still counts toward `new_face_count` so greeting logic is
+    unaffected. A missing `quality` key defaults to 1.0 (fully enrollable) so an
+    older client, which never sends the key, keeps enrolling exactly as before.
+
     Returns: {"detected", "new_face_count", "pending_encoding", "ambiguous"}
     """
     detected = []
@@ -53,28 +71,33 @@ def resolve_faces(faces: list, face_memory, speaker_name: Optional[str]) -> dict
                 "confidence": match.get("confidence"),
             })
         else:
-            unknown.append(enc)
+            unknown.append((enc, float(face_data.get("quality", 1.0))))
 
     ambiguous = len(unknown) > 1
     pending_encoding = None
     new_face_count = 0
 
     if len(unknown) == 1:
-        enc = unknown[0]
-        if speaker_name:
+        enc, quality = unknown[0]
+        min_quality = recognition_config.get("face_min_quality")
+        if quality < min_quality:
+            # Too blurry / small / off-angle to become someone's stored reference.
+            # Still counted as new so the greeting logic is unaffected.
+            new_face_count = 1
+        elif speaker_name:
             # Exactly one unknown face and we know who is talking -> safe to bind.
             if face_memory is not None:
-                face_memory.learn_guest(speaker_name, enc)
+                face_memory.learn_guest(speaker_name, enc, quality)
             detected.append({"name": speaker_name, "person_id": None,
                              "visit_count": None, "confidence": None})
-            # Face was enrolled, so it's not "new" anymore.
+            # Face was enrolled, so it is not "new" anymore.
             new_face_count = 0
         else:
             # Nobody identified yet -> remember it until a name arrives.
             pending_encoding = enc
             new_face_count = 1
     else:
-        # Multiple unknowns: count them as new (unenrolled) faces.
+        # Multiple unknowns (or none): count them as new, unenrolled faces.
         new_face_count = len(unknown)
 
     return {

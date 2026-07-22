@@ -24,8 +24,9 @@ class FakeFaceMemory:
     def find_match(self, encoding, tolerance=None):
         return self._match_result
 
-    def learn_guest(self, name, encoding):
+    def learn_guest(self, name, encoding, quality=0.0):
         self.learned.append((name, np.asarray(encoding)))
+        return 1
 
 
 def _face(enc):
