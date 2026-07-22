@@ -74,6 +74,17 @@ def test_low_quality_face_is_not_enrolled():
     assert mem.learned == []
 
 
+def test_low_quality_face_still_counts_as_new_but_not_pending():
+    """The Task 1 new_face_count contract must survive the quality gate: a
+    rejected face is not enrolled AND not stashed (it's too poor a reference to
+    keep around even for later naming) -- but it still counts as 'new' so
+    group-greeting logic sees the same guest count either way."""
+    mem = _RecordingMemory()
+    out = face_enrollment.resolve_faces([{"encoding": _enc(1), "quality": 0.1}], mem, "Jacob")
+    assert out["new_face_count"] == 1
+    assert out["pending_encoding"] is None
+
+
 def test_high_quality_face_is_enrolled():
     mem = _RecordingMemory()
     face_enrollment.resolve_faces([{"encoding": _enc(1), "quality": 0.9}], mem, "Jacob")
