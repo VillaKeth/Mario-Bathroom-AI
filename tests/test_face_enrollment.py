@@ -8,11 +8,25 @@ Covers the bugs from AUDIT_VOICE_FACE_RECOGNITION.md:
 """
 import sys
 import os
+import time
+
 import numpy as np
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "server"))
 
 import face_enrollment  # noqa: E402
+import recognition_config  # noqa: E402
+from face_memory import FaceMemory  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _fresh_recognition_config():
+    """recognition_config caches tunables process-wide, so an override left behind by
+    another test file could otherwise change the margin/quality outcomes asserted here."""
+    recognition_config.reset_cache()
+    yield
+    recognition_config.reset_cache()
 
 
 class FakeFaceMemory:
@@ -151,3 +165,188 @@ def test_single_unknown_face_no_speaker_stashes():
     out = face_enrollment.resolve_faces([{"encoding": _enc(1)}], mem, None)
     assert out["pending_encoding"] is not None
     assert out["ambiguous"] is False
+
+
+# ---------------------------------------------------------------------------
+# Final-review CRITICAL 1 — an AMBIGUOUS match (the W4 margin firing) must never
+# be mistaken for "nobody is close".
+#
+# These run against a REAL FaceMemory on a tmp_path DB, because the defect only
+# appears through find_match's own margin logic: two enrolled people, a probe
+# between them, and a `None` return that resolve_faces cannot distinguish from
+# "this is a stranger". Enrolling there writes one guest's face into the OTHER
+# guest's gallery, after which every later frame matches the wrong name at
+# distance ~0 and clears the margin easily — a permanent, CONFIDENT wrong name.
+# ---------------------------------------------------------------------------
+
+
+def _two_person_gallery(tmp_path):
+    """Alice at 0.0 and Bob at 0.40 on axis 0; a probe at 0.20 is equidistant."""
+    mem = FaceMemory(str(tmp_path / "faces.db"))
+    alice = np.zeros(128)
+    bob = np.zeros(128); bob[0] = 0.40
+    alice_pid = mem.learn_guest("Alice", alice)
+    bob_pid = mem.learn_guest("Bob", bob)
+    probe = np.zeros(128); probe[0] = 0.20
+    return mem, alice_pid, bob_pid, probe
+
+
+def test_ambiguous_face_is_not_enrolled_under_the_speakers_name(tmp_path):
+    """An ambiguous probe + a known speaker must NOT poison that speaker's gallery."""
+    mem, _alice_pid, bob_pid, probe = _two_person_gallery(tmp_path)
+    assert mem.find_match(probe) is None          # margin fires: ambiguous, not a stranger
+
+    out = face_enrollment.resolve_faces([_face(probe)], mem, speaker_name="Bob")
+
+    assert mem.gallery_size(bob_pid) == 1, "ambiguous face was written into Bob's gallery"
+    assert out["ambiguous"] is True
+    assert out["new_face_count"] == 1
+
+
+def test_ambiguous_face_is_not_stashed_for_later_naming(tmp_path):
+    """With no speaker yet, an ambiguous face must not become the pending stash either —
+    the next name to arrive would bind somebody else's face."""
+    mem, _alice_pid, _bob_pid, probe = _two_person_gallery(tmp_path)
+
+    out = face_enrollment.resolve_faces([_face(probe)], mem, speaker_name=None)
+
+    assert out["pending_encoding"] is None
+    assert out["ambiguous"] is True
+    assert out["new_face_count"] == 1
+
+
+def test_find_match_detail_reports_ambiguity_distinctly(tmp_path):
+    """The matcher must be able to say 'somebody IS close, I just cannot choose'."""
+    mem, _alice_pid, _bob_pid, probe = _two_person_gallery(tmp_path)
+
+    detail = mem.find_match_detail(probe)
+    assert detail["match"] is None
+    assert detail["ambiguous"] is True
+
+    stranger = np.zeros(128); stranger[0] = 9.0
+    far = mem.find_match_detail(stranger)
+    assert far["match"] is None
+    assert far["ambiguous"] is False
+
+    clear = mem.find_match_detail(np.zeros(128))
+    assert clear["match"] is not None and clear["match"]["name"] == "Alice"
+    assert clear["ambiguous"] is False
+
+
+# ---------------------------------------------------------------------------
+# Final-review CRITICAL 2 — "exactly one unknown face" is not enough. If the
+# speaker's OWN face is already among the matched faces in the same frame, then
+# that speaker is accounted for and the unknown face belongs to somebody else.
+# This is the doorway case main.py already greets ("And who's your friend?").
+# ---------------------------------------------------------------------------
+
+
+def _known_guest_plus_stranger(tmp_path):
+    mem = FaceMemory(str(tmp_path / "faces.db"))
+    alice = np.zeros(128)
+    alice_pid = mem.learn_guest("Alice", alice)
+    stranger = np.zeros(128); stranger[0] = 5.0     # far outside tolerance -> unknown
+    return mem, alice_pid, alice, stranger
+
+
+def test_stranger_is_not_bound_to_a_speaker_already_matched_in_frame(tmp_path):
+    mem, alice_pid, alice, stranger = _known_guest_plus_stranger(tmp_path)
+
+    out = face_enrollment.resolve_faces(
+        [_face(alice), _face(stranger)], mem, speaker_name="Alice")
+
+    assert mem.gallery_size(alice_pid) == 1, "the stranger's face was bound to Alice"
+    assert mem.find_match(stranger) is None
+    assert out["new_face_count"] == 1
+
+
+def test_stranger_is_not_stashed_while_the_speakers_face_is_matched(tmp_path):
+    """Stashing is just as dangerous here: main.py links the stash to
+    state_current['speaker_name'] on the next turn, which is still Alice."""
+    mem, _alice_pid, alice, stranger = _known_guest_plus_stranger(tmp_path)
+
+    out = face_enrollment.resolve_faces(
+        [_face(alice), _face(stranger)], mem, speaker_name="Alice")
+
+    assert out["pending_encoding"] is None
+
+
+def test_unknown_face_still_enrolls_when_the_speaker_is_not_in_frame(tmp_path):
+    """The fix must not break the normal case: speaker known by VOICE, their face
+    not yet in the gallery, one unknown face -> still enrolls."""
+    mem = FaceMemory(str(tmp_path / "faces.db"))
+    alice = np.zeros(128)
+    mem.learn_guest("Alice", alice)
+    newcomer = np.zeros(128); newcomer[0] = 5.0
+
+    out = face_enrollment.resolve_faces([_face(newcomer)], mem, speaker_name="Bob")
+
+    assert mem.find_match(newcomer)["name"] == "Bob"
+    assert out["new_face_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Final-review CRITICAL 3 — a stashed encoding must expire. Trace: guest A is
+# stashed at the door and leaves without speaking; guest B arrives, every frame
+# is motion-blurred so nothing new is stashed; B says "my name is Bob" and
+# link_pending_face binds guest A's FACE to Bob.
+# ---------------------------------------------------------------------------
+
+
+def test_link_pending_face_refuses_a_stale_stash():
+    fm = FakeFaceMemory()
+    enc = np.arange(128, dtype=np.float64)
+    stale = time.time() - (face_enrollment.PENDING_FACE_TTL_SECONDS + 1.0)
+    assert face_enrollment.link_pending_face(fm, "Bob", enc, stashed_at=stale) is False
+    assert fm.learned == []
+
+
+def test_link_pending_face_accepts_a_fresh_stash():
+    fm = FakeFaceMemory()
+    enc = np.arange(128, dtype=np.float64)
+    fresh = time.time() - 5.0
+    assert face_enrollment.link_pending_face(fm, "Bob", enc, stashed_at=fresh) is True
+    assert fm.learned[0][0] == "Bob"
+
+
+def test_quality_rejected_face_is_reported_explicitly():
+    """main.py must be able to branch on the quality-reject case instead of falling
+    through both the 'stash' and the 'ambiguous' branches and leaving a stale stash."""
+    fm = FakeFaceMemory(match_result=None)
+    out = face_enrollment.resolve_faces(
+        [{"encoding": _enc(1), "quality": 0.05}], fm, speaker_name="Jacob")
+    assert out["quality_rejected"] is True
+    assert out["pending_encoding"] is None
+    assert out["ambiguous"] is False
+    assert out["new_face_count"] == 1
+    assert fm.learned == []
+
+
+def test_quality_rejection_is_logged_with_the_measured_score(caplog):
+    """Final review IMPORTANT 7: a silent refusal reads as 'Mario stopped learning
+    anyone' at 2am with nothing in the log to explain it."""
+    fm = FakeFaceMemory(match_result=None)
+    with caplog.at_level("INFO", logger="face_enrollment"):
+        face_enrollment.resolve_faces(
+            [{"encoding": _enc(1), "quality": 0.05}], fm, speaker_name="Jacob")
+    assert any("quality" in r.message.lower() and "0.05" in r.message
+               for r in caplog.records), caplog.text
+
+
+def test_presence_exit_reset_clears_the_pending_face_stash():
+    """presence_exit resets speaker identity; the stashed face must go with it, or it
+    outlives the guest it belongs to."""
+    import main  # heavy, imported lazily so the rest of this file stays light
+
+    saved = dict(main.state_current)
+    try:
+        main.state_current["speaker_name"] = "Ann"
+        main.state_current["_last_face_encoding"] = np.zeros(128)
+        main.state_current["_last_face_encoding_ts"] = time.time()
+        main._reset_visit_state()
+        assert main.state_current["speaker_name"] is None
+        assert main.state_current["_last_face_encoding"] is None
+        assert main.state_current["_last_face_encoding_ts"] is None
+    finally:
+        main.state_current.clear()
+        main.state_current.update(saved)

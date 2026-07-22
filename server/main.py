@@ -466,9 +466,31 @@ state_current = {
     "_name_attempts": 0,
     "_mystery_guest_counter": 0,
     "_last_face_encoding": None,  # Store encoding while learning guest name
+    "_last_face_encoding_ts": None,  # time.time() the stash was taken; enforces a TTL so a
+                                     # face stashed for a guest who left is never bound to the next
     "_last_voice_result": None,   # {name, speaker_id, confidence, is_new, ts} for fusion
     "_last_face_result": None,    # {name, confidence, ts} last confident face match (fusion)
 }
+
+
+def _reset_visit_state():
+    """Clear per-visit speaker identity AND any stashed face at presence_exit.
+
+    The stashed face (`_last_face_encoding`) is per-visit state too: a face stashed for
+    the guest who is now leaving must not outlive them, or the next guest to speak
+    inherits it and is greeted by the departed guest's name. `presence_exit` reset the
+    speaker fields but historically left the stash behind, and the stash had no TTL —
+    this is where it is cleared. Kept as a module function so it is unit-testable.
+    """
+    state_current["speaker_name"] = None
+    state_current["speaker_id"] = None
+    state_current["conversation_history"] = []
+    state_current["current_visit_id"] = None
+    state_current["enter_time"] = None
+    state_current["_name_from_parsing"] = False
+    state_current["presence_phase"] = "IDLE"
+    state_current["_last_face_encoding"] = None
+    state_current["_last_face_encoding_ts"] = None
 
 # Active WebSocket reference for admin endpoints to broadcast to.
 # _ws_clients tracks ALL live /ws connections (oldest..newest); _active_ws is the
@@ -6551,9 +6573,12 @@ async def _handle_special_commands(transcript: str) -> str:
     if (_face_memory is not None and state_current.get("speaker_name")
             and state_current.get("_last_face_encoding") is not None):
         if face_enrollment.link_pending_face(
-                _face_memory, state_current["speaker_name"], state_current["_last_face_encoding"]):
+                _face_memory, state_current["speaker_name"], state_current["_last_face_encoding"],
+                stashed_at=state_current.get("_last_face_encoding_ts")):
             guest_profiles.identify_by_face(state_current["speaker_name"], "auto_linked")
-            state_current["_last_face_encoding"] = None
+        # One-shot either way: an expired/invalid stash is consumed, not retried.
+        state_current["_last_face_encoding"] = None
+        state_current["_last_face_encoding_ts"] = None
 
     # Check for shot event trigger response
     if response and response.startswith("__SHOT_EVENT_TRIGGER__:"):
@@ -7130,14 +7155,8 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["speaker_id"]:
             memory.save_emotion(state_current["speaker_id"], emotion_system.current)
 
-        # Reset state
-        state_current["speaker_name"] = None
-        state_current["speaker_id"] = None
-        state_current["conversation_history"] = []
-        state_current["current_visit_id"] = None
-        state_current["enter_time"] = None
-        state_current["_name_from_parsing"] = False
-        state_current["presence_phase"] = "IDLE"
+        # Reset state (speaker identity + any stashed face; see _reset_visit_state)
+        _reset_visit_state()
 
     elif event_type == "register_speaker":
         name = event.get("name", "Friend")
@@ -7149,10 +7168,14 @@ async def handle_event(ws: WebSocket, event: dict):
             state_current["speaker_name"] = name
             state_current["speaker_id"] = new_id
             # F2: attach a face stashed before this guest spoke, if any.
-            if _face_memory is not None and face_enrollment.link_pending_face(
-                _face_memory, name, state_current.get("_last_face_encoding")):
-                guest_profiles.identify_by_face(name, "auto_linked")
+            if _face_memory is not None and state_current.get("_last_face_encoding") is not None:
+                if face_enrollment.link_pending_face(
+                        _face_memory, name, state_current.get("_last_face_encoding"),
+                        stashed_at=state_current.get("_last_face_encoding_ts")):
+                    guest_profiles.identify_by_face(name, "auto_linked")
+                # One-shot either way: an expired/invalid stash is consumed, not retried.
                 state_current["_last_face_encoding"] = None
+                state_current["_last_face_encoding_ts"] = None
             await ws.send_json({"type": "speaker_registered", "name": name, "id": new_id})
 
             # Character celebrates registering a new friend (character-agnostic — no Mario dialect)
@@ -7235,16 +7258,28 @@ async def handle_event(ws: WebSocket, event: dict):
         new_face_count = face_result["new_face_count"]
         if face_result["pending_encoding"] is not None:
             # F2: stash the unknown face so it can be named when the guest speaks.
-            # W1: resolve_faces only supplies this when exactly ONE unknown face was
-            # present, so we can never bind a name to the wrong stranger.
+            # resolve_faces only supplies this when exactly ONE unknown, non-ambiguous
+            # face was present with no already-matched speaker, so we can never bind a
+            # name to the wrong stranger. Timestamp it so link_pending_face can expire
+            # a stash whose guest left without speaking (fail-closed against staleness).
             state_current["detected_guest"] = None
             state_current["_last_face_encoding"] = face_result["pending_encoding"]
+            state_current["_last_face_encoding_ts"] = time.time()
         elif face_result.get("ambiguous"):
-            # Two or more unknown faces — greet the group but enroll nobody.
+            # Two or more faces unresolved (unknown, or margin-ambiguous) — greet the
+            # group but enroll nobody, and drop any stale stash so it is not mislinked.
             state_current["detected_guest"] = None
             state_current["_last_face_encoding"] = None
-            logger.info(f"[FACE_ENROLL] {new_face_count} unknown faces in frame — "
+            state_current["_last_face_encoding_ts"] = None
+            logger.info(f"[FACE_ENROLL] {new_face_count} unresolved faces in frame — "
                         f"enrollment deferred (fail-closed)")
+        elif face_result.get("quality_rejected"):
+            # The single unknown face was too low-quality to trust as a reference; it
+            # was neither enrolled nor stashed. Clear any EARLIER stash so it cannot
+            # survive with no TTL and be mislinked to whoever speaks next (Critical 3).
+            state_current["detected_guest"] = None
+            state_current["_last_face_encoding"] = None
+            state_current["_last_face_encoding_ts"] = None
 
         # Remember the most recent CONFIRMED face match so the voice path can fuse
         # with it (open-set confirmation across the voice/face event boundary).

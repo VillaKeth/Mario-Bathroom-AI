@@ -167,13 +167,31 @@ class FaceMemory:
         if DEBUG_FACE:
             logger.info(f"[face_memory] stored face for {name} (id={person_id})")
 
-    def find_match(self, encoding: np.ndarray,
-                   tolerance: Optional[float] = None) -> Optional[dict]:
-        """Best gallery match via per-person minimum Euclidean distance.
+    def find_match_detail(self, encoding: np.ndarray,
+                          tolerance: Optional[float] = None) -> dict:
+        """Best gallery match, with the ambiguity verdict reported SEPARATELY.
 
-        dlib's 128-dim encodings are Euclidean-native and calibrated at 0.6. Each
-        person may hold several encodings (different angles/lighting); a person's
-        score is their BEST encoding, so extra views can only help.
+        Returns `{"match": <dict|None>, "ambiguous": bool}`.
+
+        `find_match` collapses two very different outcomes into `None`: "nobody is
+        close" and "somebody IS close but a second person is nearly as close" (the W4
+        margin firing). A read-only caller cannot tell them apart and does not need
+        to; a caller that may WRITE absolutely does. Treating an ambiguous face as a
+        stranger and enrolling it under the current speaker's name writes one guest's
+        encoding into another guest's gallery, after which every later frame matches
+        the wrong name at distance ~0 and clears the margin easily — a permanent,
+        CONFIDENT wrong name. Anything that enrolls or stashes must use this method.
+
+        Reduction is per distinct NAME, not per `person_id`. Master's `learn_guest`
+        allocated `max_id + 1` on every call, so a real post-party memory.db holds
+        several `face_encodings` rows for one guest, each with its own person_id, and
+        the gallery migration copies them 1:1. Reducing per person_id would make one
+        human's duplicate rows COMPETING identities, so the margin would reject him
+        against himself and returning guests would be permanently unrecognizable.
+        Mirrors `speaker_id.identify_speaker`'s per-name reduction (`speaker_id.py`).
+
+        dlib's 128-dim encodings are Euclidean-native and calibrated at 0.6. A
+        person's score is their BEST encoding, so extra views can only help.
         Party scale: 20-50 guests x <=5 encodings = <=250 vectors, well under 1ms.
         """
         tol = tolerance if tolerance is not None else self._tolerance
@@ -189,24 +207,24 @@ class FaceMemory:
                 conn.close()
 
         if not rows:
-            return None
+            return {"match": None, "ambiguous": False}
 
-        best_per_person = {}
+        best_per_name = {}
         for pid, name, enc_json, visits in rows:
             stored = np.array(json.loads(enc_json), dtype=np.float64)
             distance = float(np.linalg.norm(encoding - stored))
-            current = best_per_person.get(pid)
+            current = best_per_name.get(name)
             if current is None or distance < current[0]:
-                best_per_person[pid] = (distance, name, visits)
+                best_per_name[name] = (distance, pid, visits)
 
-        ranked = sorted(best_per_person.items(), key=lambda kv: kv[1][0])
-        person_id, (distance, name, visits) = ranked[0]
+        ranked = sorted(best_per_name.items(), key=lambda kv: kv[1][0])
+        name, (distance, person_id, visits) = ranked[0]
         if distance > tol:
-            return None
+            return {"match": None, "ambiguous": False}
 
         # W4: refuse an ambiguous call. Only DIFFERENT people compete — `ranked` is
-        # already reduced to one entry per person, so two views of the same guest
-        # can never look like a tie.
+        # already reduced to one entry per NAME, so neither two views of the same
+        # guest nor two legacy person_id rows for him can look like a tie.
         if len(ranked) >= 2:
             runner_up_distance = ranked[1][1][0]
             margin = recognition_config.get("face_match_margin")
@@ -214,7 +232,7 @@ class FaceMemory:
                 if DEBUG_FACE:
                     logger.info(f"[face_memory] ambiguous: {name} {distance:.3f} vs "
                                 f"runner-up {runner_up_distance:.3f} (margin {margin}) — unknown")
-                return None
+                return {"match": None, "ambiguous": True}
 
         match = {
             "person_id": person_id,
@@ -224,7 +242,17 @@ class FaceMemory:
         }
         if DEBUG_FACE:
             logger.info(f"[face_memory] match: {name} ({match['confidence']:.3f})")
-        return match
+        return {"match": match, "ambiguous": False}
+
+    def find_match(self, encoding: np.ndarray,
+                   tolerance: Optional[float] = None) -> Optional[dict]:
+        """Best gallery match, or None. Unchanged return shape for read-only callers.
+
+        None here means "no identity to report" — it does NOT distinguish a stranger
+        from an ambiguous pair. Callers that enroll or stash must use
+        `find_match_detail` instead.
+        """
+        return self.find_match_detail(encoding, tolerance)["match"]
 
     def learn_guest(self, name: str, encoding: np.ndarray, quality: float = 0.0) -> int:
         """Enroll an encoding for `name`, returning that guest's person_id.

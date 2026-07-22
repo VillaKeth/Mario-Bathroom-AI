@@ -77,10 +77,17 @@ more than one unknown face shares a frame. Two distinct defects:
 **Fix.** Enroll only when the batch contains exactly one unknown face.
 
 - Count unknown faces first, then act.
-- Exactly one unknown, speaker known → link that face to the speaker (current behavior,
-  now safe).
+- Exactly one unknown, speaker known, **and that speaker's own face is not already
+  matched in the same frame** → link that face to the speaker. If the speaker *is*
+  already matched, the unknown face belongs to somebody else (the "known guest walks in
+  with a stranger" doorway case), so enroll nothing — see the final-review CRITICAL 2
+  fix. An earlier revision of this line called the speaker-known path "now safe"
+  unconditionally; that was wrong and is corrected here.
 - Exactly one unknown, no speaker → stash as `pending_encoding` (current behavior).
-- Two or more unknown → enroll nothing, stash nothing. Return `ambiguous: True`.
+- Two or more unknown, **or any face rejected as margin-ambiguous by `find_match_detail`**
+  → enroll nothing, stash nothing. Return `ambiguous: True`. A margin-ambiguous face is
+  someone the gallery already knows but cannot uniquely name; treating it as a stranger
+  and enrolling it (or enrolling around it) poisons a gallery with a confident wrong name.
 
 `resolve_faces` returns `{"detected", "new_face_count", "pending_encoding", "ambiguous"}`.
 `server/main.py` keeps its existing group greeting (`:7261-7276`) unchanged — Mario still
@@ -261,8 +268,17 @@ Add to `config.json` under `server`, all with the code defaults named above so b
 is unchanged until tuned:
 
 `face_match_tolerance`, `face_match_margin`, `voice_match_margin`,
-`face_min_box_px`, `face_min_sharpness`, `face_min_quality`,
-`voice_consistency_tau`, `voice_max_flatness`, `gallery_max_per_person`.
+`face_min_quality`, `voice_consistency_tau`, `voice_max_flatness`,
+`gallery_max_per_person`.
+
+Note: `face_min_box_px` and `face_min_sharpness` are **not** server config. They are
+the client-side sub-scores that feed the combined `face_min_quality` float, computed in
+the separate client process (`client/person_detector.py`) and tuned only via the
+`FACE_MIN_BOX_PX` / `FACE_MIN_SHARPNESS` env vars. An earlier revision listed them here
+and in `config.example.json`, but nothing on the server ever read them
+(`recognition_config.get` was never called for either) — advertising them as server
+tunables was dead config that could silently drift from the client's actual scale, so
+they were removed (final-review IMPORTANT 5).
 
 Per project convention, `config.json` is gitignored — add these to
 `config.example.json` as the tracked template. Code defaults must stand alone so a
@@ -420,7 +436,7 @@ is unaffected and still runs. See `known_limitations` in results.json.
 | `voice_consistency_tau` | 0.60 | **0.60 (restored)** | Task 8 initially set 0.0 (disabling Stage B) because no tau met the 80%-double-rejected target. Fix wave 1 restored 0.60: its own sweep shows `single_kept = 1.0` at that value — **zero** false rejects on genuine solo speech — so the gate is harmless, and disabling it discarded Task 7 for no accuracy gain. The low double-rejected figure is a fixture artifact: Stage B detects a speaker *change* between the chunk's two halves, while the lab's fixture is continuous *overlap*, which blends consistently across both halves and so looks self-consistent. See `known_limitations.double_speaker_mix_may_not_exercise_stage_b`. A mid-chunk speaker-change fixture is the follow-up. |
 | `face_match_margin` | 0.05 | 0.05 (confirmed) | Already the knee: false_accept measured 0% at every swept margin (0.00-0.12); true_accept starts falling (100% -> 83%) at margin >= 0.08. No swept margin lowers false_accept further without cost. |
 | `voice_match_margin` | 0.06 | **0.06 (confirmed by sweep)** | Swept in Fix wave 2 against noise-mixed speech, classifying each probe `correct` / `wrong` (matched a different enrolled guest) / `unknown`. Margins 0.00/0.02/0.04 produced real wrong-name greetings at 10dB and/or 5dB; 0.06/0.09/0.12 produced none. 0.06 is the lowest value with zero wrong names at every SNR. This is the sole cause of the residual noisy-SNR recall gap in §7.1, and it is a deliberate trade — see that section. Caveat: 18 probes per cell over 6 people, so the knee could shift one step on a different roster. |
-| `face_match_tolerance`, `face_min_box_px`, `face_min_sharpness`, `face_min_quality`, `gallery_max_per_person` | unchanged | unchanged | Not swept in W8; retained at their Tasks 3/7 defaults. |
+| `face_match_tolerance`, `face_min_quality`, `gallery_max_per_person` | unchanged | unchanged | Not swept in W8; retained at their Tasks 3/7 defaults. (`face_min_box_px` / `face_min_sharpness` are client env-only, not server config — see W7 and final-review IMPORTANT 5.) |
 
 ### 7.3 Acceptance criteria (task-8-brief.md Step 7)
 
