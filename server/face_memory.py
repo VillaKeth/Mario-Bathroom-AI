@@ -14,7 +14,15 @@ from typing import Optional
 
 import numpy as np
 
-import recognition_config
+# Sibling import: this repo loads server/ modules as both bare top-level copies
+# and server.* package copies (independent module instances). recognition_config
+# holds a module-global cache, so every module in a process must resolve the
+# SAME instance of it. Mirrors server/mario_prompt.py:409-412 and
+# server/llm.py:185-186.
+if __package__:
+    from server import recognition_config
+else:
+    import recognition_config
 
 logger = logging.getLogger(__name__)
 DEBUG_FACE = os.environ.get("DEBUG_FACE", "").lower() in ("1", "true", "yes")
@@ -122,8 +130,16 @@ class FaceMemory:
             finally:
                 conn.close()
 
-    def store_face(self, person_id: int, name: str, encoding: np.ndarray):
-        """Store or update a face encoding."""
+    def store_face(self, person_id: int, name: str, encoding: np.ndarray,
+                    quality: float = 0.0):
+        """Store or update a face encoding, and add it to the gallery.
+
+        Keeps the identity-row upsert (and its visit_count increment) existing
+        callers depend on — e.g. main.py's `/admin/recognition/face` photo-enroll
+        endpoint — but also feeds `_add_encoding`. `find_match` reads only
+        `face_gallery`, so without this a face enrolled through this path could
+        never be matched again.
+        """
         enc_json = json.dumps(encoding.tolist())
         with self._lock:
             conn = sqlite3.connect(self._db_path)
@@ -144,6 +160,7 @@ class FaceMemory:
                         INSERT INTO face_encodings (person_id, name, encoding)
                         VALUES (?, ?, ?)
                     """, (person_id, name, enc_json))
+                self._add_encoding(conn, person_id, name, encoding, quality)
                 conn.commit()
             finally:
                 conn.close()
