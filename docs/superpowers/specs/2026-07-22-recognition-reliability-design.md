@@ -198,10 +198,12 @@ doorway. `:67` runs YOLO every 3rd frame, limiting chances at a good capture.
 
 **Fix.**
 
-- Auto-select the detector by hardware tier via `server/hardware.py`: `cnn` on
-  `ULTRA` / `VERY_HIGH` (the 3090 Ti party box), `hog` on `HIGH` and below (the P1000 dev
-  box, which cannot afford it). The existing `FACE_DETECTOR_MODEL` env override wins over
-  the auto-selection.
+- Auto-select the detector by hardware tier via `server/hardware.py:get_tier()`, which
+  returns one of `ultra` / `high` / `medium` / `low` (four tiers, lowercase — note that
+  CLAUDE.md's five-tier `VERY_HIGH` list is inaccurate). Use `cnn` on `ultra` and `high`,
+  `hog` on `medium` and `low`. The party box (24 GB VRAM / 256 GB RAM / 64 cores) resolves
+  to `ultra`; the P1000 dev box (4 GB VRAM) resolves to `low` and correctly stays on HOG.
+  The existing `FACE_DETECTOR_MODEL` env override wins over the auto-selection.
 - Adaptive frame skip: 3 while no person has been detected recently, 1 while a person box
   is present, reverting after 2 s with no detection. More shots at a good frontal frame
   exactly when someone is at the door.
@@ -228,10 +230,15 @@ embedding is returned.
   existing `MIN_SPEECH_RMS` floor, or if the mean spectral flatness across windows exceeds
   `voice_max_flatness` (default 0.45) — flatness near 1.0 is noise-like, speech is peaky.
   This throws out music and room noise for the cost of an FFT.
-- **Stage B (2 extra embeddings).** Only if Stage A passes: embed the first and last
-  sub-window and compare. If `cos(w_first, w_last) < voice_consistency_tau`
-  (default 0.60), the chunk is unstable — two speakers, or a speaker plus heavy
-  interference — so reject it.
+- **Stage B (2 extra embeddings).** Only if Stage A passes: embed the first and second
+  **half** of the chunk and compare. If `cos(first_half, second_half) <
+  voice_consistency_tau` (default 0.60), the chunk is unstable — two speakers, or a
+  speaker plus heavy interference — so reject it.
+
+  Halves, not the Stage A thirds: the live chunk is 3.0 s (`CHUNK_SIZE = 96000` bytes at
+  16 kHz int16), so halves are 1.5 s each. resemblyzer's partial-utterance window is
+  1.6 s, so thirds (1.0 s) would be zero-padded and yield noisier embeddings. Stage A
+  needs no embedding and keeps its finer 3-window split.
 
 Rejection returns `None`, which every caller already handles as "no usable voice".
 
