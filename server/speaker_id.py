@@ -6,6 +6,15 @@ import json
 import os
 import numpy as np
 
+# Sibling import: this repo loads server/ modules as both bare top-level copies
+# and server.* package copies (independent module instances). recognition_config
+# holds a module-global cache, so every module in a process must resolve the
+# SAME instance of it. Mirrors server/face_memory.py and server/mario_prompt.py:409-412.
+if __package__:
+    from server import recognition_config
+else:
+    import recognition_config
+
 # Fix numpy deprecation in resemblyzer (np.bool removed in numpy 1.24+)
 import warnings
 with warnings.catch_warnings():
@@ -190,8 +199,14 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     finally:
         conn.close()
 
-    best_match = None
-    best_similarity = -1.0
+    # W4: reduce to the BEST similarity per distinct NAME, not per row. The
+    # `speakers` table can hold multiple rows for the same person — register_speaker
+    # and register_speaker_multi each INSERT a new row, so a guest who enrolls twice
+    # has two rows under one name. Ranking raw rows would make that guest's own
+    # second print look like a competing runner-up and wrongly reject her own
+    # match as ambiguous, so the reduction happens BEFORE ranking (mirrors
+    # face_memory.find_match's per-person reduction).
+    best_per_name = {}
 
     for row_id, name, emb_blob in rows:
         try:
@@ -209,16 +224,32 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
         if DEBUG_SPEAKER:
             logger.info(f"[DEBUG_SPEAKER] identify_speaker SQLite: {name} similarity={similarity:.3f}")
 
-        if similarity > best_similarity:
-            best_similarity = similarity
-            best_match = (row_id, name)
+        current = best_per_name.get(name)
+        if current is None or similarity > current[0]:
+            best_per_name[name] = (similarity, row_id)
 
-    if best_match and best_similarity >= SIMILARITY_THRESHOLD:
+    ranked = sorted(best_per_name.items(), key=lambda kv: kv[1][0], reverse=True)
+    best_similarity = ranked[0][1][0] if ranked else -1.0
+
+    if ranked and best_similarity >= SIMILARITY_THRESHOLD:
+        best_name, (_, best_row_id) = ranked[0]
+        # W4: refuse an ambiguous call. Only DIFFERENT people compete — `ranked` is
+        # already reduced to one entry per name, so two prints of the same
+        # returning guest can never look like a tie.
+        if len(ranked) >= 2:
+            second_similarity = ranked[1][1][0]
+            margin = recognition_config.get("voice_match_margin")
+            if (best_similarity - second_similarity) < margin:
+                if DEBUG_SPEAKER:
+                    logger.info(f"[DEBUG_SPEAKER] ambiguous: {best_similarity:.3f} vs "
+                                f"{second_similarity:.3f} (margin {margin}) — treating as new")
+                return {"name": None, "speaker_id": None,
+                        "confidence": float(best_similarity), "is_new": True}
         if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] matched {best_match[1]} ({best_similarity:.3f})")
+            logger.info(f"[DEBUG_SPEAKER] matched {best_name} ({best_similarity:.3f})")
         return {
-            "name": best_match[1],
-            "speaker_id": best_match[0],
+            "name": best_name,
+            "speaker_id": best_row_id,
             "confidence": float(best_similarity),
             "is_new": False,
         }

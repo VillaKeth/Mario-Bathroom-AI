@@ -204,6 +204,18 @@ class FaceMemory:
         if distance > tol:
             return None
 
+        # W4: refuse an ambiguous call. Only DIFFERENT people compete — `ranked` is
+        # already reduced to one entry per person, so two views of the same guest
+        # can never look like a tie.
+        if len(ranked) >= 2:
+            runner_up_distance = ranked[1][1][0]
+            margin = recognition_config.get("face_match_margin")
+            if (runner_up_distance - distance) < margin:
+                if DEBUG_FACE:
+                    logger.info(f"[face_memory] ambiguous: {name} {distance:.3f} vs "
+                                f"runner-up {runner_up_distance:.3f} (margin {margin}) — unknown")
+                return None
+
         match = {
             "person_id": person_id,
             "name": name,
