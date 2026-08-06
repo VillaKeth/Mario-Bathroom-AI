@@ -1779,6 +1779,90 @@ def build_stream_chunks(display_text: str) -> list[dict]:
     return chunks
 
 
+# A sentence is only settled by punctuation FOLLOWED by whitespace — the same
+# boundary split_display_sentences uses. A bare "." is not enough mid-stream:
+# the next token could be a decimal digit ("3.5") or the tail of an
+# abbreviation, and we would have already spoken the cut.
+_STREAM_BOUNDARY_RE = _re_tts.compile(r'(?<=[.!?])\s+')
+
+# The LLM appends {"emotion": ..., "energy": ...} which extract_emotion_tag()
+# strips from the final reply. Token streaming reaches TTS BEFORE that strip
+# runs, so the blob has to be removed here or the guest hears it read aloud.
+_STREAM_EMOTION_BLOB_RE = _re_tts.compile(r'\{[^{}]*(?:"emotion"|"energy")[^{}]*\}')
+
+
+class TokenSentenceBuffer:
+    """Turn an LLM token stream into speakable chunks as sentences complete.
+
+    Same output shape as build_stream_chunks() — [{"display", "tts"}] — so the
+    existing per-sentence TTS executor and audio_chunk send path work unchanged.
+    The difference is timing: chunks come out while the model is still writing,
+    so first audio no longer waits for the whole reply.
+
+    Short fragments merge forward (a bare "Wow!" is not worth its own synthesis
+    round-trip), and fragments that clean to nothing carry their display text
+    into the next chunk so the bubble still reveals them.
+    """
+
+    def __init__(self, min_chars: int = 12):
+        self.min_chars = min_chars
+        self._buf = ""
+        self._carry_display = ""
+
+    def feed(self, token: str) -> list[dict]:
+        """Add a token, returning any chunks its arrival completed."""
+        self._buf += token
+        out = []
+        while True:
+            settled = self._take_settled()
+            if settled is None:
+                break
+            chunk = self._make_chunk(settled)
+            if chunk:
+                out.append(chunk)
+        return out
+
+    def flush(self, extra: str = "") -> list[dict]:
+        """Emit whatever is left once the stream ends. Safe to call twice."""
+        if extra:
+            self._buf += extra
+        raw, self._buf = self._buf, ""
+        out = []
+        if raw.strip():
+            chunk = self._make_chunk(raw)
+            if chunk:
+                out.append(chunk)
+        self._carry_display = ""
+        return out
+
+    def _take_settled(self):
+        """Pop the earliest boundary that leaves a chunk worth synthesizing."""
+        for m in _STREAM_BOUNDARY_RE.finditer(self._buf):
+            candidate = self._buf[:m.start()]
+            if len(candidate.strip()) >= self.min_chars:
+                self._buf = self._buf[m.end():]
+                return candidate
+        return None
+
+    def _make_chunk(self, raw: str):
+        try:
+            from pose_analyzer import analyze_text as _analyze
+        except ImportError:
+            from .pose_analyzer import analyze_text as _analyze
+        # Only rewrite when a blob is actually present — an untouched slice stays
+        # a verbatim substring of the reply, which is what lets the client find
+        # each chunk in the bubble text to gate its typewriter.
+        text = _STREAM_EMOTION_BLOB_RE.sub("", raw).strip() \
+            if _STREAM_EMOTION_BLOB_RE.search(raw) else raw.strip()
+        display = f"{self._carry_display} {text}".strip() if self._carry_display else text
+        tts_in = _analyze(text)["tts_text"].strip() if text else ""
+        if not tts_in:
+            self._carry_display = display
+            return None
+        self._carry_display = ""
+        return {"display": display, "tts": tts_in}
+
+
 async def synthesize_streaming(text: str, voice_params: dict = None):
     """Split text into sentences, synthesize each, yield WAV bytes as they complete.
 
