@@ -11,3 +11,6 @@ results.json
 *.flac
 *.jpg
 *.png
+
+# Scratch SQLite DBs created by the W8 sweeps (tmp_db()) — never real party data.
+_tmp/

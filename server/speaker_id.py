@@ -6,6 +6,15 @@ import json
 import os
 import numpy as np
 
+# Sibling import: this repo loads server/ modules as both bare top-level copies
+# and server.* package copies (independent module instances). recognition_config
+# holds a module-global cache, so every module in a process must resolve the
+# SAME instance of it. Mirrors server/face_memory.py and server/mario_prompt.py:409-412.
+if __package__:
+    from server import recognition_config
+else:
+    import recognition_config
+
 # Fix numpy deprecation in resemblyzer (np.bool removed in numpy 1.24+)
 import warnings
 with warnings.catch_warnings():
@@ -73,6 +82,53 @@ def _has_speech_energy(audio_data: bytes, min_rms: float = None) -> bool:
     """True if the chunk is loud enough to plausibly contain speech (F5 gate)."""
     floor = MIN_SPEECH_RMS if min_rms is None else min_rms
     return _audio_rms(audio_data) >= floor
+
+
+def spectral_flatness(samples: np.ndarray) -> float:
+    """Wiener entropy: geometric mean / arithmetic mean of the magnitude spectrum.
+
+    Near 1.0 for noise-like signals (white noise, room hiss, dense music), low for
+    the peaky harmonic structure of speech. Costs one FFT and no embedding.
+    """
+    if samples is None or samples.size == 0:
+        return 1.0
+    windowed = samples.astype(np.float64) * np.hanning(len(samples))
+    spectrum = np.abs(np.fft.rfft(windowed))
+    spectrum = spectrum[spectrum > 1e-10]
+    if spectrum.size == 0:
+        return 1.0
+    geometric = np.exp(np.mean(np.log(spectrum)))
+    arithmetic = np.mean(spectrum)
+    return float(geometric / arithmetic) if arithmetic > 0 else 1.0
+
+
+def stage_a_ok(samples_int16: np.ndarray, min_rms: float = None,
+               max_flatness: float = None) -> bool:
+    """Cheap pre-embedding gate: enough speech energy, not noise-like.
+
+    Splits the chunk into 3 windows. Requires at least 2 of 3 above the speech
+    energy floor (rejects mostly-silent chunks) and a mean spectral flatness under
+    the ceiling (rejects music and room noise). No embedding cost.
+    """
+    if samples_int16 is None or len(samples_int16) < 3:
+        return False
+    if max_flatness is None:
+        max_flatness = recognition_config.get("voice_max_flatness")
+    floor = MIN_SPEECH_RMS if min_rms is None else min_rms
+
+    third = len(samples_int16) // 3
+    windows = [samples_int16[i * third:(i + 1) * third] for i in range(3)]
+
+    loud = 0
+    for window in windows:
+        vals = window.astype(np.float64)
+        if vals.size and float(np.sqrt(np.mean(vals * vals))) >= floor:
+            loud += 1
+    if loud < 2:
+        return False
+
+    mean_flatness = float(np.mean([spectral_flatness(w.astype(np.float64)) for w in windows]))
+    return mean_flatness <= max_flatness
 
 
 def _average_embeddings(embeddings):
@@ -146,13 +202,38 @@ def get_embedding(audio_data: bytes, sample_rate: int = 16000) -> np.ndarray:
             logger.info(f"[DEBUG_SPEAKER] get_embedding: below speech-energy floor (rms={_audio_rms(audio_data):.0f})")
         return None
 
-    audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
-    processed = preprocess_wav(audio_np, source_sr=sample_rate)
+    audio_np = np.frombuffer(audio_data, dtype=np.int16)
+
+    # Stage A (W6): no embedding cost — reject noise/music/mostly-silence outright.
+    if not stage_a_ok(audio_np):
+        if DEBUG_SPEAKER:
+            logger.info("[DEBUG_SPEAKER] get_embedding: rejected by stage A (energy/flatness)")
+        return None
+
+    processed = preprocess_wav(audio_np.astype(np.float32) / 32768.0, source_sr=sample_rate)
 
     if len(processed) < sample_rate * 1.0:
         if DEBUG_SPEAKER:
             logger.info("[DEBUG_SPEAKER] get_embedding: audio too short for embedding")
         return None
+
+    # Stage B (W6): two extra CPU embeddings. Halves, not thirds — resemblyzer's
+    # partial-utterance window is 1.6s, so 1.0s thirds would be zero-padded and
+    # noisy. Disagreement between halves means two speakers or heavy interference.
+    half = len(processed) // 2
+    first, second = processed[:half], processed[half:]
+    if min(len(first), len(second)) >= sample_rate * 1.0:
+        emb_a = _encoder.embed_utterance(first)
+        emb_b = _encoder.embed_utterance(second)
+        denominator = np.linalg.norm(emb_a) * np.linalg.norm(emb_b)
+        if denominator > 0:
+            agreement = float(np.dot(emb_a, emb_b) / denominator)
+            tau = recognition_config.get("voice_consistency_tau")
+            if agreement < tau:
+                if DEBUG_SPEAKER:
+                    logger.info(f"[DEBUG_SPEAKER] get_embedding: rejected by stage B "
+                                f"(agreement {agreement:.3f} < {tau})")
+                return None
 
     embedding = _encoder.embed_utterance(processed)
     if DEBUG_SPEAKER:
@@ -190,8 +271,14 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
     finally:
         conn.close()
 
-    best_match = None
-    best_similarity = -1.0
+    # W4: reduce to the BEST similarity per distinct NAME, not per row. The
+    # `speakers` table can hold multiple rows for the same person — register_speaker
+    # and register_speaker_multi each INSERT a new row, so a guest who enrolls twice
+    # has two rows under one name. Ranking raw rows would make that guest's own
+    # second print look like a competing runner-up and wrongly reject her own
+    # match as ambiguous, so the reduction happens BEFORE ranking (mirrors
+    # face_memory.find_match's per-person reduction).
+    best_per_name = {}
 
     for row_id, name, emb_blob in rows:
         try:
@@ -209,16 +296,32 @@ def identify_speaker(audio_data: bytes, sample_rate: int = 16000) -> dict:
         if DEBUG_SPEAKER:
             logger.info(f"[DEBUG_SPEAKER] identify_speaker SQLite: {name} similarity={similarity:.3f}")
 
-        if similarity > best_similarity:
-            best_similarity = similarity
-            best_match = (row_id, name)
+        current = best_per_name.get(name)
+        if current is None or similarity > current[0]:
+            best_per_name[name] = (similarity, row_id)
 
-    if best_match and best_similarity >= SIMILARITY_THRESHOLD:
+    ranked = sorted(best_per_name.items(), key=lambda kv: kv[1][0], reverse=True)
+    best_similarity = ranked[0][1][0] if ranked else -1.0
+
+    if ranked and best_similarity >= SIMILARITY_THRESHOLD:
+        best_name, (_, best_row_id) = ranked[0]
+        # W4: refuse an ambiguous call. Only DIFFERENT people compete — `ranked` is
+        # already reduced to one entry per name, so two prints of the same
+        # returning guest can never look like a tie.
+        if len(ranked) >= 2:
+            second_similarity = ranked[1][1][0]
+            margin = recognition_config.get("voice_match_margin")
+            if (best_similarity - second_similarity) < margin:
+                if DEBUG_SPEAKER:
+                    logger.info(f"[DEBUG_SPEAKER] ambiguous: {best_similarity:.3f} vs "
+                                f"{second_similarity:.3f} (margin {margin}) — treating as new")
+                return {"name": None, "speaker_id": None,
+                        "confidence": float(best_similarity), "is_new": True}
         if DEBUG_SPEAKER:
-            logger.info(f"[DEBUG_SPEAKER] matched {best_match[1]} ({best_similarity:.3f})")
+            logger.info(f"[DEBUG_SPEAKER] matched {best_name} ({best_similarity:.3f})")
         return {
-            "name": best_match[1],
-            "speaker_id": best_match[0],
+            "name": best_name,
+            "speaker_id": best_row_id,
             "confidence": float(best_similarity),
             "is_new": False,
         }

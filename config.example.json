@@ -59,7 +59,14 @@
     "watch_interval_seconds": 20,
     "watch_max_minutes": 30,
     "watch_keepalive": "3m",
-    "watch_jpeg_width": 1024
+    "watch_jpeg_width": 1024,
+    "face_match_tolerance": 0.6,
+    "face_match_margin": 0.05,
+    "voice_match_margin": 0.06,
+    "face_min_quality": 0.5,
+    "voice_consistency_tau": 0.60,
+    "voice_max_flatness": 1.0,
+    "gallery_max_per_person": 5
   },
   "client": {
     "server_url": "ws://localhost:8765/ws",

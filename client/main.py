@@ -950,6 +950,7 @@ class MarioClient:
                 face_entry = {"confidence": person.confidence}
                 if person.face_encoding is not None:
                     face_entry["encoding"] = person.face_encoding.tolist()
+                    face_entry["quality"] = float(getattr(person, "face_quality", 1.0))
                 faces.append(face_entry)
 
             event = {

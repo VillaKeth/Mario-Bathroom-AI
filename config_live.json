@@ -9,9 +9,9 @@
   "freak_factor": 0.85,
   "camera_enabled": true,
   "camera_vision_enabled": true,
-  "camera_vision_model": "gemma3:27b",
+  "camera_vision_model": "llava-llama3:latest",
   "camera_frame_min_interval": 2.0,
   "camera_vision_min_gap": 45,
-  "camera_vision_timeout": 60,
+  "camera_vision_timeout": 120,
   "camera_frame_ttl": 30
 }
