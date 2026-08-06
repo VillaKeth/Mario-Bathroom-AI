@@ -16,9 +16,19 @@
  .res{margin-top:6px;font-size:13px;color:#9ad}
  .bar{height:8px;background:#2a3142;border-radius:4px;overflow:hidden;width:120px;display:inline-block;vertical-align:middle}
  .bar>i{display:block;height:100%;background:#3ad07a}
+ .keybar{display:flex;gap:8px;align-items:center;padding:10px 16px;background:#161b26;
+   border-bottom:1px solid #2a3142;font-size:13px}
+ .keybar input{flex:0 0 260px}
+ .auth-ok{color:#3ad07a}
+ .auth-bad{color:#ff8a80}
 </style></head>
 <body>
 <h1>🍄 Recognition Inspector</h1>
+<div class="keybar">
+  <input id="key" type="password" placeholder="admin key" autocomplete="off">
+  <button onclick="saveKey()">Use key</button>
+  <span id="authstate"></span>
+</div>
 <div class="wrap">
  <div class="card"><h2>Who Mario knows</h2>
    <b>Faces</b><table id="faces"></table>
@@ -38,30 +48,51 @@
    <div class="res" id="vres"></div></div>
 </div>
 <script>
-const API_KEY = new URLSearchParams(location.search).get('api_key') || '';
+// The key is shared with the Control page (same localStorage slot), so entering it
+// in either one is enough. ?api_key=... still works and is promoted to storage, but
+// it is no longer the ONLY way in — without it this page used to render bare headers
+// and never say why.
+const KEY_STORE = 'mario_admin_key';
+const urlKey = new URLSearchParams(location.search).get('api_key');
+if (urlKey) localStorage.setItem(KEY_STORE, urlKey);
+document.getElementById('key').value = localStorage.getItem(KEY_STORE) || '';
+const API_KEY = () => document.getElementById('key').value.trim();
+function saveKey(){localStorage.setItem(KEY_STORE, API_KEY());roster();}
+function setAuth(ok, why){const el=document.getElementById('authstate');
+ el.className = ok?'auth-ok':'auth-bad';
+ el.textContent = ok?'✅ connected':`🔒 ${why||'unauthorized'} — paste the admin key`;}
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const J=(u,o)=>fetch(u,o).then(r=>r.json());
 function bar(c){return `<span class="bar"><i style="width:${Math.round((c||0)*100)}%"></i></span> ${(c||0).toFixed(2)}`;}
-async function roster(){const d=await J('/admin/recognition/roster?api_key='+encodeURIComponent(API_KEY));
+// NB: the `||'none'` fallback must wrap ONLY the joined rows. Applying it to the
+// whole concatenation (header + rows) never fires, because the header string is
+// always truthy — an empty roster then renders as bare headers.
+function rows(list, cells, cols){
+ const body = (list||[]).map(cells).join('');
+ return body || `<tr><td colspan="${cols}">none</td></tr>`;}
+async function roster(){const d=await J('/admin/recognition/roster?api_key='+encodeURIComponent(API_KEY()));
+ if(d.error){setAuth(false, d.error);return;}
+ setAuth(true);
  document.getElementById('faces').innerHTML='<tr><th>name</th><th>visits</th></tr>'+
-   (d.faces||[]).map(f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.visit_count)}</td></tr>`).join('')||'<tr><td>none</td></tr>';
+   rows(d.faces, f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.visit_count)}</td></tr>`, 2);
  document.getElementById('voices').innerHTML='<tr><th>name</th><th>id</th></tr>'+
-   (d.voices||[]).map(v=>`<tr><td>${esc(v.name)}</td><td>${esc(v.id)}</td></tr>`).join('')||'<tr><td>none</td></tr>';}
+   rows(d.voices, v=>`<tr><td>${esc(v.name)}</td><td>${esc(v.id)}</td></tr>`, 2);}
 function b64(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(file);});}
 async function sendFace(enroll){const f=document.getElementById('fimg').files[0];if(!f)return;
  const name=enroll?document.getElementById('fname').value:'';
  const d=await J('/admin/recognition/face',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({image_b64:await b64(f),name,api_key:API_KEY})});
+   body:JSON.stringify({image_b64:await b64(f),name,api_key:API_KEY()})});
  document.getElementById('fres').innerHTML=d.enrolled?`✅ enrolled ${esc(d.name)}`:
    d.detected===false?'🚫 no face found':d.name?`👤 ${esc(d.name)} ${bar(d.confidence)}`:'🆕 new / unknown face';roster();}
 async function sendVoice(enroll){const f=document.getElementById('vwav').files[0];if(!f)return;
  const name=enroll?document.getElementById('vname').value:'';
  const d=await J('/admin/recognition/voice',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({wav_b64:await b64(f),name,api_key:API_KEY})});
+   body:JSON.stringify({wav_b64:await b64(f),name,api_key:API_KEY()})});
  document.getElementById('vres').innerHTML=d.enrolled?`✅ enrolled ${esc(d.name)}`:
    d.error?('⚠️ '+esc(d.error)):`${d.name?('🎤 '+esc(d.name)+' '+bar(d.confidence)):'🆕 new speaker'} <i>"${esc(d.transcript||'')}"</i>`;roster();}
 let lastSeq=0;
-async function feed(){const d=await J('/admin/recognition/events?since='+lastSeq+'&api_key='+encodeURIComponent(API_KEY));
+async function feed(){const d=await J('/admin/recognition/events?since='+lastSeq+'&api_key='+encodeURIComponent(API_KEY()));
+ if(d.error)return;
  const el=document.getElementById('feed');
  (d.events||[]).forEach(e=>{lastSeq=e.seq;const ic=e.kind==='face'?'👤':'🎤';
    el.innerHTML=`<div>${ic} ${esc(e.name)||'unknown'} ${e.is_new?'🆕':''} ${bar(e.confidence)} <small>(${e.source})</small></div>`+el.innerHTML;});}

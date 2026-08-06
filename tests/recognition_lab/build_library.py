@@ -257,8 +257,79 @@ def add_libri_voices(n_enroll=3, n_probe=3, force=False):
     return manifest
 
 
+def _pct(x):
+    """Format a 0..1 rate as a percentage, or '--' when the run did not measure it."""
+    return "--" if x is None else f"{round(x * 100)}%"
+
+
+def _applied(r, name):
+    """The threshold actually in force for `name`.
+
+    `chosen_<name>` is what the sweep picked and is legitimately null when no
+    operating point met its target (tau and flatness both are — see Fix wave 1).
+    `applied_<name>` is what shipped, override included, so prefer it and fall back
+    only when a run predates the applied_* keys.
+    """
+    value = r.get(f"applied_{name}")
+    if value is None:
+        value = r.get(f"chosen_{name}")
+    return "--" if value is None else value
+
+
+def _results_html():
+    """Render results.json as a summary card, so the sweep is not invisible.
+
+    The harness writes numbers and nothing renders them — you had to read stdout or
+    the raw JSON. Absent/unreadable results is normal (nobody has run the harness
+    yet), so this degrades to a hint instead of failing the build.
+    """
+    path = os.path.join(HERE, "results.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            r = json.load(f)
+    except FileNotFoundError:
+        return ('<section><h2>Last run</h2><p class="muted">No results.json yet — run '
+                '<code>venv\\Scripts\\python.exe tests/recognition_lab/run_recognition_test.py</code>'
+                '.</p></section>')
+    except Exception as e:
+        return f'<section><h2>Last run</h2><p class="bad">results.json unreadable: {e}</p></section>'
+
+    snrs = ["clean", "10dB", "5dB", "0dB"]
+    vo = r.get("voice_only", {})
+
+    def voice_row(label, key):
+        cells = "".join(f"<td>{_pct(vo.get(key, {}).get(s))}</td>" for s in snrs)
+        return f"<tr><td>Voice only — {label}</td>{cells}</tr>"
+
+    imp = r.get("imposter", {})
+    face_false, face_total = imp.get("face_false", 0), imp.get("face_total", 0)
+    voice_false, voice_total = imp.get("voice_false", 0), imp.get("voice_total", 0)
+    imp_clean = (face_false == 0 and voice_false == 0)
+    src = r.get("voice_source", "?")
+
+    return f"""
+    <section>
+      <h2>Last run <small>(voice source: {src})</small></h2>
+      <table class="results">
+        <tr><th></th>{"".join(f"<th>{s}</th>" for s in snrs)}</tr>
+        {voice_row("single encoding", "single")}
+        {voice_row("multi encoding", "multi")}
+        <tr><td>Face only</td><td colspan="4">{_pct(r.get("face_only"))}</td></tr>
+        <tr><td>Voice + face fused</td><td colspan="4">{_pct(r.get("voice_face_fused"))}</td></tr>
+        <tr><td>Imposter false-accepts</td>
+            <td colspan="4" class="{'good' if imp_clean else 'bad'}">
+              face {face_false}/{face_total} &middot; voice {voice_false}/{voice_total}</td></tr>
+      </table>
+      <p class="muted">Applied thresholds: face margin {_applied(r, "margin")} &middot;
+        voice margin {_applied(r, "voice_margin")} &middot; tau {_applied(r, "tau")} &middot;
+        flatness {_applied(r, "flatness")} (1.0 = deliberately disabled).
+        Voice accuracy drops hard with noise, but wrong-name greetings stayed at zero —
+        it degrades to "unknown" rather than guessing.</p>
+    </section>"""
+
+
 def write_index_html(manifest):
-    rows = []
+    rows = [_results_html()]
     for p in manifest:
         thumbs = "".join(
             f'<figure><img src="{a["file"]}" width="96" '
@@ -268,17 +339,38 @@ def write_index_html(manifest):
             f'{"OK" if a["encodes"] else "no-face"}</figcaption></figure>'
             for a in p["faces"]
         )
-        probes = "".join(
-            f'<audio controls src="{pp}" style="height:28px"></audio>' for pp in p["voice"]["probes"]
-        )
+
+        def clip_row(label, enroll_files, probe_files, note=""):
+            enrolls = "".join(
+                f'<audio controls src="{e}" style="height:28px"></audio>' for e in enroll_files)
+            probes = "".join(
+                f'<audio controls src="{pp}" style="height:28px"></audio>' for pp in probe_files)
+            return (f'<div class="voice"><b>{label}</b>{note}'
+                    f'<b>enroll:</b> {enrolls} <b>probes:</b> {probes}</div>')
+
+        # voice_real (LibriSpeech) is what run_recognition_test.py actually scores when
+        # present — show it first and say so. The page used to render only the edge-tts
+        # clips, i.e. audio the reported numbers never touched.
+        clips = ""
+        real = p.get("voice_real")
+        if real:
+            enroll = real.get("enroll") or []
+            if isinstance(enroll, str):
+                enroll = [enroll]
+            clips += clip_row(
+                f'real (LibriSpeech #{real.get("libri_speaker","?")})',
+                enroll, real.get("probes") or [],
+                ' <span class="muted">— scored by the harness</span> ')
+        v = p.get("voice") or {}
+        clips += clip_row('synthetic (edge-tts)', [v.get("enroll")] if v.get("enroll") else [],
+                          v.get("probes") or [],
+                          '' if not real else ' <span class="muted">— not scored</span> ')
+
         rows.append(f"""
     <section>
       <h2>{p['name']} <small>({p['voice_name']} · olivetti #{p['olivetti_person_id']})</small></h2>
       <div class="faces">{thumbs}</div>
-      <div class="voice">
-        <b>enroll:</b> <audio controls src="{p['voice']['enroll']}" style="height:28px"></audio>
-        <b>probes:</b> {probes}
-      </div>
+      {clips}
     </section>""")
     html = f"""<!doctype html><meta charset="utf-8">
 <title>Recognition Test-People Library</title>
@@ -290,10 +382,17 @@ def write_index_html(manifest):
  figure{{margin:0;text-align:center;font-size:10px;color:#aaa}}
  .voice{{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}}
  audio{{vertical-align:middle}}
+ table.results{{border-collapse:collapse;margin:8px 0;font-size:13px}}
+ table.results td,table.results th{{border:1px solid #333;padding:4px 10px;text-align:left}}
+ .muted{{color:#888;font-size:12px}}
+ .good{{color:#3ad07a}}
+ .bad{{color:#ff8a80}}
+ code{{background:#222;padding:1px 4px;border-radius:3px}}
 </style>
 <h1>Recognition Test-People Library</h1>
 <p>{len(manifest)} people. Green border = dlib can encode that face angle; red = no face found.
-Faces: Olivetti (real). Voices: edge-tts (distinct neural voice per person).</p>
+Faces: Olivetti (real). Voices: real LibriSpeech clips where present (those are the ones the
+harness scores), plus the original edge-tts synthetic set.</p>
 {''.join(rows)}
 """
     out = os.path.join(HERE, "index.html")

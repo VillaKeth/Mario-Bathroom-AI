@@ -12,8 +12,11 @@ Each test person is a folder under `people/<name>/`:
 people/ava/
   profile.json          name + assigned voice + face identity + which angles encode
   voice/
-    enroll.wav          "Hi, my name is Ava" — the enrollment utterance
+    enroll.wav          "Hi, my name is Ava" — the enrollment utterance (edge-tts)
     probe_01..03.wav    different sentences, SAME voice — the probes
+  voice_real/           real LibriSpeech speaker — SCORED IN PREFERENCE to voice/
+    enroll_01..03.wav
+    probe_01..03.wav
   faces/
     enroll_front.jpg    one pose, used to enroll the face
     angle_01..09.jpg    other poses of the SAME person — probe angles
@@ -21,7 +24,10 @@ people/ava/
 
 - **Faces:** sklearn **Olivetti** — 6 real people, 10 poses each (varied angle /
   lighting / expression). Green border in `index.html` = dlib can encode that angle.
-- **Voices:** **edge-tts** — one distinct neural voice per person.
+- **Voices:** **LibriSpeech** real human speakers (`voice_real/`, added by
+  `--add-libri`) where present — these are what the harness scores, and the run prints
+  `voice source: REAL`. The original **edge-tts** synthetic set (`voice/`) is kept as a
+  fallback for people with no real voice assigned.
 - **Party noise:** `assets/party_noise/party_bed_*.wav` — synthetic cocktail-party
   babble (overlapped crowd chatter + room hiss). Drop real party clips in here to
   use them instead; the harness picks up any `.wav` in that folder.
@@ -59,9 +65,10 @@ never touched. Writes `results.json`. Scenarios:
 These conditions are **kinder than a real party**, so treat high scores as a
 ceiling, not a guarantee:
 
-- **Voices are synthetic (edge-tts).** Distinct TTS timbres are easier to tell apart
-  than real guests. Real-speaker accuracy will be lower — swap in a real multi-speaker
-  corpus (e.g. LibriSpeech via torchaudio) to harden this.
+- **Voices are real, but read aloud.** LibriSpeech is audiobook speech: clean,
+  well-enunciated, one speaker at a time. Real guests shout over music and each other.
+  (This caveat used to say the voices were synthetic edge-tts — that stopped being true
+  once `--add-libri` landed. Check the run's `voice source:` line for which set scored.)
 - **Olivetti faces are clean** — centered, frontal-ish, even lighting. A real doorway
   camera (steep angles, backlight, motion blur, small faces) will detect/encode far
   fewer faces. The HOG detector is the bottleneck there (see audit F6).
