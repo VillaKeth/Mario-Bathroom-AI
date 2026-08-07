@@ -1014,3 +1014,15 @@
 - [ ] Fix wizard UI rendering bugs (cosmetic): Step 2 tags, Step 3 sliders, Step 4 art style buttons
 - [ ] Address LLM short response complaints (investigate dual model fallback)
 - [ ] Fix Qdrant lock files blocking server restart (added manual cleanup workaround)
+
+## Close-the-Gaps Sprint — MERGED 2026-08-07 (537769a) ✅
+- [x] Group/stage mode: whole TADC cast on screen, speaker centre-stage, client camera-cut
+- [x] Cast scaffold: Ragatha, Kinger, Gangle, Zooble, Caine (personas, pools, distinct Edge voices)
+- [x] Cast sprites: real art in all 39 pose slots for the 5 new members (source: Random Name Generator cutouts, trimmed + fitted; NOT the paid flux run)
+- [x] Voice barge-in (echo-floor RMS gate) + amplitude-driven lip-flap
+- [x] Vomit comfort real-audio E2E verified end to end
+- [x] Task 7 as synthesis overlap: TTS starts while the LLM writes, guarded by align_prefetched()
+- [x] Full suite 1548 passed, same 38 config-env failures as master baseline, zero new
+- [ ] **Follow-up: emit the emotion tag FIRST in replies.** Voice params are emotion-derived and the emotion arrives at the END, so the synthesis prefetch is discarded nearly every turn (measured 0/2 reusable) and saves nothing. extract_emotion_tag and TokenSentenceBuffer already handle the blob at any position — this needs the prompt change plus live verification.
+- [ ] Follow-up: paid Pollinations flux for true per-pose sprite variety for the 5 cast members
+- [ ] Follow-up: true send-time token streaming needs a client change (progressive bubble); chunk 0 currently carries the complete display text
