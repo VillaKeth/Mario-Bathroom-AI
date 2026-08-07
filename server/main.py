@@ -4868,9 +4868,11 @@ class _SynthPrefetch:
                 lambda s=chunk["tts"]: tts.synthesize_user(
                     s, rate=self.voice_params.get("rate"),
                     pitch=self.voice_params.get("pitch"))))
-        if DEBUG_STREAM and self.chunks:
-            logger.info(f"[DEBUG_STREAM] prefetch: {len(self.chunks)} sentence(s) "
-                        f"synthesizing while the model writes")
+            # Log per NEW sentence — feed() runs on every token, so logging on
+            # buffer state instead would repeat this line hundreds of times.
+            if DEBUG_STREAM:
+                logger.info(f"[DEBUG_STREAM] prefetch: sentence {len(self.chunks)} "
+                            f"synthesizing while the model writes")
 
     def usable(self, final_display, final_voice_params):
         """How many leading prefetched clips are still correct to send."""

@@ -58,11 +58,19 @@
 
 ## Task 5: Cast sprites
 
-- [ ] Pollinations paid flux via `generate_character_poses.py` (~40/char; ledger check before + after; NO `model=flux` URL param on free tier — paid path only).
-- [ ] rembg cutouts; verify via composite-over-magenta (raw PNG eyeballing lies).
-- [ ] Provenance logged per existing `*_run.log` convention.
-- [ ] Placeholder sprites immediately so stage mode renders all seven before AI sprites land.
-- [ ] Commit sprites per character.
+**Amended 2026-08-07 — closed without the paid run.** Each of the five had ONE
+real sprite (`neutral/idle.png`) and 38 Pillow placeholders. The Random Name
+Generator project already held a real, high-res, transparent cutout of every
+cast member, so those were trimmed to alpha bbox, fitted to a clear 1024²
+canvas, and written over the placeholders only (>100KB files refused, so the
+real idle survived). Every pose now renders real art and each character has two
+distinct looks. Stage mode shows seven real characters.
+
+- [ ] Pollinations paid flux for true per-pose variety (~40/char) — still open, now an enhancement rather than a blocker.
+- [x] Verified via composite-over-magenta, not raw PNG eyeballing; corner alpha 0 on all five, clean edges.
+- [ ] Provenance logged per existing `*_run.log` convention — n/a for this pass (source is a local project asset, recorded in the commit message).
+- [x] Real art in every pose slot so stage mode renders all seven.
+- [x] Committed (4a0ce55, 190 files).
 
 ## Task 6: Vomit comfort real-audio E2E — DONE (82c5dd2, 080ec3a)
 
@@ -76,11 +84,30 @@
 
 **Files:** Modify `server/llm.py`/`llm_router.py` (streaming generate), `server/main.py` (sentence-boundary feeder into existing chunk pipeline). Test: `tests/test_token_stream_split.py` (boundary splitter over token deltas; flag off = unchanged path).
 
-- [ ] `llm_token_streaming` flag (default on).
-- [ ] Stream tokens; emit sentence when boundary + ≥12 chars; per-sentence preclean/censor/safety; submit to existing per-sentence TTS executor + `audio_chunk` sends. Stream error mid-reply → sent sentences stand, remainder → fallback, `was_partial`.
-- [ ] Unit tests: splitter (abbreviations, numbers, emoji, no-boundary short replies), flag-off passthrough.
-- [ ] Live: measure first-audio latency vs baseline on dev box; log both.
-- [ ] Commit.
+**Amended 2026-08-07 — built as synthesis overlap, not send-time streaming.**
+The spec assumed the client `audio_chunk` path could stay unchanged. It cannot:
+chunk 0 carries the COMPLETE display text (the client renders the whole bubble
+from it, then uses `chunk_text` + `resolve_span_target` to gate the typewriter),
+plus emotion/pose/particle metadata. None of that exists mid-generation. So
+sentences are synthesized during generation and sent by the existing path once
+the reply lands — same protocol, no client change.
+
+- [x] `llm_token_streaming` flag (default on; off = previous behavior).
+- [x] Stream tokens; emit sentence when boundary + ≥12 chars; submit to the existing per-sentence TTS executor. Boundary requires punctuation FOLLOWED by whitespace, so a bare "." cannot cut "3.5". Emotion JSON blob stripped before TTS.
+- [x] Unit tests: 23 across `test_token_streaming.py` (boundaries, decimals, short-fragment merge, blob suppression, flush idempotence, verbatim-substring property) and `test_prefetch_align.py` (reconciliation).
+- [x] Live-verified on dev box: prefetch fires during generation, reconcile runs, audio plays and completes (`_play_wav: playing` → `done`), reply in character.
+- [ ] **Follow-up — the win is currently unrealised.** `get_voice_params()` maps
+      26 emotions to 26 DISTINCT rate/pitch pairs, and the emotion arrives in the
+      JSON blob at the END of the reply. So the prefetch is invalidated on almost
+      every turn ("prefetch discarded: voice params moved"), falling back
+      correctly but saving nothing. Measured live: 0/2 chunks reusable. The
+      unlock is prompting the model to emit the emotion tag FIRST — then voice
+      params are known after a few tokens and every later sentence prefetches
+      correctly. `extract_emotion_tag` already regex-searches anywhere in the
+      reply, and TokenSentenceBuffer already strips the blob at any position, so
+      both sides are ready; it needs the prompt change plus per-character
+      verification.
+- [x] Commit.
 
 ## Task 8: Voice barge-in
 
@@ -101,6 +128,10 @@
 
 ## Task 10: Merge
 
-- [x] Full suite vs master-baseline worktree diff (expect the known ~28 config-env failures + 2 collection errors; zero NEW failures).
-- [x] Purge TTS cache if any TTS-bound text changed.
+**Note 2026-08-07:** these boxes were ticked prematurely in an earlier session —
+the merge never happened; the branch sat 19 ahead / 26 behind master. Re-verified
+and done for real below.
+
+- [x] Full suite vs master-baseline worktree diff. Both sides fail the SAME 38 (config-env noise, not regressions) + the 2 known collection errors (`imageio_ffmpeg`, `playwright` missing). Zero new. Branch 1548 passed vs master 1496.
+- [x] Purge TTS cache — not required: the engine receives byte-identical strings (alignment compares on the `tts` field precisely so cache keys cannot drift).
 - [x] Merge `feature/close-the-gaps` → master (--no-ff), push origin. Update TODO.md + memory.
