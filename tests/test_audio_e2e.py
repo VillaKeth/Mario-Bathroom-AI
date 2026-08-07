@@ -68,9 +68,12 @@ async def test_ws_audio_vomit():
         import websockets
     
     raw_path = os.path.join(os.path.dirname(__file__), "test_retch_raw.pcm")
+    if not os.path.exists(raw_path):
+        import pytest
+        pytest.skip("test_retch_raw.pcm not present (untracked local audio artifact)")
     with open(raw_path, "rb") as f:
         audio_bytes = f.read()
-    
+
     uri = "ws://localhost:8765/ws"
     responses = []
     

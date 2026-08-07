@@ -56,6 +56,13 @@ STATE_DANCING = "dancing"
 
 SPRITE_DIR = os.path.join(os.path.dirname(__file__), "assets", "mario")
 
+# Group stage mode: bystander (non-speaking cast) rendering
+STAGE_BYSTANDER_SCALE = 0.62          # of the speaker's sprite size
+STAGE_BYSTANDER_DIM = (120, 120, 120)  # RGB multiply — speaker owns the light
+
+import stage_layout
+import lip_flap
+
 # AI-generated 3D poses directory (transparent PNGs)
 AI_POSES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)),
                             "mario_3d_assets", "ai_poses_transparent")
@@ -376,6 +383,17 @@ class MarioDisplay:
         self._crossfade_from_surface = None
         self._crossfade_duration = 0.5  # 500ms crossfade for smooth transitions
         self._last_sprite_key = None
+
+        # Group stage mode: whole cast on screen, active speaker center-stage.
+        self._stage_roster = []       # [{"id","name","sprites"}] set from group_roster
+        self._stage_active_id = None  # who is center-stage (the speaker)
+        self._stage_enabled = True    # F2 toggles; only draws when roster is set
+        self._stage_surface_cache = {}  # id -> (scaled, dimmed) bystander Surface
+
+        # Lip-flap: amplitude-driven mouth poses while talking.
+        self.level_provider = None    # callable -> 0..1 playback RMS, wired by client
+        self._lip_pose = None
+        self._lip_pose_change_t = 0.0
 
         # Talking word-bounce
         self._talk_bounce_start = 0.0
@@ -722,6 +740,8 @@ class MarioDisplay:
                     elif event.key == pygame.K_F8:
                         self._bg_auto_cycle = not self._bg_auto_cycle
                         logger.info(f"[DISPLAY] Background auto-cycle: {'ON' if self._bg_auto_cycle else 'OFF'}")
+                    elif event.key == pygame.K_F2:
+                        self.toggle_stage()
                     elif event.key == pygame.K_F9:
                         if self.on_volume_change:
                             self.on_volume_change(-0.1)
@@ -991,11 +1011,13 @@ class MarioDisplay:
         self._typewriter_speed = max(0.15, min(8.0, remaining / frames))
         self._typewriter_audio_synced = True
 
-    def add_chat_message(self, role, text, full_text=None):
+    def add_chat_message(self, role, text, full_text=None, speaker=None):
         """Add a message to the chat backlog. role is 'mario' or 'user'.
 
         full_text is the complete "what she meant to say" reply (may be longer
-        than the spoken `text`); defaults to text when not provided.
+        than the spoken `text`); defaults to text when not provided. speaker
+        overrides the label for THIS line (group mode: per-character names
+        instead of the single configured character).
         """
         if not isinstance(text, str):
             text = str(text) if text is not None else ""
@@ -1004,7 +1026,8 @@ class MarioDisplay:
         if not isinstance(full_text, str) or not full_text.strip():
             full_text = text
         self._chat_history.append({"role": role, "text": text,
-                                   "full_text": full_text, "time": time.time()})
+                                   "full_text": full_text, "time": time.time(),
+                                   "speaker": (speaker or "").strip() or None})
         if len(self._chat_history) > self._MAX_CHAT_HISTORY:
             self._chat_history.pop(0)
 
@@ -1433,6 +1456,22 @@ class MarioDisplay:
 
         # State-based selection
         if self.state == STATE_TALKING:
+            # Lip-flap: drive the mouth from the real playback amplitude when a
+            # level provider is wired and the speech poses exist.
+            if self.level_provider is not None:
+                try:
+                    level = self.level_provider()
+                except Exception:
+                    level = None
+                if level is not None:
+                    now = time.time()
+                    pose = lip_flap.pick_pose(
+                        level, self._lip_pose, now - self._lip_pose_change_t)
+                    if pose != self._lip_pose:
+                        self._lip_pose = pose
+                        self._lip_pose_change_t = now
+                    if pose in self._sprites:
+                        return pose
             sprites = STATE_SPRITE_MAP[STATE_TALKING]
             cycle = int(time.time() / 0.3) % len(sprites)
             return sprites[cycle]
@@ -2098,6 +2137,9 @@ class MarioDisplay:
         self._update_particles()
         self._emotion_timer += 1
 
+        # Group stage: flank the speaker with the rest of the cast (under them)
+        self._draw_stage_bystanders()
+
         # Draw Mario sprite
         self._draw_mario()
 
@@ -2443,8 +2485,8 @@ class MarioDisplay:
         for m in self._chat_history:
             role = m.get("role", "")
             is_bot = role == "mario"
-            who = self._chat_char_name if is_bot else (
-                "You" if role == "user" else (role.title() or "?"))
+            who = m.get("speaker") or (self._chat_char_name if is_bot else (
+                "You" if role == "user" else (role.title() or "?")))
             who = _EMOJI_RE.sub("", who).strip() or ("AI" if is_bot else "You")
             name_color = (255, 184, 102) if is_bot else (140, 200, 255)
             bubble_color = (44, 37, 26) if is_bot else (30, 30, 44)
@@ -2492,6 +2534,70 @@ class MarioDisplay:
             tag = msg_font.render("newer below", True, (255, 200, 80))
             surface.blit(tag, (panel_x + panel_w - tag.get_width() - 18,
                                panel_y + panel_h - line_h - 8))
+
+    def set_stage_roster(self, members: list):
+        """Group mode cast for stage rendering: [{"id","name","sprites"}].
+        `sprites` are references to preloaded per-character sprite dicts."""
+        self._stage_roster = members or []
+        self._stage_surface_cache.clear()
+
+    def set_stage_active(self, char_id):
+        """Center-stage character (the current speaker)."""
+        if char_id != self._stage_active_id:
+            self._stage_active_id = char_id
+
+    def toggle_stage(self):
+        self._stage_enabled = not self._stage_enabled
+        logger.info(f"[DISPLAY] Stage mode: {'ON' if self._stage_enabled else 'OFF'} (camera-cut when off)")
+
+    def _bystander_surface(self, member: dict):
+        """Scaled + dimmed listening-pose surface for a bystander (cached)."""
+        cid = member.get("id")
+        cached = self._stage_surface_cache.get(cid)
+        if cached is not None:
+            return cached
+        sprites = member.get("sprites") or {}
+        # neutral/idle first: it is the pose most likely to have real AI art
+        # (the cast bootstraps with idles); listening is the nicer pose only
+        # once it exists as real art too.
+        spr = (sprites.get("neutral/idle") or sprites.get("speech/listening")
+               or sprites.get("idle") or next(iter(sprites.values()), None))
+        if spr is None:
+            return None
+        w = max(1, int(spr.get_width() * STAGE_BYSTANDER_SCALE))
+        h = max(1, int(spr.get_height() * STAGE_BYSTANDER_SCALE))
+        small = pygame.transform.smoothscale(spr, (w, h)).copy()
+        # Dim: multiply toward gray so the speaker visibly owns the light.
+        small.fill(STAGE_BYSTANDER_DIM, special_flags=pygame.BLEND_RGB_MULT)
+        self._stage_surface_cache[cid] = small
+        return small
+
+    def _draw_stage_bystanders(self):
+        """Group stage: draw the non-speaking cast flanking the speaker.
+        Drawn before the active sprite so the speaker layers on top."""
+        if not (self._stage_enabled and self._stage_roster):
+            return
+        order = stage_layout.bystander_order(
+            [m.get("id") for m in self._stage_roster], self._stage_active_id)
+        if not order:
+            return
+        slots = stage_layout.bystander_slots(len(order), WINDOW_WIDTH)
+        by_id = {m.get("id"): m for m in self._stage_roster}
+        for cid, x_center in zip(order, slots):
+            member = by_id.get(cid)
+            surf = self._bystander_surface(member) if member else None
+            if surf is None:
+                continue
+            bx = x_center - surf.get_width() // 2
+            by = WINDOW_HEIGHT - surf.get_height() - SPRITE_FLOOR_MARGIN
+            self._screen.blit(surf, (bx, by))
+            if self._font_small:
+                label = self._font_small.render(
+                    member.get("name") or cid, True, (215, 215, 215))
+                lx = x_center - label.get_width() // 2
+                # Inside the sprite's bottom edge — below it sits the hint bar.
+                ly = by + surf.get_height() - label.get_height() - 4
+                self._screen.blit(label, (lx, ly))
 
     def _draw_mario(self):
         """Draw the Mario sprite with crossfade transitions, breathing,

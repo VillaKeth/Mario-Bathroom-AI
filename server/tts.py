@@ -183,15 +183,35 @@ _user_tts_waiting = threading.Event()  # Set when a user TTS call is waiting for
 _idle_precache_paused = threading.Event()  # Set to pause idle precache (e.g. during testing)
 _idle_behavior_ref = None  # Set by main.py to provide character-specific idle pools for precache
 
+def _resource_root() -> str:
+    """Root for heavy UNTRACKED resources (gpt_sovits_env/, gpt_sovits_repo/).
+
+    A git worktree under .claude/worktrees has the tracked tree but not these;
+    fall back to the main checkout the worktree belongs to so SoVITS works in
+    worktree test runs too."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isdir(os.path.join(root, "gpt_sovits_env")):
+        marker = os.sep + os.path.join(".claude", "worktrees") + os.sep
+        probe = root + os.sep
+        if marker in probe:
+            main = probe[:probe.index(marker)]
+            if os.path.isdir(os.path.join(main, "gpt_sovits_env")):
+                return main
+    return root
+
+
+_RESOURCE_ROOT = _resource_root()
+
 # GPT-SoVITS venv python path
-SOVITS_PYTHON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "gpt_sovits_env", "Scripts", "python.exe")
+SOVITS_PYTHON = os.path.join(_RESOURCE_ROOT, "gpt_sovits_env", "Scripts", "python.exe")
 SOVITS_SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "gpt_sovits_server.py")
 
 # --- Modular GPT-SoVITS (per-character zero-shot) ---
 # Characters with a fine-tuned model in mario_models_new/GPT_SoVITS_<Name>/ use it;
 # everyone else uses the shared v2 base weights + their own reference clip + transcript.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-SOVITS_V2_BASE_DIR = os.path.join(_PROJECT_ROOT, "gpt_sovits_repo", "GPT_SoVITS",
+# gpt_sovits_repo is untracked like the env — resolve through the same root.
+SOVITS_V2_BASE_DIR = os.path.join(_RESOURCE_ROOT, "gpt_sovits_repo", "GPT_SoVITS",
                                   "pretrained_models", "gsv-v2final-pretrained")
 SOVITS_V2_GPT = os.path.join(SOVITS_V2_BASE_DIR, "s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt")
 SOVITS_V2_SOVITS = os.path.join(SOVITS_V2_BASE_DIR, "s2G2333k.pth")
@@ -1757,6 +1777,117 @@ def build_stream_chunks(display_text: str) -> list[dict]:
             # back to the non-streamed path.
             chunks.append({"display": carry, "tts": ""})
     return chunks
+
+
+# A sentence is only settled by punctuation FOLLOWED by whitespace — the same
+# boundary split_display_sentences uses. A bare "." is not enough mid-stream:
+# the next token could be a decimal digit ("3.5") or the tail of an
+# abbreviation, and we would have already spoken the cut.
+_STREAM_BOUNDARY_RE = _re_tts.compile(r'(?<=[.!?])\s+')
+
+# The LLM appends {"emotion": ..., "energy": ...} which extract_emotion_tag()
+# strips from the final reply. Token streaming reaches TTS BEFORE that strip
+# runs, so the blob has to be removed here or the guest hears it read aloud.
+_STREAM_EMOTION_BLOB_RE = _re_tts.compile(r'\{[^{}]*(?:"emotion"|"energy")[^{}]*\}')
+
+
+class TokenSentenceBuffer:
+    """Turn an LLM token stream into speakable chunks as sentences complete.
+
+    Same output shape as build_stream_chunks() — [{"display", "tts"}] — so the
+    existing per-sentence TTS executor and audio_chunk send path work unchanged.
+    The difference is timing: chunks come out while the model is still writing,
+    so first audio no longer waits for the whole reply.
+
+    Short fragments merge forward (a bare "Wow!" is not worth its own synthesis
+    round-trip), and fragments that clean to nothing carry their display text
+    into the next chunk so the bubble still reveals them.
+    """
+
+    def __init__(self, min_chars: int = 12):
+        self.min_chars = min_chars
+        self._buf = ""
+        self._carry_display = ""
+
+    def feed(self, token: str) -> list[dict]:
+        """Add a token, returning any chunks its arrival completed."""
+        self._buf += token
+        out = []
+        while True:
+            settled = self._take_settled()
+            if settled is None:
+                break
+            chunk = self._make_chunk(settled)
+            if chunk:
+                out.append(chunk)
+        return out
+
+    def flush(self, extra: str = "") -> list[dict]:
+        """Emit whatever is left once the stream ends. Safe to call twice."""
+        if extra:
+            self._buf += extra
+        raw, self._buf = self._buf, ""
+        out = []
+        if raw.strip():
+            chunk = self._make_chunk(raw)
+            if chunk:
+                out.append(chunk)
+        self._carry_display = ""
+        return out
+
+    def _take_settled(self):
+        """Pop the earliest boundary that leaves a chunk worth synthesizing."""
+        for m in _STREAM_BOUNDARY_RE.finditer(self._buf):
+            candidate = self._buf[:m.start()]
+            if len(candidate.strip()) >= self.min_chars:
+                self._buf = self._buf[m.end():]
+                return candidate
+        return None
+
+    def _make_chunk(self, raw: str):
+        try:
+            from pose_analyzer import analyze_text as _analyze
+        except ImportError:
+            from .pose_analyzer import analyze_text as _analyze
+        # Only rewrite when a blob is actually present — an untouched slice stays
+        # a verbatim substring of the reply, which is what lets the client find
+        # each chunk in the bubble text to gate its typewriter.
+        text = _STREAM_EMOTION_BLOB_RE.sub("", raw).strip() \
+            if _STREAM_EMOTION_BLOB_RE.search(raw) else raw.strip()
+        display = f"{self._carry_display} {text}".strip() if self._carry_display else text
+        tts_in = _analyze(text)["tts_text"].strip() if text else ""
+        if not tts_in:
+            self._carry_display = display
+            return None
+        self._carry_display = ""
+        return {"display": display, "tts": tts_in}
+
+
+def align_prefetched(prefetched: list[dict], final_display: str) -> int:
+    """How many leading pre-synthesized chunks still match the finished reply.
+
+    Synthesis overlap builds chunks from RAW token output; the reply that
+    reaches the client has since been through extract_emotion_tag,
+    _clean_response and pose analysis. Any of those can change the text, which
+    would leave pre-rendered audio saying something the bubble never shows.
+
+    Comparing on `tts` (not `display`) is deliberate: that is the string
+    actually handed to the engine, so matching it proves the cached audio says
+    exactly what a fresh synthesis would. Alignment stops at the FIRST mismatch
+    so a coincidentally-matching tail can never be reused across a divergence.
+
+    Returns 0 when nothing matches, and the caller falls back to synthesizing
+    the whole reply — today's behaviour.
+    """
+    if not prefetched:
+        return 0
+    real = build_stream_chunks(final_display)
+    n = 0
+    for pre, actual in zip(prefetched, real):
+        if pre.get("tts") != actual.get("tts"):
+            break
+        n += 1
+    return n
 
 
 async def synthesize_streaming(text: str, voice_params: dict = None):

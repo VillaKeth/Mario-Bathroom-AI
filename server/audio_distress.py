@@ -88,9 +88,14 @@ class DistressTracker:
     # ------------------------------------------------------------------
 
     def update(self, frame_result: dict, audio_bytes: bytes,
-               sample_rate: int = 16000) -> dict:
+               sample_rate: int = 16000, now: float = None) -> dict:
         """
         Feed a single-frame detection result and raw audio into the tracker.
+
+        `now` is the chunk's audio CAPTURE timestamp; pass it so the coherence
+        window follows the audio timeline even when chunk processing lags
+        (slow CPU boxes space updates farther apart than the window itself).
+        Defaults to wall-clock when omitted.
 
         Returns an enriched dict with:
             - confirmed_distress: bool  (temporal-coherence gated)
@@ -99,7 +104,8 @@ class DistressTracker:
             - distress_frame_count: int (events in current window)
             - (plus everything from the original frame_result)
         """
-        now = time.time()
+        if now is None:
+            now = time.time()
         if DEBUG_DISTRESS:
             logger.debug("[DEBUG_DISTRESS] DistressTracker.update: START, "
                          f"frame is_distress={frame_result.get('is_distress')}")

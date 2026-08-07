@@ -177,3 +177,6 @@ characters/*/jokes/scored.jsonl
 
 # Performed-song audio (copyright — kept local only)
 characters/*/songs/*.wav
+
+# Local tooling binaries (ngrok agent etc.) — never commit
+tools/

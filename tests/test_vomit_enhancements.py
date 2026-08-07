@@ -192,6 +192,48 @@ class TestResetAfterTimeout:
         assert tracker.distress_frame_count == 0
 
 
+class TestCaptureTimeCoherence:
+    """Coherence window keyed on audio capture time (now=), not processing wall-clock.
+
+    On a slow box, chunk processing spaces tracker updates 15s+ apart even
+    though the retching itself was continuous — wall-clock coherence can then
+    never see 2 frames in the window. Passing the chunk's capture timestamp
+    makes coherence follow the audio timeline instead."""
+
+    def test_capture_time_confirms_despite_slow_processing(self):
+        tracker = DistressTracker()
+        audio = _make_quiet_audio()
+        base = time.time()
+
+        r1 = tracker.update(_distress_frame(), audio, now=base)
+        assert r1["confirmed_distress"] is False, "Single frame must not confirm"
+
+        # Chunk captured 3s later in AUDIO time — processing delay irrelevant
+        r2 = tracker.update(_distress_frame(), audio, now=base + 3.0)
+        assert r2["confirmed_distress"] is True, (
+            "Two frames within window by capture time must confirm"
+        )
+
+    def test_capture_time_window_expiry(self):
+        tracker = DistressTracker()
+        audio = _make_quiet_audio()
+        base = time.time()
+
+        tracker.update(_distress_frame(), audio, now=base)
+        r2 = tracker.update(_distress_frame(), audio, now=base + 6.0)
+        assert r2["confirmed_distress"] is False, (
+            "Frames farther apart than the window in capture time must not confirm"
+        )
+
+    def test_default_now_still_wall_clock(self):
+        tracker = DistressTracker()
+        audio = _make_quiet_audio()
+
+        tracker.update(_distress_frame(), audio)
+        r2 = tracker.update(_distress_frame(), audio)
+        assert r2["confirmed_distress"] is True, "Omitting now= keeps old behavior"
+
+
 class TestFalseTriggerSuppression:
     """Music / laughter / glass sounds should suppress distress."""
 

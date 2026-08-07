@@ -1,8 +1,11 @@
 {
   "active_outfit": null,
+  "mode": "single",
+  "group": "tadc",
   "server": {
     "host": "0.0.0.0",
     "port": 8765,
+    "ws_ping_timeout": 90,
     "stt_model_size": "auto",
     "stt_device": "cpu",
     "llm_model": "llama3",
@@ -12,6 +15,7 @@
     "tts_fast_mode": true,
     "tts_mode": "sovits",
     "tts_streaming": true,
+    "llm_token_streaming": true,
     "speaker_similarity_threshold": 0.75,
     "debug_server": true,
     "debug_tts": true,

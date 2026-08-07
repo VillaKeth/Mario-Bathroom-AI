@@ -1,6 +1,7 @@
 """Audio playback for Mario's voice responses."""
 
 import io
+import time
 import wave
 import logging
 import threading
@@ -60,6 +61,7 @@ class AudioPlayback:
         self._gain = 1.0  # Volume multiplier (0.0 - 2.0)
         self._clip_ring = deque(maxlen=50)   # debug MCP: last played clips
         self._ring_lock = threading.Lock()
+        self._env = None  # lip-flap: (rms_env_array, hop_seconds, start_wallclock)
 
     def _record_clip(self, wav_bytes: bytes, text: str = "", played_ok: bool = True):
         """Record a played clip into the debug ring (analyzed + paired with text)."""
@@ -178,6 +180,19 @@ class AudioPlayback:
         except Exception as e:
             logger.error(f"[DEBUG_PLAYBACK] Memorial music stop error: {e}")
 
+    def playback_level(self) -> float:
+        """Lip-flap: clip-relative RMS level (0..1) of what the speakers are
+        emitting right now; 0.0 when idle. Cheap enough to poll every frame."""
+        with self._lock:
+            env = self._env
+        if not env:
+            return 0.0
+        arr, hop, start = env
+        idx = int((time.time() - start) / hop)
+        if idx < 0 or idx >= len(arr):
+            return 0.0
+        return float(arr[idx])
+
     @property
     def is_music_playing(self) -> bool:
         """Check if memorial music is currently playing."""
@@ -247,8 +262,27 @@ class AudioPlayback:
                 audio = audio * self._gain
                 audio = np.clip(audio, -1.0, 1.0)
 
+            # Lip-flap envelope: 50ms RMS windows over the mono mix, stamped
+            # with the wall-clock start so playback_level() can index by time.
+            try:
+                mono = audio.mean(axis=1)
+                hop = max(1, int(sample_rate * 0.05))
+                n_win = max(1, len(mono) // hop)
+                env = np.sqrt(np.mean(
+                    mono[:n_win * hop].reshape(n_win, hop) ** 2, axis=1))
+                peak = float(env.max() or 0.0)
+                if peak > 0:
+                    env = env / peak  # clip-relative: loudest moment = 1.0
+                with self._lock:
+                    self._env = (env, 0.05, time.time())
+            except Exception:
+                with self._lock:
+                    self._env = None
+
             sd.play(audio, samplerate=sample_rate)
             sd.wait()
+            with self._lock:
+                self._env = None
 
             if DEBUG_PLAYBACK:
                 logger.info("[DEBUG_PLAYBACK] _play_wav: done")

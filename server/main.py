@@ -193,6 +193,9 @@ _perf_tier = hardware.get_tier()
 DEBUG_SERVER = os.environ.get("DEBUG_MODE", "").lower() == "true" or server_config.get("debug_server", True)
 DEBUG_STREAM = server_config.get("debug_tts", True)
 TTS_STREAMING_ENABLED = server_config.get("tts_streaming", True)
+# Overlap TTS synthesis with LLM generation (see _SynthPrefetch). Off = the
+# reply is fully generated before any synthesis starts, i.e. previous behavior.
+LLM_TOKEN_STREAMING = server_config.get("llm_token_streaming", True)
 
 # Performance settings (auto-detected from hardware when set to "auto")
 _PERF = {
@@ -2148,7 +2151,8 @@ async def _group_turn_task(ws, text):
             if hasattr(tts, "set_voice_config"):
                 tts.set_voice_config(ln["voice_config"], ln["display_name"])
             audio = await loop.run_in_executor(_tts_executor, lambda t=ln["text"]: tts.synthesize(t))
-            await send_response(ws, ln["text"], audio, emotion=ln["emotion"], speaker=ln["display_name"])
+            await send_response(ws, ln["text"], audio, emotion=ln["emotion"],
+                                speaker=ln["display_name"], speaker_id=ln["id"])
             # Single-mode bot lines are logged in _generate_and_send_response;
             # group mode bypasses it, so mirror each speaker's line here.
             try:
@@ -3619,6 +3623,16 @@ async def websocket_endpoint(ws: WebSocket):
     _is_primary = len(_ws_clients) == 1
     logger.info(f"Client connected! (live /ws clients: {len(_ws_clients)}, primary={_is_primary})")
 
+    # Group mode: tell the client the full roster up front so it can preload
+    # every member's sprites once (speaker camera-cuts + stage mode need them).
+    if _GROUP_CTX:
+        try:
+            await ws.send_json({"type": "group_roster", "members": [
+                {"id": m.id, "display_name": m.display_name}
+                for m in _GROUP_CTX["members"].values()]})
+        except Exception as e:
+            logger.warning(f"[group] roster push failed: {e}")
+
     if _is_primary:
         # Reset per-connection state (games, conversation, identity, etc.)
         state_current["_active_game"] = None
@@ -3707,7 +3721,10 @@ async def websocket_endpoint(ws: WebSocket):
     _loop = asyncio.get_event_loop()
     # Only the primary client gets the opening greeting; a stray/extra connection
     # must not talk over or reset the live session.
-    greeting_task = asyncio.create_task(_send_startup_greeting()) if _is_primary else None
+    # Group mode: the startup greeting builds from the single configured
+    # character's prompt (Mario) — wrong voice AND wrong persona over a group.
+    # A director-driven ensemble greeting is a future feature; skip for now.
+    greeting_task = asyncio.create_task(_send_startup_greeting()) if (_is_primary and not _GROUP_CTX) else None
 
     # Start idle behavior loop — ONLY the primary client drives idle. A second
     # /ws connection (extra tab, e2e test) must not spawn its own idle loop, or
@@ -4207,6 +4224,12 @@ async def _generate_llm_idle() -> dict | None:
 
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
+    if _GROUP_CTX:
+        # Group mode: the idle pool belongs to the single configured character
+        # (e.g. Mario) — speaking it over a TADC ensemble is a character leak.
+        # Group-aware idle banter is a future feature; suppress for now.
+        logger.debug("[IDLE] Suppressed idle send — group mode")
+        return False
     if time.time() < state_current.get("_performing_song_until", 0.0):
         logger.debug("[IDLE] Suppressed idle send — performing a song")
         return False
@@ -4329,6 +4352,12 @@ async def _idle_loop(ws: WebSocket):
     _IDLE_MIN_INTERVAL = 25.0  # Never send idle messages faster than this (seconds)
     loop = asyncio.get_event_loop()
     while True:
+        # Group mode: don't even GENERATE single-character idle lines — the
+        # send gate already blocks them, but generation burns LLM time the
+        # ensemble needs (and it's all wrong-character content anyway).
+        if _GROUP_CTX:
+            await asyncio.sleep(30)
+            continue
         # Conversation-aware spacing: longer delays during active conversation
         async with _state_lock:
             _last_msg = state_current.get("_last_user_msg_time", 0.0)
@@ -4707,6 +4736,13 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
         audio_chunk = bytes(state_current["audio_buffer"][:process_size])
         state_current["audio_buffer"] = state_current["audio_buffer"][process_size:]
         state_current["_last_audio_chunk"] = audio_chunk  # Save for name registration
+        # Capture time of this chunk's END on the audio timeline (16k mono
+        # int16 = 32000 B/s). The distress tracker's coherence window must
+        # follow capture time, not processing time — on a slow box chunks
+        # process farther apart than the window and could never confirm.
+        buf_start = state_current.get("_last_buffer_time") or time.time()
+        chunk_ts = min(buf_start + process_size / 32000.0, time.time())
+        state_current["_last_buffer_time"] = chunk_ts  # leftover bytes start here
 
     async with _state_lock:
         state_current["_user_request_active"] = True
@@ -4726,7 +4762,7 @@ async def handle_audio(ws: WebSocket, audio_bytes: bytes):
             pass
 
     try:
-        await _process_audio(ws, audio_chunk)
+        await _process_audio(ws, audio_chunk, chunk_ts)
     finally:
         await asyncio.sleep(1.5)
         async with _state_lock:
@@ -4789,6 +4825,75 @@ def _get_recent_guest_topics() -> list[str]:
         return []
 
 
+class _SynthPrefetch:
+    """Overlap TTS synthesis with LLM generation.
+
+    Feeds LLM tokens into a TokenSentenceBuffer and submits each completed
+    sentence to the TTS executor the moment it settles, so by the time the
+    model stops writing, the opening audio is already rendered. On a box where
+    generation and synthesis are both slow, that removes most of the gap
+    between "reply finished" and "guest hears something".
+
+    The rendered audio is only USED if usable() confirms the finished reply
+    still chunks identically AND the voice params did not move. Both can change
+    after the fact: the reply passes through extract_emotion_tag and
+    _clean_response, and the emotion those yield feeds get_voice_params(). If
+    either shifted, the prefetch is discarded and the normal path synthesizes
+    as before — the guest never hears audio that disagrees with the bubble.
+    """
+
+    # The first chunk is what gates first-audio; past a few sentences the win
+    # is gone, and wrong guesses would sit on the serialized TTS lock ahead of
+    # the audio we actually need.
+    MAX_CHUNKS = 3
+
+    def __init__(self, loop, executor, voice_params):
+        self._loop = loop
+        self._executor = executor
+        self.voice_params = dict(voice_params or {})
+        self._buf = tts.TokenSentenceBuffer()
+        self.chunks = []
+        self._futures = []
+
+    def feed(self, token):
+        """on_token callback — runs on the event loop thread during generation."""
+        if len(self.chunks) >= self.MAX_CHUNKS:
+            return
+        for chunk in self._buf.feed(token):
+            if len(self.chunks) >= self.MAX_CHUNKS:
+                break
+            self.chunks.append(chunk)
+            self._futures.append(self._loop.run_in_executor(
+                self._executor,
+                lambda s=chunk["tts"]: tts.synthesize_user(
+                    s, rate=self.voice_params.get("rate"),
+                    pitch=self.voice_params.get("pitch"))))
+            # Log per NEW sentence — feed() runs on every token, so logging on
+            # buffer state instead would repeat this line hundreds of times.
+            if DEBUG_STREAM:
+                logger.info(f"[DEBUG_STREAM] prefetch: sentence {len(self.chunks)} "
+                            f"synthesizing while the model writes")
+
+    def usable(self, final_display, final_voice_params):
+        """How many leading prefetched clips are still correct to send."""
+        if dict(final_voice_params or {}) != self.voice_params:
+            if DEBUG_STREAM:
+                logger.info("[DEBUG_STREAM] prefetch discarded: voice params moved "
+                            "after the LLM set the emotion")
+            return 0
+        return min(tts.align_prefetched(self.chunks, final_display), len(self._futures))
+
+    def audio(self, i):
+        """The pending synthesis future — awaitable, and cancellable like the
+        run_in_executor futures it sits alongside in the send loop."""
+        return self._futures[i]
+
+    def cancel_from(self, n):
+        """Drop unusable jobs so they stop holding the serialized TTS lock."""
+        for f in self._futures[n:]:
+            f.cancel()
+
+
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
     """Shared response pipeline for both audio and text input.
 
@@ -4803,6 +4908,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_emotion = None
     response_energy = None
     _was_llm_response = False  # Track if response came from LLM vs canned fallback
+    # Bound here, not at the LLM call: canned/command replies reach the TTS
+    # block without ever entering the generation branch, and the reconcile step
+    # there must still find a defined name.
+    _prefetch = None
 
     # Guest input is logged at input time via _log_guest_turn (echo + mirror
     # transcript), so the response pipeline no longer echoes here.
@@ -5933,13 +6042,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Mark the user request as generating so idle/background LLM calls yield
         # the (CPU-bound) model to it instead of competing and starving it.
         gen_guard.set_user_generating(True)
+        # Start synthesizing sentences as the model produces them. Guarded so a
+        # prefetch setup failure can never cost us the reply itself.
+        if LLM_TOKEN_STREAMING and TTS_STREAMING_ENABLED:
+            try:
+                _prefetch = _SynthPrefetch(loop, _tts_executor,
+                                           emotion_system.get_voice_params())
+            except Exception as _pf_err:
+                logger.warning(f"[DEBUG_STREAM] prefetch unavailable: {_pf_err}")
+                _prefetch = None
         try:
             _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
                 asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model,
                                                        num_predict=_long_np,
                                                        is_user_request=True,
-                                                       temp_bump=_effective_freak_level() * 0.3), timeout=_LLM_TIMEOUT),
+                                                       temp_bump=_effective_freak_level() * 0.3,
+                                                       on_token=(_prefetch.feed if _prefetch else None)),
+                                 timeout=_LLM_TIMEOUT),
             )
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
@@ -6201,16 +6321,33 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # (chunk_text) so the client can gate the bubble typewriter to real audio.
     if TTS_STREAMING_ENABLED:
         stream_chunks = tts.build_stream_chunks(analyzed["display_text"])
+        # How many opening sentences were already synthesized DURING generation
+        # and are still valid for this exact reply. 0 = synthesize as before.
+        _n_pre = 0
+        if _prefetch is not None:
+            try:
+                _n_pre = _prefetch.usable(analyzed["display_text"], voice_params)
+            except Exception as _pf_err:
+                logger.warning(f"[DEBUG_STREAM] prefetch reconcile failed: {_pf_err}")
+                _n_pre = 0
+            _prefetch.cancel_from(_n_pre)
+            if DEBUG_STREAM:
+                logger.info(f"[DEBUG_STREAM] prefetch reusable: {_n_pre}/"
+                            f"{len(_prefetch.chunks)} pre-rendered sentence(s)")
         if len(stream_chunks) >= 2 and len(stream_chunks[0]["tts"]) >= 12:
             try:
                 total_chunks = len(stream_chunks)
                 if DEBUG_STREAM:
                     logger.info(f"[DEBUG_STREAM] Streaming {total_chunks} sentences for: \"{tts_text[:80]}...\"")
 
-                # Synthesize first sentence immediately
-                first_audio = await loop.run_in_executor(
-                    _tts_executor, lambda: tts.synthesize_user(
-                        stream_chunks[0]["tts"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                # First sentence: already rendered during generation when the
+                # prefetch survived reconciliation, otherwise synthesize now.
+                if _n_pre >= 1:
+                    first_audio = await _prefetch.audio(0)
+                else:
+                    first_audio = await loop.run_in_executor(
+                        _tts_executor, lambda: tts.synthesize_user(
+                            stream_chunks[0]["tts"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
                 if first_audio and len(first_audio) > 44:
                     # Send full text + metadata with first audio chunk
                     await send_response(ws, analyzed["display_text"], first_audio,
@@ -6229,11 +6366,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     # client's mid-stream watchdog on long replies.
                     remaining = [(i, c) for i, c in enumerate(stream_chunks[1:], start=1)]
                     if remaining:
+                        # Reuse any further sentences the prefetch already
+                        # rendered; only submit the ones it did not reach.
                         synth_tasks = [
+                            _prefetch.audio(i) if i < _n_pre else
                             loop.run_in_executor(
                                 _tts_executor, lambda s=c["tts"]: tts.synthesize_user(
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-                            for _, c in remaining
+                            for i, c in remaining
                         ]
                         try:
                             for (i, chunk), synth_task in zip(remaining, synth_tasks):
@@ -6275,6 +6415,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 streamed = False
 
     if not streamed:
+        # Streaming never ran (single chunk, empty first audio, or an error), so
+        # nothing will consume the prefetched jobs — drop them before the full
+        # synthesis below queues behind them on the serialized TTS lock.
+        if _prefetch is not None:
+            _prefetch.cancel_from(0)
         response_audio = None
         for _tts_attempt in range(2):
             try:
@@ -6327,8 +6472,11 @@ def _voice_commit_ok(speaker_info, now):
     return bool(decision["name"]) and decision["name"] == speaker_info.get("name")
 
 
-async def _process_audio(ws: WebSocket, audio_chunk: bytes):
-    """Inner audio processing — STT + speaker ID, then shared pipeline."""
+async def _process_audio(ws: WebSocket, audio_chunk: bytes, chunk_ts: float = None):
+    """Inner audio processing — STT + speaker ID, then shared pipeline.
+
+    chunk_ts: capture-time of the chunk's end on the audio timeline; feeds the
+    distress tracker so its coherence window ignores processing lag."""
     _response_start = time.time()
     loop = asyncio.get_event_loop()
 
@@ -6353,7 +6501,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes):
     # Audio-based vomit detection: feed frame through DistressTracker for
     # volume-spike + temporal-coherence gating (requires 2+ frames in 5s)
     if distress_result and _distress_tracker is not None and _feature_on("distress_enabled"):
-        tracked = _distress_tracker.update(distress_result, audio_chunk)
+        tracked = _distress_tracker.update(distress_result, audio_chunk, now=chunk_ts)
         logger.debug(f"[AUDIO_DISTRESS] tracker: confirmed={tracked['confirmed_distress']}, "
                      f"conf={tracked['combined_confidence']:.2f}, "
                      f"frames={tracked['distress_frame_count']}, "
@@ -7446,7 +7594,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         chunk_index: int = None, total_chunks: int = None,
                         is_last: bool = None, is_idle: bool = False,
                         full_text: str = None, censor: bool = False,
-                        speaker: str = None, chunk_text: str = None):
+                        speaker: str = None, speaker_id: str = None,
+                        chunk_text: str = None):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
@@ -7485,6 +7634,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
         msg["censor"] = True
     if speaker:
         msg["speaker"] = speaker
+    if speaker_id:
+        msg["speaker_id"] = speaker_id
     if chunk_text is not None:
         msg["chunk_text"] = chunk_text
     # Sentence streaming metadata
@@ -7550,4 +7701,7 @@ if __name__ == "__main__":
         app,
         host=server_config.get("host", "0.0.0.0"),
         port=_port,
+        # STT + PANNs + LLM + TTS bursts can peg every core for >20s; the
+        # default 20s ws ping timeout then drops live clients mid-pipeline.
+        ws_ping_timeout=float(server_config.get("ws_ping_timeout", 90)),
     )
