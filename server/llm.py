@@ -156,7 +156,7 @@ async def check_ollama():
 
 async def generate_response(messages: list[dict], transcript: str = None, model: str = None,
                             num_predict: int = None, is_user_request: bool = False,
-                            temp_bump: float = 0.0) -> dict:
+                            temp_bump: float = 0.0, on_token=None) -> dict:
     """Send messages to Ollama and get Mario's response with sentiment data.
 
     Uses streaming internally for faster first-token, returns complete text + sentiment.
@@ -260,6 +260,16 @@ async def generate_response(messages: list[dict], transcript: str = None, model:
                         token = data.get("message", {}).get("content", "")
                         if token:
                             chunks.append(token)
+                            # Synthesis overlap: let the caller start TTS on a
+                            # sentence while the model is still writing. Never
+                            # let a prefetch hiccup break generation — it is an
+                            # optimization, and the reply is the product.
+                            if on_token is not None:
+                                try:
+                                    on_token(token)
+                                except Exception as _cb_err:
+                                    logger.warning(f"[LLM] on_token callback failed: {_cb_err}")
+                                    on_token = None
                         if data.get("done"):
                             break
                     except json.JSONDecodeError:

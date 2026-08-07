@@ -193,6 +193,9 @@ _perf_tier = hardware.get_tier()
 DEBUG_SERVER = os.environ.get("DEBUG_MODE", "").lower() == "true" or server_config.get("debug_server", True)
 DEBUG_STREAM = server_config.get("debug_tts", True)
 TTS_STREAMING_ENABLED = server_config.get("tts_streaming", True)
+# Overlap TTS synthesis with LLM generation (see _SynthPrefetch). Off = the
+# reply is fully generated before any synthesis starts, i.e. previous behavior.
+LLM_TOKEN_STREAMING = server_config.get("llm_token_streaming", True)
 
 # Performance settings (auto-detected from hardware when set to "auto")
 _PERF = {
@@ -4822,6 +4825,73 @@ def _get_recent_guest_topics() -> list[str]:
         return []
 
 
+class _SynthPrefetch:
+    """Overlap TTS synthesis with LLM generation.
+
+    Feeds LLM tokens into a TokenSentenceBuffer and submits each completed
+    sentence to the TTS executor the moment it settles, so by the time the
+    model stops writing, the opening audio is already rendered. On a box where
+    generation and synthesis are both slow, that removes most of the gap
+    between "reply finished" and "guest hears something".
+
+    The rendered audio is only USED if usable() confirms the finished reply
+    still chunks identically AND the voice params did not move. Both can change
+    after the fact: the reply passes through extract_emotion_tag and
+    _clean_response, and the emotion those yield feeds get_voice_params(). If
+    either shifted, the prefetch is discarded and the normal path synthesizes
+    as before — the guest never hears audio that disagrees with the bubble.
+    """
+
+    # The first chunk is what gates first-audio; past a few sentences the win
+    # is gone, and wrong guesses would sit on the serialized TTS lock ahead of
+    # the audio we actually need.
+    MAX_CHUNKS = 3
+
+    def __init__(self, loop, executor, voice_params):
+        self._loop = loop
+        self._executor = executor
+        self.voice_params = dict(voice_params or {})
+        self._buf = tts.TokenSentenceBuffer()
+        self.chunks = []
+        self._futures = []
+
+    def feed(self, token):
+        """on_token callback — runs on the event loop thread during generation."""
+        if len(self.chunks) >= self.MAX_CHUNKS:
+            return
+        for chunk in self._buf.feed(token):
+            if len(self.chunks) >= self.MAX_CHUNKS:
+                break
+            self.chunks.append(chunk)
+            self._futures.append(self._loop.run_in_executor(
+                self._executor,
+                lambda s=chunk["tts"]: tts.synthesize_user(
+                    s, rate=self.voice_params.get("rate"),
+                    pitch=self.voice_params.get("pitch"))))
+        if DEBUG_STREAM and self.chunks:
+            logger.info(f"[DEBUG_STREAM] prefetch: {len(self.chunks)} sentence(s) "
+                        f"synthesizing while the model writes")
+
+    def usable(self, final_display, final_voice_params):
+        """How many leading prefetched clips are still correct to send."""
+        if dict(final_voice_params or {}) != self.voice_params:
+            if DEBUG_STREAM:
+                logger.info("[DEBUG_STREAM] prefetch discarded: voice params moved "
+                            "after the LLM set the emotion")
+            return 0
+        return min(tts.align_prefetched(self.chunks, final_display), len(self._futures))
+
+    def audio(self, i):
+        """The pending synthesis future — awaitable, and cancellable like the
+        run_in_executor futures it sits alongside in the send loop."""
+        return self._futures[i]
+
+    def cancel_from(self, n):
+        """Drop unusable jobs so they stop holding the serialized TTS lock."""
+        for f in self._futures[n:]:
+            f.cancel()
+
+
 async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "audio", start_time: float = None):
     """Shared response pipeline for both audio and text input.
 
@@ -4836,6 +4906,10 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     response_emotion = None
     response_energy = None
     _was_llm_response = False  # Track if response came from LLM vs canned fallback
+    # Bound here, not at the LLM call: canned/command replies reach the TTS
+    # block without ever entering the generation branch, and the reconcile step
+    # there must still find a defined name.
+    _prefetch = None
 
     # Guest input is logged at input time via _log_guest_turn (echo + mirror
     # transcript), so the response pipeline no longer echoes here.
@@ -5966,13 +6040,24 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
         # Mark the user request as generating so idle/background LLM calls yield
         # the (CPU-bound) model to it instead of competing and starving it.
         gen_guard.set_user_generating(True)
+        # Start synthesizing sentences as the model produces them. Guarded so a
+        # prefetch setup failure can never cost us the reply itself.
+        if LLM_TOKEN_STREAMING and TTS_STREAMING_ENABLED:
+            try:
+                _prefetch = _SynthPrefetch(loop, _tts_executor,
+                                           emotion_system.get_voice_params())
+            except Exception as _pf_err:
+                logger.warning(f"[DEBUG_STREAM] prefetch unavailable: {_pf_err}")
+                _prefetch = None
         try:
             _, llm_response = await asyncio.gather(
                 _send_thinking_audio(),
                 asyncio.wait_for(llm.generate_response(ctx, text, model=_routed_model,
                                                        num_predict=_long_np,
                                                        is_user_request=True,
-                                                       temp_bump=_effective_freak_level() * 0.3), timeout=_LLM_TIMEOUT),
+                                                       temp_bump=_effective_freak_level() * 0.3,
+                                                       on_token=(_prefetch.feed if _prefetch else None)),
+                                 timeout=_LLM_TIMEOUT),
             )
             response_text = llm_response["text"]
             response_emotion = llm_response["emotion"]
@@ -6234,16 +6319,33 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     # (chunk_text) so the client can gate the bubble typewriter to real audio.
     if TTS_STREAMING_ENABLED:
         stream_chunks = tts.build_stream_chunks(analyzed["display_text"])
+        # How many opening sentences were already synthesized DURING generation
+        # and are still valid for this exact reply. 0 = synthesize as before.
+        _n_pre = 0
+        if _prefetch is not None:
+            try:
+                _n_pre = _prefetch.usable(analyzed["display_text"], voice_params)
+            except Exception as _pf_err:
+                logger.warning(f"[DEBUG_STREAM] prefetch reconcile failed: {_pf_err}")
+                _n_pre = 0
+            _prefetch.cancel_from(_n_pre)
+            if DEBUG_STREAM:
+                logger.info(f"[DEBUG_STREAM] prefetch reusable: {_n_pre}/"
+                            f"{len(_prefetch.chunks)} pre-rendered sentence(s)")
         if len(stream_chunks) >= 2 and len(stream_chunks[0]["tts"]) >= 12:
             try:
                 total_chunks = len(stream_chunks)
                 if DEBUG_STREAM:
                     logger.info(f"[DEBUG_STREAM] Streaming {total_chunks} sentences for: \"{tts_text[:80]}...\"")
 
-                # Synthesize first sentence immediately
-                first_audio = await loop.run_in_executor(
-                    _tts_executor, lambda: tts.synthesize_user(
-                        stream_chunks[0]["tts"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
+                # First sentence: already rendered during generation when the
+                # prefetch survived reconciliation, otherwise synthesize now.
+                if _n_pre >= 1:
+                    first_audio = await _prefetch.audio(0)
+                else:
+                    first_audio = await loop.run_in_executor(
+                        _tts_executor, lambda: tts.synthesize_user(
+                            stream_chunks[0]["tts"], rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
                 if first_audio and len(first_audio) > 44:
                     # Send full text + metadata with first audio chunk
                     await send_response(ws, analyzed["display_text"], first_audio,
@@ -6262,11 +6364,14 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                     # client's mid-stream watchdog on long replies.
                     remaining = [(i, c) for i, c in enumerate(stream_chunks[1:], start=1)]
                     if remaining:
+                        # Reuse any further sentences the prefetch already
+                        # rendered; only submit the ones it did not reach.
                         synth_tasks = [
+                            _prefetch.audio(i) if i < _n_pre else
                             loop.run_in_executor(
                                 _tts_executor, lambda s=c["tts"]: tts.synthesize_user(
                                     s, rate=voice_params.get("rate"), pitch=voice_params.get("pitch")))
-                            for _, c in remaining
+                            for i, c in remaining
                         ]
                         try:
                             for (i, chunk), synth_task in zip(remaining, synth_tasks):
@@ -6308,6 +6413,11 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                 streamed = False
 
     if not streamed:
+        # Streaming never ran (single chunk, empty first audio, or an error), so
+        # nothing will consume the prefetched jobs — drop them before the full
+        # synthesis below queues behind them on the serialized TTS lock.
+        if _prefetch is not None:
+            _prefetch.cancel_from(0)
         response_audio = None
         for _tts_attempt in range(2):
             try:

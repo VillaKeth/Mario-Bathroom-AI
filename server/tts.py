@@ -1863,6 +1863,33 @@ class TokenSentenceBuffer:
         return {"display": display, "tts": tts_in}
 
 
+def align_prefetched(prefetched: list[dict], final_display: str) -> int:
+    """How many leading pre-synthesized chunks still match the finished reply.
+
+    Synthesis overlap builds chunks from RAW token output; the reply that
+    reaches the client has since been through extract_emotion_tag,
+    _clean_response and pose analysis. Any of those can change the text, which
+    would leave pre-rendered audio saying something the bubble never shows.
+
+    Comparing on `tts` (not `display`) is deliberate: that is the string
+    actually handed to the engine, so matching it proves the cached audio says
+    exactly what a fresh synthesis would. Alignment stops at the FIRST mismatch
+    so a coincidentally-matching tail can never be reused across a divergence.
+
+    Returns 0 when nothing matches, and the caller falls back to synthesizing
+    the whole reply — today's behaviour.
+    """
+    if not prefetched:
+        return 0
+    real = build_stream_chunks(final_display)
+    n = 0
+    for pre, actual in zip(prefetched, real):
+        if pre.get("tts") != actual.get("tts"):
+            break
+        n += 1
+    return n
+
+
 async def synthesize_streaming(text: str, voice_params: dict = None):
     """Split text into sentences, synthesize each, yield WAV bytes as they complete.
 

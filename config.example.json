@@ -15,6 +15,7 @@
     "tts_fast_mode": true,
     "tts_mode": "sovits",
     "tts_streaming": true,
+    "llm_token_streaming": true,
     "speaker_similarity_threshold": 0.75,
     "debug_server": true,
     "debug_tts": true,
