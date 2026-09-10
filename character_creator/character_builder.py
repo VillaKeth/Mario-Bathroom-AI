@@ -388,7 +388,15 @@ def _generate_system_prompt(config: dict) -> str:
     description = config.get("description", "")
     accent_markers = config.get("accent_markers", ["Speaks normally"])
     catchphrases = config.get("catchphrases", [])
-    system_prompt_hints = config.get("system_prompt_hints", description)
+    # The wizard's Personality step sends what the user typed as "system_prompt";
+    # known-character auto-fill supplies "system_prompt_hints". Reading only the
+    # latter meant a hand-written prompt was silently dropped and the one-line
+    # description was used as the whole personality instead.
+    system_prompt_hints = (
+        config.get("system_prompt")
+        or config.get("system_prompt_hints")
+        or description
+    )
     
     prompt = f"""You ARE {name}. Your response should be in character, have personality, and be interesting. You have a distinct voice and vibe. Be expressive, specific, and avoid generic filler. Additionally, your response length should be long if the answer calls for it, and short if it doesn't. Always match the vibe of the conversation.
 

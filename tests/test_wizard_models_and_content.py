@@ -382,3 +382,62 @@ def test_content_backend_falls_back_when_nothing_configured(monkeypatch, tmp_pat
     backend = _backend_for(monkeypatch, tmp_path, {"server": {}})
 
     assert backend["model"] == "llama3"
+
+
+# ---------------------------------------------------------------------------
+# The Personality step's system prompt must reach the generated prompt file
+# ---------------------------------------------------------------------------
+
+def _build_prompt(**cfg):
+    from character_creator.character_builder import _generate_system_prompt
+    base = {"name": "Testy", "description": "A one line description."}
+    base.update(cfg)
+    return _generate_system_prompt(base)
+
+
+def test_typed_system_prompt_reaches_the_generated_file():
+    """It was read from a key the wizard never sends, so it was dropped."""
+    out = _build_prompt(system_prompt="Chronically online gremlin. Roasts everyone.")
+
+    assert "Chronically online gremlin" in out
+    assert "A one line description." not in out
+
+
+def test_known_character_hints_still_used_when_no_typed_prompt():
+    out = _build_prompt(system_prompt_hints="Cheerful plumber, says wahoo.")
+
+    assert "Cheerful plumber" in out
+
+
+def test_typed_prompt_wins_over_autofilled_hints():
+    out = _build_prompt(
+        system_prompt="Hand written persona.",
+        system_prompt_hints="Auto filled persona.",
+    )
+
+    assert "Hand written persona." in out
+    assert "Auto filled persona." not in out
+
+
+def test_description_is_the_last_resort():
+    out = _build_prompt()
+
+    assert "A one line description." in out
+
+
+def test_accent_markers_render_as_a_bullet_list():
+    out = _build_prompt(accent_markers=["Speaks with a drawl", "Trails off when bored"])
+
+    assert "- Speaks with a drawl" in out
+    assert "- Trails off when bored" in out
+
+
+def test_catchphrases_render_as_a_quoted_line():
+    out = _build_prompt(catchphrases=["Well shoot", "Bet"])
+
+    assert "CATCHPHRASES:" in out
+    assert "Well shoot" in out and "Bet" in out
+
+
+def test_no_catchphrase_section_when_none_given():
+    assert "CATCHPHRASES:" not in _build_prompt()
