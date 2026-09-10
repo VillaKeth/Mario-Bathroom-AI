@@ -56,7 +56,21 @@ def get_llm_backend() -> dict:
     
     # Priority 3: Ollama (local)
     ollama_url = config.get("ollama_url", "http://localhost:11434")
-    ollama_model = config.get("quality_model") or config.get("model") or "llama3"
+    # The wizard writes the user's pick to server.llm_quality_model. Reading a
+    # top-level "quality_model" never matched, so generation always silently
+    # fell back to llama3 regardless of what was chosen in the Hardware step.
+    # "auto" is a sentinel meaning "let the runtime decide", not a model name.
+    server_cfg = config.get("server") or {}
+    candidates = [
+        config.get("quality_model"),
+        server_cfg.get("llm_quality_model"),
+        server_cfg.get("llm_model"),
+        config.get("model"),
+    ]
+    ollama_model = next(
+        (m for m in candidates if m and m != "auto"),
+        "llama3",
+    )
     return {
         "type": "ollama",
         "url": ollama_url,

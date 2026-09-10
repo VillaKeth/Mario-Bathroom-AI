@@ -198,10 +198,16 @@ def prepare_voice_artifacts(config: dict, char_dir: str) -> dict:
 
     has_ref = os.path.exists(ref_audio) and os.path.getsize(ref_audio) > 1024
 
-    # Default behavior: if the user didn't upload a clip, automatically pull one
-    # from YouTube so a non-technical user gets a real character voice with zero
-    # extra steps. Set config["auto_voice"] = False to opt out.
-    if not has_ref and config.get("auto_voice", True):
+    # If the user didn't upload a clip, we can pull one from YouTube so a
+    # non-technical user gets a real character voice with zero extra steps.
+    # That only makes sense for a known character: searching an original
+    # character's name returns unrelated audio, which then silently replaces the
+    # Edge voice the user picked in the Voice step. Explicit auto_voice wins.
+    auto_voice = config.get("auto_voice")
+    if auto_voice is None:
+        auto_voice = config.get("char_type") == "known"
+
+    if not has_ref and auto_voice:
         try:
             from character_creator import voice_finder
             if voice_finder.is_available():

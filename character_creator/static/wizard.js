@@ -2,6 +2,10 @@
 // Utility Functions
 // ================================
 
+// Zero-based index of the Review step. Review is the one step whose forward
+// action is its own "Create Character" button rather than the shared Next.
+const REVIEW_STEP = 5;
+
 /**
  * Debounce function to limit API calls
  */
@@ -76,6 +80,11 @@ function showToast(message, type = 'info') {
 class WizardState {
     constructor() {
         this.currentStep = 0;
+        // Step the saved draft was left on. Held aside rather than applied,
+        // because the wizard renders step 0 until the user chooses Resume —
+        // adopting it here desynced state from the screen, and Next then
+        // validated (and advanced past) a step that wasn't being shown.
+        this.draftStep = 0;
         this.data = {};
         this.restore();
     }
@@ -94,7 +103,7 @@ class WizardState {
             const saved = localStorage.getItem('wizard_state');
             if (saved) {
                 const state = JSON.parse(saved);
-                this.currentStep = state.currentStep || 0;
+                this.draftStep = state.currentStep || 0;
                 this.data = state.data || {};
                 return true;
             }
@@ -106,6 +115,7 @@ class WizardState {
     
     clear() {
         this.currentStep = 0;
+        this.draftStep = 0;
         this.data = {};
         localStorage.removeItem('wizard_state');
     }
@@ -325,6 +335,11 @@ class WizardUI {
             wizardNav.style.display = 'none';
         } else {
             wizardNav.style.display = 'flex';
+            // Review (step 5) moves forward only through its own
+            // "Create Character" button. A generic Next here validates to true
+            // and jumps straight to content generation without ever creating
+            // the character, leaving nothing on disk to generate into.
+            btnNext.style.display = n === REVIEW_STEP ? 'none' : 'block';
         }
         
         // Update state
@@ -446,7 +461,7 @@ class WizardUI {
     resumeDraft() {
         document.getElementById('resume-banner').style.display = 'none';
         this.restoreFormValues();
-        this.goToStep(this.state.currentStep);
+        this.goToStep(this.state.draftStep);
         showToast('Draft restored', 'success');
     }
     
@@ -1721,7 +1736,7 @@ class WizardUI {
             grid.innerHTML = `
                 <div class="hardware-item">
                     <strong>CPU</strong>
-                    <span>${data.cpu || 'Unknown'}</span>
+                    <span>${data.cpu_cores ? data.cpu_cores + ' cores' : 'Unknown'}</span>
                 </div>
                 <div class="hardware-item">
                     <strong>RAM</strong>
@@ -1958,8 +1973,13 @@ class WizardUI {
         progressText.textContent = 'Preparing character...';
         
         try {
-            // Step 1: Update model config if user manually selected a model
-            if (this.modelConfigDirty) {
+            // Step 1: Persist the model config whenever a model is in effect.
+            // Gating this on a manual click dropped the selection for every user
+            // who simply accepted the pre-checked recommendation, leaving
+            // config.json without any model for the character to run on.
+            const advancedSelected = this.state.get('advanced_models', false)
+                && document.getElementById('quality-model-select')?.value;
+            if (this.modelConfigDirty || this.state.get('selected_model') || advancedSelected) {
                 progressText.textContent = 'Configuring AI models...';
                 progressFill.style.width = '20%';
                 
@@ -1990,6 +2010,9 @@ class WizardUI {
             
             const characterData = {
                 name: this.state.get('char_name'),
+                // Drives the voice auto-pull: only a known character has real
+                // voice lines worth searching for.
+                char_type: this.state.get('char_type', 'original'),
                 display_name: this.state.get('display_name'),
                 tagline: this.state.get('tagline'),
                 description: this.state.get('description'),
@@ -2225,6 +2248,16 @@ class WizardUI {
         else if (event.type === 'complete') {
             this._showGenComplete(event.summary, event.data.errors);
         }
+        else if (event.type === 'error') {
+            // Without this branch a server-side failure is silently dropped and
+            // the progress panel sits on "Waiting..." forever.
+            overallEl.textContent = `Generation failed: ${event.error}`;
+            showToast(event.error, 'error');
+            const btn = document.getElementById('btn-start-generation');
+            const skipBtn = document.getElementById('btn-skip-generation');
+            if (btn) { btn.disabled = false; btn.textContent = '🔄 Retry Generation'; }
+            if (skipBtn) skipBtn.style.display = 'inline-block';
+        }
     }
 
     _showGenComplete(summary, errors) {
@@ -2289,13 +2322,17 @@ class WizardUI {
         
         successScreen.style.display = 'block';
         successScreen.querySelector('h2').focus();
-        
+
+        // Start Server still needs the name, and clearing state drops it —
+        // it was falling back to scraping the path out of the DOM.
+        this._createdCharName = this.state.get('char_name');
+
         // Clear state
         this.state.clear();
     }
     
     async startServer() {
-        const charName = this.state.get('char_name') || 
+        const charName = this._createdCharName || this.state.get('char_name') || 
             document.querySelector('#success-details code')?.textContent?.split(/[/\\]/).pop();
         
         if (!charName) {

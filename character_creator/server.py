@@ -16,7 +16,7 @@ import asyncio
 import uuid
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 # Add server directory to path to import hardware module
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -31,13 +31,47 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 app = FastAPI(title="Character Creator Wizard")
 
+_ASSET_REF = re.compile(r'(?P<attr>src|href)="(?P<url>/static/[^"?]+\.(?:js|css))"')
+
+
+def _asset_version(url: str) -> str:
+    """Modification time of a /static asset, used as a cache-busting token."""
+    rel = url[len("/static/"):].replace("/", os.sep)
+    try:
+        return str(int(os.path.getmtime(os.path.join(STATIC_DIR, rel))))
+    except OSError:
+        return "0"
+
+
 @app.get("/")
 async def index():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    """Serve the wizard shell with per-file cache-busting on its own assets.
+
+    StaticFiles answers with a long-lived ETag, so an edited wizard.js kept
+    being served from browser cache after an update — the user would see the
+    old wizard until a manual hard refresh. Stamping each asset URL with its
+    mtime makes a changed file a new URL.
+    """
+    with open(os.path.join(STATIC_DIR, "index.html"), encoding="utf-8") as f:
+        html = f.read()
+
+    html = _ASSET_REF.sub(
+        lambda m: f'{m.group("attr")}="{m.group("url")}?v={_asset_version(m.group("url"))}"',
+        html,
+    )
+    # The shell itself must never be cached: it carries the asset version
+    # stamps, so a stale copy would keep pointing at stale scripts.
+    return HTMLResponse(html, headers={"Cache-Control": "no-store, must-revalidate"})
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Silence the browser's automatic favicon probe (a 404 in every console)."""
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 @app.get("/api/hardware")
 async def get_hardware_info():
@@ -60,39 +94,119 @@ def _classify_model(model_name: str, vram_gb: int, detected_vram: int, detected_
         return "slow"
     return "incompatible"
 
+
+_VISION_HINTS = ("llava", "vision", "moondream", "-vl", ":vl", "vl:")
+
+
+def _is_vision_model(name: str, entry: dict | None = None) -> bool:
+    """True for multimodal models, which make poor defaults for a chat character.
+
+    They stay listed and selectable — this only keeps them from being the
+    automatic recommendation ahead of a comparable text model.
+    """
+    families = ((entry or {}).get("details") or {}).get("families") or []
+    if any("clip" in str(f).lower() for f in families):
+        return True
+    low = name.lower()
+    return any(h in low for h in _VISION_HINTS)
+
+
+def _normalize_model(name: str) -> str:
+    """Ollama treats a bare model name as ':latest'. Compare on that form."""
+    return name if ":" in name else f"{name}:latest"
+
+
+def _estimate_vram_gb(entry: dict) -> int:
+    """VRAM estimate for a model Ollama reports that our catalog doesn't list.
+
+    On-disk size is the best available proxy — the weights dominate resident
+    VRAM — plus roughly a gigabyte for context and KV cache.
+    """
+    size_bytes = entry.get("size") or 0
+    if size_bytes:
+        return max(1, round(size_bytes / (1024 ** 3)) + 1)
+    return 4
+
 @app.get("/api/models")
 async def get_models():
     hw = hardware.detect_hardware()
     detected_vram = hw["gpu_vram_gb"]
     detected_ram = hw["ram_gb"]
     
-    installed = []
+    installed_entries = []
+    ollama_running = False
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get("http://localhost:11434/api/tags")
             if resp.status_code == 200:
-                for m in resp.json().get("models", []):
-                    installed.append(m["name"])
+                ollama_running = True
+                installed_entries = resp.json().get("models", [])
     except Exception:
         pass
-    
+
+    installed = [m["name"] for m in installed_entries if m.get("name")]
+
     models = []
-    for name, vram in MODEL_VRAM_ESTIMATES.items():
-        compat = _classify_model(name, vram, detected_vram, detected_ram)
+    seen = set()
+
+    # Installed models first — these are the ones the user can actually run.
+    # Matching is exact on the normalized name: a substring test would report
+    # gemma3:27b as installed just because gemma3:4b is present, and picking it
+    # yields a character pointing at a model that was never pulled.
+    for entry in installed_entries:
+        name = entry.get("name")
+        if not name:
+            continue
+        norm = _normalize_model(name)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        vram = MODEL_VRAM_ESTIMATES.get(name)
+        if vram is None:
+            vram = MODEL_VRAM_ESTIMATES.get(name.split(":")[0])
+        if vram is None:
+            vram = _estimate_vram_gb(entry)
         models.append({
             "name": name,
             "vram_gb": vram,
-            "compatibility": compat,
-            "installed": any(name.split(":")[0] in inst for inst in installed),
+            "compatibility": _classify_model(name, vram, detected_vram, detected_ram),
+            "installed": True,
             "recommended": False,
+            "vision": _is_vision_model(name, entry),
         })
-    
-    compatible = [m for m in models if m["compatibility"] == "compatible"]
-    if compatible:
-        best = max(compatible, key=lambda m: m["vram_gb"])
-        best["recommended"] = True
-    
-    return {"models": models, "detected_vram": detected_vram, "installed_models": installed}
+
+    # Then catalog entries the user could pull but doesn't have yet.
+    for name, vram in MODEL_VRAM_ESTIMATES.items():
+        norm = _normalize_model(name)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        models.append({
+            "name": name,
+            "vram_gb": vram,
+            "compatibility": _classify_model(name, vram, detected_vram, detected_ram),
+            "installed": False,
+            "recommended": False,
+            "vision": _is_vision_model(name),
+        })
+
+    # Recommend the largest model that both fits and is already downloaded,
+    # falling back to a merely-compatible one when nothing suitable is pulled.
+    ready = [m for m in models if m["compatibility"] == "compatible" and m["installed"]]
+    pool = ready or [m for m in models if m["compatibility"] == "compatible"]
+    # Prefer a text model: a vision model runs fine but wastes its weights on a
+    # character that only ever chats, and it was winning purely on size.
+    text_pool = [m for m in pool if not m["vision"]]
+    pool = text_pool or pool
+    if pool:
+        max(pool, key=lambda m: m["vram_gb"])["recommended"] = True
+
+    return {
+        "models": models,
+        "detected_vram": detected_vram,
+        "installed_models": installed,
+        "ollama_running": ollama_running,
+    }
 
 from character_creator.config_manager import read_model_config, write_model_config
 
@@ -616,7 +730,20 @@ async def generate_content_sse(body: dict):
     categories = body.get("categories", None)
     
     if not char_dir or not os.path.isdir(char_dir):
-        return {"success": False, "error": "Invalid character directory"}
+        # The client reads this endpoint as an SSE stream. A plain JSON body
+        # leaves it waiting on events that never arrive, so the progress panel
+        # hangs on "Waiting..." forever with nothing shown to the user. Report
+        # the failure as an SSE event instead.
+        detail = (
+            "No character directory — create the character on the Review step "
+            "before generating content."
+        )
+
+        async def error_stream():
+            payload = json.dumps({"type": "error", "error": detail})
+            yield f"data: {payload}\n\n"
+
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
     
     async def event_stream():
         async for event in generate_all_content(
