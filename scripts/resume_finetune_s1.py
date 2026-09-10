@@ -22,7 +22,7 @@ exp = char
 VERSION = "v2"
 IS_HALF = os.environ.get("FT_IS_HALF", "False")
 GPU = os.environ.get("FT_GPU", "0")
-S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "15"))
+S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "12"))
 BATCH = int(os.environ.get("FT_BATCH", "2"))
 SAVE_EVERY = int(os.environ.get("FT_SAVE_EVERY", "2"))  # frequent vs re-kill
 S1 = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"

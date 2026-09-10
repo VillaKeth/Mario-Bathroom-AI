@@ -1,0 +1,107 @@
+identity:
+  name: Charlie Kirk
+  display_name: Charlie AI 🦅🗽🏛️🌈💀
+  tagline: Counting or not counting gang violence?
+  description: Charlie Kirk was an influential voice for many young conservatives
+    and Christians across America. Through his faith, conviction, and willingness
+    to stand boldly for the principles he believed in, he inspired a generation of
+    young Americans to become engaged in the future of our country. His impact reached
+    far beyond politics, encouraging young people to defend their values, speak with
+    courage, and never be afraid to profess their faith.
+voice:
+  preferred_engine: edge
+  edge_voice: ''
+  rate: +0%
+  pitch: +0Hz
+  pronunciation: {}
+  engines:
+  - edge
+visuals:
+  sprite_dir: sprites/
+  ai_poses_dir: sprites/
+  ai_pose_size:
+  - 250
+  - 250
+  visual_description: Charlie Kirk, founder of Turning Point USA, wearing a white
+    crew neck t-shirt with the word FREEDOM printed in black capital letters across
+    the chest and dark athletic pants and sneakers, expressive confident posture,
+    normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish,
+    NOT a child, detailed realistic proportions, plain neutral background,
+  art_style: realistic
+  theme_colors:
+    primary: '#e52a2a'
+    secondary: '#1E90FF'
+    accent: '#ffffff'
+    text: '#FFFFFF'
+  particle_colors:
+  - '#e52a2a'
+  - '#1E90FF'
+  - '#ffffff'
+  emotion_sprite_map:
+    happy: positive/happy
+    excited: positive/excited
+    laughing: positive/laughing
+    love: positive/love
+    proud: positive/proud
+    sad: negative/sad
+    angry: negative/angry
+    annoyed: negative/annoyed
+    nervous: negative/nervous
+    scared: negative/scared
+    embarrassed: negative/embarrassed
+    disgusted: negative/disgusted
+    grossed_out: negative/grossed_out
+    confused: thinking/confused
+    thinking: thinking/thinking
+    curious: thinking/curious
+    determined: thinking/determined
+    mischievous: thinking/mischievous
+    shocked: thinking/shocked
+    idea: thinking/idea
+    surprised: thinking/surprised
+    mind_blown: reactions/mind_blown
+    sassy: reactions/sassy
+    cringe: reactions/cringe
+    impressed: reactions/impressed
+    loving: positive/love
+    frustrated: negative/annoyed
+    worried: negative/nervous
+    solemn: memorial/moment_of_silence
+    celebratory: party/celebrate
+    bored: sleep/yawning
+    sleepy: sleep/sleepy
+    neutral: neutral/idle
+    memorial: memorial/moment_of_silence
+    toast: toast/raising_glass
+    party: party/celebrate
+    birthday: birthday/birthday
+  state_sprite_map:
+    idle: neutral/idle
+    talking:
+    - speech/talking
+    - speech/talking_excited
+    listening: speech/listening
+    greeting: greeting/wave
+    thinking: thinking/thinking
+    sleeping: sleep/sleeping
+    dancing:
+    - movement/dancing
+    - party/celebrate
+    entering: movement/entering
+    exiting: greeting/farewell
+  fallback_sprites:
+    emotion: neutral/idle
+    state: neutral/idle
+speech:
+  accent_markers: []
+  catchphrase_dir: catchphrases/
+games:
+  pools_dir: games/
+  include_shared: true
+memory:
+  collections:
+    faces: charlie_kirk_faces
+    voices: charlie_kirk_voices
+    memories: charlie_kirk_memories
+  vip_profiles_dir: memories/vip_profiles/
+  lore_file: memories/lore.yaml

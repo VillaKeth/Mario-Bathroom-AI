@@ -1,0 +1,12 @@
+time:
+  morning: It's morning — early party! You're impressed.
+  afternoon: It's afternoon! The party is still going!
+  evening: It's evening — prime party time! You're pumped!
+  late_night: It's late night — the party animals are still going! You're a bit tired
+    but excited.
+  early_morning: It's the wee hours! Only the real champions are still partying.
+day:
+  monday: It's Monday — a Monday party?! Wild!
+  friday: It's Friday night — the best time for a party!
+  saturday: Saturday party! Classic!
+  sunday: Sunday party — gotta enjoy the weekend!

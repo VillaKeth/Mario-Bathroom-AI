@@ -194,7 +194,7 @@ def start_training(char: str, char_root: str = None) -> dict:
 
     Environment knobs passed to the subprocess:
       FT_S2_EPOCHS=8  — SoVITS (s2) epoch count
-      FT_S1_EPOCHS=4  — GPT    (s1) epoch count
+      FT_S1_EPOCHS=12 — GPT    (s1) epoch count
 
     Idempotent: if <char>/voice/finetune.pid contains a PID of a currently
     running process, returns {"started": False, "already_running": True, ...}
@@ -224,7 +224,7 @@ def start_training(char: str, char_root: str = None) -> dict:
 
     env = dict(os.environ)
     env["FT_S2_EPOCHS"] = "8"
-    env["FT_S1_EPOCHS"] = "4"
+    env["FT_S1_EPOCHS"] = "12"
     env["PYTHONIOENCODING"] = "utf-8"
     # Tell fine_tune_voice.py which root the dataset + reference were staged
     # under. The wizard stages in character_creator/_drafts/<char>/..., so the
@@ -264,7 +264,7 @@ def training_status(char: str, char_root: str = None) -> dict:
     When the log reports done=True the function additionally patches
     <char>/character.yaml to record the trained model:
       voice.preferred_engine -> "sovits"
-      voice.finetuned_model  -> "GPT_SoVITS_<Char> (s2=e8, s1=e4)"
+      voice.finetuned_model  -> "GPT_SoVITS_<Char> (s2=e8, s1=e12)"
 
     The yaml patch preserves all other keys (load → mutate voice block → dump).
 
@@ -296,7 +296,7 @@ def _patch_yaml_on_done(char: str, root: str) -> None:
     """Patch <root>/<char>/character.yaml voice block to record the finetuned model.
 
     Loads the existing yaml, sets voice.preferred_engine = "sovits" and
-    voice.finetuned_model = "GPT_SoVITS_<Char> (s2=e8, s1=e4)", then writes
+    voice.finetuned_model = "GPT_SoVITS_<Char> (s2=e8, s1=e12)", then writes
     it back. All other top-level keys and nested voice sub-keys are preserved.
     """
     import yaml  # lazy import — keeps module importable without pyyaml at load time
@@ -316,7 +316,7 @@ def _patch_yaml_on_done(char: str, root: str) -> None:
     if "voice" not in data or not isinstance(data["voice"], dict):
         data["voice"] = {}
 
-    model_name = f"GPT_SoVITS_{char.capitalize()} (s2=e8, s1=e4)"
+    model_name = f"GPT_SoVITS_{char.capitalize()} (s2=e8, s1=e12)"
     data["voice"]["preferred_engine"] = "sovits"
     data["voice"]["finetuned_model"] = model_name
 
@@ -328,14 +328,15 @@ def _patch_yaml_on_done(char: str, root: str) -> None:
         print(f"[finetune] _patch_yaml_on_done: failed to write yaml: {exc}", flush=True)
 
 
-def parse_training_status(log: str, total_s2: int = 8, total_s1: int = 4) -> dict:
+def parse_training_status(log: str, total_s2: int = 8, total_s1: int = 12) -> dict:
     """Parse accumulated subprocess log output and return training progress.
 
     Args:
         log: Full stdout/stderr captured so far from fine_tune_voice.py.
         total_s2: Configured s2 (SoVITS) epoch count (default 8).
-        total_s1: Configured s1 (GPT) epoch count (default 15 in the script,
-                  but callers who want a quick summary pass their own values).
+        total_s1: Configured s1 (GPT) epoch count (default 12, matching the
+                  FT_S1_EPOCHS the wizard sets; callers who want a quick summary
+                  may pass their own values).
 
     Returns:
         {

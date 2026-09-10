@@ -36,7 +36,7 @@ VERSION = "v2"
 IS_HALF = os.environ.get("FT_IS_HALF", "False")  # P1000: fp32
 GPU = os.environ.get("FT_GPU", "0")
 S2_EPOCHS = int(os.environ.get("FT_S2_EPOCHS", "8"))
-S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "15"))
+S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "12"))
 BATCH = int(os.environ.get("FT_BATCH", "2"))  # halved to 1 under fp32
 SAVE_EVERY = int(os.environ.get("FT_SAVE_EVERY", "4"))
 

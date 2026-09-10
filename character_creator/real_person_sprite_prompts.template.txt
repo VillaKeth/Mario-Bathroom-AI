@@ -1,0 +1,248 @@
+# ============================================================================
+# REAL-PERSON SPRITE PROMPT TEMPLATE
+# ============================================================================
+# 39 pose blocks in mcp_chatgpt/batch_sprites.py format. Fill in TWO
+# placeholders below, then paste blocks into any image generator.
+#
+#   {{NAME}}        -> character name (cosmetic; appears in the header only)
+#   {{APPEARANCE}}  -> the appearance paragraph, repeated in every block
+#
+# Find-and-replace both, everywhere, then save each result to the path named
+# at the top of its block: characters/<char>/sprites/<path>.png
+# Generate on a plain/white background — the app cuts it out with rembg.
+#
+# ----------------------------------------------------------------------------
+# WRITING {{APPEARANCE}} FOR A REAL PERSON — READ THIS
+# ----------------------------------------------------------------------------
+# Describe ATTRIBUTES, never the person's name. Two reasons, both practical:
+#
+#   1. Most backends (Pollinations/flux, Gemini, HuggingFace) restrict
+#      identifiable real people — public figures especially. Naming them gets
+#      you a refusal or a generic face that isn't them anyway.
+#   2. With no reference image, a named face drifts badly across 39 separate
+#      generations. An explicit feature checklist lands in the same place
+#      every time. That is the whole reason the March 7th set came out
+#      consistent.
+#
+# Write it in this order, one paragraph, no line breaks:
+#
+#   build & age -> hair -> face -> clothing -> posture -> render notes
+#
+# END IT WITH A PERIOD. The pose direction is appended straight after it,
+# so without one you get "...plain neutral background walking in confidently".
+#
+# Then add NEGATIVE CONSTRAINTS. These do more work than they look like:
+#   "NOT chibi, NOT a caricature, NOT cartoonish proportions, normal adult
+#    head-to-body ratio, NOT a child"
+#
+# ----------------------------------------------------------------------------
+# WORKED EXAMPLE (swap for your own)
+# ----------------------------------------------------------------------------
+# a tall lean man in his early sixties with a narrow build and long limbs,
+# short greying black hair cropped close, high forehead, warm easy smile with
+# deep laugh lines around the eyes, clean shaven, wearing a navy two-button
+# suit over a light blue open-collar shirt with no tie and sleeves slightly
+# rolled, relaxed confident posture with weight on one leg, normal adult
+# head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a
+# child, detailed realistic proportions, plain neutral background
+#
+# Another shape, different subject:
+#
+# a short energetic woman in her mid thirties with a stocky athletic build,
+# dark curly shoulder-length hair pulled back loosely, round face with heavy
+# eyebrows and a crooked grin, wearing a mustard cardigan over a white tee
+# and dark jeans, hands usually mid-gesture, normal adult head-to-body ratio,
+# NOT chibi, NOT a caricature, NOT cartoonish, plain neutral background
+#
+# ----------------------------------------------------------------------------
+# ART STYLE
+# ----------------------------------------------------------------------------
+# The style phrase is ALREADY BAKED INTO every block below — do not add it
+# separately, you would be duplicating it. These blocks use 3d_figurine:
+#
+#   ", 3D rendered figurine style, clean gray studio background, full body
+#    shot, highly detailed, high quality, soft studio lighting"
+#
+# To switch styles, find-and-replace that exact phrase in every block with one
+# of these (from ART_STYLE_SUFFIXES in character_creator/sprite_generator.py):
+#
+#   realistic  -> ", photorealistic 3D render, unreal engine style, detailed
+#                   textures, studio lighting, full body"
+#   cartoon    -> ", cartoon style, bold outlines, bright colors, expressive,
+#                   full body shot, clean background"
+#   anime      -> ", anime art style, cel-shaded, clean lines, vibrant colors,
+#                   full body shot, studio background"
+#   pixel_art  -> ", pixel art style, 16-bit, clean pixelated edges, retro
+#                   game aesthetic, full body"
+#
+# For a real-person look, 3d_figurine (default here) and realistic both work.
+# 3d_figurine tends to stay more consistent across a 39-image set.
+#
+# ----------------------------------------------------------------------------
+# REGENERATING THIS FILE FROM A CHARACTER
+# ----------------------------------------------------------------------------
+# Once visuals.visual_description and visuals.art_style are set in
+# characters/<char>/character.yaml, regenerate the real file with:
+#
+#   ./venv/Scripts/python.exe -c "
+#   from character_creator.sprite_generator import write_sprite_prompts_file
+#   print(write_sprite_prompts_file('characters/<char>'), 'blocks')"
+#
+# That is the authoritative path — this template just lets you work by hand.
+# ============================================================================
+
+[01] sprites/birthday/birthday.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, a lean fit man in his early thirties with short dark thick hair styled neatly, strong jawline and light facial stubble, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, holding a birthday cake with candles, warm smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[02] sprites/greeting/farewell.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, a lean fit man in his early thirties with short dark thick hair styled neatly, strong jawline and light facial stubble, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background,  with a exiting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[03] sprites/greeting/wave.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with a greeting expression and a matching body pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[04] sprites/memorial/moment_of_silence.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with head bowed, one hand over heart, solemn respectful pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[05] sprites/movement/dancing.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, doing a fun dance move, energetic and happy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[06] sprites/movement/entering.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, walking in confidently, dramatic entrance, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[07] sprites/negative/angry.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with intense angry expression, fists clenched, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[08] sprites/negative/annoyed.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with arms crossed, one eyebrow raised, clearly unimpressed look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[09] sprites/negative/disgusted.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, leaning away with disgusted face, hand up in stop gesture, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[10] sprites/negative/embarrassed.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, scratching back of head sheepishly, embarrassed half-smile, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[11] sprites/negative/grossed_out.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, holding nose in disgust, leaning away, revolted face, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[12] sprites/negative/nervous.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, looking nervously to the side, hands fidgeting, uncertain expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[13] sprites/negative/sad.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, looking down sadly, shoulders slumped, disappointed expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[14] sprites/negative/scared.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, jumping back with wide eyes, arms up in surprise, startled and scared, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[15] sprites/neutral/idle.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, standing relaxed, casual confident stance, neutral expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[16] sprites/party/celebrate.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, raising both arms in celebration, huge grin, confetti around, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[17] sprites/positive/excited.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, jumping with excitement, fist pumped, huge grin, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[18] sprites/positive/happy.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with a warm genuine smile, arms open, welcoming happy pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[19] sprites/positive/laughing.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, laughing hard, head thrown back, genuine amusement, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[20] sprites/positive/love.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with heart eyes, hands clasped near face, love-struck expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[21] sprites/positive/proud.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, standing tall, hands on hips, chin up, supremely confident proud pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[22] sprites/reactions/cringe.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, cringing hard, one eye closed, teeth gritted, looking away, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[23] sprites/reactions/impressed.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, nodding approvingly, arms crossed, raised eyebrow, genuine respect, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[24] sprites/reactions/mind_blown.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with hands on sides of head, amazed shocked expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[25] sprites/reactions/sassy.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with hand on hip, head tilted, finger wagging, sassy attitude, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[26] sprites/sleep/sleeping.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, curled up sleeping, peaceful expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[27] sprites/sleep/sleepy.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, mid-yawn, hand covering mouth, half-closed eyes, sleepy, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[28] sprites/speech/listening.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with head slightly tilted, attentive listening pose, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[29] sprites/speech/talking.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[30] sprites/speech/talking_excited.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, gesturing with one hand while speaking, animated expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[31] sprites/thinking/confused.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with head tilted, confused expression, one eyebrow raised high, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[32] sprites/thinking/curious.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, leaning forward with curiosity, eyes bright, interested expression, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[33] sprites/thinking/determined.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with intense focused eyes, determined expression, leaning forward, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[34] sprites/thinking/idea.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with index finger raised, bright idea moment, excited eyes, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[35] sprites/thinking/mischievous.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with a mischievous grin, fingers steepled, plotting look, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[36] sprites/thinking/shocked.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, with mouth wide open in shock, eyes huge, absolutely stunned, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[37] sprites/thinking/surprised.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, doing a dramatic double take, wide eyes, surprised, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[38] sprites/thinking/thinking.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, looking upward thoughtfully, finger tapping chin, pondering, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
+
+[39] sprites/toast/raising_glass.png
+----------------------------------------------------------------------
+Charlie Kirk, founder of Turning Point USA, wearing a white crew neck t-shirt with the word FREEDOM printed in black capital letters across the chest and dark athletic pants and sneakers, expressive confident posture, normal adult head-to-body ratio, NOT chibi, NOT a caricature, NOT cartoonish, NOT a child, detailed realistic proportions, plain neutral background, raising a glass high, confident smile, toasting, 3D rendered figurine style, clean gray studio background, full body shot, highly detailed, high quality, soft studio lighting, entire character fully visible from head to toe, full body in frame, centered composition, generous empty margin around the character, wide shot, nothing cropped or cut off at the edges, standing in frame
