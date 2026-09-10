@@ -129,7 +129,9 @@
             ]
         });
 
-        this._ws.load(audioUrl);
+        // _build() takes no parameters — the constructor's audioUrl is not in
+        // scope here, so the bare reference threw a ReferenceError on every open.
+        this._ws.load(this._audioUrl);
 
         // ---- Wire events ----
         this._ws.on('ready', function () {

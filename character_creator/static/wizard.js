@@ -1231,9 +1231,24 @@ class WizardUI {
         const btn = document.getElementById(`ft-add-btn-${resultIdx}`);
         if (btn) { btn.disabled = true; btn.textContent = 'Downloading…'; }
 
+        const charName = this.state.get('char_name');
+        if (!charName) {
+            showToast('Name your character on step 1 first', 'warning');
+            if (btn) { btn.disabled = false; btn.textContent = '➕ Add'; }
+            return;
+        }
+
         try {
             showToast('Downloading clip for editing…', 'info');
-            const data = await api('POST', '/api/voice/download_full_for_edit', { url: r.url });
+            // character_name is required by the endpoint — omitting it returned
+            // {success:false} with HTTP 200, which api() does not treat as an
+            // error, so the modal opened with no audio URL and reported only
+            // "Waveform editor unavailable".
+            const data = await api('POST', '/api/voice/download_full_for_edit',
+                                   { url: r.url, character_name: charName });
+            if (!data.success || !data.url) {
+                throw new Error(data.error || 'Download failed');
+            }
             // Add to picks with empty regions to start
             this._ftPicks.push({ edit_id: data.edit_id, url: r.url, title: r.title, regions: [] });
             const pickIdx = this._ftPicks.length - 1;
@@ -1286,7 +1301,10 @@ class WizardUI {
                 console.error('VoiceEditor init failed:', e);
             }
         } else {
-            container.innerHTML = '<p class="help-text">Waveform editor unavailable — regions saved as empty (full clip will be used).</p>';
+            const why = (typeof VoiceEditor === 'undefined')
+                ? 'the editor script failed to load'
+                : 'the clip has no audio URL (download did not complete)';
+            container.innerHTML = `<p class="help-text">Waveform editor unavailable — ${why}. Regions saved as empty, so the full clip will be used.</p>`;
         }
     }
 
