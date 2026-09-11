@@ -1423,6 +1423,23 @@ class TestWsSendLock:
         asyncio.run(_test())
 
 
+def _pipeline_guard_index(source: str) -> int:
+    """Offset of the call that wraps _handle_text_input in its timeout guard.
+
+    Used only to locate the surrounding try/except/finally so the tests below can
+    assert on the handler's real behaviour. Accepts either the historical
+    asyncio.wait_for form or the current progress-aware watchdog.
+    """
+    for anchor in ("_run_with_stream_watchdog(_handle_text_input",
+                   "wait_for(_handle_text_input"):
+        idx = source.find(anchor)
+        if idx != -1:
+            return idx
+    raise AssertionError(
+        "No timeout guard wrapping _handle_text_input found in server/main.py"
+    )
+
+
 class TestTextInputTimeout:
     """Tests for the text_input timeout and exception handling in server/main.py.
 
@@ -1440,9 +1457,13 @@ class TestTextInputTimeout:
             return f.read()
 
     def test_text_input_timeout_value(self):
-        """_handle_text_input(...) must be wrapped in asyncio.wait_for with a timeout
-        guard. Historically the literal 45.0; now the adaptive _PIPELINE_TIMEOUT
-        (llm_timeout + 30/90 by hardware tier). Either satisfies the contract."""
+        """_handle_text_input(...) must be wrapped in a time-bounded guard.
+
+        Historically asyncio.wait_for with the literal 45.0, then the adaptive
+        _PIPELINE_TIMEOUT. Now _run_with_stream_watchdog, which bounds the turn by
+        _PIPELINE_TIMEOUT of *silence* and _PIPELINE_HARD_CAP overall — a fixed
+        deadline killed long replies mid-speech. Any of the three satisfies the
+        contract: the pipeline is never unbounded."""
         import ast
 
         source = self._read_source()
@@ -1477,19 +1498,46 @@ class TestTextInputTimeout:
                                     found = True
                                 elif isinstance(inner_func, ast.Attribute) and inner_func.attr == "_handle_text_input":
                                     found = True
+        # Current mechanism: _run_with_stream_watchdog(_handle_text_input(...),
+        # idle_timeout=_PIPELINE_TIMEOUT, hard_cap=_PIPELINE_HARD_CAP)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (isinstance(func, ast.Name) and func.id == "_run_with_stream_watchdog"):
+                continue
+            if not node.args:
+                continue
+            inner = node.args[0]
+            if isinstance(inner, ast.Await):
+                inner = inner.value
+            if not isinstance(inner, ast.Call):
+                continue
+            inner_func = inner.func
+            wraps_pipeline = (
+                (isinstance(inner_func, ast.Name) and inner_func.id == "_handle_text_input")
+                or (isinstance(inner_func, ast.Attribute) and inner_func.attr == "_handle_text_input")
+            )
+            if not wraps_pipeline:
+                continue
+            bounds = {kw.arg for kw in node.keywords}
+            assert {"idle_timeout", "hard_cap"} <= bounds, (
+                "_run_with_stream_watchdog must bound the turn on BOTH silence "
+                f"(idle_timeout) and total runtime (hard_cap); got {sorted(bounds)}"
+            )
+            found = True
+
         assert found, (
-            "Expected asyncio.wait_for(_handle_text_input(...), "
-            "timeout=_PIPELINE_TIMEOUT (or 45.0)) in server/main.py"
+            "Expected _handle_text_input(...) wrapped in a time-bounded guard "
+            "(_run_with_stream_watchdog with idle_timeout+hard_cap, or the older "
+            "asyncio.wait_for with timeout=_PIPELINE_TIMEOUT/45.0) in server/main.py"
         )
 
     def test_text_input_exception_clears_active_flag(self):
         """The finally block must clear _user_request_active after text_input."""
         source = self._read_source()
 
-        assert 'wait_for(_handle_text_input' in source, (
-            "wait_for(_handle_text_input call not found"
-        )
-        idx_wait = source.index('wait_for(_handle_text_input')
+        idx_wait = _pipeline_guard_index(source)
         rest = source[idx_wait:]
         assert 'finally:' in rest, "No finally block after text_input wait_for"
         idx_finally = rest.index('finally:')
@@ -1519,7 +1567,7 @@ class TestTextInputTimeout:
         """General Exception handler must send 'Something went wrong' fallback."""
         source = self._read_source()
 
-        idx_wait = source.index('wait_for(_handle_text_input')
+        idx_wait = _pipeline_guard_index(source)
         rest = source[idx_wait:]
         assert 'except Exception' in rest, (
             "No general Exception handler after text_input wait_for"

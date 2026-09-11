@@ -23,6 +23,27 @@ if CLIENT_DIR not in sys.path:
     sys.path.insert(0, CLIENT_DIR)
 
 # Load config
+# Grace windows for clearing the speech bubble after playback goes idle.
+#
+# A streamed reply arrives sentence-by-sentence, so playback goes idle in the gap
+# between chunks while the server synthesizes the next one. Measured GPT-SoVITS
+# synthesis on the dev box is median 5.7s and max 21.4s per sentence, so the old
+# flat 4.0s window lost that race constantly: the bubble cleared and the talking
+# pose dropped mid-reply, then snapped back when the next chunk landed.
+#
+# The unfinished-stream window is a failsafe for a stream that DIED (server gave
+# up, connection wedged) — not a prediction of synthesis time. It must comfortably
+# outlast the slowest real gap; the server's own watchdog ends a hung turn well
+# before this, so a generous value costs nothing.
+STREAM_GAP_GRACE_DONE = 0.5      # is_last seen — nothing more is coming
+STREAM_GAP_GRACE_PENDING = 45.0  # more chunks expected; failsafe only
+
+
+def stream_gap_grace(is_last_seen: bool) -> float:
+    """Seconds to wait for more audio before clearing the bubble."""
+    return STREAM_GAP_GRACE_DONE if is_last_seen else STREAM_GAP_GRACE_PENDING
+
+
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 _full_config = {}
 if os.path.exists(CONFIG_PATH):
@@ -534,9 +555,10 @@ class MarioClient:
         """Wait for audio playback to finish, then clear the speech bubble.
 
         Streamed replies keep this thread alive across chunk gaps: after
-        playback goes idle it waits 0.5s (last chunk seen) or up to 4s
-        (mid-stream gap / stream died without is_last) for more audio before
-        clearing — the bubble never wedges on a broken stream.
+        playback goes idle it waits STREAM_GAP_GRACE_DONE (last chunk seen) or
+        STREAM_GAP_GRACE_PENDING (more chunks expected / stream died without
+        is_last) for more audio before clearing — long enough to outlast a slow
+        synthesis, short enough that the bubble never wedges on a broken stream.
 
         Cancellation is a generation compare (gen != self._audio_wait_gen):
         unlike an Event set+clear pulse, a value bump can't be missed by a
@@ -552,7 +574,7 @@ class MarioClient:
                 time.sleep(0.1)
                 continue
             # Playback idle — grace window depends on whether the stream ended.
-            grace = 0.5 if getattr(self, "_stream_is_last_seen", True) else 4.0
+            grace = stream_gap_grace(getattr(self, "_stream_is_last_seen", True))
             idle_start = time.time()
             resumed = False
             while (time.time() - idle_start) < grace and gen == self._audio_wait_gen:
@@ -688,8 +710,9 @@ class MarioClient:
             self.audio_playback.play(wav_bytes, text=getattr(self.display, "_typewriter_text", ""))
             if chunk_idx == 0 and isinstance(total, int) and total > 0:
                 self.display.sync_typewriter_to_audio(duration * total)
-        # A mid-stream gap (>4s) may have let the watchdog clear the speaking
-        # state; a resuming chunk must bring the bubble and talking pose back.
+        # A mid-stream gap past STREAM_GAP_GRACE_PENDING may have let the watchdog
+        # clear the speaking state; a resuming chunk must bring the bubble and
+        # talking pose back.
         if not getattr(self.display, "_speaking", False):
             self.display._speaking = True
             self.display.set_state(STATE_TALKING)

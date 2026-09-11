@@ -239,6 +239,81 @@ _PIPELINE_TIMEOUT = server_config.get(
     "pipeline_timeout_seconds",
     GAME_CONFIG["llm_timeout"] + (90 if hardware.get_tier() in ("low", "medium") else 30))
 
+# Total-runtime ceiling for a turn that keeps streaming. None (the default) means
+# no total cap: a reply's length is already bounded by response_char_ceiling, so
+# its sentence count — and therefore the number of chunks — is finite. Capping
+# total time on top of that only ever cuts off a reply that is working, which is
+# the bug this watchdog exists to prevent. The idle timeout still ends a genuine
+# hang. Set an explicit number only if you want long answers guillotined.
+_PIPELINE_HARD_CAP = server_config.get("pipeline_hard_cap_seconds", None)
+
+# --- Streaming progress beacon ---------------------------------------------
+# Audio leaves the server sentence-by-sentence, so a long reply is still PLAYING
+# on the client while later sentences synthesize. A fixed deadline cannot tell a
+# hung turn from a slow-but-working one: it killed the turn mid-speech and spoke
+# "That took too long!" over the character. The streaming path touches this beacon
+# every time a chunk actually reaches the client; the watchdog extends its deadline
+# while that keeps happening, and the timeout handler stays quiet once the guest
+# has already heard audio for this turn.
+_stream_progress_ts: float = 0.0
+_stream_chunks_sent: int = 0
+
+
+def _reset_stream_progress() -> None:
+    """Clear the beacon at the start of a turn."""
+    global _stream_progress_ts, _stream_chunks_sent
+    _stream_progress_ts = 0.0
+    _stream_chunks_sent = 0
+
+
+def _mark_stream_progress() -> None:
+    """Record that a chunk of audio just reached the client."""
+    global _stream_progress_ts, _stream_chunks_sent
+    _stream_progress_ts = time.monotonic()
+    _stream_chunks_sent += 1
+
+
+def _stream_audio_sent() -> bool:
+    """True once this turn has spoken anything at all."""
+    return _stream_chunks_sent > 0
+
+
+async def _run_with_stream_watchdog(coro, idle_timeout: float, hard_cap: float):
+    """Run `coro` like asyncio.wait_for, but reset the deadline on real progress.
+
+    Raises asyncio.TimeoutError when `idle_timeout` elapses with no chunk reaching
+    the client, or when `hard_cap` total elapses however much it streams. Pass
+    hard_cap=None for no total cap — a streaming turn then runs to completion. The
+    pipeline task is cancelled on timeout so it stops holding the TTS executor.
+    """
+    _reset_stream_progress()
+    task = asyncio.ensure_future(coro)
+    start = time.monotonic()
+    try:
+        while True:
+            last = _stream_progress_ts or start
+            deadline = last + idle_timeout
+            if hard_cap is not None:
+                deadline = min(deadline, start + hard_cap)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            done, _pending = await asyncio.wait({task}, timeout=remaining)
+            if done:
+                return task.result()
+            # Deadline passed. If a chunk landed while we waited, the turn is
+            # working — recompute from the newer timestamp instead of giving up.
+            if _stream_progress_ts <= last:
+                raise asyncio.TimeoutError
+    finally:
+        if not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+
 # Keyword → particle effect mapping for client-side visual reactions
 KEYWORD_PARTICLES = {
     "fire": "fire", "flame": "fire", "hot": "fire", "burn": "fire",
@@ -6393,6 +6468,7 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
                                             "chunk_text": chunk["display"],
                                         })
                                         await ws.send_bytes(chunk_audio)
+                                        _mark_stream_progress()
                                     except Exception as send_err:
                                         logger.warning(f"[DEBUG_STREAM] WebSocket send failed on chunk {i+1}/{total_chunks}: {send_err}")
                                         break
@@ -7485,16 +7561,23 @@ async def _text_input_task(ws: WebSocket, text: str):
     async with _state_lock:
         state_current["_user_request_active"] = True
     try:
-        await asyncio.wait_for(_handle_text_input(ws, text), timeout=_PIPELINE_TIMEOUT)
+        await _run_with_stream_watchdog(_handle_text_input(ws, text),
+                                       idle_timeout=_PIPELINE_TIMEOUT,
+                                       hard_cap=_PIPELINE_HARD_CAP)
     except asyncio.CancelledError:
         logger.info(f"[INTERRUPT] Response cancelled for: '{text[:50]}'")
     except asyncio.TimeoutError:
         logger.error(f"[TEXT_INPUT] Pipeline timed out after {_PIPELINE_TIMEOUT}s for: {text[:50]}")
-        try:
-            await send_response(ws, _generic_timeout_text(), None,
-                                sound="error", pose_hint="confused/sad")
-        except Exception:
-            pass
+        if _stream_audio_sent():
+            # The guest is mid-sentence. Cutting the tail is fine; talking over it
+            # to say "that took too long" contradicts what they can hear.
+            logger.error(f"[TEXT_INPUT] Timeout line suppressed — {_stream_chunks_sent} chunk(s) already spoken")
+        else:
+            try:
+                await send_response(ws, _generic_timeout_text(), None,
+                                    sound="error", pose_hint="confused/sad")
+            except Exception:
+                pass
     except Exception as e:
         logger.error(f"[TEXT_INPUT] Pipeline failed: {e}", exc_info=True)
         try:
@@ -7512,14 +7595,21 @@ async def _text_input_task(ws: WebSocket, text: str):
 async def _handle_text_input_with_timeout(ws: WebSocket, text: str):
     """Wrapper with timeout for text input handling (supports cancellation)."""
     try:
-        await asyncio.wait_for(_handle_text_input(ws, text), timeout=_PIPELINE_TIMEOUT)
+        await _run_with_stream_watchdog(_handle_text_input(ws, text),
+                                       idle_timeout=_PIPELINE_TIMEOUT,
+                                       hard_cap=_PIPELINE_HARD_CAP)
     except asyncio.TimeoutError:
         logger.error(f"[TEXT_INPUT] Pipeline timed out after {_PIPELINE_TIMEOUT}s for: {text[:50]}")
-        try:
-            await send_response(ws, _generic_timeout_text(), None,
-                                sound="error", pose_hint="confused/sad")
-        except Exception:
-            pass
+        if _stream_audio_sent():
+            # The guest is mid-sentence. Cutting the tail is fine; talking over it
+            # to say "that took too long" contradicts what they can hear.
+            logger.error(f"[TEXT_INPUT] Timeout line suppressed — {_stream_chunks_sent} chunk(s) already spoken")
+        else:
+            try:
+                await send_response(ws, _generic_timeout_text(), None,
+                                    sound="error", pose_hint="confused/sad")
+            except Exception:
+                pass
 
 
 async def _handle_text_input(ws: WebSocket, text: str):
@@ -7655,6 +7745,8 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                 await ws.send_json(msg)
                 if audio and len(audio) > 0:
                     await ws.send_bytes(audio)
+                    # Audio reached the guest — the turn is working, not hung.
+                    _mark_stream_progress()
             return
         except Exception as e:
             if attempt == 0:
