@@ -32,6 +32,11 @@ collect_ignore = [
     "test_stt_live.py",
     "test_real_panns.py",
     "test_tts_panns.py",
+    # Standalone script: calls stt.init_model() and tts.init_tts() at MODULE level,
+    # so merely COLLECTING it boots the whole TTS stack — which launches a SoVITS
+    # subprocess and reaps existing ones. That killed a live party server's voice
+    # mid-conversation on 2026-09-11. Never let pytest import it.
+    "test_tts_stt_verify.py",
     # WebSocket integration tests (connect during import)
     "test_interrupt.py",
     "test_interrupt_deep.py",

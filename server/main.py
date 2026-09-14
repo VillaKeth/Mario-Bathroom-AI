@@ -287,6 +287,9 @@ async def _run_with_stream_watchdog(coro, idle_timeout: float, hard_cap: float):
     pipeline task is cancelled on timeout so it stops holding the TTS executor.
     """
     _reset_stream_progress()
+    # One reply, one voice: pin the TTS engine for the life of this turn so a
+    # mid-reply SoVITS recovery can't switch voices between sentences.
+    tts.begin_tts_turn()
     task = asyncio.ensure_future(coro)
     start = time.monotonic()
     try:
@@ -306,6 +309,7 @@ async def _run_with_stream_watchdog(coro, idle_timeout: float, hard_cap: float):
             if _stream_progress_ts <= last:
                 raise asyncio.TimeoutError
     finally:
+        tts.end_tts_turn()
         if not task.done():
             task.cancel()
             try:
@@ -1264,8 +1268,18 @@ async def lifespan(app: FastAPI):
             vip_dir = getattr(_character, "vip_profiles_dir", "")
             if vip_dir:
                 vip_knowledge.set_vip_dir(vip_dir)
-            vip_knowledge.load_all_vip_profiles()
-            logger.info("VIP profiles loaded into semantic memory")
+            # Scope VIP knowledge to THIS party. An explicit config list wins;
+            # otherwise only generic templates plus the named birthday guest load.
+            # Loading every profile on disk put one party's VIP into every
+            # character's memory, so unrelated characters opened by talking about
+            # a birthday that has nothing to do with them.
+            _vip_allow = config.get("vip_profiles")
+            if _vip_allow is None:
+                _vip_allow = vip_knowledge.default_allowlist(
+                    vip_knowledge.available_profiles(),
+                    config.get("birthday_person_name"))
+            vip_knowledge.load_all_vip_profiles(_vip_allow)
+            logger.info(f"VIP profiles loaded into semantic memory: {sorted(_vip_allow) or 'none'}")
 
             # Load world lore for THIS character: the legacy hardcoded
             # hsr_lore.yaml (HSR chars) PLUS the character's own configured

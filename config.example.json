@@ -49,6 +49,8 @@
     "llm_fast_model": "auto",
     "party_start_time": null,
     "birthday_person_name": "YourFriendName",
+    "_comment_vip_profiles": "Which server/data/vip_profiles/*.json to load (filename without .json). Omit to load generic templates plus whoever birthday_person_name names. [] loads none.",
+    "vip_profiles": null,
     "birthday_person_facts": [
       "REPLACE: Add facts about the birthday person here",
       "REPLACE: Each fact is a string in this array",

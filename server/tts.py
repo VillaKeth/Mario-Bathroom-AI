@@ -261,6 +261,48 @@ def set_voice_config(voice_config: dict, character_name: str = "mario"):
         f"prompt={'yes' if _voice_cfg.get('prompt_text') else 'no'}"
     )
 
+# --- per-turn engine pinning -----------------------------------------------
+# A streamed reply calls synthesize() once per sentence, and each call used to pick
+# SoVITS-vs-Edge on its own. When SoVITS was down for the first sentences (restart
+# cooldown raises immediately) and recovered partway through, the voice CHANGED
+# MID-REPLY. Pinning per PROCESS would be wrong too — a transient failure must
+# never latch us onto Edge forever. So the scope is one turn: once a turn falls
+# back, it stays fallen back; the next turn is free to try SoVITS again.
+_turn_active = False
+_turn_downgraded = False
+
+
+def begin_tts_turn():
+    """Start a turn. Clears any downgrade so SoVITS gets a fresh chance."""
+    global _turn_active, _turn_downgraded
+    _turn_active = True
+    _turn_downgraded = False
+
+
+def end_tts_turn():
+    """End a turn. Synthesis outside a turn (idle, precache) is unpinned."""
+    global _turn_active, _turn_downgraded
+    _turn_active = False
+    _turn_downgraded = False
+
+
+def turn_is_downgraded() -> bool:
+    """True when this turn has already fallen back to Edge."""
+    return _turn_downgraded
+
+
+def _note_turn_downgrade():
+    """Record that synthesis fell back, so the rest of the turn matches it."""
+    global _turn_downgraded
+    if _turn_active:
+        _turn_downgraded = True
+
+
+def should_try_sovits(mode, force_fast, downgraded) -> bool:
+    """Whether this synthesis should attempt GPT-SoVITS."""
+    return mode == "sovits" and not force_fast and not downgraded
+
+
 def _resolve_sovits_models(char_name: str):
     """Return (gpt_path, sovits_path, is_finetune) for the active character.
     A per-character fine-tune (e.g. Mario) wins; otherwise the v2 base weights.
@@ -1026,6 +1068,26 @@ def _sovits_synthesize(text: str, speed: float = 1.0, _is_user: bool = False) ->
             raise
 
 
+def _should_reap_sovits(pid, cmdline, ppid, my_pid, my_child_pids, parent_alive) -> bool:
+    """Whether a gpt_sovits_server.py process is ours to kill.
+
+    The reaper exists to clear ORPHANS left by a crashed run, so it must not touch
+    a subprocess that a live server still owns. Killing one of those takes that
+    server's voice out mid-sentence: it sees `exited (code=15)`, enters its restart
+    cooldown, and falls back to Edge. A pytest run did exactly that on 2026-09-11.
+
+    Reap when the process is our own child, or when its parent is gone. Spare it
+    when some other live process owns it.
+    """
+    if pid == my_pid:
+        return False
+    if not any("gpt_sovits_server.py" in str(a) for a in (cmdline or [])):
+        return False
+    if pid in my_child_pids:
+        return True
+    return not parent_alive
+
+
 def _kill_stale_sovits_processes() -> int:
     """Reap leftover GPT-SoVITS subprocesses from a previous or crashed server.
 
@@ -1044,16 +1106,23 @@ def _kill_stale_sovits_processes() -> int:
         logger.warning("[DEBUG_TTS] _kill_stale_sovits_processes: psutil unavailable, skipping reap")
         return 0
     me = os.getpid()
+    try:
+        my_child_pids = {c.pid for c in psutil.Process(me).children(recursive=True)}
+    except Exception:
+        my_child_pids = set()
     killed = 0
-    for proc in psutil.process_iter(["pid", "cmdline"]):
+    for proc in psutil.process_iter(["pid", "cmdline", "ppid"]):
         try:
-            if proc.info["pid"] == me:
+            pid = proc.info["pid"]
+            ppid = proc.info.get("ppid")
+            parent_alive = bool(ppid) and psutil.pid_exists(ppid)
+            if not _should_reap_sovits(pid, proc.info.get("cmdline"), ppid,
+                                       me, my_child_pids, parent_alive):
                 continue
-            cmd = proc.info.get("cmdline") or []
-            if any("gpt_sovits_server.py" in str(a) for a in cmd):
-                proc.kill()
-                killed += 1
-                logger.info(f"[DEBUG_TTS] reaped stale sovits process pid={proc.info['pid']}")
+            proc.kill()
+            killed += 1
+            logger.info(f"[DEBUG_TTS] reaped stale sovits process pid={pid} "
+                        f"(ppid={ppid}, {'ours' if pid in my_child_pids else 'orphan'})")
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
         except Exception:
@@ -1578,7 +1647,7 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # NOTE: do NOT gate on _sovits_available here — _sovits_synthesize handles a
     # dead subprocess by auto-restarting (rate-limited). Gating on the flag would
     # make a single transient failure latch us onto Edge for the rest of the run.
-    if TTS_MODE == "sovits" and not force_fast:
+    if should_try_sovits(TTS_MODE, force_fast, turn_is_downgraded()):
         try:
             result = _normalize_audio(_sovits_synthesize(text, _is_user=_is_user))
             total = time.time() - start
@@ -1597,6 +1666,9 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
                 _save_to_disk_cache(cache_key, result)
             return result
         except Exception as e:
+            # Keep the REST of this reply on Edge too. Letting SoVITS back in as
+            # soon as it recovers changes the voice mid-sentence-stream.
+            _note_turn_downgrade()
             logger.warning(f"[DEBUG_TTS] synthesize: GPT-SoVITS failed ({e}), falling back to Edge+RVC")
 
     # Step 1: Generate base speech (Edge TTS or XTTS)

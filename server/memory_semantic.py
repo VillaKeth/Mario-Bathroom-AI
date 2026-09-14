@@ -168,12 +168,16 @@ def store_memory(person_id: int, text: str, memory_type: str = "fact",
 
 
 def search_memories(query: str, person_id: int | None = None,
-                    limit: int = 20, score_threshold: float = 0.25) -> list[dict]:
+                    limit: int = 20, score_threshold: float = 0.25,
+                    memory_types: "list[str] | tuple[str, ...] | None" = None) -> list[dict]:
     """Search memories by semantic similarity.
 
     Args:
         query: The search text (e.g. current user message)
         person_id: Filter to this guest only. None = search all guests.
+        memory_types: Restrict to these memory_type values. Use it with
+            person_id=None — an unfiltered global search returns every guest's
+            private conversation lines, not just shared knowledge.
         limit: Max results to return
         score_threshold: Minimum cosine similarity (0-1)
 
@@ -184,13 +188,19 @@ def search_memories(query: str, person_id: int | None = None,
         return []
 
     query_filter = None
+    conditions = []
     if person_id is not None:
-        query_filter = models.Filter(
-            must=[models.FieldCondition(
-                key="person_id",
-                match=models.MatchValue(value=person_id),
-            )]
-        )
+        conditions.append(models.FieldCondition(
+            key="person_id",
+            match=models.MatchValue(value=person_id),
+        ))
+    if memory_types:
+        conditions.append(models.FieldCondition(
+            key="memory_type",
+            match=models.MatchAny(any=list(memory_types)),
+        ))
+    if conditions:
+        query_filter = models.Filter(must=conditions)
 
     try:
         query_vector = _embed_text(query)

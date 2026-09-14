@@ -213,18 +213,88 @@ def inject_vip_memories(profile: dict, person_id: int) -> int:
     return count
 
 
-def load_all_vip_profiles():
-    """Load and inject all VIP profiles from the profiles directory."""
+def is_generic_profile(profile: dict) -> bool:
+    """True for reusable templates rather than a specific real guest.
+
+    Generic profiles are safe at any party; a named person's profile is not.
+    """
+    return bool(profile.get("is_default")) or "_instructions" in profile
+
+
+def profile_matches_person(profile: dict, person_name) -> bool:
+    """Whether `profile` describes `person_name` (full name or any alias)."""
+    if not person_name:
+        return False
+    target = str(person_name).lower().strip()
+    if not target:
+        return False
+    candidates = [str(profile.get("name", ""))]
+    candidates += [str(a) for a in profile.get("aliases", [])]
+    for cand in candidates:
+        cand = cand.lower().strip()
+        if not cand:
+            continue
+        if cand == target or target in cand or cand in target:
+            return True
+    return False
+
+
+def default_allowlist(profiles: dict, birthday_person_name=None) -> list:
+    """Profile keys to load when config names no explicit list.
+
+    Generic templates always; a named person only when they are actually this
+    party's guest of honour. Loading every profile on disk meant one party's VIP
+    (Jacob's birthday) surfaced in every other party, under every character.
+    """
+    allowed = []
+    for key, profile in profiles.items():
+        if is_generic_profile(profile) or profile_matches_person(profile, birthday_person_name):
+            allowed.append(key)
+    return allowed
+
+
+def available_profiles() -> dict:
+    """Every profile on disk, keyed by filename stem.
+
+    Deliberately reads them ALL through load_vip_profile(), which also populates
+    the _loaded_profiles name-match cache. That split is the point: any VIP who
+    actually turns up is still recognised by name (is_vip), while only this
+    party's profiles are injected into semantic memory and reach every reply.
+    Do not "optimise" this into a bare JSON read — VIP recognition depends on it.
+    """
+    out = {}
+    if not os.path.exists(VIP_DIR):
+        return out
+    for filename in os.listdir(VIP_DIR):
+        if filename.endswith(".json"):
+            key = filename[:-len(".json")]
+            profile = load_vip_profile(key)
+            if profile:
+                out[key] = profile
+    return out
+
+
+def load_all_vip_profiles(allowed=None):
+    """Inject VIP profiles into semantic memory.
+
+    `allowed` is the list of profile keys to load. None means "decide from the
+    party config" via default_allowlist — NOT "load everything", which is how a
+    single birthday guest ended up in every character's memory.
+    """
     if not os.path.exists(VIP_DIR):
         logger.info("No VIP profiles directory found, skipping")
         return
-    for filename in os.listdir(VIP_DIR):
-        if filename.endswith(".json"):
-            profile_name = filename.replace(".json", "")
-            profile = load_vip_profile(profile_name)
-            if profile:
-                vip_id = _deterministic_vip_id(profile["name"])
-                inject_vip_memories(profile, vip_id)
+    profiles = available_profiles()
+    if allowed is None:
+        allowed = default_allowlist(profiles)
+    skipped = [k for k in profiles if k not in allowed]
+    if skipped:
+        logger.info(f"[VIP] Skipping profiles not at this party: {', '.join(sorted(skipped))}")
+    for key in allowed:
+        profile = profiles.get(key)
+        if profile:
+            vip_id = _deterministic_vip_id(profile["name"])
+            inject_vip_memories(profile, vip_id)
 
 
 def is_vip(speaker_name: str) -> tuple[bool, dict | None]:

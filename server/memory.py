@@ -270,6 +270,12 @@ def get_person_info(person_id: int) -> dict:
     return info
 
 
+# Memory types that are genuinely SHARED knowledge, safe to surface for any guest.
+# Everything else (conversation lines, facts learned about a specific person) is
+# personal and must only ever come back through a person_id-filtered search.
+GLOBAL_MEMORY_TYPES = ("vip_profile", "vip_hook", "vip_memorial", "hsr_lore")
+
+
 def get_memories_for_context(person_id: int, current_text: str = "") -> list[str]:
     """Get formatted memories for LLM context.
 
@@ -316,12 +322,16 @@ def get_memories_for_context(person_id: int, current_text: str = "") -> list[str
                 limit=20,
                 score_threshold=0.30,
             )
-            # Also search without person filter for VIP/global knowledge
+            # Also search without a person filter for VIP/global knowledge.
+            # Restricted to SHARED knowledge types: unfiltered, this returned every
+            # guest's conversation lines and private facts as "global knowledge",
+            # which is how one party's birthday VIP surfaced in every reply.
             global_results = memory_semantic.search_memories(
                 query=current_text,
                 person_id=None,
                 limit=10,
                 score_threshold=0.35,
+                memory_types=GLOBAL_MEMORY_TYPES,
             )
             # Merge, deduplicate, sort by score
             seen_texts = {m.split(": ", 1)[-1] if ": " in m else m for m in memories}
