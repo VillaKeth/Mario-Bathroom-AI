@@ -15,6 +15,32 @@ logger = logging.getLogger(__name__)
 CHARACTER_NAME = "Bot"
 
 
+# errno/WinError values that mean "nothing is listening on that port yet".
+# The client normally starts before the server has finished loading (SoVITS
+# subprocess, model loads), so its first connects are refused as a matter of
+# course. That is an expected race, not a fault — reporting it at ERROR with the
+# raw OSError text made a healthy startup look like a crash.
+_CONNECTION_REFUSED_CODES = {
+    10061,   # WinError WSAECONNREFUSED
+    111,     # Linux ECONNREFUSED
+    61,      # macOS ECONNREFUSED
+}
+
+
+def is_server_unreachable(error) -> bool:
+    """True when `error` just means the server is not accepting connections yet.
+
+    Deliberately narrow: only refused-connection errors qualify. Anything else —
+    a protocol fault, a permissions problem — must stay loud.
+    """
+    if isinstance(error, ConnectionRefusedError):
+        return True
+    if isinstance(error, OSError):
+        return (getattr(error, "winerror", None) in _CONNECTION_REFUSED_CODES
+                or error.errno in _CONNECTION_REFUSED_CODES)
+    return False
+
+
 class MarioWSClient:
     """WebSocket client that connects to the Mario AI server."""
 
@@ -22,6 +48,7 @@ class MarioWSClient:
         self.server_url = server_url
         self._ws = None
         self._connected = False
+        self._ever_connected = False
         self._thread = None
         self._reconnect_delay = 2.0
         self._attempt = 0  # Reset on successful connection
@@ -111,6 +138,7 @@ class MarioWSClient:
         if DEBUG_WS:
             logger.info("[DEBUG_WS] connected!")
         self._connected = True
+        self._ever_connected = True
         self._attempt = 0
         with self._reconnect_lock:
             self._reconnecting = False
@@ -223,7 +251,20 @@ class MarioWSClient:
                 logger.error(f"[DEBUG_WS] invalid JSON: {e}")
 
     def _on_error(self, ws, error):
+        if is_server_unreachable(error) and not self.was_ever_connected():
+            # Server still starting. Expected, retried with backoff — say so
+            # calmly instead of printing a refused-connection error per attempt.
+            logger.info("[DEBUG_WS] server not accepting connections yet — retrying")
+            return
         logger.error(f"[DEBUG_WS] error: {error}")
+
+    def was_ever_connected(self) -> bool:
+        """True once a WebSocket session has actually been established.
+
+        Guards the difference between "never reached the server" and "lost a live
+        connection" — only the second is a disconnect.
+        """
+        return getattr(self, "_ever_connected", False)
 
     def _on_close(self, ws, close_status, close_msg):
         if DEBUG_WS:

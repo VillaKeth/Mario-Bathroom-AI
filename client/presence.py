@@ -84,9 +84,26 @@ class PresenceDetector:
         if DEBUG_PRESENCE:
             logger.info("[DEBUG_PRESENCE] PresenceDetector.start: opening camera")
 
-        self._cap = cv2.VideoCapture(self.camera_index)
+        # Probing a camera index that isn't there makes OpenCV's native backend
+        # print a C++ ERROR straight to stderr, below Python logging. We handle a
+        # missing camera fine (presence just turns off), so silence the probe and
+        # report the outcome ourselves.
+        try:
+            _prev_log_level = cv2.getLogLevel()
+            cv2.setLogLevel(0)  # SILENT
+        except Exception:
+            _prev_log_level = None
+        try:
+            self._cap = cv2.VideoCapture(self.camera_index)
+        finally:
+            if _prev_log_level is not None:
+                try:
+                    cv2.setLogLevel(_prev_log_level)
+                except Exception:
+                    pass
         if not self._cap.isOpened():
-            logger.error("[DEBUG_PRESENCE] Failed to open camera!")
+            logger.info("[DEBUG_PRESENCE] No camera at index "
+                        f"{self.camera_index} — presence detection disabled")
             self._cap.release()
             self._cap = None
             return False

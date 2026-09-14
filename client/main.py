@@ -57,6 +57,10 @@ else:
 DEBUG_CLIENT = True
 DEBUG_AUDIO = True
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
+# websocket-client narrates every failed connect ("... - goodbye") on its own
+# logger. During the normal startup race that is pure noise on top of our own
+# retry message; real failures still surface through _on_error.
+logging.getLogger("websocket").setLevel(logging.CRITICAL)
 logger = logging.getLogger("mario-client")
 
 # Debug MCP: in-memory client log ring (client stdout otherwise only hits the
@@ -932,10 +936,18 @@ class MarioClient:
             logger.warning(f"Failed to apply outfit '{outfit}': {e}")
 
     def _on_disconnected(self):
-        logger.warning("Disconnected from server!")
+        # "Disconnected" is only true if we were ever connected. During the normal
+        # startup race (client up before the server finished loading) this fires on
+        # every refused attempt, and calling that a lost connection is both wrong
+        # and alarming.
+        if self.ws.was_ever_connected():
+            logger.warning("Disconnected from server!")
+            self.display.set_mario_text("Connection lost! Reconnecting...")
+        else:
+            logger.info("Waiting for server to come up...")
+            self.display.set_mario_text("Waiting for server...")
         self.display.connected = False
         self.display._reconnect_info = self.ws.reconnect_info
-        self.display.set_mario_text("Connection lost! Reconnecting...")
         self.display.set_state(STATE_IDLE)
 
     def _on_state_update(self, state: dict):

@@ -126,6 +126,24 @@ STATE_SPRITE_MAP = {
     STATE_EXITING: "greeting/farewell",
 }
 
+# States where the character is actively DOING something, so a shake reads as
+# energy rather than nerves. Idle/listening/sleeping are standing-still poses —
+# they have their own smooth breathing bob, and random per-frame jitter on top of
+# that just looks like vibrating.
+SHAKEABLE_STATES = (STATE_TALKING, STATE_DANCING, STATE_GREETING, STATE_ENTERING)
+
+
+def should_shake_excited(emotion, state, transition_active) -> bool:
+    """Whether to apply the random-offset excitement shake this frame.
+
+    Emotion outlives the reply that set it, so gating on emotion alone left the
+    character jittering indefinitely while standing idle.
+    """
+    if emotion != "excited" or transition_active:
+        return False
+    return state in SHAKEABLE_STATES
+
+
 # Target display size for AI poses (scaled from 1024x1024)
 AI_POSE_DISPLAY_SIZE = (250, 250)
 # The speech bubble can grow to ~38% of the screen height from the top. Reserve
@@ -2665,7 +2683,7 @@ class MarioDisplay:
             offset_y += int(math.sin(self._frame * 0.4) * 8)
 
         # 5. Excitement shake (excited emotion)
-        if self._emotion == "excited" and not self._transition_active:
+        if should_shake_excited(self._emotion, self.state, self._transition_active):
             scale *= 1.0 + math.sin(self._frame * 0.2) * 0.03  # scale pulse
             offset_x += random.randint(-3, 3)                   # rapid position jitter
             offset_y += random.randint(-3, 3)
