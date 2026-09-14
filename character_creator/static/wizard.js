@@ -223,6 +223,11 @@ class WizardUI {
                 this.addTag('catchphrase');
             }
         });
+
+        // These two inputs used to commit only on Enter, so text typed and then
+        // clicked away from was dropped without a trace. Commit on blur too.
+        document.getElementById('accent-input').addEventListener('blur', () => this.addTag('accent'));
+        document.getElementById('catchphrase-input').addEventListener('blur', () => this.addTag('catchphrase'));
         
         // Step 2: Voice
         const audioUploadZone = document.getElementById('audio-upload-zone');
@@ -301,8 +306,21 @@ class WizardUI {
     // Navigation & State Management
     // ================================
     
+    flushPendingTags() {
+        // addTag() early-returns on empty and de-dupes, so this is safe to call
+        // even when blur already committed the value.
+        ['accent', 'catchphrase'].forEach(type => {
+            const input = document.getElementById(`${type}-input`);
+            if (input && input.value.trim()) this.addTag(type);
+        });
+    }
+
     goToStep(n) {
         if (n < 0 || n >= this.totalSteps) return;
+
+        // Leaving a step must not discard tag text the user typed but never
+        // pressed Enter on. Every nav path (Next, Back, progress bar) lands here.
+        this.flushPendingTags();
         
         // Hide all steps
         document.querySelectorAll('.wizard-step').forEach(step => {
@@ -452,6 +470,13 @@ class WizardUI {
                 const savedDate = new Date(state.savedAt);
                 dateSpan.textContent = savedDate.toLocaleString();
                 banner.style.display = 'block';
+
+                // The constructor already reloaded this.data from localStorage,
+                // but nothing repainted the form, so saved tags/fields looked
+                // lost until Resume was clicked. Repaint values now. This sets
+                // field values only -- it does not adopt draftStep, so the
+                // wizard still shows step 0 until the user chooses Resume.
+                this.restoreFormValues();
             } catch (error) {
                 console.error('Error checking draft:', error);
             }
