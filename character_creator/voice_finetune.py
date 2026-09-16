@@ -316,7 +316,14 @@ def _patch_yaml_on_done(char: str, root: str) -> None:
     if "voice" not in data or not isinstance(data["voice"], dict):
         data["voice"] = {}
 
-    model_name = f"GPT_SoVITS_{char.capitalize()} (s2=e8, s1=e12)"
+    # Name the folder the way tts._resolve_sovits_models will look it up: by the
+    # character's identity NAME, not its directory slug. char.capitalize() gave
+    # "Charlie_kirk" for identity "CharlieKirk", so the recorded name pointed at
+    # a folder that did not exist. Same rule as scripts/_model_dir_name().
+    ident = "".join(((data.get("identity") or {}).get("name") or "").split())
+    # NOTE: the epoch suffix is still hardcoded and will misreport a run trained
+    # with FT_S2_EPOCHS/FT_S1_EPOCHS overrides. Tracked in TODO.md.
+    model_name = f"GPT_SoVITS_{ident or char.capitalize()} (s2=e8, s1=e12)"
     data["voice"]["preferred_engine"] = "sovits"
     data["voice"]["finetuned_model"] = model_name
 

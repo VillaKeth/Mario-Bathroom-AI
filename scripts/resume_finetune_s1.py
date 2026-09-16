@@ -29,6 +29,29 @@ S1 = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-
 opt_dir = f"logs/{exp}"
 
 
+def _model_dir_name(char, char_root):
+    """Folder name under mario_models_new/ that tts._resolve_sovits_models will find.
+
+    The resolver looks the character up by its character.yaml identity NAME, not
+    by its directory slug, and its prefix match is underscore-sensitive. So a
+    slug like charlie_kirk with identity CharlieKirk resolved to
+    GPT_SoVITS_Charliekirk while the trainer wrote GPT_SoVITS_Charlie_kirk --
+    freshly trained weights landed in a folder nothing ever read. Prefer the
+    identity name; fall back to the slug when there is no yaml.
+    """
+    yml = os.path.join(char_root, char, "character.yaml")
+    ident = ""
+    if os.path.exists(yml):
+        try:
+            import yaml as _yaml
+            with open(yml, encoding="utf-8") as f:
+                ident = ((_yaml.safe_load(f) or {}).get("identity") or {}).get("name") or ""
+        except Exception as e:
+            print(f"[ft] could not read identity name from {yml}: {e}", flush=True)
+    ident = "".join(ident.split())  # a display name may carry spaces; the folder must not
+    return f"GPT_SoVITS_{ident or char.capitalize()}"
+
+
 def run(cmd, env):
     print(f"\n$ {cmd}", flush=True)
     full = dict(os.environ); full.update(env)
@@ -74,7 +97,7 @@ with open(tmp_s1, "w") as f:
 run(f'"{PYEXE}" -s GPT_SoVITS/s1_train.py --config_file "TEMP/tmp_s1.yaml"',
     {**base_env, "_CUDA_VISIBLE_DEVICES": GPU, "hz": "25hz"})
 
-out = os.path.join(BASE, "mario_models_new", f"GPT_SoVITS_{char.capitalize()}")
+out = os.path.join(BASE, "mario_models_new", _model_dir_name(char, CHAR_ROOT))
 os.makedirs(out, exist_ok=True)
 
 def newest(folder, ext):
