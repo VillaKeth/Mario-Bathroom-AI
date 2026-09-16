@@ -1057,7 +1057,9 @@ If voice fine-tuning starts dying mid-epoch again on a new machine, re-apply thi
 - [x] Blind ear A/B done (labels hidden, column order randomised): e4 won 3 of 6 rows (02/03/05), e20/e12/e8 one each. e4 also ties best measured WER at 0.0%, so ear and measurement agree -- SHIPPED e4.
 - [x] NOTE: all six A/B candidates came from the 2026-09-15 24-epoch run. The previously-active e12 was from the ORIGINAL 12-epoch run (different md5; the s1 LR schedule scales with total epochs, so e12-of-12 != e12-of-24) and was never in the lineup. Archived as _superseded_charlie/charlie_kirk-e12_ORIGINAL-12ep-run.ckpt.
 - [ ] Optional: render the original-run e12 as a 7th contender to settle it against e4 head to head
-- [ ] voice_finetune._patch_yaml_on_done hardcodes the epoch suffix "(s2=e8, s1=e12)" regardless of FT_S2_EPOCHS/FT_S1_EPOCHS -- misreports any non-default run
+- [x] voice_finetune._patch_yaml_on_done hardcodes the epoch suffix "(s2=e8, s1=e12)" regardless of FT_S2_EPOCHS/FT_S1_EPOCHS -- misreports any non-default run
+      (fixed: epochs_from_log() reads them off the trainer's own header line; the
+      progress percentages now use the same source instead of the 8/12 defaults)
 - [ ] A/B listen e12 vs e24, keep the better one (audio verification per .claude/rules/testing.md)
 - [ ] More source audio for charlie_kirk (dataset is only 5.9 min / 66 segments from 2 clips) -> rebuild dataset + full retrain
 - [ ] Commit charlie_kirk character.yaml (edge -> sovits, finetuned_model, prompt_text) + reference_audio.wav

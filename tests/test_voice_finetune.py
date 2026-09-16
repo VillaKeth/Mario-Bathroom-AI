@@ -74,6 +74,43 @@ def test_training_status_patches_yaml_on_done(tmp_path):
     assert "finetuned_model" in data["voice"]
 
 
+def _write_char(tmp_path, log_body, slug="testc", ident="Testc"):
+    """Directory slug and identity name differ on purpose: the model folder is
+    named after the identity, which is what the TTS resolver looks up."""
+    cdir = tmp_path / slug / "voice"
+    cdir.mkdir(parents=True)
+    (tmp_path / slug / "character.yaml").write_text(
+        "identity:\n  name: %s\nvoice:\n  preferred_engine: edge\n" % ident,
+        encoding="utf-8")
+    (cdir / "finetune.log").write_text(log_body, encoding="utf-8")
+    return tmp_path / slug / "character.yaml"
+
+
+def test_yaml_records_the_epochs_actually_trained(tmp_path):
+    """The recorded model name must reflect FT_S2_EPOCHS/FT_S1_EPOCHS overrides.
+
+    A hardcoded "(s2=e8, s1=e12)" suffix points the TTS resolver at epochs that
+    were never trained, which is worse than no suffix at all.
+    """
+    import yaml
+    yml = _write_char(tmp_path, (
+        "[ft] testc: v2 fine-tune | half=False batch=2 "
+        "s2_epochs=4 s1_epochs=8 gpu=0\n"
+        "====> Epoch: 4\n[ft] DONE -> /x/GPT_SoVITS_Testc\n"))
+    vf.training_status("testc", char_root=str(tmp_path))
+    data = yaml.safe_load(yml.read_text())
+    assert data["voice"]["finetuned_model"] == "GPT_SoVITS_Testc (s2=e4, s1=e8)"
+
+
+def test_yaml_epochs_fall_back_when_log_lacks_the_header(tmp_path):
+    """An older log with no [ft] header keeps the previous default suffix."""
+    import yaml
+    yml = _write_char(tmp_path, "====> Epoch: 4\n[ft] DONE -> /x/GPT_SoVITS_Testc\n")
+    vf.training_status("testc", char_root=str(tmp_path))
+    data = yaml.safe_load(yml.read_text())
+    assert data["voice"]["finetuned_model"] == "GPT_SoVITS_Testc (s2=e8, s1=e12)"
+
+
 def test_start_training_idempotent_with_pidfile(tmp_path):
     """start_training must not double-start if a pidfile already claims a live PID."""
     import os

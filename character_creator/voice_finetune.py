@@ -283,21 +283,40 @@ def training_status(char: str, char_root: str = None) -> dict:
         except OSError as exc:
             print(f"[finetune] training_status: cannot read log: {exc}", flush=True)
 
-    status = parse_training_status(log_text)
+    # Progress percentages are meaningless against the wrong totals, so they come
+    # from the same header the model name does rather than from the defaults.
+    _s2_total, _s1_total = epochs_from_log(log_text)
+    status = parse_training_status(log_text, total_s2=_s2_total, total_s1=_s1_total)
     status["log"] = log_path
 
     if status["done"]:
-        _patch_yaml_on_done(char, root)
+        _patch_yaml_on_done(char, root, log_text)
 
     return status
 
 
-def _patch_yaml_on_done(char: str, root: str) -> None:
+_EPOCH_HEADER = re.compile(r"s2_epochs=(\d+)\s+s1_epochs=(\d+)")
+
+
+def epochs_from_log(log: str) -> tuple:
+    """Return the (s2, s1) epoch counts the run was actually launched with.
+
+    fine_tune_voice.py announces them on its first line, which makes the log the
+    only trustworthy source -- the caller's own defaults say nothing about a run
+    started with FT_S2_EPOCHS/FT_S1_EPOCHS set. Falls back to the historical
+    (8, 12) for logs written before that header existed.
+    """
+    m = _EPOCH_HEADER.search(log or "")
+    return (int(m.group(1)), int(m.group(2))) if m else (8, 12)
+
+
+def _patch_yaml_on_done(char: str, root: str, log: str = "") -> None:
     """Patch <root>/<char>/character.yaml voice block to record the finetuned model.
 
     Loads the existing yaml, sets voice.preferred_engine = "sovits" and
-    voice.finetuned_model = "GPT_SoVITS_<Char> (s2=e8, s1=e12)", then writes
-    it back. All other top-level keys and nested voice sub-keys are preserved.
+    voice.finetuned_model = "GPT_SoVITS_<Char> (s2=eN, s1=eM)" for the epochs the
+    run actually used, then writes it back. All other top-level keys and nested
+    voice sub-keys are preserved.
     """
     import yaml  # lazy import — keeps module importable without pyyaml at load time
 
@@ -321,9 +340,8 @@ def _patch_yaml_on_done(char: str, root: str) -> None:
     # "Charlie_kirk" for identity "CharlieKirk", so the recorded name pointed at
     # a folder that did not exist. Same rule as scripts/_model_dir_name().
     ident = "".join(((data.get("identity") or {}).get("name") or "").split())
-    # NOTE: the epoch suffix is still hardcoded and will misreport a run trained
-    # with FT_S2_EPOCHS/FT_S1_EPOCHS overrides. Tracked in TODO.md.
-    model_name = f"GPT_SoVITS_{ident or char.capitalize()} (s2=e8, s1=e12)"
+    s2_ep, s1_ep = epochs_from_log(log)
+    model_name = f"GPT_SoVITS_{ident or char.capitalize()} (s2=e{s2_ep}, s1=e{s1_ep})"
     data["voice"]["preferred_engine"] = "sovits"
     data["voice"]["finetuned_model"] = model_name
 
