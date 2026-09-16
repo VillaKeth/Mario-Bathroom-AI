@@ -1026,3 +1026,20 @@
 - [ ] **Follow-up: emit the emotion tag FIRST in replies.** Voice params are emotion-derived and the emotion arrives at the END, so the synthesis prefetch is discarded nearly every turn (measured 0/2 reusable) and saves nothing. extract_emotion_tag and TokenSentenceBuffer already handle the blob at any position — this needs the prompt change plus live verification.
 - [ ] Follow-up: paid Pollinations flux for true per-pose sprite variety for the 5 cast members
 - [ ] Follow-up: true send-time token streaming needs a client change (progressive bubble); chunk 0 currently carries the complete display text
+
+
+## Voice Training — Charlie Kirk retrain (2026-09-15)
+- [x] Fix wizard bug: _move_staged_files merged the draft tree into characters/<char>/ and deleted it, but never rewrote the ABSOLUTE _drafts paths inside <char>.list -- every wizard-trained character was permanently un-retrainable (feature extraction reads each wav path out of that file). Added _rebase_dataset_lists() in character_creator/server.py + 2 regression tests.
+- [x] Repair charlie_kirk.list (66 entries rebased to characters/charlie_kirk/voice/dataset/segments/, 0 missing)
+- [x] Fix model-dir mismatch: trainers wrote GPT_SoVITS_<slug.capitalize()> but tts._resolve_sovits_models looks up by character.yaml identity NAME and its prefix match is underscore-sensitive -- so charlie_kirk trained into GPT_SoVITS_Charlie_kirk while the resolver read GPT_SoVITS_CharlieKirk. New _model_dir_name() in fine_tune_voice.py + resume_finetune_s1.py.
+- [x] s1 GPT retrain at 24 epochs (was 12) on cached features -- ran clean, 24/24, ~19 min
+- [x] Built scripts/ab_checkpoints.py (same phrases across N checkpoints, sampling pinned; reads voice.prompt_text from character.yaml so the ref prompt is not silently empty)
+- [x] RESULT: more epochs made it WORSE. Whisper round-trip WER (digit/word formatting normalized) e4 0.0%, e8 1.1%, e12 0.0%, e16 1.7%, e20 1.7%, e24 4.6%. e24 drops words ("count THIS down five four three two" loses "one"; "take a breath" loses "deep") and renders consistently shorter -- overfit on 5.9 min (top_3_acc 0.999, loss 2.46). Kept e12 active; e16/e20/e24 archived in mario_models_new/_superseded_charlie/.
+- [x] Blind ear A/B done (labels hidden, column order randomised): e4 won 3 of 6 rows (02/03/05), e20/e12/e8 one each. e4 also ties best measured WER at 0.0%, so ear and measurement agree -- SHIPPED e4.
+- [x] NOTE: all six A/B candidates came from the 2026-09-15 24-epoch run. The previously-active e12 was from the ORIGINAL 12-epoch run (different md5; the s1 LR schedule scales with total epochs, so e12-of-12 != e12-of-24) and was never in the lineup. Archived as _superseded_charlie/charlie_kirk-e12_ORIGINAL-12ep-run.ckpt.
+- [ ] Optional: render the original-run e12 as a 7th contender to settle it against e4 head to head
+- [ ] voice_finetune._patch_yaml_on_done hardcodes the epoch suffix "(s2=e8, s1=e12)" regardless of FT_S2_EPOCHS/FT_S1_EPOCHS -- misreports any non-default run
+- [ ] A/B listen e12 vs e24, keep the better one (audio verification per .claude/rules/testing.md)
+- [ ] More source audio for charlie_kirk (dataset is only 5.9 min / 66 segments from 2 clips) -> rebuild dataset + full retrain
+- [ ] Commit charlie_kirk character.yaml (edge -> sovits, finetuned_model, prompt_text) + reference_audio.wav
+- [ ] Clean up mario_models_new/GPT_SoVITS_Charlie_kirk_unused/ once the winner is chosen
