@@ -180,3 +180,8 @@ characters/*/songs/*.wav
 
 # Local tooling binaries (ngrok agent etc.) — never commit
 tools/
+
+# Harvested voice-training audio (hundreds of MB of source + slices).
+# Reproducible from scripts/harvest_voice_from_episode.py; the merged result
+# lives in characters/<char>/voice/dataset/, which is ignored too.
+voice_harvest/
