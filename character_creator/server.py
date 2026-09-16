@@ -871,7 +871,55 @@ def _move_staged_files(draft_dir: str, char_dir: str):
         src = os.path.join(draft_dir, item)
         dst = os.path.join(char_dir, item)
         merge_path(src, dst)
+    _rebase_dataset_lists(draft_dir, char_dir)
     shutil.rmtree(draft_dir, ignore_errors=True)
+
+
+def _rebase_dataset_lists(draft_dir: str, char_dir: str):
+    """Point the GPT-SoVITS .list manifests at their post-merge home.
+
+    build_voice_dataset.py writes ABSOLUTE segment paths, and under the wizard
+    those are staged paths inside _drafts/<char>/. The merge above moves the
+    wavs into characters/<char>/ and then deletes the draft tree, so a manifest
+    left untouched names files that no longer exist -- and every retrain fails
+    at feature extraction, which reads each wav path straight out of this file.
+
+    Only paths that actually live under draft_dir are rewritten; a manifest
+    built by the CLI already names a real location and is left alone.
+    """
+    dataset_dir = os.path.join(char_dir, "voice", "dataset")
+    if not os.path.isdir(dataset_dir):
+        return
+    draft_prefix = os.path.normcase(os.path.abspath(draft_dir)) + os.sep
+    char_abs = os.path.abspath(char_dir)
+    for fn in os.listdir(dataset_dir):
+        if not fn.endswith(".list"):
+            continue
+        path = os.path.join(dataset_dir, fn)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except OSError as e:
+            logger.warning(f"[stage] could not read {fn}: {e}")
+            continue
+        out, changed = [], 0
+        for line in lines:
+            parts = line.split("|")
+            wav = parts[0] if parts else ""
+            if wav and os.path.normcase(os.path.abspath(wav)).startswith(draft_prefix):
+                rel = os.path.abspath(wav)[len(os.path.abspath(draft_dir)) + 1:]
+                parts[0] = os.path.join(char_abs, rel)
+                line = "|".join(parts)
+                changed += 1
+            out.append(line)
+        if not changed:
+            continue
+        try:
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write("\n".join(out) + "\n")
+            logger.info(f"[stage] rebased {changed} path(s) in {fn} to {char_abs}")
+        except OSError as e:
+            logger.warning(f"[stage] could not rewrite {fn}: {e}")
 
 @app.get("/api/known-character/{name}")
 async def get_known_character(name: str):

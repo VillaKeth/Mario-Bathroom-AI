@@ -240,6 +240,63 @@ def test_staged_sprite_merge_replaces_placeholders(tmp_path):
     assert not (char_dir / "sprites" / "positive" / "positive").exists()
     assert not draft_dir.exists()
 
+
+def test_staged_dataset_list_is_rebased_to_character_dir(tmp_path):
+    """The .list manifest carries ABSOLUTE paths into the draft tree. The merge
+    deletes that tree, so unless the paths are rewritten the manifest points at
+    nothing and the character can never be retrained (GPT-SoVITS re-extraction
+    reads every wav path out of this file)."""
+    from character_creator.server import _move_staged_files
+
+    draft_dir = tmp_path / "_drafts" / "test_bot"
+    char_dir = tmp_path / "characters" / "test_bot"
+    seg_dir = draft_dir / "voice" / "dataset" / "segments"
+    seg_dir.mkdir(parents=True)
+    char_dir.mkdir(parents=True)
+
+    wavs = ["clip_0000.wav", "clip_0001.wav"]
+    for w in wavs:
+        (seg_dir / w).write_bytes(b"RIFF")
+    list_path = draft_dir / "voice" / "dataset" / "test_bot.list"
+    list_path.write_text(
+        "\n".join(f"{seg_dir / w}|test_bot|en|line {i}" for i, w in enumerate(wavs)) + "\n",
+        encoding="utf-8",
+    )
+
+    _move_staged_files(str(draft_dir), str(char_dir))
+
+    merged = char_dir / "voice" / "dataset" / "test_bot.list"
+    lines = [ln for ln in merged.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == len(wavs)
+    for ln in lines:
+        wav_path = ln.split("|")[0]
+        assert os.path.isfile(wav_path), f"manifest points at a missing file: {wav_path}"
+        assert "_drafts" not in wav_path, f"manifest still points into the deleted draft tree: {wav_path}"
+    assert not draft_dir.exists()
+
+
+def test_staged_dataset_list_leaves_foreign_paths_alone(tmp_path):
+    """Only paths under the draft tree get rebased. A manifest already written
+    against a real location (CLI-built dataset) must not be rewritten."""
+    from character_creator.server import _move_staged_files
+
+    draft_dir = tmp_path / "_drafts" / "test_bot"
+    char_dir = tmp_path / "characters" / "test_bot"
+    outside = tmp_path / "elsewhere" / "segments"
+    outside.mkdir(parents=True)
+    (outside / "a.wav").write_bytes(b"RIFF")
+    ds = draft_dir / "voice" / "dataset"
+    ds.mkdir(parents=True)
+    char_dir.mkdir(parents=True)
+    (ds / "test_bot.list").write_text(
+        f"{outside / 'a.wav'}|test_bot|en|untouched\n", encoding="utf-8"
+    )
+
+    _move_staged_files(str(draft_dir), str(char_dir))
+
+    merged = (char_dir / "voice" / "dataset" / "test_bot.list").read_text(encoding="utf-8")
+    assert str(outside / "a.wav") in merged
+
 # Character Builder Tests
 import tempfile
 import yaml
