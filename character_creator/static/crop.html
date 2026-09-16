@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice dataset cropper</title>
+<link rel="stylesheet" href="/static/styles.css">
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#12141a; color:#e7e9ee;
+         font:15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+         padding:24px 16px 80px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:#8e97ab; margin:0 0 20px; font-size:14px; }
+  .card { background:#1a1d26; border:1px solid #2a2f3c; border-radius:10px;
+          padding:16px; margin-bottom:14px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .tab { border:1px solid #2a2f3c; background:#232734; color:#e7e9ee;
+         border-radius:8px; padding:8px 14px; cursor:pointer; font:inherit; }
+  .tab.active { background:#e5c07b; color:#1a1508; border-color:#e5c07b; font-weight:600; }
+  .tab .cnt { font-size:12px; opacity:.75; margin-left:6px; }
+  .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  button.act { font:inherit; cursor:pointer; border-radius:8px; border:1px solid #2a2f3c;
+               background:#232734; color:#e7e9ee; padding:8px 14px; }
+  button.act.primary { background:#7fd18c; color:#0d1a10; border-color:#7fd18c; font-weight:600; }
+  button.act:disabled { opacity:.5; cursor:not-allowed; }
+  .hint { color:#8e97ab; font-size:13px; }
+  .good { color:#7fd18c; } .bad { color:#e88b8b; } .warn { color:#e5c07b; }
+  ul.tips { margin:8px 0 0; padding-left:20px; color:#8e97ab; font-size:13px; }
+  ul.tips li { margin:3px 0; }
+  #out { white-space:pre-wrap; font-family:ui-monospace, Consolas, monospace; font-size:13px; }
+  .total { font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voice dataset cropper</h1>
+  <p class="sub">Ask Charlie Anything 214 &mdash; 45.4 min, split into four parts so the
+     waveform loads quickly. Mark only the stretches where he is talking alone.</p>
+
+  <div class="card">
+    <b>What to select</b>
+    <ul class="tips">
+      <li>Long uninterrupted stretches of <b>one voice only</b> &mdash; skip the co-host, callers, and any played clips.</li>
+      <li>Skip ad reads, intro/outro music, and anything with music under the speech.</li>
+      <li>Aim for chunks of <b>5&ndash;60 seconds</b>. They get silence-sliced into 3&ndash;10s training segments automatically.</li>
+      <li>Passages with <b>numbers, dates or counting</b> are especially valuable &mdash; that is the current weak spot.</li>
+      <li>Target <b>20&ndash;30 minutes</b> total across all four parts.</li>
+    </ul>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="card">
+    <div id="editor"></div>
+  </div>
+
+  <div class="card bar">
+    <button class="act primary" id="build">Build dataset from selections</button>
+    <button class="act" id="clearAll">Clear all selections</button>
+    <span class="hint">Selected: <span class="total" id="total">0:00</span> across
+      <span id="nregions">0</span> region(s)</span>
+  </div>
+
+  <div class="card" id="outcard" hidden><div id="out"></div></div>
+</div>
+
+<script src="/static/vendor/wavesurfer.min.js"></script>
+<script src="/static/vendor/wavesurfer.regions.min.js"></script>
+<script src="/static/voice_editor.js"></script>
+<script>
+const CHAR = 'charlie_kirk';
+const LS = 'crop_regions_aca214_v1';
+const CHUNKS = [
+  { id: 'aca214-c0', label: 'Part 1', span: '0:00 - 11:22' },
+  { id: 'aca214-c1', label: 'Part 2', span: '11:22 - 22:44' },
+  { id: 'aca214-c2', label: 'Part 3', span: '22:44 - 34:06' },
+  { id: 'aca214-c3', label: 'Part 4', span: '34:06 - 45:25' },
+];
+
+// Regions are persisted the moment they change. A closed tab must never cost
+// the user their work.
+function load() { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } }
+function save(v) { try { localStorage.setItem(LS, JSON.stringify(v)); } catch (e) {} }
+
+let regions = load();
+let active = CHUNKS[0].id;
+let editor = null;
+
+function fmt(s) {
+  s = Math.max(0, Math.round(s));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function captureActive() {
+  if (!editor) return;
+  try {
+    const r = editor.getRegions() || [];
+    regions[active] = r.map(x => ({ start: +x.start, end: +x.end }))
+                       .filter(x => x.end > x.start);
+    save(regions);
+  } catch (e) { /* editor not ready yet */ }
+}
+
+function totals() {
+  let secs = 0, n = 0;
+  for (const k in regions) for (const r of regions[k]) { secs += (r.end - r.start); n++; }
+  return { secs, n };
+}
+
+function paint() {
+  const t = totals();
+  document.getElementById('total').textContent = fmt(t.secs);
+  document.getElementById('nregions').textContent = t.n;
+  document.getElementById('total').className =
+    'total ' + (t.secs >= 1200 ? 'good' : t.secs > 0 ? 'warn' : '');
+
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  CHUNKS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (c.id === active ? ' active' : '');
+    const n = (regions[c.id] || []).length;
+    b.innerHTML = c.label + ' <span class="hint">' + c.span + '</span>' +
+                  (n ? '<span class="cnt">' + n + ' picked</span>' : '');
+    b.onclick = () => { if (c.id !== active) { captureActive(); active = c.id; mount(); } };
+    tabs.appendChild(b);
+  });
+}
+
+function mount() {
+  paint();
+  const host = document.getElementById('editor');
+  if (editor) { try { editor.destroy(); } catch (e) {} editor = null; }
+  host.innerHTML = '<p class="hint">Decoding audio, this takes a few seconds...</p>';
+  try {
+    editor = new VoiceEditor(host, '/api/voice/edit_cache/' + active);
+  } catch (e) {
+    host.innerHTML = '<p class="bad">Could not start the editor: ' + e.message + '</p>';
+    return;
+  }
+  // Restore previously marked regions once the waveform is decoded.
+  const saved = regions[active] || [];
+  const ws = editor._ws;
+  if (ws && saved.length) {
+    ws.on('ready', () => saved.forEach(r => {
+      try { ws.addRegion({ start: r.start, end: r.end, color: 'hsla(140,70%,55%,0.3)' }); }
+      catch (e) {}
+    }));
+  }
+  if (ws) {
+    ['region-created', 'region-updated-end', 'region-removed'].forEach(ev =>
+      ws.on(ev, () => { captureActive(); paint(); }));
+  }
+}
+
+document.getElementById('clearAll').onclick = () => {
+  if (!confirm('Clear every selection in all four parts?')) return;
+  regions = {}; save(regions);
+  mount();
+};
+
+document.getElementById('build').onclick = async () => {
+  captureActive();
+  const picks = CHUNKS
+    .filter(c => (regions[c.id] || []).length)
+    .map(c => ({ edit_id: c.id, regions: regions[c.id] }));
+  const card = document.getElementById('outcard');
+  const out = document.getElementById('out');
+  card.hidden = false;
+  if (!picks.length) { out.innerHTML = '<span class="bad">No regions selected yet.</span>'; return; }
+
+  const btn = document.getElementById('build');
+  btn.disabled = true;
+  out.textContent = 'Cutting, slicing and transcribing ' + totals().n +
+                    ' region(s)... this runs Whisper locally and can take a few minutes.';
+  try {
+    const resp = await fetch('/api/voice/build_dataset', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ char: CHAR, picks })
+    });
+    const data = await resp.json();
+    out.innerHTML = data.success
+      ? '<span class="good">Done. ' + data.segments + ' segment(s), ' +
+        data.seconds + 's of audio staged.</span>\n\nTell Claude it is built and it will ' +
+        'merge this with your existing dataset and retrain.'
+      : '<span class="bad">Failed: ' + (data.error || 'unknown error') + '</span>';
+  } catch (e) {
+    out.innerHTML = '<span class="bad">Request failed: ' + e.message + '</span>';
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+window.addEventListener('beforeunload', captureActive);
+mount();
+</script>
+</body>
+</html>

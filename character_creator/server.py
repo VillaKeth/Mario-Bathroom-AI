@@ -407,10 +407,34 @@ async def voice_serve_edit_cache(edit_id: str):
     if not _EDIT_ID_RE.match(edit_id or ""):
         return Response(status_code=404)
     entry = _edit_cache.get(edit_id)
-    if not entry or not os.path.isfile(entry["path"]):
+    path = entry["path"] if entry else _find_edit_cache_on_disk(edit_id)
+    if not path or not os.path.isfile(path):
         return Response(status_code=404)
-    return FileResponse(entry["path"], media_type="audio/wav",
+    return FileResponse(path, media_type="audio/wav",
                         headers={"Content-Disposition": f'inline; filename="{edit_id}.wav"'})
+
+
+def _find_edit_cache_on_disk(edit_id: str) -> str | None:
+    """Locate a cached edit wav by id when it is not in the in-memory map.
+
+    _edit_cache only lives as long as the wizard process. Without this, a restart
+    made every already-downloaded source unservable to the waveform editor even
+    though the wav was still on disk -- the user had to re-download a file they
+    already had. build_dataset already falls back to disk this way; the serve
+    endpoint did not.
+
+    edit_id is validated as plain hex/dashes by the caller before it reaches
+    here, so it cannot escape these directories.
+    """
+    roots = (_DRAFTS_DIR, os.path.join(PROJECT_ROOT, "characters"))
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for char in os.listdir(root):
+            candidate = os.path.join(root, char, "voice", "_edit_cache", f"{edit_id}.wav")
+            if os.path.isfile(candidate):
+                return candidate
+    return None
 
 
 def _wav_duration_seconds(wav_path: str) -> float:

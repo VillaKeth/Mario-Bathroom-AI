@@ -63,6 +63,14 @@ def download_full(url: str, out_path: str) -> str | None:
             _YTDLP + [
                 url,
                 "-x", "--audio-format", "wav",
+                # Downmix to the shape the training pipeline uses anyway
+                # (build_voice_dataset decodes everything to 32k mono). Without
+                # this the wav keeps the source's rate and channel count, so a
+                # 45-minute episode lands as ~520MB stereo and the browser
+                # waveform editor has to decode ~1GB of float samples to show
+                # it. Mono 32k is a third of that and loses nothing training
+                # cares about.
+                "--postprocessor-args", "ffmpeg:-ac 1 -ar 32000",
                 "-o", base + ".%(ext)s",
                 "--force-overwrites", "--no-playlist",
             ],

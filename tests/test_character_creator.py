@@ -482,3 +482,38 @@ def test_find_missing_sprites_detects_gaps(tmp_path):
     missing = sg.find_missing_sprites(str(tmp_path), plan)
     assert first not in [m["sprite_path"] for m in missing]
     assert len(missing) == len(plan) - 1
+
+
+def test_edit_cache_serves_from_disk_after_restart(tmp_path, monkeypatch):
+    """_edit_cache only lives as long as the wizard process. A restart used to
+    make an already-downloaded source unservable to the waveform editor even
+    though the wav was still on disk, forcing a re-download."""
+    from character_creator import server as srv
+
+    drafts = tmp_path / "_drafts"
+    cache = drafts / "test_bot" / "voice" / "_edit_cache"
+    cache.mkdir(parents=True)
+    (cache / "abcdef12.wav").write_bytes(b"RIFF....WAVEfmt ")
+
+    monkeypatch.setattr(srv, "_DRAFTS_DIR", str(drafts))
+    monkeypatch.setattr(srv, "_edit_cache", {})  # simulate a fresh process
+
+    client = TestClient(srv.app)
+    resp = client.get("/api/voice/edit_cache/abcdef12")
+    assert resp.status_code == 200, "a cached edit wav on disk must still be servable"
+    assert resp.content.startswith(b"RIFF")
+
+
+def test_edit_cache_rejects_bad_id_and_missing_file(tmp_path, monkeypatch):
+    from character_creator import server as srv
+
+    drafts = tmp_path / "_drafts"
+    drafts.mkdir()
+    monkeypatch.setattr(srv, "_DRAFTS_DIR", str(drafts))
+    monkeypatch.setattr(srv, "_edit_cache", {})
+    client = TestClient(srv.app)
+
+    # path traversal attempt must not resolve
+    assert client.get("/api/voice/edit_cache/..%2F..%2Fsecret").status_code == 404
+    # well-formed id that simply does not exist
+    assert client.get("/api/voice/edit_cache/abcdef12").status_code == 404
