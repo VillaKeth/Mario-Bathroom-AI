@@ -1,5 +1,24 @@
 # Mario AI Party Bot - TODO
 
+## Local Patches to Vendored Code — NOT IN GIT ⚠️
+
+`gpt_sovits_repo/` is gitignored, so these edits are invisible to `git status` and
+will be **silently lost** on a fresh clone or a re-download of the upstream repo.
+If voice fine-tuning starts dying mid-epoch again on a new machine, re-apply this.
+
+- [x] `gpt_sovits_repo/GPT_SoVITS/s2_train.py` (~line 121) — DataLoader worker count
+      made env-configurable. Upstream hardcodes `num_workers=5, persistent_workers=True,
+      prefetch_factor=3`. On Windows those are spawned processes, each importing torch
+      and taking a CUDA context; on a 32 GB box they reserved enough **commit charge**
+      (not resident memory, which still looked fine) to get the trainer OOM-killed
+      mid-epoch. Now reads `FT_NUM_WORKERS` (default 5 = upstream behaviour) and
+      `FT_PREFETCH`, and drops `persistent_workers`/`prefetch_factor` entirely when
+      workers are 0. Original saved alongside as `s2_train.py.bak`.
+- Symptom when missing: training dies with no traceback partway through an epoch while
+  Task Manager shows plenty of free RAM. Check commit charge, not working set.
+- The s1/GPT side needs no patch — `scripts/fine_tune_voice.py` and
+  `scripts/resume_finetune_s1.py` inject `data.num_workers` into the s1 config directly.
+
 ## Character Creator Wizard — COMPLETE ✅
 - [x] Build standalone FastAPI server for character creation wizard (port 8766)
 - [x] Task 11: Frontend — Dark theme CSS and accessible wizard HTML shell with 7-step UI skeleton

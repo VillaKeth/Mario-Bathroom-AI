@@ -39,6 +39,11 @@ S2_EPOCHS = int(os.environ.get("FT_S2_EPOCHS", "8"))
 S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "12"))
 BATCH = int(os.environ.get("FT_BATCH", "2"))  # halved to 1 under fp32
 SAVE_EVERY = int(os.environ.get("FT_SAVE_EVERY", "4"))
+# Spawn-based DataLoader workers on Windows are full processes, each importing
+# torch and a CUDA context. The upstream defaults (5 for s2, 4 for s1) reserved
+# enough COMMIT to get the trainer OOM-killed mid-epoch on a 32GB box while
+# resident usage still looked healthy. Lower this if training dies unexplained.
+NUM_WORKERS = int(os.environ.get("FT_NUM_WORKERS", "4"))
 
 BERT = "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large"
 CNHUBERT = "GPT_SoVITS/pretrained_models/chinese-hubert-base"
@@ -111,39 +116,60 @@ def main():
     print(f"[ft] {char}: v2 fine-tune | half={IS_HALF} batch={BATCH} "
           f"s2_epochs={S2_EPOCHS} s1_epochs={S1_EPOCHS} gpu={GPU}", flush=True)
 
-    # ---- 1a: text/BERT features ----
-    run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/1-get-text.py', {
-        **base_env, "inp_text": list_path, "inp_wav_dir": "", "exp_name": exp,
-        "opt_dir": opt_dir, "bert_pretrained_dir": BERT,
-        "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU, "version": VERSION,
-    })
-    # merge part file
-    part = os.path.join(REPO, opt_dir, "2-name2text-0.txt")
-    final = os.path.join(REPO, opt_dir, "2-name2text.txt")
-    if os.path.exists(part):
-        shutil.move(part, final)
+    # Extraction is deterministic and its outputs are reusable, but the stages
+    # re-ran unconditionally -- so a run killed during s2 paid the full ~25min
+    # extraction cost again on every retry. FT_SKIP_EXTRACT=1 reuses complete
+    # artifacts; it verifies they exist and match the manifest first, and falls
+    # through to a normal extraction if anything is missing.
+    _skip = False
+    if os.environ.get("FT_SKIP_EXTRACT") == "1":
+        _n = sum(1 for _l in open(list_path, encoding="utf-8") if _l.strip())
+        _t = os.path.join(REPO, opt_dir, "2-name2text.txt")
+        _sem = os.path.join(REPO, opt_dir, "6-name2semantic.tsv")
+        _hub = os.path.join(REPO, opt_dir, "4-cnhubert")
+        _ok = (os.path.exists(_t) and os.path.exists(_sem) and os.path.isdir(_hub)
+               and len(os.listdir(_hub)) >= _n)
+        if _ok:
+            print(f"[ft] FT_SKIP_EXTRACT=1 and artifacts complete for {_n} items "
+                  f"-- skipping 1a/1b/1c", flush=True)
+            _skip = True
+        else:
+            print("[ft] FT_SKIP_EXTRACT=1 but artifacts incomplete -- extracting anyway",
+                  flush=True)
+    if not _skip:
+        # ---- 1a: text/BERT features ----
+        run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/1-get-text.py', {
+            **base_env, "inp_text": list_path, "inp_wav_dir": "", "exp_name": exp,
+            "opt_dir": opt_dir, "bert_pretrained_dir": BERT,
+            "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU, "version": VERSION,
+        })
+        # merge part file
+        part = os.path.join(REPO, opt_dir, "2-name2text-0.txt")
+        final = os.path.join(REPO, opt_dir, "2-name2text.txt")
+        if os.path.exists(part):
+            shutil.move(part, final)
 
-    # ---- 1b: HuBERT + wav32k ----
-    run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py', {
-        **base_env, "inp_text": list_path, "inp_wav_dir": "", "exp_name": exp,
-        "opt_dir": opt_dir, "cnhubert_base_dir": CNHUBERT,
-        "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU,
-    })
+        # ---- 1b: HuBERT + wav32k ----
+        run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/2-get-hubert-wav32k.py', {
+            **base_env, "inp_text": list_path, "inp_wav_dir": "", "exp_name": exp,
+            "opt_dir": opt_dir, "cnhubert_base_dir": CNHUBERT,
+            "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU,
+        })
 
-    # ---- 1c: semantic tokens ----
-    run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py', {
-        **base_env, "inp_text": list_path, "exp_name": exp, "opt_dir": opt_dir,
-        "pretrained_s2G": S2G, "s2config_path": "GPT_SoVITS/configs/s2.json",
-        "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU,
-    })
-    sem_part = os.path.join(REPO, opt_dir, "6-name2semantic-0.tsv")
-    sem_final = os.path.join(REPO, opt_dir, "6-name2semantic.tsv")
-    if os.path.exists(sem_part):
-        with open(sem_part, encoding="utf8") as f:
-            body = f.read().strip("\n")
-        with open(sem_final, "w", encoding="utf8") as f:
-            f.write("item_name\tsemantic_audio\n" + body + "\n")
-        os.remove(sem_part)
+        # ---- 1c: semantic tokens ----
+        run(f'"{PYEXE}" -s GPT_SoVITS/prepare_datasets/3-get-semantic.py', {
+            **base_env, "inp_text": list_path, "exp_name": exp, "opt_dir": opt_dir,
+            "pretrained_s2G": S2G, "s2config_path": "GPT_SoVITS/configs/s2.json",
+            "i_part": "0", "all_parts": "1", "_CUDA_VISIBLE_DEVICES": GPU,
+        })
+        sem_part = os.path.join(REPO, opt_dir, "6-name2semantic-0.tsv")
+        sem_final = os.path.join(REPO, opt_dir, "6-name2semantic.tsv")
+        if os.path.exists(sem_part):
+            with open(sem_part, encoding="utf8") as f:
+                body = f.read().strip("\n")
+            with open(sem_final, "w", encoding="utf8") as f:
+                f.write("item_name\tsemantic_audio\n" + body + "\n")
+            os.remove(sem_part)
 
     half = IS_HALF.lower() == "true"
     s2_batch = BATCH if half else max(1, BATCH // 2)
@@ -184,6 +210,7 @@ def main():
     s1["train"]["if_save_every_weights"] = True
     s1["train"]["if_save_latest"] = True
     s1["train"]["if_dpo"] = False
+    s1.setdefault("data", {})["num_workers"] = NUM_WORKERS
     s1["train"]["half_weights_save_dir"] = "GPT_weights_v2"
     s1["train"]["exp_name"] = exp
     s1["train_semantic_path"] = f"{opt_dir}/6-name2semantic.tsv"

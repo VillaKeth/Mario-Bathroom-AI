@@ -25,6 +25,11 @@ GPU = os.environ.get("FT_GPU", "0")
 S1_EPOCHS = int(os.environ.get("FT_S1_EPOCHS", "12"))
 BATCH = int(os.environ.get("FT_BATCH", "2"))
 SAVE_EVERY = int(os.environ.get("FT_SAVE_EVERY", "2"))  # frequent vs re-kill
+# Spawn-based DataLoader workers on Windows are full processes, each importing
+# torch and a CUDA context. The upstream defaults (5 for s2, 4 for s1) reserved
+# enough COMMIT to get the trainer OOM-killed mid-epoch on a 32GB box while
+# resident usage still looked healthy. Lower this if training dies unexplained.
+NUM_WORKERS = int(os.environ.get("FT_NUM_WORKERS", "4"))
 S1 = "GPT_SoVITS/pretrained_models/gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"
 opt_dir = f"logs/{exp}"
 
@@ -86,6 +91,7 @@ s1["train"]["save_every_n_epoch"] = SAVE_EVERY
 s1["train"]["if_save_every_weights"] = True
 s1["train"]["if_save_latest"] = True
 s1["train"]["if_dpo"] = False
+s1.setdefault("data", {})["num_workers"] = NUM_WORKERS
 s1["train"]["half_weights_save_dir"] = "GPT_weights_v2"
 s1["train"]["exp_name"] = exp
 s1["train_semantic_path"] = f"{opt_dir}/6-name2semantic.tsv"
