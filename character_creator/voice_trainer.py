@@ -100,6 +100,149 @@ def _patch_character_voice_yaml(char_dir: str, updates: dict):
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
 
+def _segments_dir(voice_dir: str) -> str:
+    return os.path.join(voice_dir, "dataset", "segments")
+
+
+def _speaker_scorer(seg_dir: str):
+    """Return fn(start_seconds, duration) -> similarity to the dataset speaker.
+
+    Built from the character's own training segments, which are the best
+    available statement of who this character is. Returns None -- never a
+    permissive default -- when resemblyzer is missing or there are too few
+    segments to form a centroid; callers must treat None as "unknown".
+    """
+    if not os.path.isdir(seg_dir):
+        return None
+    try:
+        import glob as _glob
+        import numpy as np
+        import warnings as _w
+        _w.simplefilter("ignore")
+        if not hasattr(np, "bool") or type(np.bool) is not type:
+            np.bool = bool
+        from resemblyzer import VoiceEncoder, preprocess_wav
+    except Exception as e:
+        logger.info(f"speaker check unavailable ({e}); falling back to loudness")
+        return None
+
+    files = sorted(_glob.glob(os.path.join(seg_dir, "*.wav")))
+    if len(files) < 8:
+        logger.info(f"speaker check needs >=8 segments, found {len(files)}")
+        return None
+    enc = VoiceEncoder()
+    embs = []
+    for f in files[:150]:
+        try:
+            embs.append(enc.embed_utterance(preprocess_wav(f)))
+        except Exception:
+            pass
+    if len(embs) < 8:
+        return None
+    import numpy as np
+    centroid = np.mean(embs, axis=0)
+
+    def score(start, dur, _ref=None):
+        try:
+            wav = preprocess_wav(_ref)
+            lo = int(start * 16000)
+            hi = lo + int(dur * 16000)
+            seg = wav[lo:hi]
+            if len(seg) < 16000:
+                return 0.0
+            e = enc.embed_utterance(seg)
+            return float(np.dot(e, centroid) /
+                         (np.linalg.norm(e) * np.linalg.norm(centroid)))
+        except Exception:
+            return 0.0
+    return score
+
+
+def _speaker_floor(seg_dir: str):
+    """Similarity below which a clip is a different speaker, from this dataset.
+
+    A fixed constant cannot work: a phone-feed podcast and a studio interview
+    sit at different absolute similarities. The 5th percentile of the character's
+    own segments is the honest bar. Returns None when it cannot be computed.
+    """
+    if not os.path.isdir(seg_dir):
+        return None
+    try:
+        import glob as _glob
+        import numpy as np
+        import warnings as _w
+        _w.simplefilter("ignore")
+        if not hasattr(np, "bool") or type(np.bool) is not type:
+            np.bool = bool
+        from resemblyzer import VoiceEncoder, preprocess_wav
+    except Exception:
+        return None
+    files = sorted(_glob.glob(os.path.join(seg_dir, "*.wav")))
+    if len(files) < 8:
+        return None
+    enc = VoiceEncoder()
+    embs = []
+    for f in files[:150]:
+        try:
+            embs.append(enc.embed_utterance(preprocess_wav(f)))
+        except Exception:
+            pass
+    if len(embs) < 8:
+        return None
+    import numpy as np
+    c = np.mean(embs, axis=0)
+    sims = [float(np.dot(e, c) / (np.linalg.norm(e) * np.linalg.norm(c))) for e in embs]
+    return float(np.percentile(sims, 5))
+
+
+def _cut_window(src: str, start: float, dur: float, dst: str) -> bool:
+    """Write dur seconds of src starting at start into dst, mono 32k."""
+    import subprocess
+    subprocess.run(["ffmpeg", "-y", "-ss", f"{start:.2f}", "-t", f"{dur:.2f}",
+                    "-i", src, "-ac", "1", "-ar", "32000", dst],
+                   capture_output=True, timeout=120)
+    return True
+
+
+def verify_reference_speaker(voice_dir: str) -> dict:
+    """Is reference_audio.wav actually this character?
+
+    Returns {"ok": True|False|None, "score", "floor", "reason"}. ok is None when
+    the check could not run -- that is deliberately distinct from True, because
+    "unknown" was exactly the state that let charlie_kirk ship with six seconds
+    of the interviewer as its reference.
+
+    A caveat worth knowing when reading the score: on the real charlie_kirk clip
+    the voiceprint landed at 0.786 against a 0.788 floor -- correct, but only
+    barely. The transcript ("Charlie, where would you recommend...") was the
+    unambiguous evidence. Treat a near-floor score as a prompt to read the
+    prompt_text, not as a clean pass.
+    """
+    ref = os.path.join(voice_dir, "reference_audio.wav")
+    if not os.path.isfile(ref):
+        return {"ok": None, "score": None, "floor": None,
+                "reason": "no reference_audio.wav"}
+    seg_dir = _segments_dir(voice_dir)
+    scorer = _speaker_scorer(seg_dir)
+    floor = _speaker_floor(seg_dir)
+    if scorer is None or floor is None:
+        return {"ok": None, "score": None, "floor": floor,
+                "reason": "speaker check unavailable (no resemblyzer or too few segments)"}
+    try:
+        import wave as _wave
+        with _wave.open(ref, "rb") as w:
+            dur = w.getnframes() / w.getframerate()
+    except Exception:
+        dur = 8.0
+    score = scorer(0.0, dur, ref) if scorer.__code__.co_argcount >= 3 else scorer(0.0, dur)
+    ok = bool(score >= floor)
+    reason = ("reference matches the dataset speaker" if ok else
+              f"reference scores {score:.3f}, below this dataset's {floor:.3f} floor -- "
+              f"likely a different speaker; check the prompt_text reads as the character "
+              f"SPEAKING, not someone talking to them")
+    return {"ok": ok, "score": score, "floor": floor, "reason": reason}
+
+
 def _trim_reference(voice_dir: str) -> bool:
     """Normalize the reference for the cloning engines' constraints.
 
@@ -107,8 +250,15 @@ def _trim_reference(voice_dir: str) -> bool:
     sections clone badly. If reference_audio.wav is longer than 10s:
       - keep the original as reference_full.wav
       - write reference_clean.wav (first 14s, mono 32k) for Fish Speech
-      - overwrite reference_audio.wav with the LOUDEST contiguous 8s window
-        (max-RMS scan), so the engines get clear, energetic speech.
+      - overwrite reference_audio.wav with an 8s window
+
+    Window choice used to be pure max-RMS, which is actively wrong on interview
+    audio: a studio-mic host is routinely louder than a remote guest, so the
+    loudest window selects FOR the intruder. Now the window must also match the
+    dataset speaker, and loudness only breaks ties among matching windows. With
+    no scorer available the old loudness-only behaviour stands, so a missing
+    resemblyzer degrades rather than breaks.
+
     Returns True if a trim happened.
     """
     import subprocess
@@ -129,14 +279,50 @@ def _trim_reference(voice_dir: str) -> bool:
         subprocess.run(["ffmpeg", "-y", "-i", full, "-t", "14", "-ac", "1", "-ar", "32000",
                         os.path.join(voice_dir, "reference_clean.wav")],
                        capture_output=True, timeout=120)
-        # loudest contiguous 8s window via cumulative energy
+
         win = min(8 * sr, len(audio) - 1)
         sq = audio.astype(np.float64) ** 2
         cum = np.concatenate(([0.0], np.cumsum(sq)))
         energy = cum[win:] - cum[:-win]
-        start = int(np.argmax(energy)) / sr
-        subprocess.run(["ffmpeg", "-y", "-ss", f"{start:.2f}", "-t", "8", "-i", full,
-                        "-ac", "1", "-ar", "32000", ref], capture_output=True, timeout=120)
+
+        scorer = _speaker_scorer(_segments_dir(voice_dir))
+        start = None
+        if scorer is not None:
+            floor = _speaker_floor(_segments_dir(voice_dir))
+            # Walk candidate windows loudest-first and take the first that is
+            # actually this character; a half-second stride keeps this cheap.
+            stride = max(1, int(0.5 * sr))
+            cands = sorted(range(0, len(energy), stride),
+                           key=lambda i: -energy[i])[:24]
+            scored = []
+            for i in cands:
+                s = i / sr
+                try:
+                    sc = scorer(s, 8.0, full) if scorer.__code__.co_argcount >= 3 \
+                        else scorer(s, 8.0)
+                except TypeError:
+                    sc = scorer(s, 8.0)
+                scored.append((s, sc))
+            if floor is not None:
+                # candidates are already loudest-first, so the first one clearing
+                # the bar is the loudest window that is genuinely this character
+                passing = [(s, sc) for s, sc in scored if sc >= floor]
+                if passing:
+                    start = passing[0][0]
+            if start is None and scored:
+                # no floor to judge against, or nothing cleared it: the best match
+                # wins outright. Never fall back to loudness here -- loudness is
+                # what picks the interviewer.
+                best = max(scored, key=lambda r: r[1])
+                start = best[0]
+                if floor is not None:
+                    logger.warning(
+                        f"no reference window cleared the {floor:.3f} speaker floor; "
+                        f"using the closest match at {best[1]:.3f}")
+        if start is None:
+            start = int(np.argmax(energy)) / sr
+
+        _cut_window(full, start, 8.0, ref)
         return True
     except Exception as e:
         logger.warning(f"reference trim failed (using original): {e}")

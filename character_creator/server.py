@@ -331,8 +331,19 @@ async def voice_download_multi(body: dict):
         os.path.join(draft_voice, "reference_audio.wav"), 25.0)
     if not ref:
         return {"success": False, "error": "Reference assembly failed"}
+
+    # The reference is taken from the user's crop verbatim, so a crop that
+    # caught an interviewer's question puts the WRONG SPEAKER in front of every
+    # future synthesis. charlie_kirk shipped that way. Surface it here rather
+    # than let it ride; this is advisory, never a hard failure.
+    from character_creator import voice_trainer
+    verdict = await asyncio.to_thread(voice_trainer.verify_reference_speaker,
+                                      draft_voice)
+    if verdict.get("ok") is False:
+        errors.append(f"reference audio may be the wrong speaker: {verdict['reason']}")
+
     return {"success": True, "path": ref, "segments": len(all_pieces),
-            "errors": errors}
+            "errors": errors, "reference_check": verdict}
 
 
 
