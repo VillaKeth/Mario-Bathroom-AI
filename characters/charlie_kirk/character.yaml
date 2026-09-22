@@ -18,7 +18,7 @@ voice:
   engines:
   - sovits
   - edge
-  prompt_text: We're going to start with some written questions today. Charlie, where would you recommend for new Christians?
+  prompt_text: It was wonderful it set a standard. This guy is as good as it gets, honored to be able to say I've spoken to him.
   prompt_lang: en
   finetuned_model: GPT_SoVITS_CharlieKirk (s2=e8, s1=e4)
 visuals:
