@@ -410,6 +410,93 @@ def clean_text_for_tts(text):
     return clean_text
 
 
+# ---------------------------------------------------------------------------
+# Inference presets: numbers and prose want opposite settings.
+#
+# cut5 splits at EVERY punctuation mark, commas included, and renders each
+# fragment on its own with a gap between them. For a countdown that is the cure
+# ("Five, four, three" becomes three separate renders instead of one slur). For
+# ordinary speech it is the disease: a pause and a prosody reset land at every
+# comma. Shipping cut5 for everything traded good prose for good digits.
+# ---------------------------------------------------------------------------
+_NUMBER_WORDS = frozenset("""
+    zero one two three four five six seven eight nine ten eleven twelve
+    thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty
+    thirty forty fifty sixty seventy eighty ninety hundred thousand million
+    billion
+""".split())
+
+# Glue inside a spoken number: does not start a run, does not break one.
+_NUMBER_GLUE = frozenset({"and", "point", "oh", "o"})
+
+PARAMS_NUMBERS = {
+    "text_split_method": "cut5",   # every number gets its own fragment
+    "top_k": 12,
+    "top_p": 0.92,
+    "temperature": 0.85,
+    "repetition_penalty": 1.4,     # suppresses the stuttered-digit artifact
+}
+
+PARAMS_PROSE = {
+    # NOT cut4. clean_text_for_tts() rewrites every mid-text period into a comma
+    # (see "Convert mid-sentence periods to commas" below), so by the time text
+    # reaches here it has one period total -- cut4 would hand a 4000-char ramble
+    # to the model as a single chunk and blow the 1500-token decode cap. cut2
+    # regroups punctuation-delimited pieces into ~50-char chunks instead: one
+    # chunk for an ordinary reply, bounded chunks for a long one, and no gap
+    # dropped at every single comma.
+    "text_split_method": "cut2",
+    "top_k": 8,
+    "top_p": 1.0,
+    "temperature": 0.70,
+    "repetition_penalty": 1.35,
+}
+
+
+def _longest_number_run(text):
+    """Longest stretch of adjacent spoken-number words. 'twenty seven' -> 2."""
+    import re as _re
+    best = run = 0
+    for word in _re.findall(r"[a-z]+", (text or "").lower()):
+        if word in _NUMBER_WORDS:
+            run += 1
+            best = max(best, run)
+        elif word in _NUMBER_GLUE and run:
+            continue                      # 'one hundred and five' is one run
+        else:
+            run = 0
+    return best
+
+
+def needs_number_settings(clean_text):
+    """True when a line is number-dense enough to slur without cut5.
+
+    Runs on CLEANED text: clean_text_for_tts() has already turned '27' into
+    'twenty seven', so testing for digits alone would miss nearly every number.
+
+    A lone number word stays on the prose path. It has nothing adjacent to slur
+    into, and the one that does render badly ('four') fails on every checkpoint
+    tested -- that is a dataset gap, which no split method reaches.
+    """
+    import re as _re
+    if _re.search(r"\d", clean_text or ""):
+        return True                       # anything cleaning could not spell out
+    if _longest_number_run(clean_text) >= 2:
+        return True
+    # A game countdown reaches TTS as separate one-word utterances -- "Three!",
+    # then "Two!", then "One!" -- so the adjacency test above never sees them
+    # next to each other. Those bare ticks are the most number-fragile text the
+    # bot says. At this length cut5 and cut2 split identically anyway, so this
+    # only buys the tighter sampling, and costs nothing on "one more time".
+    words = _re.findall(r"[a-z]+", (clean_text or "").lower())
+    return len(words) <= 3 and any(w in _NUMBER_WORDS for w in words)
+
+
+def infer_params_for(clean_text):
+    """Sampling + splitting for this line. Fresh dict, safe for the caller to edit."""
+    return dict(PARAMS_NUMBERS if needs_number_settings(clean_text) else PARAMS_PROSE)
+
+
 def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0, prompt_lang=None, text_lang=None):
     """Generate audio from text using GPT-SoVITS pipeline."""
     import soundfile as sf
@@ -446,14 +533,14 @@ def synthesize(pipeline, text, ref_audio=None, prompt_text=None, speed=1.0, prom
         "ref_audio_path": ref_audio,
         "prompt_text": prompt_text,
         "prompt_lang": prompt_lang,
-        "text_split_method": "cut5",
         "speed_factor": speed,
-        # Moderately tight sampling — prevents elongation without clipping
-        "top_k": 12,
-        "top_p": 0.92,
-        "temperature": 0.85,
-        "repetition_penalty": 1.4,
     }
+    req.update(infer_params_for(clean_text))
+
+    if DEBUG_SOVITS:
+        print(f"[sovits] preset: {req['text_split_method']} "
+              f"({'numbers' if needs_number_settings(clean_text) else 'prose'})",
+              file=sys.stderr)
 
     # Suppress stdout during inference (GPT-SoVITS prints progress bars)
     _real_stdout = sys.stdout
