@@ -86,11 +86,19 @@ def test_and_does_not_break_a_number_run():
 
 # --- the presets themselves -------------------------------------------------
 
-def test_prose_preset_samples_looser_than_the_number_preset():
+def test_the_routes_differ_in_splitting_and_not_in_sampling():
+    """The prose route briefly sampled flatter, and that was a mistake.
+
+    temp 0.70 / top_k 8 came from the checkpoint-comparison rig, where sampling
+    was deliberately flattened so the checkpoint would be the only moving part.
+    Shipping those values made prose duller on a line where the split was
+    identical either way. Splitting is the axis that should differ.
+    """
     prose = gs.infer_params_for("Take a deep breath, you are going to be fine.")
     nums = gs.infer_params_for("Ten, nine, eight, seven, six.")
-    assert prose["temperature"] < nums["temperature"]
-    assert prose["top_k"] < nums["top_k"]
+    assert prose["text_split_method"] != nums["text_split_method"]
+    for knob in ("top_k", "top_p", "temperature", "repetition_penalty"):
+        assert prose[knob] == nums[knob], knob
 
 
 def test_every_preset_is_a_complete_request():

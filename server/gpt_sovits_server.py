@@ -429,28 +429,30 @@ _NUMBER_WORDS = frozenset("""
 # Glue inside a spoken number: does not start a run, does not break one.
 _NUMBER_GLUE = frozenset({"and", "point", "oh", "o"})
 
-PARAMS_NUMBERS = {
-    "text_split_method": "cut5",   # every number gets its own fragment
+# Sampling is shared by both routes. The prose preset briefly shipped with
+# temp 0.70 / top_k 8, lifted from the checkpoint-comparison rig where sampling
+# was deliberately flattened so the CHECKPOINT would be the only moving part.
+# That flatness was never meant to ship: on a line where the split was identical
+# either way, it was audibly the duller take. What the routes differ in is how
+# the text gets cut up, not how it gets sampled.
+_SAMPLING = {
     "top_k": 12,
     "top_p": 0.92,
     "temperature": 0.85,
     "repetition_penalty": 1.4,     # suppresses the stuttered-digit artifact
 }
 
-PARAMS_PROSE = {
-    # NOT cut4. clean_text_for_tts() rewrites every mid-text period into a comma
-    # (see "Convert mid-sentence periods to commas" below), so by the time text
-    # reaches here it has one period total -- cut4 would hand a 4000-char ramble
-    # to the model as a single chunk and blow the 1500-token decode cap. cut2
-    # regroups punctuation-delimited pieces into ~50-char chunks instead: one
-    # chunk for an ordinary reply, bounded chunks for a long one, and no gap
-    # dropped at every single comma.
-    "text_split_method": "cut2",
-    "top_k": 8,
-    "top_p": 1.0,
-    "temperature": 0.70,
-    "repetition_penalty": 1.35,
-}
+# cut5 splits at every mark, so each number becomes its own fragment.
+PARAMS_NUMBERS = dict(_SAMPLING, text_split_method="cut5")
+
+# NOT cut4. clean_text_for_tts() rewrites every mid-text period into a comma
+# (see "Convert mid-sentence periods to commas" above), so by the time text
+# reaches here it has one period total -- cut4 would hand a 4000-char ramble to
+# the model as a single chunk and blow the 1500-token decode cap. cut2 regroups
+# punctuation-delimited pieces into ~50-char chunks instead: one chunk for an
+# ordinary reply, bounded chunks for a long one, and no gap dropped at every
+# single comma.
+PARAMS_PROSE = dict(_SAMPLING, text_split_method="cut2")
 
 
 def _longest_number_run(text):
