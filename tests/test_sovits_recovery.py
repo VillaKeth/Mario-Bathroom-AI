@@ -27,7 +27,11 @@ def test_synthesize_attempts_sovits_even_when_unavailable(monkeypatch):
 
     called = {"sovits": False}
 
-    def fake_sovits(text, _is_user=False):
+    # Signature must track the real _sovits_synthesize(text, speed, _is_user).
+    # A stub missing a parameter raises TypeError inside the try, which the
+    # caller swallows as "sovits failed" and falls back to Edge -- so the test
+    # goes red claiming the path was never attempted, when it was.
+    def fake_sovits(text, speed=1.0, _is_user=False):
         called["sovits"] = True
         return b"RIFFsovits"
 
