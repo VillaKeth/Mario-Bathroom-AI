@@ -303,6 +303,40 @@ def should_try_sovits(mode, force_fast, downgraded) -> bool:
     return mode == "sovits" and not force_fast and not downgraded
 
 
+# Emotion asks for a delivery speed and, until now, only Edge listened.
+# EMOTION_VOICE_MAP has always produced a rate per emotion (THINKING -15%,
+# EXCITED +30%, SLEEPY -25%); synthesize() has always taken it as an argument and
+# folded it into the cache key. But the sovits branch called _sovits_synthesize()
+# without a speed and took the 1.0 default, so on a fine-tuned character every
+# emotion came out at exactly one pace.
+#
+# Damped, not passed through: Edge resynthesises at the new rate, while SoVITS
+# time-stretches the waveform, which turns metallic well before +30%.
+_SPEED_DAMP = 0.5
+_SPEED_MIN, _SPEED_MAX = 0.88, 1.12
+
+
+def _rate_to_speed(rate) -> float:
+    """Map an Edge-style rate ("-15%") onto a SoVITS speed_factor."""
+    try:
+        pct = float(str(rate).strip().rstrip("%"))
+    except (TypeError, ValueError):
+        return 1.0
+    speed = 1.0 + (pct / 100.0) * _SPEED_DAMP
+    return round(min(_SPEED_MAX, max(_SPEED_MIN, speed)), 3)
+
+
+def _speed_from_cache_key(cache_key: str) -> float:
+    """Recover the speed a cache entry was promised, from its key alone.
+
+    The hybrid background worker regenerates entries holding only (text, key).
+    Without this it re-renders at 1.0 and stores the result under a key that
+    says the take was slowed down.
+    """
+    parts = str(cache_key).rsplit(":", 2)
+    return _rate_to_speed(parts[-2]) if len(parts) == 3 else 1.0
+
+
 def _resolve_sovits_models(char_name: str):
     """Return (gpt_path, sovits_path, is_finetune) for the active character.
     A per-character fine-tune (e.g. Mario) wins; otherwise the v2 base weights.
@@ -1258,7 +1292,7 @@ def _sovits_bg_worker():
                 break
 
             try:
-                wav_bytes = _sovits_synthesize(text)
+                wav_bytes = _sovits_synthesize(text, speed=_speed_from_cache_key(cache_key))
                 with _cache_lock:
                     _audio_cache[cache_key] = wav_bytes
                     if cache_key not in _cache_order:
@@ -1649,7 +1683,8 @@ def synthesize(text: str, rate: str = None, pitch: str = None, nocache: bool = F
     # make a single transient failure latch us onto Edge for the rest of the run.
     if should_try_sovits(TTS_MODE, force_fast, turn_is_downgraded()):
         try:
-            result = _normalize_audio(_sovits_synthesize(text, _is_user=_is_user))
+            result = _normalize_audio(_sovits_synthesize(
+                text, speed=_rate_to_speed(_rate), _is_user=_is_user))
             total = time.time() - start
             if DEBUG_TTS:
                 logger.info(f"[DEBUG_TTS] synthesize: END (GPT-SoVITS) total={total:.1f}s")
