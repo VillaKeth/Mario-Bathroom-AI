@@ -1,0 +1,36 @@
+THE FLY — SPRITE IMAGE PROMPTS (for GPT-4o / DALL-E image gen)
+======================================================================
+HOW TO USE: copy one block, paste into the image GPT, generate.
+Save each result under characters/fly/sprites/<path>.png, then
+run rembg to knock out the white background (sprites are transparent).
+Keep the master description identical every time for consistency;
+only the final 'Pose:' line changes.
+======================================================================
+
+[01] sprites/neutral/idle.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: standing still on all six legs, wings folded, calm.
+
+[02] sprites/speech/talking.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: facing the viewer, head tilted up, antennae raised, wings slightly lifted and vibrating as if buzzing.
+
+[03] sprites/positive/feeding.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: proboscis fully extended down onto a small glistening drop of sugar water, body leaning forward, eating.
+
+[04] sprites/negative/reject.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: proboscis pulled tightly back in, body turned away and leaning back from a small dark drop, front legs raised defensively.
+
+[05] sprites/reactions/grooming.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: sitting back on its four rear legs, rubbing both front legs over its head and antennae, cleaning itself.
+
+[06] sprites/movement/escape.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, three-quarter view, on a plain flat white background. Pose: mid-takeoff jumping upward, middle legs pushing off, wings spread wide and motion-blurred, legs dangling.
+
+[07] sprites/movement/walking.png
+----------------------------------------------------------------------
+A glossy 3D-rendered collectible figurine of a common fruit fly, Drosophila melanogaster, anatomically faithful but appealing: large bright brick-red compound eyes, tan-gold thorax with fine dark bristles, abdomen banded in tan and dark brown stripes, two clear iridescent wings with fine veins folded flat over the back, six thin jointed legs, short feathery antennae (arista) between the eyes. Soft studio key lighting, crisp detail, full body with a generous margin so nothing is cropped, centered, side view, on a plain flat white background. Pose: walking briskly to the right in a tripod gait, three legs lifted, antennae forward.

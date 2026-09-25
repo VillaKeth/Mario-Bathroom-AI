@@ -1,5 +1,86 @@
 identity:
   name: Fly
+  display_name: The Fly
+  tagline: 166,700 neurons. No opinions.
+  description: A fruit fly whose every move is a simulation of the real male fruit fly
+    connectome (MaleCNS v1.0). It has no persona; it does whatever its neurons do.
+voice:
+  preferred_engine: edge
+  edge_voice: en-US-AnaNeural
+  rate: "+25%"
+  pitch: "+35Hz"
+  pronunciation: {}
+visuals:
+  sprite_dir: sprites/
+  ai_poses_dir: sprites/
+  ai_pose_size: [250, 250]
+  theme_colors:
+    primary: '#c0392b'
+    secondary: '#d4a373'
+    accent: '#8fd694'
+    text: '#f0f0f0'
+  particle_colors: ['#c0392b', '#d4a373', '#8fd694']
+  emotion_sprite_map:
+    happy: positive/feeding
+    excited: positive/feeding
+    love: positive/feeding
+    loving: positive/feeding
+    laughing: positive/feeding
+    proud: neutral/idle
+    disgusted: negative/reject
+    angry: negative/reject
+    annoyed: negative/reject
+    frustrated: negative/reject
+    sad: neutral/idle
+    scared: movement/escape
+    shocked: movement/escape
+    nervous: movement/escape
+    worried: neutral/idle
+    surprised: movement/escape
+    curious: movement/walking
+    determined: movement/walking
+    mischievous: movement/walking
+    confused: neutral/idle
+    thinking: neutral/idle
+    idea: neutral/idle
+    embarrassed: reactions/grooming
+    bored: reactions/grooming
+    sleepy: neutral/idle
+    neutral: neutral/idle
+  state_sprite_map:
+    idle: neutral/idle
+    talking: [speech/talking]
+    listening: neutral/idle
+    thinking: neutral/idle
+    greeting: neutral/idle
+  fallback_sprites:
+    emotion: neutral/idle
+    state: neutral/idle
+speech:
+  accent_markers: []
+  catchphrase_dir: catchphrases/
+games:
+  pools_dir: games/
+  include_shared: false
+memory:
+  collections: {faces: fly_faces, voices: fly_voices, memories: fly_memories}
+  lore_file: null
+safety:
+  enabled: true
+  block_slurs: true
 brain:
   enabled: true
-  gain: 0.5
+  dataset: malecns_v1
+  # cache_dir: <path>  # optional; default is the per-user cache (see README Setup)
+  auto_fetch: true
+  gain: 0.5            # spec 3.2; re-derive with scripts/brain_calibrate.py --sweep
+  window_ms: 500       # simulated ms per reaction (~0.25-1.3 s wall on the dev box)
+  threads: 0           # 0 = numba default (all cores)
+  # Each window starts from rest. At gain 0.5 the network is supercritical in
+  # sustained operation: carried-over state ignites into whole-brain activity
+  # that never decays (brain/calibration.json). true = carry state anyway.
+  persist: false
+  behavior: {escape_hz: 50, feed_hz: 80, bitter_hz: 20, groom_hz: 30, walk_hz: 20}
+  noise: {frac: 0.002, rate: 5}   # idle; from calibration.json "idle" (denser noise ignites)
+  words: {llm: true, max_words: 6, timeout_s: 3}
+  voice: {carrier_hz: 200, mix: 0.55, bed: 0.06}

@@ -125,6 +125,12 @@ class CharacterLoader:
         # warming as someone becomes a regular).
         self.personality: dict = self._config.get("personality", {}) or {}
 
+        # Brain: a connectome-driven character (characters/fly) replaces the LLM
+        # reply path with a spiking simulation. Absent for everyone else.
+        # See docs/superpowers/specs/2026-09-25-fly-brain-design.md
+        brain = self._config.get("brain") or {}
+        self.brain: dict = brain if isinstance(brain, dict) else {}
+
         # Freak factor (0.0-1.0): intrinsic per-character raunch level. Default 0
         # so EVERY character without it stays clean; only an opted-in character
         # (Rudi) sets it > 0. Drives the [FREAK] prompt directive and the
