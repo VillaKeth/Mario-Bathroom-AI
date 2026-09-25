@@ -213,7 +213,7 @@ On the server side, `server/brain/client.py` runs blocking I/O in a thread and g
 | retching detected (`audio_distress`) | `sugar` 150 Hz. Flies are drawn to vomit; that is what a fly does. `senses.yaml` can flip it. |
 | idle tick | no stimulus; background noise (§4.5) |
 
-- **Emotion fallback:** if no lexicon matched but the existing keyword emotion inference in `server/emotions.py` returns a clearly valenced emotion, positive adds `sugar` 60 Hz and negative adds `bitter` 60 Hz.
+- **No emotion fallback:** valence comes only from the lexicons. The keyword inference in `server/emotions.py` (`_infer_emotion_from_text`) is Mario-flavored ("wahoo", "mama mia") and is not reused.
 - **Combining:** when several senses fire, all stimuli run together in one window. The brain arbitrates; for example, sugar plus bitter gives MN9 suppression (§3.4).
 
 ### 4.2 Behavior: readout → one behavior
@@ -255,7 +255,7 @@ Because every reply is drawn from a closed vocabulary, the reply path cannot lea
 
 - **Speech:** the fly's `voice:` block uses Edge TTS. The voice, rate and pitch are chosen for a small, fast, high voice.
 - **Effect:** a **wing-buzz ring modulation**, a ~200 Hz carrier (Drosophila wingbeat) mixed with the dry signal, plus a faint buzz bed, applied to the synthesized WAV.
-  - **Where:** after TTS routing, as a per-character effect (`voice.effect: wing_buzz`).
+  - **Where:** the fly bypasses the TTS router entirely (see §5.4). `server/brain/voice.py` calls Edge directly and applies the effect configured under `brain.voice` (`carrier_hz`, `mix`, `bed`).
   - **Cache:** the TTS cache stores pre-effect audio, so a later effect change never poisons the cache (see memory note: voice-side changes are invisible to `purge_stale_cache`).
 - **ESCAPE:** a procedural takeoff buzz. It lasts 0.5 s, sweeps 180→230 Hz, and is amplitude-modulated. It is generated in numpy, with no TTS.
 - **NOTHING:** no audio.
@@ -270,7 +270,7 @@ Because every reply is drawn from a closed vocabulary, the reply path cannot lea
 
 ### 4.6 Brain panel (pygame client, primary display)
 
-`_draw_brain_panel()` in `client/mario_display.py` follows the pattern of `_draw_health_overlay`. It is on by default for brain characters and toggled with **F9**.
+`_draw_brain_panel()` in `client/mario_display.py` follows the pattern of `_draw_health_overlay`. It is on by default for brain characters and toggled with **B** outside typing mode (every F-key is already taken; F9/F10 are volume).
 
 - **Header:** "MaleCNS v1.0 · 166,700 neurons · 25.6 M connections".
 - **Sensory rows:** SWEET, BITTER, EARS, ANTENNA, LOOM.
@@ -314,6 +314,7 @@ brain:
   behavior: {escape_hz: 50, feed_hz: 80, bitter_hz: 20, groom_hz: 30, walk_hz: 20}
   noise: {frac: 0.02, rate: 10}      # idle; re-derived by calibration
   words: {llm: true, max_words: 6, timeout_s: 3}
+  voice: {carrier_hz: 200, mix: 0.55, bed: 0.06}   # wing-buzz ring mod (§4.4)
 ```
 
 `shared/character_loader.py` gains `self.brain = self._config.get("brain") or {}`. Every other character has no `brain:` block and is unaffected.
@@ -326,7 +327,7 @@ brain:
 
 - **Startup:** in `lifespan` (`server/main.py` ~856–936), if `char_loader.brain.enabled` is set, `FlyBrain` is built and the worker starts in the background. Startup never waits for the brain.
 - **Character switch:** `admin_switch_character` (~3285–3376) starts or stops the worker to match the new character.
-- **Canary:** `server/canary.py` gains a brain check, only when the active character has a brain. It fails if the brain is not ready within its budget.
+- **Canary:** not extended. `GET /api/brain` (§5.5) reports readiness, and a canary check would duplicate it.
 
 ### 5.2 Reply path
 
@@ -343,7 +344,7 @@ This one early return keeps the Mario path untouched. The fly ignores jokes, gam
 2. `await brain.run(...)`.
 3. Classify the behavior.
 4. Pick words.
-5. Synthesize via the existing TTS, then apply the effect.
+5. Synthesize with `FlyVoice` (Edge direct + ring mod, §5.4), or the takeoff buzz for ESCAPE.
 6. Send `brain_state`, then `send_response` with `pose_hint`, emotion and `is_idle=False`.
 
 There is no chat history, memory write or gossip update; `party_stats` visit counting is kept. When the brain is `None` (brainless), the fly gives NOTHING: no words, the idle pose, and a panel showing "brain loading" or "brain offline".
@@ -356,11 +357,21 @@ For a brain character, these paths are suppressed or replaced:
 - **Replaced by the brain window:** face greetings and exit flows go through `_generate_and_send_response`, so the §5.2 branch covers them with `source` → a looming event.
 - **Suppressed:** startup greeting text (replaced by one noise window), sick/distress comfort lines (retching becomes a sense event instead), performed songs, DJ lines, memorial events, catchphrase mirror, and trivia/vision idle.
 
-The plan's leak audit greps every `send_response(` / `mario_response` sender in `server/main.py` and records the gate for each.
+**Mechanism: one chokepoint, not thirty patches.** `server/main.py` has 30+ `send_response(...)` call sites: greetings, goodbyes, wash reminders, celebrations, error and timeout texts, songs and idle pools. Rather than gate each one, `send_response` gains a keyword `_brain_ok=False`. When the active character's config has `brain.enabled`, any send without `_brain_ok=True` is dropped and logged as `[BRAIN] suppressed non-brain send`.
 
-### 5.4 TTS effect hook
+- **Keyed on config, not health:** a brain character whose worker failed still cannot leak.
+- **The brain path** (`_brain_respond`, the brain idle tick, admin announcements spoken by the fly) passes `_brain_ok=True`.
+- **Raw senders:** three places build a raw `{"type": "mario_response"}` without `send_response` (the idle no-TTS branch, the LLM block, and the text-input error path). The first two are unreachable for a brain character, because of the §5.2 early return and the idle branch. The third gets the same check.
+- **Retching:** audio distress for a brain character becomes a `retch` sense event (§4.1) instead of comfort lines.
 
-`voice.effect` is read at character load. The effect is applied to the return value of the TTS router (`tts_router.py` ~92–100), keyed on the active character, so the cache keeps storing dry audio. This happens only when an effect is configured. The ESCAPE buzz bypasses TTS.
+### 5.4 Fly voice path (bypasses the TTS router)
+
+The fly does **not** go through `tts.synthesize` or the TTS router. There are two reasons, both found while planning:
+
+1. `config.json` has `server.tts_mode: sovits`, which is global. `tts.synthesize` would send the fly to GPT-SoVITS base weights, zero-shot cloning whatever reference clip is loaded, which is another character's voice.
+2. The router's last resort is `pre_recorded`, which holds Mario clips.
+
+Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice/rate/pitch that `tts.set_voice_config` already set from the fly's `voice:` block, and never applies RVC to a non-Mario character. `FlyVoice` then applies the ring mod, and keeps its own small in-memory LRU of dry clips (the fly's vocabulary is tiny). If Edge fails (no network), the fly buzzes instead of speaking. There is no fallback that could leak another voice. The ESCAPE buzz bypasses TTS too.
 
 ### 5.5 Debug endpoint
 
