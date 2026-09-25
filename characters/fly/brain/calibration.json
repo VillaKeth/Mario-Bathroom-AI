@@ -1,0 +1,130 @@
+{
+ "generated": "2026-09-25 19:03:14",
+ "dataset": "MaleCNS v1.0",
+ "credit": "MaleCNS v1.0, Janelia FlyEM et al., CC BY 4.0; LIF after Shiu et al. 2024",
+ "neurons": 166700,
+ "connections": 25582938,
+ "synapses": 124177617,
+ "gain": 0.5,
+ "populations": {
+  "sugar": 77,
+  "bitter": 57,
+  "ears": 138,
+  "antenna": 335,
+  "loom": 311,
+  "feed": 2,
+  "groom": 42,
+  "escape": 2,
+  "startle": 8,
+  "walk": 8,
+  "backup": 4
+ },
+ "validation": [
+  {
+   "case": "sugar -> feed",
+   "target": "feed",
+   "real_hz": 245.0,
+   "shuffled_hz": 0.0,
+   "real_all": {
+    "sugar": 112.52,
+    "bitter": 0.0,
+    "ears": 0.0,
+    "antenna": 0.04,
+    "loom": 0.0,
+    "feed": 245.0,
+    "groom": 0.0,
+    "escape": 0.0,
+    "startle": 0.0,
+    "walk": 17.25,
+    "backup": 5.5
+   }
+  },
+  {
+   "case": "loom R -> escape",
+   "target": "escape",
+   "real_hz": 304.0,
+   "shuffled_hz": 0.0,
+   "real_all": {
+    "sugar": 0.0,
+    "bitter": 46.14,
+    "ears": 0.0,
+    "antenna": 0.04,
+    "loom": 52.95,
+    "feed": 13.0,
+    "groom": 3.57,
+    "escape": 304.0,
+    "startle": 173.75,
+    "walk": 22.5,
+    "backup": 0.0
+   }
+  },
+  {
+   "case": "antenna -> groom",
+   "target": "groom",
+   "real_hz": 269.0,
+   "shuffled_hz": 0.0,
+   "real_all": {
+    "sugar": 0.0,
+    "bitter": 49.12,
+    "ears": 0.0,
+    "antenna": 113.25,
+    "loom": 0.0,
+    "feed": 4.0,
+    "groom": 269.0,
+    "escape": 0.0,
+    "startle": 0.5,
+    "walk": 0.0,
+    "backup": 33.0
+   }
+  }
+ ],
+ "bitter": {
+  "sugar_alone_feed_hz": [
+   245.0,
+   199.0,
+   227.0
+  ],
+  "sugar_plus_bitter_feed_hz": [
+   54.0,
+   53.0,
+   56.0
+  ],
+  "note": "bitter = LB1a-e, inferred via Shiu's co-activation test"
+ },
+ "timing": {
+  "quiet_wall_ms": 255.7,
+  "sugar_wall_ms": 559.9
+ },
+ "gain_sweep": [
+  {
+   "gain": 0.25,
+   "sugar -> feed": 0.0,
+   "loom R -> escape": 419.0,
+   "antenna -> groom": 0.0
+  },
+  {
+   "gain": 0.35,
+   "sugar -> feed": 0.0,
+   "loom R -> escape": 425.0,
+   "antenna -> groom": 214.71
+  },
+  {
+   "gain": 0.42,
+   "sugar -> feed": 13.0,
+   "loom R -> escape": 425.0,
+   "antenna -> groom": 250.71
+  },
+  {
+   "gain": 0.5,
+   "sugar -> feed": 245.0,
+   "loom R -> escape": 304.0,
+   "antenna -> groom": 269.0
+  },
+  {
+   "gain": 0.6,
+   "sugar -> feed": 271.0,
+   "loom R -> escape": 253.0,
+   "antenna -> groom": 295.0
+  }
+ ]
+}

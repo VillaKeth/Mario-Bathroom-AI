@@ -1,0 +1,5 @@
+identity:
+  name: Fly
+brain:
+  enabled: true
+  gain: 0.5
