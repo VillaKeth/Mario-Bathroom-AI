@@ -124,7 +124,7 @@ class BrainClient:
         self.status = "offline"
         self._fail_pending()
 
-    async def run(self, stim, ms=500, seed=0, noise=None):
+    async def run(self, stim, ms=500, seed=0, noise=None, reset=False):
         if self.status == "offline":
             if time.monotonic() - self._last_spawn >= self.restart_cooldown:
                 logger.info("[BRAIN] restarting worker")
@@ -137,7 +137,7 @@ class BrainClient:
         fut = self._loop.create_future()
         self._pending[rid] = fut
         req = {"cmd": "run", "id": rid, "ms": ms, "seed": int(seed), "stim": list(stim or []),
-               "noise": noise or {"frac": 0.0, "rate": 0.0}}
+               "noise": noise or {"frac": 0.0, "rate": 0.0}, "reset": bool(reset)}
         try:
             self._proc.stdin.write(json.dumps(req) + "\n")
             self._proc.stdin.flush()

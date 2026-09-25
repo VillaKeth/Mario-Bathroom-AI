@@ -21,7 +21,7 @@ for line in sys.stdin:
     if mode == "crash":
         sys.exit(1)
     print(json.dumps({"status": "ok", "id": req["id"], "rates": {"feed": 99.0},
-                      "stim": req["stim"], "noise": req["noise"]}), flush=True)
+                      "stim": req["stim"], "noise": req["noise"], "reset": req.get("reset")}), flush=True)
 '''
 
 
@@ -48,6 +48,8 @@ async def test_ready_then_run(fake):
     r = await c.run([{"pop": "sugar", "rate": 150, "side": "both"}], ms=100, seed=1)
     assert r["rates"]["feed"] == 99.0
     assert r["stim"][0]["pop"] == "sugar" and r["noise"] == {"frac": 0.0, "rate": 0.0}
+    assert r["reset"] is False
+    assert (await c.run([], ms=100, reset=True))["reset"] is True
     await c.stop()
     assert c.status == "stopped"
 

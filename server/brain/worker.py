@@ -81,6 +81,8 @@ class Brain:
             hz_parts.append(np.full(k, nrate))
         stim_idx = np.concatenate(idx_parts) if idx_parts else np.zeros(0, np.int64)
         stim_hz = np.concatenate(hz_parts) if hz_parts else np.zeros(0)
+        if req.get("reset"):
+            self.engine.reset()  # start this window from rest (a trial, as in Shiu 2024)
         return self.summarize(self.engine.run(ms, stim_idx, stim_hz, seed=seed))
 
     def summarize(self, res):

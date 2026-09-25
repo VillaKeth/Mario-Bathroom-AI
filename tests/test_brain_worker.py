@@ -58,6 +58,15 @@ def test_brain_noise_only_window():
     assert r["status"] == "ok" and r["spikes"] > 0
 
 
+def test_run_with_reset_starts_from_rest():
+    stim = [{"pop": "sugar", "rate": 150}]
+    b = Brain(_tiny_net(), _specs(), ("cb_sensory",), gain=1.0)
+    fresh = b.handle({"cmd": "run", "id": 1, "ms": 100, "seed": 1, "stim": stim})
+    b.engine.g[:] = 50.0  # leftover drive that would make every neuron fire
+    again = b.handle({"cmd": "run", "id": 2, "ms": 100, "seed": 1, "reset": True, "stim": stim})
+    assert again["rates"] == fresh["rates"] and again["rates"]["antenna"] == 0
+
+
 def test_ready_payload_shape():
     b = Brain(_tiny_net(), _specs(), ("cb_sensory",), gain=1.0)
     p = b.ready_payload()
