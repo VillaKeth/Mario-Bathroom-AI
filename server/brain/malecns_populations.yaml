@@ -1,0 +1,62 @@
+# Named neuron populations in MaleCNS v1.0 (a dataset fact, not a character
+# choice). Resolved by the annotation `type` column. Populations must not
+# overlap. Spec: docs/superpowers/specs/2026-09-25-fly-brain-design.md 3.4.
+dataset: malecns_v1
+populations:
+  sugar:
+    kind: sense
+    label: SWEET
+    types: [LB3a, LB3b, LB3c, LB3d]
+    note: labellar GRNs whose top partners are Shiu 2022's sugar pathway (Usnea, Phantom, Clavicle, G2N-1)
+  bitter:
+    kind: sense
+    label: BITTER
+    types: [LB1a, LB1b, LB1c, LB1d, LB1e]
+    note: INFERRED - MaleCNS has no taste-modality label; this is the only GRN group whose co-activation suppresses sugar->MN9 (Shiu's test)
+  ears:
+    kind: sense
+    label: EARS
+    prefixes: [JO-A, JO-B]
+    note: Johnston's organ A/B, sound
+  antenna:
+    kind: sense
+    label: ANTENNA
+    prefixes: [JO-C, JO-E]
+    note: Johnston's organ C/E, antenna deflection (wind, touch) - drives grooming (Hampel 2015)
+  loom:
+    kind: sense
+    label: LOOM
+    types: [LC4, LPLC2]
+    note: looming detectors (visual projection neurons)
+  feed:
+    kind: readout
+    label: FEED
+    types: [MN9]
+    note: proboscis extension motor neuron
+  groom:
+    kind: readout
+    label: GROOM
+    prefixes: [DNg12_]
+    note: aDN antennal grooming command neurons
+  escape:
+    kind: readout
+    label: ESCAPE
+    types: [DNp01]
+    note: giant fiber
+  startle:
+    kind: readout
+    label: STARTLE
+    types: [DNp02, DNp04, DNp06, DNp11]
+    note: other looming-escape descending neurons
+  walk:
+    kind: readout
+    label: WALK
+    types: [DNp09, DNg100, DNa01, DNa02]
+    note: walking and steering descending neurons
+  backup:
+    kind: readout
+    label: BACK
+    types: [MDN]
+    note: moonwalker descending neurons (backward walking)
+# Background noise for idle windows goes to a random fraction of these.
+noise_superclasses: [cb_sensory, vnc_sensory, ol_sensory, sensory_ascending]
