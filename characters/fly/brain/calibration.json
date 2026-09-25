@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-25 19:03:14",
+ "generated": "2026-09-25 19:28:05",
  "dataset": "MaleCNS v1.0",
  "credit": "MaleCNS v1.0, Janelia FlyEM et al., CC BY 4.0; LIF after Shiu et al. 2024",
  "neurons": 166700,
@@ -91,40 +91,468 @@
   ],
   "note": "bitter = LB1a-e, inferred via Shiu's co-activation test"
  },
- "timing": {
-  "quiet_wall_ms": 255.7,
-  "sugar_wall_ms": 559.9
- },
- "gain_sweep": [
+ "senses": [
   {
-   "gain": 0.25,
-   "sugar -> feed": 0.0,
-   "loom R -> escape": 419.0,
-   "antenna -> groom": 0.0
+   "text": "hello there",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "NOTHING",
+   "intensity": 0.0,
+   "spikes": 4132,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 0.0,
+    "ears": 44.96,
+    "antenna": 0.0,
+    "loom": 0.0,
+    "feed": 0.0,
+    "groom": 0.0,
+    "escape": 10.0,
+    "startle": 0.0,
+    "walk": 0.0,
+    "backup": 0.0
+   }
   },
   {
-   "gain": 0.35,
-   "sugar -> feed": 0.0,
-   "loom R -> escape": 425.0,
-   "antenna -> groom": 214.71
+   "text": "HEY WHAT IS UP!!",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 120.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "NOTHING",
+   "intensity": 0.0,
+   "spikes": 10159,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 0.0,
+    "ears": 95.1,
+    "antenna": 0.0,
+    "loom": 0.0,
+    "feed": 0.0,
+    "groom": 0.0,
+    "escape": 10.0,
+    "startle": 1.5,
+    "walk": 0.0,
+    "backup": 0.0
+   }
   },
   {
-   "gain": 0.42,
-   "sugar -> feed": 13.0,
-   "loom R -> escape": 425.0,
-   "antenna -> groom": 250.71
+   "text": "have some candy",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "sugar",
+     "rate": 150.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "FEED",
+   "intensity": 1.0,
+   "spikes": 367432,
+   "rates": {
+    "sugar": 111.9,
+    "bitter": 0.0,
+    "ears": 44.83,
+    "antenna": 0.04,
+    "loom": 0.0,
+    "feed": 251.0,
+    "groom": 0.0,
+    "escape": 2.0,
+    "startle": 0.0,
+    "walk": 16.5,
+    "backup": 0.0
+   }
   },
   {
-   "gain": 0.5,
-   "sugar -> feed": 245.0,
-   "loom R -> escape": 304.0,
-   "antenna -> groom": 269.0
+   "text": "cake and beer and candy",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "sugar",
+     "rate": 200.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "FEED",
+   "intensity": 1.0,
+   "spikes": 376481,
+   "rates": {
+    "sugar": 138.75,
+    "bitter": 0.0,
+    "ears": 44.83,
+    "antenna": 0.03,
+    "loom": 0.0,
+    "feed": 254.0,
+    "groom": 0.0,
+    "escape": 2.0,
+    "startle": 0.0,
+    "walk": 18.5,
+    "backup": 0.0
+   }
   },
   {
-   "gain": 0.6,
-   "sugar -> feed": 271.0,
-   "loom R -> escape": 253.0,
-   "antenna -> groom": 295.0
+   "text": "you're so cute",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "sugar",
+     "rate": 60.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "NOTHING",
+   "intensity": 0.0,
+   "spikes": 7496,
+   "rates": {
+    "sugar": 52.0,
+    "bitter": 0.0,
+    "ears": 44.83,
+    "antenna": 0.0,
+    "loom": 0.0,
+    "feed": 0.0,
+    "groom": 0.0,
+    "escape": 13.0,
+    "startle": 0.25,
+    "walk": 0.0,
+    "backup": 0.0
+   }
+  },
+  {
+   "text": "you are disgusting",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "bitter",
+     "rate": 100.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "REJECT",
+   "intensity": 1.0,
+   "spikes": 731610,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 136.32,
+    "ears": 44.96,
+    "antenna": 0.04,
+    "loom": 0.0,
+    "feed": 29.0,
+    "groom": 0.0,
+    "escape": 0.0,
+    "startle": 0.0,
+    "walk": 19.75,
+    "backup": 0.0
+   }
+  },
+  {
+   "text": "ew gross you stupid bug",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "bitter",
+     "rate": 200.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "REJECT",
+   "intensity": 1.0,
+   "spikes": 731720,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 183.05,
+    "ears": 44.96,
+    "antenna": 0.02,
+    "loom": 0.0,
+    "feed": 27.0,
+    "groom": 0.0,
+    "escape": 0.0,
+    "startle": 0.0,
+    "walk": 6.5,
+    "backup": 0.0
+   }
+  },
+  {
+   "text": "I'm gonna swat you",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "loom",
+     "rate": 150.0,
+     "side": "R"
+    }
+   ],
+   "behavior": "ESCAPE",
+   "intensity": 1.0,
+   "spikes": 458746,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 44.42,
+    "ears": 45.19,
+    "antenna": 0.04,
+    "loom": 52.89,
+    "feed": 16.0,
+    "groom": 3.86,
+    "escape": 295.0,
+    "startle": 164.5,
+    "walk": 21.5,
+    "backup": 0.0
+   }
+  },
+  {
+   "text": "get the fly swatter",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "loom",
+     "rate": 175.0,
+     "side": "R"
+    }
+   ],
+   "behavior": "ESCAPE",
+   "intensity": 1.0,
+   "spikes": 562080,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 47.96,
+    "ears": 45.19,
+    "antenna": 0.02,
+    "loom": 59.43,
+    "feed": 19.0,
+    "groom": 3.05,
+    "escape": 266.0,
+    "startle": 170.5,
+    "walk": 23.5,
+    "backup": 0.0
+   }
+  },
+  {
+   "text": "blow on it",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "antenna",
+     "rate": 100.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "GROOM",
+   "intensity": 1.0,
+   "spikes": 1158670,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 46.18,
+    "ears": 45.33,
+    "antenna": 82.86,
+    "loom": 0.0,
+    "feed": 3.0,
+    "groom": 263.0,
+    "escape": 0.0,
+    "startle": 0.0,
+    "walk": 0.0,
+    "backup": 39.0
+   }
+  },
+  {
+   "text": "so much dust in here",
+   "stim": [
+    {
+     "pop": "ears",
+     "rate": 50.0,
+     "side": "both"
+    },
+    {
+     "pop": "antenna",
+     "rate": 100.0,
+     "side": "both"
+    }
+   ],
+   "behavior": "GROOM",
+   "intensity": 1.0,
+   "spikes": 1158670,
+   "rates": {
+    "sugar": 0.0,
+    "bitter": 46.18,
+    "ears": 45.33,
+    "antenna": 82.86,
+    "loom": 0.0,
+    "feed": 3.0,
+    "groom": 263.0,
+    "escape": 0.0,
+    "startle": 0.0,
+    "walk": 0.0,
+    "backup": 39.0
+   }
   }
- ]
+ ],
+ "persist": false,
+ "idle": [
+  {
+   "frac": 0.002,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 0
+  },
+  {
+   "frac": 0.002,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 2
+  },
+  {
+   "frac": 0.002,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 2
+  },
+  {
+   "frac": 0.005,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 6
+  },
+  {
+   "frac": 0.005,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 7
+  },
+  {
+   "frac": 0.005,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 11
+  },
+  {
+   "frac": 0.01,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 3
+  },
+  {
+   "frac": 0.01,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 6
+  },
+  {
+   "frac": 0.01,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 12
+  },
+  {
+   "frac": 0.02,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 13
+  },
+  {
+   "frac": 0.02,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 19,
+    "GROOM": 1
+   },
+   "ignited": 17
+  },
+  {
+   "frac": 0.02,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 19,
+    "GROOM": 1
+   },
+   "ignited": 18
+  },
+  {
+   "frac": 0.05,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 13
+  },
+  {
+   "frac": 0.05,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 11
+  },
+  {
+   "frac": 0.05,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "ignited": 13
+  }
+ ],
+ "timing": {
+  "quiet_wall_ms": 261.2,
+  "sugar_wall_ms": 571.7,
+  "ignited_wall_ms": 1244.3,
+  "ignited_spikes": 1245210
+ }
 }

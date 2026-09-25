@@ -8,7 +8,7 @@ text_is_sound: {pop: ears, rate: 50, shout_rate: 120}
 lexicons:
   food:
     pop: sugar
-    rate: [100, 200]
+    rate: [150, 200]   # calibrated: 100 Hz leaves MN9 silent, 150 Hz drives it (~245 Hz)
     words: [sugar, sweet, candy, cake, cupcake, cookie, fruit, banana, apple, grape, peach,
             mango, berry, strawberry, beer, wine, cider, juice, soda, honey, syrup, jam,
             pizza, donut, doughnut, chocolate, "ice cream", snack, food, treat, dessert,

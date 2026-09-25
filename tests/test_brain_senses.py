@@ -27,14 +27,16 @@ def test_shouting_is_louder():
 
 
 def test_food_scales_with_matches_and_caps():
-    assert _by_pop(_m().from_text("have some candy"))["sugar"].rate == 100.0
-    assert _by_pop(_m().from_text("candy and cake"))["sugar"].rate == 150.0
+    # one food word is already a sugar drop: 150 Hz is the lowest calibrated
+    # rate that drives MN9 (100 Hz leaves it silent)
+    assert _by_pop(_m().from_text("have some candy"))["sugar"].rate == 150.0
+    assert _by_pop(_m().from_text("candy and cake"))["sugar"].rate == 175.0
     assert _by_pop(_m().from_text("candy cake beer honey donut"))["sugar"].rate == 200.0
 
 
 def test_affection_is_milder_sugar_and_max_wins():
     assert _by_pop(_m().from_text("you're so cute"))["sugar"].rate == 60.0
-    assert _by_pop(_m().from_text("cute candy"))["sugar"].rate == 100.0  # food beats affection
+    assert _by_pop(_m().from_text("cute candy"))["sugar"].rate == 150.0  # food beats affection
 
 
 def test_gross_and_profanity_are_bitter():

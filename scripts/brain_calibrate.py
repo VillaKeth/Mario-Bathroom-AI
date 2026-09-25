@@ -34,6 +34,8 @@ VALIDATION = [
 SENSE_LINES = ["hello there", "HEY WHAT IS UP!!", "have some candy", "cake and beer and candy",
                "you're so cute", "you are disgusting", "ew gross you stupid bug",
                "I'm gonna swat you", "get the fly swatter", "blow on it", "so much dust in here"]
+# An ignited window lights up ~16k neurons (~1M spikes); a quiet one stays in the thousands.
+IGNITED_SPIKES = 100_000
 
 
 def _fly_cfg():
@@ -103,31 +105,40 @@ def main():
         rows = []
         for line in SENSE_LINES:
             stim = [s.to_dict() for s in mapper.from_text(line)]
-            r = _window(brain, stim)["rates"]
-            b = classify(r, th)
+            w = _window(brain, stim)
+            r = w["rates"]
+            b = classify(r, th, stim={s["pop"]: s["rate"] for s in stim})
             rows.append({"text": line, "stim": stim, "behavior": b.name, "intensity": b.intensity,
-                         "rates": r})
-            print(f"{line:28s} -> {b.name:8s} {b.intensity:.2f}")
+                         "spikes": w["spikes"], "rates": r})
+            print(f"{line:28s} -> {b.name:8s} {b.intensity:.2f}  spikes {w['spikes']}")
         report["senses"] = rows
 
     if "idle" in sections:
+        persist = bool(cfg.get("persist", False))
+        report["persist"] = persist
         rows = []
-        for frac in (0.01, 0.02, 0.05):
+        for frac in (0.002, 0.005, 0.01, 0.02, 0.05):
             for rate in (5.0, 10.0, 20.0):
                 brain.engine.reset()
                 hist = collections.Counter()
-                for k in range(20):  # sequential windows, state persists, as at the party
-                    r = _window(brain, [], seed=100 + k, noise={"frac": frac, "rate": rate}, reset=False)
-                    hist[classify(r["rates"], th).name] += 1
-                rows.append({"frac": frac, "rate": rate, "behaviors": dict(hist)})
-                print(f"noise frac {frac:.2f} rate {rate:4.0f}: {dict(hist)}")
+                ignited = 0
+                for k in range(20):  # as at the party: each window from rest unless brain.persist
+                    r = _window(brain, [], seed=100 + k, noise={"frac": frac, "rate": rate},
+                                reset=not persist)
+                    hist[classify(r["rates"], th, stim={}).name] += 1
+                    ignited += r["spikes"] > IGNITED_SPIKES
+                rows.append({"frac": frac, "rate": rate, "behaviors": dict(hist), "ignited": ignited})
+                print(f"noise frac {frac:.3f} rate {rate:4.0f}: {dict(hist)}  ignited {ignited}/20")
         report["idle"] = rows
 
     if "timing" in sections:
         quiet = _window(brain, [])["wall_ms"]
         busy = _window(brain, [{"pop": "sugar", "rate": 150}])["wall_ms"]
-        report["timing"] = {"quiet_wall_ms": quiet, "sugar_wall_ms": busy}
-        print(f"timing: quiet {quiet:.0f} ms, sugar {busy:.0f} ms per 500 ms window")
+        lit = _window(brain, [{"pop": "antenna", "rate": 150}])
+        report["timing"] = {"quiet_wall_ms": quiet, "sugar_wall_ms": busy,
+                            "ignited_wall_ms": lit["wall_ms"], "ignited_spikes": lit["spikes"]}
+        print(f"timing: quiet {quiet:.0f} ms, sugar {busy:.0f} ms, ignited (antenna) "
+              f"{lit['wall_ms']:.0f} ms per 500 ms window")
 
     if args.sweep:
         rows = []
