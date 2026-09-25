@@ -66,6 +66,7 @@ class MarioWSClient:
         self.on_outfit_switched = None  # Called with (data: dict) on outfit change
         self.on_mirror_request = None   # Called with (active: bool) — start/stop mirror capture
         self.on_set_volume = None       # Called with (gain: float) — remote volume set
+        self.on_brain_state = None      # Called with (data: dict) — brain-character window
         self.on_connected = None
         self.on_disconnected = None
 
@@ -246,6 +247,10 @@ class MarioWSClient:
                         logger.info(f"[DEBUG_WS] set_volume gain={data.get('gain')}")
                     if self.on_set_volume:
                         self.on_set_volume(data.get("gain"))
+
+                elif msg_type == "brain_state":
+                    if self.on_brain_state:
+                        self.on_brain_state(data)
 
             except json.JSONDecodeError as e:
                 logger.error(f"[DEBUG_WS] invalid JSON: {e}")
