@@ -1,0 +1,42 @@
+# How party events reach the fly's senses. Rates are Poisson Hz per neuron,
+# applied to the named population (server/brain/malecns_populations.yaml).
+# A lexicon's rate is [one match, three or more matches]. When two lexicons
+# drive the same population, the higher rate wins.
+# The fly cannot read: text is sound on its antennae, and some words stand in
+# for what physically happens to a fly.
+text_is_sound: {pop: ears, rate: 50, shout_rate: 120}
+lexicons:
+  food:
+    pop: sugar
+    rate: [100, 200]
+    words: [sugar, sweet, candy, cake, cupcake, cookie, fruit, banana, apple, grape, peach,
+            mango, berry, strawberry, beer, wine, cider, juice, soda, honey, syrup, jam,
+            pizza, donut, doughnut, chocolate, "ice cream", snack, food, treat, dessert,
+            rum, cocktail, lemonade, pie, frosting]
+  affection:
+    pop: sugar
+    rate: [60, 120]
+    words: [love, cute, adorable, good, nice, beautiful, pretty, best, great, awesome,
+            amazing, friend, buddy, sweetie, darling, thanks, "thank you", yay]
+  gross:
+    pop: bitter
+    rate: [100, 200]
+    words: [gross, disgusting, nasty, ew, eww, yuck, hate, ugly, stupid, dumb, idiot,
+            "shut up", poison, bleach, bitter, sour, medicine, pesticide, loser,
+            "go away", shit, fuck, damn, crap, bitch, ass]
+  threat:
+    pop: loom
+    side: random
+    rate: [150, 200]
+    words: [swat, squash, smash, kill, spray, raid, zapper, swatter, "fly swatter",
+            newspaper, slipper, "bug spray", crush, splat, whack, slap, catch]
+  air:
+    pop: antenna
+    rate: [100, 150]
+    words: [blow, wind, fan, breeze, dust, dusty, wash, clean, dirty, tickle, soap,
+            hair, sneeze, cough, fart, air, puff]
+events:
+  arrival:   # someone walks into the bathroom: a big thing approaching
+    - {pop: loom, rate: 80, side: random}
+  retch:     # flies are drawn to vomit; that is what a fly does. Flip to bitter if you disagree.
+    - {pop: sugar, rate: 150}
