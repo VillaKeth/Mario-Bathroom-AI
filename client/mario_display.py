@@ -2175,6 +2175,9 @@ class MarioDisplay:
         # Draw particles on top of Mario
         self._draw_particles()
 
+        # Live connectome panel (brain characters; B toggle), under the bubble
+        self._draw_brain_panel()
+
         # Draw speech bubble with typewriter (keep visible while speaking, then auto-clear after 8s)
         if self.current_text:
             if self._speaking:
@@ -2231,9 +2234,6 @@ class MarioDisplay:
 
         # Health overlay (F4 toggle)
         self._draw_health_overlay()
-
-        # Live connectome panel (brain characters; B toggle)
-        self._draw_brain_panel()
 
         # Screen edge glow for emotion changes
         self._draw_edge_glow()
@@ -3857,22 +3857,26 @@ class MarioDisplay:
         """Latest brain window from a brain character (feeds the panel)."""
         self._brain_state = dict(data or {})
 
-    def _draw_brain_panel(self):
-        """Live connectome panel for brain characters (B toggles). Left side:
-        one row per population (bar = mean rate, log-scaled to 400 Hz; sparkline
-        = the window's 10 bins), the behavior, stats, and the CC BY credit."""
-        d = self._brain_state
-        if not d or not self._brain_visible:
-            return
-        import math
-        font = self._font_small or pygame.font.SysFont("arial", 13)
-        pad, line_h, panel_w = 8, 17, 250
+    @staticmethod
+    def _brain_panel_layout(font, d: dict) -> dict:
+        """Measure the brain panel for `font`: column positions, panel width and
+        the wrapped text lines, so nothing clips or overlaps at any font size."""
+        pad, bar_len, spark_len, gap = 8, 90, 50, 6
+        line_h = max(17, font.get_linesize())
+        rows = d.get("rows") or []
+        labels = [str(r.get("label", ""))[:8] for r in rows]
+        label_w = max([font.size(lb)[0] for lb in labels] + [0])
+        bar_x = pad + label_w + gap
+        spark_x = bar_x + bar_len + gap
+        num_x = spark_x + spark_len + gap
+        panel_w = max(250, num_x + font.size("400")[0] + pad)
+        inner = panel_w - 2 * pad
 
-        def wrap(text, width):
+        def wrap(text):
             lines, cur = [], ""
             for word in str(text).split():
                 trial = (cur + " " + word).strip()
-                if font.size(trial)[0] <= width:
+                if font.size(trial)[0] <= inner:
                     cur = trial
                 else:
                     if cur:
@@ -3885,51 +3889,73 @@ class MarioDisplay:
         ds = d.get("dataset") or {}
         header = ["BRAIN · " + str(ds.get("name") or "connectome")]
         if ds.get("neurons"):
-            conn = ds.get("connections")
-            header.append(f"{int(ds['neurons']):,} neurons"
-                          + (f" · {conn / 1e6:.1f}M connections" if conn else ""))
+            header.append(f"{int(ds['neurons']):,} neurons")
+        if ds.get("connections"):
+            header.append(f"{ds['connections'] / 1e6:.1f}M connections")
         if d.get("status") != "ready":
             header.append(f"brain {d.get('status', '?')} {d.get('stage', '')} "
                           f"{int(float(d.get('progress') or 0) * 100)}%")
-        rows = d.get("rows") or []
         footer = []
         if d.get("behavior"):
             footer.append("-> " + str(d["behavior"]) + (f" {d['direction']}" if d.get("direction") else ""))
         if d.get("sim_ms"):
-            footer.append(f"spikes {int(d.get('spikes') or 0):,} · active {int(d.get('active') or 0):,}"
-                          f" · {float(d['sim_ms']) / 1000:.1f}s fly-time")
-        credit = wrap(d.get("credit") or "", panel_w - 2 * pad)
-        n_lines = len(header) + len(rows) + len(footer) + len(credit)
-        panel = pygame.Surface((panel_w, n_lines * line_h + 2 * pad + 6), pygame.SRCALPHA)
+            footer.append(f"spikes {int(d.get('spikes') or 0):,} · active {int(d.get('active') or 0):,}")
+            timing = f"{float(d['sim_ms']) / 1000:.1f}s fly-time"
+            if d.get("wall_ms"):
+                timing += f" · {float(d['wall_ms']) / 1000:.2f}s real"
+            footer.append(timing)
+        return {"pad": pad, "line_h": line_h, "panel_w": panel_w, "labels": labels,
+                "bar_x": bar_x, "bar_len": bar_len, "spark_x": spark_x, "num_x": num_x,
+                "header": [ln for h in header for ln in wrap(h)],
+                "footer": [ln for f in footer for ln in wrap(f)],
+                "credit": wrap(d.get("credit") or "")}
+
+    def _draw_brain_panel(self):
+        """Live connectome panel for brain characters (B toggles). Left side,
+        under the emotion badge: one row per population (bar = mean rate,
+        log-scaled to 400 Hz; sparkline = the window's 10 bins), the behavior,
+        stats, and the CC BY credit."""
+        d = self._brain_state
+        if not d or not self._brain_visible:
+            return
+        import math
+        font = self._font_small or pygame.font.SysFont("arial", 13)
+        lay = self._brain_panel_layout(font, d)
+        pad, line_h = lay["pad"], lay["line_h"]
+        rows = d.get("rows") or []
+        n_lines = len(lay["header"]) + len(rows) + len(lay["footer"]) + len(lay["credit"])
+        panel = pygame.Surface((lay["panel_w"], n_lines * line_h + 2 * pad + 6), pygame.SRCALPHA)
         panel.fill((8, 12, 10, 190))
         y = pad
-        for line in header:
+        for line in lay["header"]:
             panel.blit(font.render(line, True, (220, 235, 225)), (pad, y))
             y += line_h
         rates, bins = d.get("rates") or {}, d.get("bins") or {}
         log_max = math.log1p(400.0)
-        for row in rows:
+        bar_h = max(4, line_h - 8)
+        for row, label in zip(rows, lay["labels"]):
             hz = float(rates.get(row.get("pop"), 0.0) or 0.0)
             color = (120, 220, 160) if row.get("kind") == "sense" else (255, 170, 80)
-            panel.blit(font.render(str(row.get("label", ""))[:8], True, color), (pad, y))
-            bar_w = int(90 * min(1.0, math.log1p(hz) / log_max))
-            pygame.draw.rect(panel, (40, 50, 45), (pad + 64, y + 4, 90, line_h - 8))
+            panel.blit(font.render(label, True, color), (pad, y))
+            bar_w = int(lay["bar_len"] * min(1.0, math.log1p(hz) / log_max))
+            pygame.draw.rect(panel, (40, 50, 45), (lay["bar_x"], y + 4, lay["bar_len"], bar_h))
             if bar_w:
-                pygame.draw.rect(panel, color, (pad + 64, y + 4, bar_w, line_h - 8))
+                pygame.draw.rect(panel, color, (lay["bar_x"], y + 4, bar_w, bar_h))
             series = bins.get(row.get("pop")) or []
             for k, v in enumerate(series[:10]):
                 h = int((line_h - 6) * min(1.0, math.log1p(float(v)) / log_max))
                 if h:
-                    pygame.draw.rect(panel, color, (pad + 160 + k * 5, y + line_h - 3 - h, 4, h))
-            panel.blit(font.render(f"{hz:.0f}", True, (200, 200, 200)), (pad + 212, y))
+                    pygame.draw.rect(panel, color, (lay["spark_x"] + k * 5, y + line_h - 3 - h, 4, h))
+            panel.blit(font.render(f"{hz:.0f}", True, (200, 200, 200)), (lay["num_x"], y))
             y += line_h
-        for line in footer:
+        for line in lay["footer"]:
             panel.blit(font.render(line, True, (255, 230, 150)), (pad, y))
             y += line_h
-        for line in credit:
+        for line in lay["credit"]:
             panel.blit(font.render(line, True, (140, 150, 145)), (pad, y))
             y += line_h
-        self._screen.blit(panel, (10, getattr(self, "_banner_bottom", 48) + 10))
+        # below the floating emotion badge (banner + 8, about 30 px tall)
+        self._screen.blit(panel, (10, getattr(self, "_banner_bottom", 48) + 44))
 
     def _draw_leaderboard(self):
         """Draw the party leaderboard overlay on the right side of the screen."""
