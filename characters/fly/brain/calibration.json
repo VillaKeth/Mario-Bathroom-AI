@@ -1,11 +1,16 @@
 {
- "generated": "2026-09-25 19:28:05",
+ "generated": "2026-09-25 21:49:20",
  "dataset": "MaleCNS v1.0",
  "credit": "MaleCNS v1.0, Janelia FlyEM et al., CC BY 4.0; LIF after Shiu et al. 2024",
  "neurons": 166700,
  "connections": 25582938,
  "synapses": 124177617,
- "gain": 0.5,
+ "gain": 0.65,
+ "seeds": [
+  1,
+  2,
+  3
+ ],
  "populations": {
   "sugar": 77,
   "bitter": 57,
@@ -23,71 +28,95 @@
   {
    "case": "sugar -> feed",
    "target": "feed",
-   "real_hz": 245.0,
-   "shuffled_hz": 0.0,
-   "real_all": {
-    "sugar": 112.52,
+   "real_hz": [
+    92.0,
+    91.0,
+    86.0
+   ],
+   "shuffled_hz": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "real_all_seed1": {
+    "sugar": 146.81,
     "bitter": 0.0,
     "ears": 0.0,
-    "antenna": 0.04,
+    "antenna": 0.0,
     "loom": 0.0,
-    "feed": 245.0,
+    "feed": 92.0,
     "groom": 0.0,
     "escape": 0.0,
     "startle": 0.0,
-    "walk": 17.25,
-    "backup": 5.5
+    "walk": 0.0,
+    "backup": 0.0
    }
   },
   {
    "case": "loom R -> escape",
    "target": "escape",
-   "real_hz": 304.0,
-   "shuffled_hz": 0.0,
-   "real_all": {
+   "real_hz": [
+    279.0,
+    286.0,
+    278.0
+   ],
+   "shuffled_hz": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "real_all_seed1": {
     "sugar": 0.0,
-    "bitter": 46.14,
+    "bitter": 0.0,
     "ears": 0.0,
-    "antenna": 0.04,
-    "loom": 52.95,
-    "feed": 13.0,
-    "groom": 3.57,
-    "escape": 304.0,
-    "startle": 173.75,
-    "walk": 22.5,
+    "antenna": 0.0,
+    "loom": 73.07,
+    "feed": 0.0,
+    "groom": 6.19,
+    "escape": 279.0,
+    "startle": 164.0,
+    "walk": 0.25,
     "backup": 0.0
    }
   },
   {
    "case": "antenna -> groom",
    "target": "groom",
-   "real_hz": 269.0,
-   "shuffled_hz": 0.0,
-   "real_all": {
+   "real_hz": [
+    87.57,
+    84.29,
+    86.38
+   ],
+   "shuffled_hz": [
+    0.33,
+    0.19,
+    0.33
+   ],
+   "real_all_seed1": {
     "sugar": 0.0,
-    "bitter": 49.12,
+    "bitter": 0.0,
     "ears": 0.0,
-    "antenna": 113.25,
+    "antenna": 148.49,
     "loom": 0.0,
-    "feed": 4.0,
-    "groom": 269.0,
+    "feed": 2.0,
+    "groom": 87.57,
     "escape": 0.0,
-    "startle": 0.5,
+    "startle": 0.0,
     "walk": 0.0,
-    "backup": 33.0
+    "backup": 8.0
    }
   }
  ],
  "bitter": {
   "sugar_alone_feed_hz": [
-   245.0,
-   199.0,
-   227.0
+   92.0,
+   91.0,
+   86.0
   ],
   "sugar_plus_bitter_feed_hz": [
-   54.0,
-   53.0,
-   56.0
+   0.0,
+   0.0,
+   0.0
   ],
   "note": "bitter = LB1a-e, inferred via Shiu's co-activation test"
  },
@@ -103,17 +132,17 @@
    ],
    "behavior": "NOTHING",
    "intensity": 0.0,
-   "spikes": 4132,
+   "spikes": 5037,
    "rates": {
     "sugar": 0.0,
     "bitter": 0.0,
-    "ears": 44.96,
+    "ears": 49.94,
     "antenna": 0.0,
     "loom": 0.0,
     "feed": 0.0,
     "groom": 0.0,
-    "escape": 10.0,
-    "startle": 0.0,
+    "escape": 17.0,
+    "startle": 1.75,
     "walk": 0.0,
     "backup": 0.0
    }
@@ -129,17 +158,17 @@
    ],
    "behavior": "NOTHING",
    "intensity": 0.0,
-   "spikes": 10159,
+   "spikes": 12862,
    "rates": {
     "sugar": 0.0,
     "bitter": 0.0,
-    "ears": 95.1,
+    "ears": 118.54,
     "antenna": 0.0,
     "loom": 0.0,
     "feed": 0.0,
     "groom": 0.0,
-    "escape": 10.0,
-    "startle": 1.5,
+    "escape": 34.0,
+    "startle": 6.25,
     "walk": 0.0,
     "backup": 0.0
    }
@@ -159,19 +188,19 @@
     }
    ],
    "behavior": "FEED",
-   "intensity": 1.0,
-   "spikes": 367432,
+   "intensity": 0.367,
+   "spikes": 28094,
    "rates": {
-    "sugar": 111.9,
+    "sugar": 146.21,
     "bitter": 0.0,
-    "ears": 44.83,
-    "antenna": 0.04,
+    "ears": 49.68,
+    "antenna": 0.0,
     "loom": 0.0,
-    "feed": 251.0,
+    "feed": 88.0,
     "groom": 0.0,
-    "escape": 2.0,
-    "startle": 0.0,
-    "walk": 16.5,
+    "escape": 12.0,
+    "startle": 0.25,
+    "walk": 0.0,
     "backup": 0.0
    }
   },
@@ -190,19 +219,19 @@
     }
    ],
    "behavior": "FEED",
-   "intensity": 1.0,
-   "spikes": 376481,
+   "intensity": 0.396,
+   "spikes": 32751,
    "rates": {
-    "sugar": 138.75,
+    "sugar": 195.51,
     "bitter": 0.0,
-    "ears": 44.83,
-    "antenna": 0.03,
+    "ears": 49.68,
+    "antenna": 0.0,
     "loom": 0.0,
-    "feed": 254.0,
+    "feed": 95.0,
     "groom": 0.0,
-    "escape": 2.0,
-    "startle": 0.0,
-    "walk": 18.5,
+    "escape": 8.0,
+    "startle": 0.25,
+    "walk": 0.0,
     "backup": 0.0
    }
   },
@@ -222,17 +251,17 @@
    ],
    "behavior": "NOTHING",
    "intensity": 0.0,
-   "spikes": 7496,
+   "spikes": 9537,
    "rates": {
-    "sugar": 52.0,
+    "sugar": 58.42,
     "bitter": 0.0,
-    "ears": 44.83,
+    "ears": 49.68,
     "antenna": 0.0,
     "loom": 0.0,
-    "feed": 0.0,
+    "feed": 15.0,
     "groom": 0.0,
-    "escape": 13.0,
-    "startle": 0.25,
+    "escape": 17.0,
+    "startle": 2.0,
     "walk": 0.0,
     "backup": 0.0
    }
@@ -253,18 +282,18 @@
    ],
    "behavior": "REJECT",
    "intensity": 1.0,
-   "spikes": 731610,
+   "spikes": 495367,
    "rates": {
     "sugar": 0.0,
-    "bitter": 136.32,
-    "ears": 44.96,
-    "antenna": 0.04,
+    "bitter": 128.98,
+    "ears": 49.81,
+    "antenna": 0.0,
     "loom": 0.0,
-    "feed": 29.0,
-    "groom": 0.0,
-    "escape": 0.0,
+    "feed": 0.0,
+    "groom": 0.71,
+    "escape": 1.0,
     "startle": 0.0,
-    "walk": 19.75,
+    "walk": 0.0,
     "backup": 0.0
    }
   },
@@ -284,19 +313,19 @@
    ],
    "behavior": "REJECT",
    "intensity": 1.0,
-   "spikes": 731720,
+   "spikes": 489694,
    "rates": {
     "sugar": 0.0,
-    "bitter": 183.05,
-    "ears": 44.96,
-    "antenna": 0.02,
+    "bitter": 219.51,
+    "ears": 49.81,
+    "antenna": 0.0,
     "loom": 0.0,
-    "feed": 27.0,
-    "groom": 0.0,
-    "escape": 0.0,
+    "feed": 0.0,
+    "groom": 0.33,
+    "escape": 1.0,
     "startle": 0.0,
-    "walk": 6.5,
-    "backup": 0.0
+    "walk": 0.0,
+    "backup": 3.0
    }
   },
   {
@@ -315,18 +344,18 @@
    ],
    "behavior": "ESCAPE",
    "intensity": 1.0,
-   "spikes": 458746,
+   "spikes": 105777,
    "rates": {
     "sugar": 0.0,
-    "bitter": 44.42,
-    "ears": 45.19,
-    "antenna": 0.04,
-    "loom": 52.89,
-    "feed": 16.0,
-    "groom": 3.86,
-    "escape": 295.0,
-    "startle": 164.5,
-    "walk": 21.5,
+    "bitter": 0.0,
+    "ears": 49.64,
+    "antenna": 0.0,
+    "loom": 72.68,
+    "feed": 0.0,
+    "groom": 5.71,
+    "escape": 279.0,
+    "startle": 158.25,
+    "walk": 0.5,
     "backup": 0.0
    }
   },
@@ -346,18 +375,18 @@
    ],
    "behavior": "ESCAPE",
    "intensity": 1.0,
-   "spikes": 562080,
+   "spikes": 114290,
    "rates": {
     "sugar": 0.0,
-    "bitter": 47.96,
-    "ears": 45.19,
-    "antenna": 0.02,
-    "loom": 59.43,
-    "feed": 19.0,
-    "groom": 3.05,
-    "escape": 266.0,
-    "startle": 170.5,
-    "walk": 23.5,
+    "bitter": 0.0,
+    "ears": 49.64,
+    "antenna": 0.0,
+    "loom": 86.52,
+    "feed": 0.0,
+    "groom": 6.29,
+    "escape": 287.0,
+    "startle": 168.25,
+    "walk": 0.25,
     "backup": 0.0
    }
   },
@@ -376,20 +405,20 @@
     }
    ],
    "behavior": "GROOM",
-   "intensity": 1.0,
-   "spikes": 1158670,
+   "intensity": 0.96,
+   "spikes": 111246,
    "rates": {
     "sugar": 0.0,
-    "bitter": 46.18,
-    "ears": 45.33,
-    "antenna": 82.86,
+    "bitter": 0.0,
+    "ears": 50.22,
+    "antenna": 100.21,
     "loom": 0.0,
-    "feed": 3.0,
-    "groom": 263.0,
+    "feed": 2.0,
+    "groom": 86.43,
     "escape": 0.0,
     "startle": 0.0,
     "walk": 0.0,
-    "backup": 39.0
+    "backup": 10.0
    }
   },
   {
@@ -407,32 +436,64 @@
     }
    ],
    "behavior": "GROOM",
-   "intensity": 1.0,
-   "spikes": 1158670,
+   "intensity": 0.96,
+   "spikes": 111246,
    "rates": {
     "sugar": 0.0,
-    "bitter": 46.18,
-    "ears": 45.33,
-    "antenna": 82.86,
+    "bitter": 0.0,
+    "ears": 50.22,
+    "antenna": 100.21,
     "loom": 0.0,
-    "feed": 3.0,
-    "groom": 263.0,
+    "feed": 2.0,
+    "groom": 86.43,
     "escape": 0.0,
     "startle": 0.0,
     "walk": 0.0,
-    "backup": 39.0
+    "backup": 10.0
    }
   }
  ],
  "persist": false,
  "idle": [
   {
+   "frac": 0.001,
+   "rate": 5.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "busy": 0,
+   "spikes_median": 44.5,
+   "spikes_max": 96395
+  },
+  {
+   "frac": 0.001,
+   "rate": 10.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "busy": 2,
+   "spikes_median": 91.5,
+   "spikes_max": 499898
+  },
+  {
+   "frac": 0.001,
+   "rate": 20.0,
+   "behaviors": {
+    "NOTHING": 20
+   },
+   "busy": 3,
+   "spikes_median": 182.0,
+   "spikes_max": 508313
+  },
+  {
    "frac": 0.002,
    "rate": 5.0,
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 0
+   "busy": 2,
+   "spikes_median": 92.0,
+   "spikes_max": 422599
   },
   {
    "frac": 0.002,
@@ -440,7 +501,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 2
+   "busy": 3,
+   "spikes_median": 186.0,
+   "spikes_max": 422530
   },
   {
    "frac": 0.002,
@@ -448,7 +511,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 2
+   "busy": 10,
+   "spikes_median": 79975.0,
+   "spikes_max": 485969
   },
   {
    "frac": 0.005,
@@ -456,7 +521,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 6
+   "busy": 9,
+   "spikes_median": 243.5,
+   "spikes_max": 523550
   },
   {
    "frac": 0.005,
@@ -464,7 +531,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 7
+   "busy": 11,
+   "spikes_median": 213496.0,
+   "spikes_max": 525015
   },
   {
    "frac": 0.005,
@@ -472,7 +541,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 11
+   "busy": 16,
+   "spikes_median": 460046.0,
+   "spikes_max": 530836
   },
   {
    "frac": 0.01,
@@ -480,7 +551,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 3
+   "busy": 5,
+   "spikes_median": 464.5,
+   "spikes_max": 520765
   },
   {
    "frac": 0.01,
@@ -488,7 +561,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 6
+   "busy": 13,
+   "spikes_median": 379384.5,
+   "spikes_max": 533336
   },
   {
    "frac": 0.01,
@@ -496,7 +571,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 12
+   "busy": 19,
+   "spikes_median": 447864.5,
+   "spikes_max": 537622
   },
   {
    "frac": 0.02,
@@ -504,25 +581,29 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 13
+   "busy": 18,
+   "spikes_median": 405713.5,
+   "spikes_max": 534774
   },
   {
    "frac": 0.02,
    "rate": 10.0,
    "behaviors": {
-    "NOTHING": 19,
-    "GROOM": 1
+    "NOTHING": 20
    },
-   "ignited": 17
+   "busy": 20,
+   "spikes_median": 478754.0,
+   "spikes_max": 539001
   },
   {
    "frac": 0.02,
    "rate": 20.0,
    "behaviors": {
-    "NOTHING": 19,
-    "GROOM": 1
+    "NOTHING": 20
    },
-   "ignited": 18
+   "busy": 20,
+   "spikes_median": 516726.0,
+   "spikes_max": 548649
   },
   {
    "frac": 0.05,
@@ -530,7 +611,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 13
+   "busy": 19,
+   "spikes_median": 452943.0,
+   "spikes_max": 537209
   },
   {
    "frac": 0.05,
@@ -538,7 +621,9 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 11
+   "busy": 19,
+   "spikes_median": 513106.5,
+   "spikes_max": 541805
   },
   {
    "frac": 0.05,
@@ -546,13 +631,521 @@
    "behaviors": {
     "NOTHING": 20
    },
-   "ignited": 13
+   "busy": 20,
+   "spikes_median": 528135.5,
+   "spikes_max": 555880
   }
  ],
  "timing": {
-  "quiet_wall_ms": 261.2,
-  "sugar_wall_ms": 571.7,
-  "ignited_wall_ms": 1244.3,
-  "ignited_spikes": 1245210
- }
+  "quiet": {
+   "wall_ms_median": 227.5,
+   "wall_ms_max": 235.2,
+   "spikes_median": 0
+  },
+  "sugar": {
+   "wall_ms_median": 262.1,
+   "wall_ms_max": 270.7,
+   "spikes_median": 23444
+  },
+  "antenna": {
+   "wall_ms_median": 407.6,
+   "wall_ms_max": 423.3,
+   "spikes_median": 198116
+  },
+  "bitter": {
+   "wall_ms_median": 611.6,
+   "wall_ms_max": 621.0,
+   "spikes_median": 492178
+  }
+ },
+ "carry": {
+  "drive": "antenna 150 Hz, then quiet windows without reset",
+  "quiet_window_spikes": [
+   585187,
+   585818,
+   586300
+  ]
+ },
+ "gain_sweep": [
+  {
+   "gain": 0.4,
+   "sugar -> feed": [
+    7.0,
+    6.0,
+    7.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    8905,
+    8877,
+    8852
+   ],
+   "loom R -> escape": [
+    261.0,
+    261.0,
+    264.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    40.81,
+    41.29,
+    40.62
+   ],
+   "antenna -> groom (shuffled)": [
+    0.05,
+    0.05,
+    0.05
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    9229,
+    8837,
+    8957
+   ]
+  },
+  {
+   "gain": 0.5,
+   "sugar -> feed": [
+    50.0,
+    48.0,
+    52.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    12586,
+    11981,
+    12188
+   ],
+   "loom R -> escape": [
+    274.0,
+    278.0,
+    279.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    63.33,
+    62.95,
+    62.52
+   ],
+   "antenna -> groom (shuffled)": [
+    0.19,
+    0.05,
+    0.1
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    17486,
+    16994,
+    16856
+   ]
+  },
+  {
+   "gain": 0.55,
+   "sugar -> feed": [
+    60.0,
+    58.0,
+    58.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    16926,
+    15720,
+    16089
+   ],
+   "loom R -> escape": [
+    284.0,
+    280.0,
+    279.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    72.48,
+    72.43,
+    72.0
+   ],
+   "antenna -> groom (shuffled)": [
+    0.19,
+    0.1,
+    0.14
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    23369,
+    22871,
+    22854
+   ]
+  },
+  {
+   "gain": 0.6,
+   "sugar -> feed": [
+    76.0,
+    73.0,
+    74.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    19842,
+    19692,
+    19896
+   ],
+   "loom R -> escape": [
+    280.0,
+    284.0,
+    279.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    83.14,
+    82.95,
+    81.14
+   ],
+   "antenna -> groom (shuffled)": [
+    0.24,
+    0.14,
+    0.24
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    30180,
+    32057,
+    54149
+   ]
+  },
+  {
+   "gain": 0.62,
+   "sugar -> feed": [
+    80.0,
+    82.0,
+    80.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    21247,
+    21447,
+    21454
+   ],
+   "loom R -> escape": [
+    283.0,
+    288.0,
+    280.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    84.05,
+    87.24,
+    85.05
+   ],
+   "antenna -> groom (shuffled)": [
+    0.33,
+    0.19,
+    0.29
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    62660,
+    60799,
+    60782
+   ]
+  },
+  {
+   "gain": 0.63,
+   "sugar -> feed": [
+    85.0,
+    86.0,
+    87.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    21379,
+    21859,
+    22152
+   ],
+   "loom R -> escape": [
+    284.0,
+    281.0,
+    281.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    82.29,
+    85.48,
+    88.76
+   ],
+   "antenna -> groom (shuffled)": [
+    0.33,
+    0.19,
+    0.33
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    571627,
+    569378,
+    572371
+   ]
+  },
+  {
+   "gain": 0.65,
+   "sugar -> feed": [
+    92.0,
+    91.0,
+    86.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    23080,
+    23496,
+    23444
+   ],
+   "loom R -> escape": [
+    279.0,
+    286.0,
+    278.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    87.57,
+    84.29,
+    86.38
+   ],
+   "antenna -> groom (shuffled)": [
+    0.33,
+    0.19,
+    0.33
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "carry_spikes": [
+    585187,
+    585818,
+    586300
+   ]
+  },
+  {
+   "gain": 0.7,
+   "sugar -> feed": [
+    101.0,
+    97.0,
+    102.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    27215,
+    39047,
+    27639
+   ],
+   "loom R -> escape": [
+    283.0,
+    277.0,
+    276.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    77.71,
+    95.86,
+    94.29
+   ],
+   "antenna -> groom (shuffled)": [
+    0.38,
+    0.29,
+    0.33
+   ],
+   "sugar+bitter -> feed": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "carry_spikes": [
+    661327,
+    655551,
+    659052
+   ]
+  },
+  {
+   "gain": 0.8,
+   "sugar -> feed": [
+    106.0,
+    99.0,
+    102.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    369309,
+    544950,
+    102173
+   ],
+   "loom R -> escape": [
+    259.0,
+    244.0,
+    254.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    103.76,
+    99.76,
+    70.14
+   ],
+   "antenna -> groom (shuffled)": [
+    0.57,
+    0.38,
+    0.33
+   ],
+   "sugar+bitter -> feed": [
+    3.0,
+    1.0,
+    0.0
+   ],
+   "carry_spikes": [
+    692828,
+    771090,
+    773260
+   ]
+  },
+  {
+   "gain": 1.0,
+   "sugar -> feed": [
+    134.0,
+    148.0,
+    144.0
+   ],
+   "sugar -> feed (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "sugar_spikes": [
+    805714,
+    798156,
+    795777
+   ],
+   "loom R -> escape": [
+    204.0,
+    204.0,
+    205.0
+   ],
+   "loom R -> escape (shuffled)": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "antenna -> groom": [
+    24.29,
+    55.14,
+    29.19
+   ],
+   "antenna -> groom (shuffled)": [
+    0.71,
+    0.62,
+    0.62
+   ],
+   "sugar+bitter -> feed": [
+    13.0,
+    14.0,
+    12.0
+   ],
+   "carry_spikes": [
+    976388,
+    975600,
+    973930
+   ]
+  }
+ ]
 }

@@ -1,16 +1,26 @@
 """Leaky integrate-and-fire engine for a whole connectome.
 
-Parameters follow Shiu et al. 2024 (Nature 634:210), plus one global gain on
-the synaptic weight (spec section 3.2: MaleCNS at Shiu's weight is
-supercritical; gain 0.5 is the lowest tested value at which sugar->MN9,
-looming->giant fiber and JO-C/E->aDN all fire while shuffled wiring is silent).
+The model is Shiu et al. 2024 (Nature 634:210) as their Brian2 code runs it
+(github.com/philshiu/Drosophila_brain_model, model.py), plus one global gain
+on the synaptic weight (spec section 3.2: on MaleCNS at Shiu's weight, one
+stimulus sets off network-wide activity).
 
 State per neuron, in mV: membrane u = v - v_rest and synaptic drive g.
-    du/dt = (g - u) / tau_m        dg/dt = -g / tau_s
+    du/dt = (g - u) / tau_m        dg/dt = -g / tau_s     (unless refractory)
 The system is linear, so each 0.1 ms step is the exact update
     u <- u*a_m + g*c               g <- g*a_s
-During the refractory period nothing integrates, but arriving input still
-accumulates in g (Brian2 "unless refractory" semantics, as in Shiu's code).
+Each step runs in Brian2's schedule: integrate the neurons that are not
+refractory, test the threshold, deliver this step's synaptic input to g and
+Poisson kicks to u, then reset the neurons that fired: v = v_rst AND g = 0
+(Shiu's eq_rst). Input and kicks that land on a spike step are therefore lost.
+Refractory neurons hold u and g but still receive input.
+
+Refractoriness: 2.2 ms, i.e. a neuron can fire again 22 steps after it fired
+(Brian2: timestep(t - lastspike) >= timestep(rfc)). Poisson targets have
+none (Shiu sets rfc = 0 ms on every PoissonInput target), so a stimulated
+neuron fires at ~ the requested rate. A neuron that becomes a target while
+refractory finishes its countdown (only possible when state persists).
+
 A spike from neuron j adds data[e] * w to g of each target 18 steps later,
 through an 18-slot ring buffer; only neurons that spiked propagate.
 
@@ -19,7 +29,10 @@ Delay blocks: a spike needs 18 steps to arrive, so no spike fired inside an
 therefore integrates a whole block per neuron range without synchronizing,
 then propagates the block's spikes into the ring. That is exactly the
 step-by-step result with 18x fewer thread barriers, and each thread keeps its
-slice of the state in cache for the whole block.
+slice of the state in cache for the whole block. A refractory neuron fires
+at most once per block; a Poisson target at most every other step (its reset
+also clears the kick), so at most 9 times, and the spike buffers are sized
+for that.
 
 Parallelism: integration is split over neuron chunks; propagation over
 TARGET ranges -- each thread binary-searches every spiker's target-sorted
@@ -53,30 +66,42 @@ _U_TH = np.float32(V_THRESH_MV - V_REST_MV)
 _KICK = np.float32(POISSON_KICK_MV)
 _EPS = np.float32(1e-6)
 _ZERO = np.float32(0.0)
-_REFR = np.int32(REFRACTORY_STEPS)
+# A neuron stays refractory for this many steps after the step it fired in, so
+# it can fire again 22 steps later. It holds exactly this count only on the
+# step it fired in, which is how spikes are found. Poisson targets drop to 0.
+REFRACTORY_AFTER_SPIKE = REFRACTORY_STEPS - 1
+MAX_TARGET_SPIKES_PER_BLOCK = DELAY_STEPS // 2
+_REFR = np.int32(REFRACTORY_AFTER_SPIKE)
 _I0 = np.int32(0)
 _I1 = np.int32(1)
 
 
 @njit(cache=True)
-def _integrate(u, g, refr, row):
-    """One step for a contiguous slice of neurons. Branch-free and indexed from 0,
-    so LLVM vectorizes it: an offset index (range(lo, hi)) keeps numba's
-    negative-index wraparound check, which blocks SIMD and costs ~4x."""
+def _step(u, g, refr, row):
+    """One step for a contiguous slice of neurons, in Brian2's order: integrate
+    unless refractory, threshold, deliver this step's input to g, reset the
+    neurons that fired (u = 0, g = 0). The caller then delivers the Poisson
+    kicks to the neurons that did not fire, and ends the refractory period of
+    the Poisson targets that did. Branch-free and indexed from 0, so LLVM
+    vectorizes it: an offset index (range(lo, hi)) keeps numba's
+    negative-index wraparound check, which blocks SIMD."""
     for i in range(u.shape[0]):
-        gi = g[i] + row[i]
-        row[i] = _ZERO
         r = refr[i]
-        ui = u[i]
-        un = ui * _A_M + gi * _C_GU
-        gn = gi * _A_S
         ref = r > _I0
+        ui = u[i]
+        gi = g[i]
+        un = ui * _A_M + gi * _C_GU  # computed for all, selected below:
+        gn = gi * _A_S               # a select vectorizes, a branch does not
+        un = ui if ref else un
+        gn = gi if ref else gn
         sp = (not ref) and (un > _U_TH)
+        gn = gn + row[i]
+        row[i] = _ZERO
         gn = _ZERO if (gn > -_EPS and gn < _EPS) else gn
         un = _ZERO if (un > -_EPS and un < _EPS) else un
-        u[i] = ui if ref else (_U_RESET if sp else un)
-        g[i] = gi if ref else gn
-        refr[i] = (r - _I1) if ref else (_REFR if sp else _I0)
+        u[i] = _U_RESET if sp else un
+        g[i] = _ZERO if sp else gn
+        refr[i] = _REFR if sp else ((r - _I1) if ref else _I0)
 
 
 @njit(cache=True)
@@ -92,8 +117,8 @@ def _collect(refr, lo, out, m):
 
 @njit(parallel=True, cache=True)
 def _run_kernel(indptr, indices, data, w, u, g, refr, ring, step0, n_steps,
-                kick_ptr, kick_idx, pop_of, pop_bins, bin_spikes, bin_steps,
-                counts, chunk, cnt, coff, spk_buf, spk_list, step_ptr,
+                kick_ptr, kick_idx, tgt, tgt_ptr, pop_of, pop_bins, bin_spikes, bin_steps,
+                counts, chunk, cnt, coff, cap_ptr, spk_buf, spk_list, step_ptr,
                 part_bounds, serial_edge_limit):
     n = u.shape[0]
     n_chunks = cnt.shape[0]
@@ -102,31 +127,38 @@ def _run_kernel(indptr, indices, data, w, u, g, refr, ring, step0, n_steps,
     total = 0
     for b0 in range(0, n_steps, delay):
         blk = min(delay, n_steps - b0)
-        # A. integrate the whole block, parallel over neuron chunks. A neuron
-        #    fires at most once per block (refractory 22 steps > block of 18).
+        # A. integrate the whole block, parallel over neuron chunks. Chunk c
+        #    collects its block's spikes in spk_buf[cap_ptr[c]:cap_ptr[c + 1]].
         for c in prange(n_chunks):
             lo = c * chunk
             hi = min(n, lo + chunk)
             uu = u[lo:hi]
             gg = g[lo:hi]
             rr = refr[lo:hi]
+            out = spk_buf[cap_ptr[c]:cap_ptr[c + 1]]
             m = 0
             for j in range(blk):
                 s = b0 + j
-                # Poisson kicks for this step that land in this chunk (sorted)
+                _step(uu, gg, rr, ring[(step0 + s) % delay][lo:hi])
+                m0 = m
+                m = _collect(rr, lo, out, m)
+                cnt[c, j] = m - m0
+                # Poisson kicks for this step that land in this chunk (sorted),
+                # after the threshold test; the reset erased those on spikers
                 ka = kick_ptr[s]
                 kb = kick_ptr[s + 1]
                 if ka < kb:
                     k = ka + np.searchsorted(kick_idx[ka:kb], lo)
                     while k < kb and kick_idx[k] < hi:
                         i = kick_idx[k] - lo
-                        if rr[i] == 0:
+                        if rr[i] != _REFR:
                             uu[i] += _KICK
                         k += 1
-                _integrate(uu, gg, rr, ring[(step0 + s) % delay][lo:hi])
-                m0 = m
-                m = _collect(rr, lo, spk_buf[lo:hi], m)
-                cnt[c, j] = m - m0
+                # Poisson targets have no refractory period (Shiu: rfc = 0 ms)
+                for t in range(tgt_ptr[c], tgt_ptr[c + 1]):
+                    i = tgt[t] - lo
+                    if rr[i] == _REFR:
+                        rr[i] = _I0
         # B. gather the block's spikes in (step, neuron) order; count and bin
         for c in range(n_chunks):
             coff[c] = 0
@@ -136,7 +168,7 @@ def _run_kernel(indptr, indices, data, w, u, g, refr, ring, step0, n_steps,
             step_ptr[j] = ns
             b = (b0 + j) // bin_steps
             for c in range(n_chunks):
-                base = c * chunk + coff[c]
+                base = cap_ptr[c] + coff[c]
                 for k in range(cnt[c, j]):
                     i = spk_buf[base + k]
                     spk_list[ns] = i
@@ -243,7 +275,7 @@ class WindowResult:
 
 
 class Engine:
-    def __init__(self, indptr, indices, data, gain=0.5, pop_of=None, n_pops=0,
+    def __init__(self, indptr, indices, data, gain=0.65, pop_of=None, n_pops=0,
                  parts=None, chunk=None, serial_edge_limit=20_000):
         self.indptr = np.ascontiguousarray(indptr, dtype=np.int64)
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
@@ -263,6 +295,7 @@ class Engine:
         self._cnt = np.zeros((n_chunks, DELAY_STEPS), dtype=np.int64)
         self._coff = np.zeros(n_chunks, dtype=np.int64)
         self._step_ptr = np.zeros(DELAY_STEPS + 1, dtype=np.int64)
+        self._chunk_sizes = np.minimum(self.chunk, self.n - np.arange(n_chunks) * self.chunk)
         self._spk_buf = np.zeros(max(1, self.n), dtype=np.int32)
         self._spk_list = np.zeros(max(1, self.n), dtype=np.int32)
         self.reset()
@@ -280,13 +313,30 @@ class Engine:
         self.step = 0
 
     def run(self, ms, stim_idx=None, stim_hz=None, seed=0, n_bins=10):
+        """Every neuron in stim_idx is a Poisson target this window (no
+        refractory period, as in Shiu's model), whatever its rate."""
         n_steps = max(1, int(round(float(ms) / DT_MS)))
         ptr, idx = poisson_kicks(stim_idx, stim_hz, n_steps, np.random.default_rng(seed))
-        return self.run_kicks(n_steps, ptr, idx, n_bins=n_bins)
+        targets = np.zeros(0, np.int64) if stim_idx is None else np.asarray(stim_idx)
+        return self.run_kicks(n_steps, ptr, idx, n_bins=n_bins, targets=targets)
 
-    def run_kicks(self, n_steps, kick_ptr, kick_idx, n_bins=10):
+    def run_kicks(self, n_steps, kick_ptr, kick_idx, n_bins=10, targets=None):
         """kick_idx must be ascending within each step (poisson_kicks and
-        kicks_from_events guarantee it)."""
+        kicks_from_events guarantee it). targets: this window's Poisson targets
+        (no refractory period); default, the neurons that receive a kick."""
+        kick_idx = np.ascontiguousarray(kick_idx, dtype=np.int32)
+        tgt = np.unique(kick_idx if targets is None
+                        else np.asarray(targets, dtype=np.int64)).astype(np.int32)
+        n_chunks = len(self._chunk_sizes)
+        tgt_ptr = np.searchsorted(tgt, np.arange(n_chunks + 1) * self.chunk).astype(np.int64)
+        # per-chunk spike capacity for one block: every neuron once, plus the
+        # extra spikes a Poisson target can fire (every other step)
+        cap = self._chunk_sizes + (MAX_TARGET_SPIKES_PER_BLOCK - 1) * np.diff(tgt_ptr)
+        cap_ptr = np.zeros(len(cap) + 1, dtype=np.int64)
+        cap_ptr[1:] = np.cumsum(cap)
+        if cap_ptr[-1] > len(self._spk_buf):
+            self._spk_buf = np.zeros(int(cap_ptr[-1]), dtype=np.int32)
+            self._spk_list = np.zeros(int(cap_ptr[-1]), dtype=np.int32)
         n_bins = max(1, min(int(n_bins), n_steps))
         bin_steps = -(-n_steps // n_bins)
         n_bins = -(-n_steps // bin_steps)
@@ -296,10 +346,9 @@ class Engine:
         t0 = time.perf_counter()
         _run_kernel(self.indptr, self.indices, self.data, self.w, self.u, self.g,
                     self.refr, self.ring, self.step, n_steps,
-                    np.ascontiguousarray(kick_ptr, dtype=np.int64),
-                    np.ascontiguousarray(kick_idx, dtype=np.int32),
+                    np.ascontiguousarray(kick_ptr, dtype=np.int64), kick_idx, tgt, tgt_ptr,
                     self.pop_of, pop_bins, bin_spikes, bin_steps, counts, self.chunk,
-                    self._cnt, self._coff, self._spk_buf, self._spk_list, self._step_ptr,
+                    self._cnt, self._coff, cap_ptr, self._spk_buf, self._spk_list, self._step_ptr,
                     self.part_bounds, self.serial_edge_limit)
         wall_ms = (time.perf_counter() - t0) * 1000.0
         self.step += n_steps

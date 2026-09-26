@@ -1,7 +1,7 @@
 """Brain subprocess: owns the connectome + engine, speaks JSON lines on stdio.
 
     python -m server.brain.worker [--dir D | --cache NPZ] [--populations YAML]
-                                  [--gain 0.5] [--threads 0] [--no-fetch]
+                                  [--gain 0.65] [--threads 0] [--no-fetch]
 
 stdout carries protocol lines only; every log line goes to stderr.
 Protocol: docs/superpowers/specs/2026-09-25-fly-brain-design.md section 3.6.
@@ -19,7 +19,7 @@ from .engine import Engine
 class Brain:
     """Everything the worker does except the stdio loop (so tests can drive it)."""
 
-    def __init__(self, net, specs, noise_superclasses=(), gain=0.5, engine_kwargs=None):
+    def __init__(self, net, specs, noise_superclasses=(), gain=0.65, engine_kwargs=None):
         self.net = net
         self.specs = {s.name: s for s in specs}
         self.order = [s.name for s in specs]
@@ -102,7 +102,7 @@ def main(argv=None):
     ap.add_argument("--dir", default=None)
     ap.add_argument("--cache", default=None)
     ap.add_argument("--populations", default=populations.DEFAULT_SPEC)
-    ap.add_argument("--gain", type=float, default=0.5)
+    ap.add_argument("--gain", type=float, default=0.65)
     ap.add_argument("--threads", type=int, default=0)
     ap.add_argument("--no-fetch", action="store_true")
     args = ap.parse_args(argv)

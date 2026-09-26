@@ -32,8 +32,8 @@ def test_threshold_overrides():
 
 
 def test_reject_keys_on_delivered_taste_when_stim_given():
-    # When the network ignites, GNG016 drives the bitter GRN terminals centrally
-    # (~46 Hz measured) although nothing bitter was tasted: that is not REJECT.
+    # A taste is what was delivered, not what the bitter GRN terminals read: the
+    # first build's engine drove them centrally (~46 Hz) with nothing tasted.
     assert classify({"bitter": 46, "groom": 263}, stim={"antenna": 100, "ears": 50}).name == "GROOM"
     assert classify({"bitter": 76, "walk": 22}, stim={}).name == "WALK"
     rej = classify({"bitter": 136, "feed": 29}, stim={"bitter": 100, "ears": 50})

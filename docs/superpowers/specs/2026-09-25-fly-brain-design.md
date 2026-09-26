@@ -18,7 +18,7 @@ There is no invented persona. Personality is whatever falls out of the wiring. T
 
 ### 1.1 Success criteria
 
-1. **The brain is real.** Three pathways from the literature fire in simulation, and each goes silent when the wiring is shuffled (§3.3):
+1. **The brain is real.** Three pathways from the literature fire in simulation, and each goes silent when the wiring is shuffled (§3.3; the 42-neuron grooming readout keeps a trace under 1 Hz):
    - sugar → MN9 feeding (Shiu 2024)
    - looming → giant-fiber escape (von Reyn 2014, Ache 2019)
    - antennal JO-C/E → aDN grooming (Hampel 2015)
@@ -79,37 +79,64 @@ Leaky integrate-and-fire, with the parameters of Shiu et al. 2024 (*Nature* 634:
 | threshold | −45 mV |
 | membrane τ | 20 ms |
 | synaptic τ | 5 ms |
-| refractory | 2.2 ms (22 steps) |
+| refractory | 2.2 ms (22 steps); none for Poisson-stimulated neurons |
 | synaptic delay | 1.8 ms (18 steps) |
 | dt | 0.1 ms |
 | weight per synapse | 0.275 mV × **gain** × sign |
-| Poisson stimulus kick | 250 × 0.275 mV (suprathreshold: a stimulated neuron fires ≈ at the requested rate) |
+| Poisson stimulus kick | 250 × 0.275 mV = 68.75 mV (suprathreshold: a stimulated neuron fires at the requested rate) |
+
+The engine runs the model **as Shiu's Brian2 code (`model.py`) runs it**:
 
 - **Dynamics:** `du/dt = (g − u)/τm` and `dg/dt = −g/τs`, with `u = v − v_rest`. This system is linear, so each step uses the exact update: `u ← u·e^(−dt/τm) + g·c` and `g ← g·e^(−dt/τs)`, where `c = τs/(τs−τm)·(e^(−dt/τs) − e^(−dt/τm))`.
-- **Refractory:** while refractory, integration pauses, but incoming events still accumulate in `g` (Brian2 `unless refractory` semantics).
+- **Schedule, per step (Brian2's order):**
+  1. integrate every neuron that is not refractory;
+  2. test the threshold;
+  3. deliver this step's synaptic input (`g += w`) and Poisson kicks (`v += 68.75 mV`);
+  4. reset every neuron that spiked: `v = v_rest` **and `g = 0`** (Shiu's `eq_rst`).
+
+  Input and kicks that land on a neuron's spike step are erased by its reset.
+- **Refractory:** Brian2's `timestep(t − lastspike) ≥ timestep(rfc)`, so a neuron can fire again 22 steps after it fired. While refractory, integration pauses, but input still accumulates in `g` and kicks still reach `v`. Shiu sets `rfc = 0` for every Poisson-stimulated neuron, so a stimulated neuron can fire every other step, and fires at the requested rate (150 Hz in: 147–148 Hz measured across the sugar and antenna populations).
 - **Spikes:** a spike from neuron j adds `data[e]·w` to target `g` 18 steps later, using an 18-slot ring buffer of target vectors.
 - **Speed:** only neurons that spiked propagate, so cost scales with activity.
+- **Proof:** the parallel engine matches a plain per-step reference simulator written in Brian2's order bit for bit, counts, `u` and `g` alike, on a random 400-neuron net with 40 stimulated neurons (`test_block_kernel_matches_shiu_brian2_reference`).
 
-### 3.2 Why a gain, and how it was chosen (measured 2026-09-25)
+*Changed in the final review.* The first build departed from Shiu in four ways: no `g` reset on a spike, Poisson kicks dropped while refractory, a minimum inter-spike interval of 23 steps instead of 22, and a 22-step refractory period for stimulated neurons, so a 150 Hz stimulus delivered about 112 Hz. The gain, the ignition findings and every calibrated number rested on those departures. The engine was rebuilt to the schedule above, and every number in this spec was measured again on it.
 
-At Shiu's 0.275 mV with every MaleCNS edge, the network is **supercritical**. One stimulus ignites the whole CNS: 4.7 M spikes per simulated second, 28 Hz average across all 166,700 neurons, MN9 saturated at 426 Hz. Target-shuffled wiring ignites too, with 24 M spikes. Shiu's model ran on FlyWire, a different reconstruction with different synapse detection and no VNC, so its weight does not transfer 1:1.
+### 3.2 Why a gain, and how it was chosen (re-measured in the final review)
 
-We swept one global gain on the synaptic weight. All runs used 500 ms windows, right-side stimulation at 150 Hz, and target-shuffled wiring as the control:
+At Shiu's 0.275 mV (gain 1.0) with every MaleCNS edge, one stimulus sets off network-wide activity. Sugar at 150 Hz drives about 800 k spikes per 500 ms window from rest (≈ 1.6 M per simulated second, ~10 Hz averaged over all 166,700 neurons), against 23 k at the chosen gain, and antenna drive no longer grooms reliably (aDN 24–55 Hz, depending on seed). Shiu's model ran on FlyWire, a different reconstruction with different synapse detection and no VNC, so its weight does not transfer 1:1.
 
-| gain | sugar → MN9 | loom → giant fiber | JO-C/E → aDN | shuffled (all) |
-|---|---|---|---|---|
-| 0.25 | 0 Hz | — | — | silent |
-| 0.35 | 34 Hz | 425 Hz | 0 | silent |
-| 0.42 | 229 Hz | 424 Hz | 0 | silent |
-| **0.50** | **249 Hz** | **309 Hz** | **236 Hz** | **silent** |
-| 1.00 | 426 Hz (runaway) | — | — | ignites |
+We swept one global gain on the synaptic weight. Every run used a 500 ms window from rest, 150 Hz stimulation (bilateral; loom on the right side only), seeds 1/2/3, and target-shuffled wiring as the control (`calibration.json`, `gain_sweep`):
 
-**We choose gain = 0.5**, i.e. 0.1375 mV per synapse. It is the lowest tested gain at which all three pathways fire in a 500 ms window from rest. It is **not** a safe margin below runaway in sustained operation (measured during implementation, §3.7). Two caveats:
+| gain | sugar → MN9 (Hz) | loom → giant fiber | JO-C/E → aDN | sugar + bitter → MN9 | shuffled aDN | spikes, sugar window | spikes, quiet window after antenna drive |
+|---|---|---|---|---|---|---|---|
+| 0.40 | 7 / 6 / 7 | 261–264 | 41 | 0 | 0.1 | 9 k | 9 k |
+| 0.50 | 50 / 48 / 52 | 274–279 | 63 | 0 | 0.1–0.2 | 12 k | 17 k |
+| 0.55 | 60 / 58 / 58 | 279–284 | 72 | 0 | 0.1–0.2 | 16 k | 23 k |
+| 0.60 | 76 / 73 / 74 | 279–284 | 81–83 | 0 | 0.1–0.2 | 20 k | 30–54 k |
+| 0.62 | 80 / 82 / 80 | 280–288 | 84–87 | 0 | 0.2–0.3 | 21 k | 61 k |
+| 0.63 | 85 / 86 / 87 | 281–284 | 82–89 | 0 | 0.2–0.3 | 22 k | 570 k |
+| **0.65** | **92 / 91 / 86** | **278–286** | **84–88** | **0** | **0.2–0.3** | **23 k** | **586 k** |
+| 0.70 | 101 / 97 / 102 | 276–283 | 78–96 | 0–1 | 0.3–0.4 | 27–39 k | 659 k |
+| 0.80 | 106 / 99 / 102 | 244–259 | 70–104 | 0–3 | 0.3–0.6 | 102–545 k | 693–773 k |
+| 1.00 | 134 / 148 / 144 | 204–205 | 24–55 | 12–14 | 0.6–0.7 | 800 k | 975 k |
 
-- This is **a single scalar fitted on these three pathways**. They are therefore a calibration check, not an independent prediction. The spec says so, and so does the calibration report.
-- The independent evidence is the shuffled control, which is silent at every gain ≤ 0.5. Activity is carried by the specific wiring, not by the amount of input.
+With shuffled wiring, MN9 and the giant fiber stay at exactly 0 at every gain, 1.0 included.
 
-The gain lives in `brain.gain`, and `scripts/brain_calibrate.py` re-derives the table.
+**We choose gain = 0.65**, i.e. ≈ 0.179 mV per synapse:
+
+- It is the lowest swept gain at which every §3.3 line passes with margin on all three seeds. At 0.62, MN9 sits on the 80 Hz feeding line.
+- One food word, as the party delivers it (sugar 150 Hz plus chat sound, `ears` 50 Hz), feeds on 8 of 8 seeds at 0.65, against 7 of 8 at 0.63 and 6 of 8 at 0.62.
+- Above it, feeding gains little while grooming turns erratic from seed to seed (0.7–0.8), and at 0.8 a single sugar window can recruit half a million spikes.
+
+Two caveats:
+
+- This is **a single scalar fitted on these pathways**. They are therefore a calibration check, not an independent prediction. The spec says so, and so does the calibration report.
+- The independent evidence is the shuffled control. MN9 and the giant fiber stay at 0 with shuffled wiring. The 42 aDN neurons pick up a trace: 0.1–0.7 Hz, a few spikes per window from 335 JO-C/E neurons firing at 150 Hz. That is more than 100× below the real response at every gain up to 0.8. Activity is carried by the specific wiring, not by the amount of input.
+
+The gain lives in `brain.gain`, and `scripts/brain_calibrate.py --sweep` re-derives the table.
+
+*Changed in the final review:* the first build chose 0.5, on the engine that departed from Shiu (§3.1). On the faithful engine, 0.5 drives MN9 to only ~50 Hz, under the feeding line. The carry-over column is §3.7.
 
 ### 3.3 Validation (pre-registered, becomes tests)
 
@@ -122,19 +149,21 @@ These use the real connectome at the configured gain. The tests are skipped when
 | LC4 + LPLC2, right side | giant fiber mean ≥ 50 Hz | — |
 | LC4 + LPLC2, target-shuffled | — | giant fiber > 0 |
 | JO-C/E | aDN (DNg12) mean ≥ 30 Hz | giant fiber ≥ 50 Hz |
-| JO-C/E, target-shuffled | — | aDN > 0 |
+| JO-C/E, target-shuffled | — | aDN ≥ 1 Hz |
 | sugar + bitter together | MN9 ≤ 50% of sugar alone | — |
 
-**Measured (bilateral, `characters/fly/brain/calibration.json`, 2026-09-25).** All pass, and every shuffled control is silent:
+*Changed in the final review:* the shuffled JO-C/E line was "aDN > 0". On the faithful engine, 335 JO-C/E neurons firing at the full 150 Hz leak a few random spikes into the 42 aDN neurons through shuffled wiring, 0.1–0.7 Hz at every gain swept (§3.2). That is at least 30× below the GROOM threshold and far below the real response, so the line is now < 1 Hz. The two-neuron readouts (MN9, giant fiber) keep the strict zero.
+
+**Measured at gain 0.65 (`characters/fly/brain/calibration.json`, seeds 1/2/3).** All pass:
 
 | Case | Target | Real | Shuffled |
 |---|---|---|---|
-| sugar → MN9 | ≥ 80 Hz | **245 Hz** | 0 Hz |
-| LC4 + LPLC2 (right) → giant fiber | ≥ 50 Hz | **304 Hz** | 0 Hz |
-| JO-C/E → aDN | ≥ 30 Hz | **269 Hz** | 0 Hz |
-| sugar + bitter → MN9 (seeds 1/2/3) | ≤ 50% of sugar alone | **54 / 53 / 56 Hz** vs 245 / 199 / 227 Hz (22–27%) | — |
+| sugar → MN9 | ≥ 80 Hz | **92 / 91 / 86 Hz** | 0 Hz |
+| LC4 + LPLC2 (right) → giant fiber | ≥ 50 Hz | **279 / 286 / 278 Hz** | 0 Hz |
+| JO-C/E → aDN | ≥ 30 Hz | **87.6 / 84.3 / 86.4 Hz** | 0.3 / 0.2 / 0.3 Hz |
+| sugar + bitter → MN9 | ≤ 50% of sugar alone | **0 / 0 / 0 Hz** vs 92 / 91 / 86 Hz | — |
 
-The loom and JO-C/E runs also show the LB1 bitter GRNs at 46–49 Hz with no taste input. That is central drive during ignition (§3.7), not taste.
+The giant fiber stays at 0 in the sugar and JO-C/E runs. The LB1 bitter GRNs read 0 Hz in the loom and JO-C/E runs, and in self-sustaining windows (§3.7). The first build's 46–49 Hz of "central bitter" came from its engine departures.
 
 ### 3.4 Populations
 
@@ -157,15 +186,17 @@ Populations are resolved by the annotation `type` column and live in `server/bra
 **How sugar and bitter were identified.** MaleCNS does not label GRN taste modality: `receptorType` only has putative ppk23, ppk25 and IR52b. We used two methods:
 
 - **Sugar:** LB3a–d are the labellar GRN types whose top downstream partners are the sugar-pathway neurons named in Shiu 2022: Usnea, Phantom, Clavicle, Quasimodo, Zorro, Specter and G2N-1. These names are carried in the MaleCNS `synonyms` column. Measured from the edge table.
-- **Bitter:** we used Shiu's own functional test. Each non-sugar GRN group was co-stimulated with sugar:
+- **Bitter:** we used Shiu's own functional test. Each non-sugar GRN group was co-stimulated with sugar, 150 Hz each, at gain 0.65 on the faithful engine:
 
   | group | MN9, seeds 1/2/3 |
   |---|---|
-  | sugar alone | 249 / 250 / 246 Hz |
-  | + LB1a–e | **42 / 43 / 41 Hz** |
-  | + LB2, LB4, taste pegs | unchanged, 244–255 Hz |
+  | sugar alone | 92 / 91 / 86 Hz |
+  | + LB1a–e (57 neurons) | **0 / 0 / 0 Hz** |
+  | + LB2a–d (18) | 95 / 96 / 96 Hz |
+  | + LB4a–b (12) | 92 / 98 / 102 Hz |
+  | + taste pegs (PEG, 18) | 87 / 87 / 83 Hz |
 
-  LB1a–e is therefore the aversive group. This is a model inference, not ground truth, and the spec and panel say so.
+  LB1a–e is therefore the aversive group. The first build's engine gave the same verdict (249 → 42 Hz, the other groups unchanged). This is a model inference, not ground truth, and the spec and panel say so.
 
 ### 3.5 Performance design
 
@@ -179,17 +210,23 @@ The probe was serial numba and took **~6 s wall per 500 ms** in busy windows (~6
 - **Threads:** `brain.threads` (0 = numba default).
 - **Startup:** JIT compile uses `cache=True` and runs a warm-up at worker start.
 
-**As built.** The engine steps in **18-step delay blocks**. A spike takes 18 steps to land, so within a block no neuron can affect another: integration runs 18 steps per neuron chunk in parallel. The refractory period (22 steps) is longer than a block, so a neuron fires at most once per block. The block's spikes are then gathered and propagated once. The result is exact, not an approximation. The inner loops are separate `@njit` helpers over zero-based slice views, so numba vectorizes them.
+**As built.** The engine steps in **18-step delay blocks**. A spike takes 18 steps to land, so within a block no neuron can affect another: integration runs 18 steps per neuron chunk in parallel. The block's spikes are then gathered and propagated once. The result is exact, not an approximation (§3.1, proof test).
 
-**Measured** (dev box, 24 threads, 500 ms windows; `calibration.json` timing and the live test):
+- A neuron with a refractory period fires at most once per block. A Poisson-stimulated neuron has none (§3.1) and can fire up to 9 times, so each chunk's spike buffer is sized by the stimulated neurons it holds.
+- Integration is branch-free over every neuron: the update is computed for all and then selected, so numba vectorizes it. That beat design item 3 (skipping quiet neurons).
+- The inner loops are separate `@njit` helpers over zero-based slice views, which is what lets numba vectorize them.
+
+**Measured** (dev box, 24 threads, 500 ms windows, gain 0.65; `calibration.json` timing, median of seeds 1–3, plus probe runs):
 
 | Window | Spikes | Wall |
 |---|---|---|
-| quiet (idle noise) | ~100 | 0.22–0.27 s |
-| sugar → FEED, not ignited | ~340 k | 0.57–0.62 s |
-| ignited (§3.7) | 1.1–1.3 M, ~19 k neurons active | 1.19–1.30 s; **1.58 s** once, under live load (server, SoVITS, client and Ollama running) |
+| quiet, no input | 0 | 0.23 s |
+| sugar 150 Hz → FEED | 23 k | 0.26 s |
+| antenna 150 Hz → GROOM | 198 k | 0.41 s |
+| bitter 150 Hz → REJECT, ending in the self-sustaining state (§3.7) | 492 k, ~13.5 k neurons active | 0.61–0.63 s |
+| idle noise, busy window (§4.5) | 115–440 k | 0.32–0.57 s |
 
-The worker is ready about 50 s after spawn (cache load plus JIT warm-up). `window_ms` stays at 500. Ignited windows sit at the edge of the 1.5 s target.
+Every window is well inside the 1.5 s target, so `window_ms` stays at 500. (The first build's engine took 1.2–1.6 s for its busiest windows.) The worker is ready about 50 s after spawn (cache load plus JIT warm-up).
 
 ### 3.6 Process boundary
 
@@ -199,7 +236,7 @@ Messages from the worker:
 
 - On start (stdout only carries protocol lines; logs go to stderr):
   - `{"status":"loading","stage":"fetch|build|load|jit","progress":0.4}` (any number of these)
-  - then `{"status":"ready","neurons":166700,"connections":25582938,"synapses":124177617,"populations":{"sugar":77,…},"gain":0.5}`
+  - then `{"status":"ready","neurons":166700,"connections":25582938,"synapses":124177617,"populations":{"sugar":77,…},"gain":0.65}`
 
 Requests and replies:
 
@@ -210,27 +247,33 @@ Requests and replies:
 - **reset** (`{"cmd":"reset"}`), **ping** (`{"cmd":"ping"}` → `{"status":"pong"}`), **quit** (`{"cmd":"quit"}`).
 - **errors:** `{"status":"error","id":7,"error":"…"}`.
 
-**Changed during implementation: each window starts from rest.** The design carried brain state (v, g, refractory, ring) between windows, so that a fly that just escaped would still be aroused. At gain 0.5 that carried state ignites into whole-brain activity that never decays (§3.7). So a `run` request with `"reset": true` returns the engine to rest first, making each reaction a trial from rest, as in Shiu 2024. The fly sends `reset: not brain.persist`, and `brain.persist` defaults to `false`. Setting `persist: true` restores the original carry-over.
+**Changed during implementation: each window starts from rest.** The design carried brain state (v, g, refractory, ring) between windows, so that a fly that just escaped would still be aroused. At the calibrated gain, the state carried out of an insult or a strong puff of air keeps ~0.6 M spikes per window going with no input and never decays (§3.7), so every later reaction would start from that state instead of from a resting fly. So a `run` request with `"reset": true` returns the engine to rest first, making each reaction a trial from rest, as in Shiu 2024. The fly sends `reset: not brain.persist`, and `brain.persist` defaults to `false`. Setting `persist: true` restores the original carry-over.
 
 On the server side, `server/brain/client.py` runs blocking I/O in a thread and gives each request a 10 s timeout. After a crash it restarts, with a 30 s cooldown. It sends `{"cmd":"quit"}` itself, avoiding the `command`/`cmd` mismatch in the SoVITS client. It exposes `async run(stim, ms, seed, noise, reset=False) -> BrainWindow | None`, where `None` means brainless.
 
-### 3.7 Ignition (measured during implementation)
+### 3.7 Self-sustaining activity (re-measured in the final review)
 
-At gain 0.5, the MaleCNS network is **supercritical in sustained operation**, even though single 500 ms windows from rest behave as in §3.2–3.3:
+Single 500 ms windows from rest behave as in §3.2–3.3. Across windows, though, the network at gain 0.65 has a second, **self-sustaining state** (drive one window from rest, then run quiet windows with no input and no reset):
 
-- **Strong drive ignites from rest.** Bitter, antenna or loom drive at 100–200 Hz recruits 16–19 k neurons, about 4 k of them Kenyon cells, within 200–450 ms. The same happens at gains 0.44 and 0.46, and with KC→KC edges removed.
-- **Sparse noise ignites too.** With idle noise at `frac` 0.005 and 5 Hz, carried-over state ignites in about 50% of windows.
-- **Ignition never ends.** Once ignited, activity self-sustains at about 1.7 M spikes per 500 ms (≈ 1.6 s wall per window) and does not decay.
-- **Ignition fakes bitter.** During ignition, GNG016 (bodies 6228 and 946, ~320 Hz) drives the LB1 bitter GRN terminals to about 46 Hz, with no taste input at all.
+- **Strong drive tips it in.**
+  - After an insult (bitter 100 Hz), about 12,900 neurons keep firing at ~0.6 M spikes per 500 ms with no input at all, and the activity does not decay.
+  - A puff of air (antenna 100 Hz) does the same on some seeds, and leaves ~75 k spikes per window on others.
+  - A threat (loom 150 Hz) leaves a smaller persistent state: ~50 k spikes per window, ~3,700 neurons.
+  - Chat, food, affection and an arrival settle to a few dozen or a few hundred neurons.
+- **Sparse noise tips it in too.** With idle noise at `frac` 0.002 and 5 Hz, about 1 window in 10 from rest reaches it (2 of 20 in calibration, 4 of 40 in a longer probe). Denser noise does so more often (§4.5).
+- **Every useful gain has it.** Carry-over jumps between gains 0.62 and 0.63, from 61 k to 570 k spikes per quiet window (§3.2). Every gain at which one food word reliably feeds is above the jump.
+- **It drives no behavior.** In self-sustaining windows MN9 reads 13–18 Hz and aDN 2–4 Hz, and the giant fiber and the bitter GRNs read 0. The result is NOTHING.
+
+*Corrected in the final review:* the first build reported "ignition" at gain 0.5, self-sustaining at ~1.7 M spikes per window, with GNG016 driving the LB1 bitter GRNs to ~46 Hz during it. Both numbers came from its engine departures (§3.1). On the faithful engine the self-sustaining state is about a third of that size, and the bitter GRNs stay silent in it.
 
 **What was done:**
 
-1. Each window starts from rest (§3.6).
-2. REJECT keys on the bitter taste *delivered* this window, not on the measured LB1 rate (§4.2).
+1. Each window starts from rest (§3.6), as in Shiu 2024.
+2. REJECT keys on the bitter taste *delivered* this window (§4.2). The faithful engine no longer fakes bitter, so correctness no longer needs this. It stays anyway: a taste is what was delivered, and the rule keeps any central drive of the GRN terminals from ever reading as one.
 
-With both, every calibration sense line classifies as intended, and ignited windows still end within the 1.5 s budget.
+With both, every calibration sense line classifies as intended (§4.1), and every window ends within 0.65 s on the dev box.
 
-**What was not done, and is the user's call:** a biologically grounded fix, such as spike-frequency adaptation, short-term synaptic depression, or a gain or inhibition retune, that would let state carry across windows without runaway. Each of these changes the model away from Shiu's plain LIF, and should be validated against §3.3 again.
+**What was not done, and is the user's call:** a biologically grounded fix, such as spike-frequency adaptation or short-term synaptic depression, that would let state carry across windows, so that a fly that just escaped stays aroused. Each of these changes the model away from Shiu's plain LIF, and should be validated against §3.3 again.
 
 ---
 
@@ -243,8 +286,8 @@ With both, every calibration sense line classifies as intended, and ignited wind
 | Event | Stimulus |
 |---|---|
 | any chat text (it is sound) | `ears` 50 Hz; 120 Hz if shouted (ALL CAPS word or `!!`) |
-| food/sweet words (sugar, candy, cake, fruit, banana, beer, wine, juice, soda, honey, pizza…) | `sugar` **150–200 Hz** by match count (calibrated: at 100 Hz MN9 stays silent; at 150 Hz it fires at ~245 Hz) |
-| affection/praise words (love, cute, good, nice, beautiful, best, sweet…) | `sugar` 60–120 Hz (a faint taste: below MN9 drive, so "cute" alone gives NOTHING) |
+| food/sweet words (sugar, candy, cake, fruit, banana, beer, wine, juice, soda, honey, pizza…) | `sugar` **150–200 Hz** by match count (calibrated at gain 0.65: MN9 ~90 Hz at 150 Hz, ~98 Hz at 200 Hz; one food word with chat sound feeds on 8 of 8 seeds) |
+| affection/praise words (love, cute, good, nice, beautiful, best, sweet…) | `sugar` **60–100 Hz** (a faint taste: below MN9 drive, so "cute" alone gives NOTHING) |
 | gross/insult words (gross, disgusting, hate, ugly, stupid, shut up, poison, bleach…) and profanity | `bitter` 100–200 Hz |
 | threat words (swat, squash, smash, kill, spray, raid, zapper, swatter, newspaper, slipper) | `loom` 150–200 Hz, one side (random) |
 | air/touch words (blow, wind, fan, dust, wash, clean, dirty, tickle, soap, hair) | `antenna` 100–150 Hz |
@@ -254,6 +297,13 @@ With both, every calibration sense line classifies as intended, and ignited wind
 
 - **No emotion fallback:** valence comes only from the lexicons. The keyword inference in `server/emotions.py` (`_infer_emotion_from_text`) is Mario-flavored ("wahoo", "mama mia") and is not reused.
 - **Combining:** when several senses fire, all stimuli run together in one window. The brain arbitrates; for example, sugar plus bitter gives MN9 suppression (§3.4).
+- **Affection cap (final review):** every text is also sound, so affection always arrives with `ears`. At 120 Hz plus chat sound, MN9 crossed the feeding line on 4 of 8 seeds. At 100 Hz it peaks at 77 Hz, with chat sound or shouting (0 of 8). The top rate is therefore 100 Hz.
+- **Measured** (`calibration.json` senses, gain 0.65), every line as intended:
+  - "hello there", "HEY WHAT IS UP!!", "you're so cute" → NOTHING;
+  - "have some candy" → FEED 0.37; "cake and beer and candy" → FEED 0.40;
+  - "you are disgusting", "ew gross you stupid bug" → REJECT 1.00;
+  - "I'm gonna swat you", "get the fly swatter" → ESCAPE 1.00;
+  - "blow on it", "so much dust in here" → GROOM 0.96.
 
 ### 4.2 Behavior: readout → one behavior
 
@@ -262,7 +312,7 @@ With both, every calibration sense line classifies as intended, and ignited wind
 | Behavior | Rule (defaults in `brain.behavior`, re-derived by calibration) | Emotion | Pose |
 |---|---|---|---|
 | ESCAPE | `escape` ≥ 50 Hz | scared | movement/escape |
-| REJECT | bitter **taste delivered this window** ≥ 20 Hz **and** `feed` < FEED threshold: tasted bitter, did not extend the proboscis. (Changed during implementation: the measured LB1 rate is also driven centrally during ignition, §3.7, so it cannot stand for taste. `classify(rates, thresholds, stim)` falls back to the measured rate only when called without a stimulus map.) | disgusted | negative/reject |
+| REJECT | bitter **taste delivered this window** ≥ 20 Hz **and** `feed` < FEED threshold: tasted bitter, did not extend the proboscis. (Changed during implementation: the first build's engine drove the LB1 terminals centrally, §3.7, so the measured rate could not stand for taste. The faithful engine does not, and the rule stays because a taste is what was delivered. `classify(rates, thresholds, stim)` falls back to the measured rate only when called without a stimulus map.) | disgusted | negative/reject |
 | FEED | `feed` ≥ 80 Hz | happy | positive/feeding |
 | GROOM | `groom` ≥ 30 Hz | neutral | reactions/grooming |
 | WALK | `walk` or `backup` ≥ 20 Hz; direction is `back` if `backup` > `walk` | curious | movement/walking |
@@ -305,10 +355,13 @@ Because every reply is drawn from a closed vocabulary, the reply path cannot lea
 - **Noise window:** on each idle-loop tick (existing cadence and gates), the fly runs one window with **no stimulus** and **background noise**: independent Poisson input to a random `noise.frac` of all sensory neurons at `noise.rate` Hz.
 - **Output:** whatever behavior emerges is shown. Silent behaviors (GROOM, NOTHING) change pose and panel only; FEED and WALK can speak their lexicon words (lexicon only; idle never calls the LLM).
 - **Calibration:** `scripts/brain_calibrate.py` reports what fraction of noise windows produce each behavior. It sets `noise.frac` and `noise.rate` so that roughly 20–40% of idle windows produce *some* behavior, which leaves the fly alive but not frantic.
-- **Measured: the 20–40% target is not reachable.** Across `frac` 0.002–0.05 × `rate` 5–20 Hz (20 windows each, from rest), every cell gave NOTHING in at least 19 of 20 windows. The only behaviors were one GROOM each at 0.02 × 10 Hz and 0.02 × 20 Hz. Denser noise does not produce behavior; it produces ignition (0.005 × 5 Hz: 6 of 20 windows ignited; 0.02 × 10 Hz: 17 of 20).
-  - **Chosen:** `noise: {frac: 0.002, rate: 5}`, which gave 0 of 20 ignited in calibration.
-  - **Live:** over 150 s, 12 idle windows ran: all NOTHING, no speech, 1 ignited.
-  - **So the idle fly is still.** Its panel shows live noise activity; its pose does not change. This is true to the animal (§8) but short of the design's "alive" target. Livelier idle probably needs the §3.7 fix, or an idle stimulus (e.g. faint `ears` from room noise), rather than more noise.
+- **Measured: the 20–40% target is not reachable.** At gain 0.65, across `frac` 0.001–0.05 × `rate` 5–20 Hz (20 windows each, from rest), all 360 windows gave NOTHING. Denser noise does not produce behavior. It only tips more windows into the self-sustaining state of §3.7 ("busy": over 100 k spikes), and even there the readouts stay under their thresholds:
+  - 0.002 × 5 Hz: 2 of 20 windows busy;
+  - 0.005 × 5 Hz: 9 of 20;
+  - 0.02 × 10 Hz: 20 of 20.
+- **Chosen:** `noise: {frac: 0.002, rate: 5}`, kept from the first build. It gives a median of 92 spikes per window, with about 1 window in 10 busy (at most 0.57 s wall). 0.001 × 5 Hz gives 0 of 20 busy, but the fly is just as still.
+- **Live:** in the first build's live test, 12 idle windows over 150 s were all NOTHING, with no speech. The re-test after the final review is in §10.
+- **So the idle fly is still.** Its panel shows live noise activity; its pose does not change. This is true to the animal (§8) but short of the design's "alive" target. Livelier idle probably needs the §3.7 fix, or an idle stimulus (e.g. faint `ears` from room noise), rather than more noise.
 - **No other idle content:** no Mario idle content, loneliness tiers, gossip, DJ lines, scheduled lines or memorial events run for the fly (§5.3).
 
 ### 4.6 Brain panel (pygame client, primary display)
@@ -352,7 +405,7 @@ brain:
   dataset: malecns_v1
   # cache_dir: <path>  # optional; default is the per-user cache (§2)
   auto_fetch: true
-  gain: 0.5
+  gain: 0.65
   window_ms: 500
   threads: 0
   persist: false       # each window starts from rest (§3.6, §3.7)
@@ -443,14 +496,16 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
 
 - **Unit, fast, synthetic:**
   - Engine on 2–5-neuron nets:
-    - Poisson rate ≈ requested;
+    - a stimulated neuron fires at the requested rate, with no refractory period;
     - chain firing with the 1.8 ms delay;
     - inhibition blocks;
-    - refractory caps the rate;
+    - a driven neuron fires again exactly 22 steps after it fired;
+    - a spike resets the synaptic drive;
     - one event matches the closed-form solution;
     - silence stays silent;
     - determinism per seed;
     - parallel propagation = serial.
+  - Engine against a per-step reference simulator in Brian2's order on a random 400-neuron net: bit-identical counts, `u` and `g`, serial and parallel (added in the final review; 9 of the 15 engine tests fail on the first build's engine).
   - Connectome build on tiny synthetic feathers: node policy, NT sign precedence, edge filter, CSC ordering.
   - Population resolver.
   - Senses, behavior and words, including the validator and a fake LLM that returns out-of-vocab or overlong answers.
@@ -476,9 +531,10 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
 |---|---|
 | The gain is a fit, not a law | Stated plainly (§3.2). The shuffled control is the independent check, and the calibration script is reproducible. |
 | Bitter identity is inferred | Stated on the panel and in the docs, and pinned by test. It is easy to swap in `malecns_populations.yaml`. |
-| Busy windows are too slow | Parallel engine (§3.5), with fallback to a 300 ms window. *Measured:* 0.6 s busy; ignited windows reach 1.2–1.6 s, at the edge of the target (§3.5). |
+| Busy windows are too slow | Parallel engine (§3.5), with fallback to a 300 ms window. *Measured:* the busiest window takes 0.63 s, well inside the target (§3.5). |
 | Idle is too quiet (a fly mostly does nothing) | Noise calibration target (§4.5). Stillness is acceptable, and is true to the animal. *Measured:* this risk landed. Idle is all NOTHING (§4.5). |
-| The network ignites (found during implementation) | Reset per window and taste-keyed REJECT (§3.7). A biological fix is open. |
+| Carried state never settles (found during implementation) | Reset per window (§3.6, §3.7); REJECT keyed on the delivered taste. A biological fix is open. |
+| The engine departs from the model it credits (found in the final review) | Rebuilt to Brian2's schedule and pinned bit for bit against a reference simulator (§3.1). Every number was re-measured. |
 | Other outbound paths leak Mario text | The §5.3 audit plus the live leak test. |
 | The 1.05 GB download on the party box | auto_fetch runs on first start, with progress on the panel. The build also runs in `scripts/fetch_connectome.py` ahead of the party. |
 | Free sprite accounts rate-limited | Resumable batch over a week. Missing sprites fall back to `neutral/idle` and never crash. |

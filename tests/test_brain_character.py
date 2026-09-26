@@ -10,7 +10,7 @@ CHARS = os.path.join(ROOT, "characters")
 
 def test_fly_loads_with_brain_section():
     c = CharacterLoader(CHARS, "fly")
-    assert c.brain["enabled"] is True and c.brain["gain"] == 0.5
+    assert c.brain["enabled"] is True and c.brain["gain"] == 0.65
     assert c.voice_config["preferred_engine"] == "edge"
     assert isinstance(c.state_sprite_map["talking"], list) and c.state_sprite_map["talking"]
 

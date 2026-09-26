@@ -1,5 +1,6 @@
 """LIF engine on tiny synthetic networks: exact math, delay, inhibition,
-refractory, Poisson rate, determinism, parallel == serial bit-for-bit."""
+Shiu's reset and refractoriness, Poisson rate, determinism, parallel == serial
+bit-for-bit, and the block kernel == a plain per-step simulation of Shiu's model."""
 import math
 
 import numpy as np
@@ -19,6 +20,99 @@ def _csc(n, edges):
     return indptr, indices, data
 
 
+def _random_net(n, fanout, seed, lo=5, hi=80):
+    rng = np.random.default_rng(seed)
+    return _csc(n, [(pre, int(post), int(rng.integers(lo, hi)) * (-1 if rng.random() < 0.25 else 1))
+                    for pre in range(n) for post in rng.integers(0, n, size=fanout)])
+
+
+def _reference(net, gain, n_steps, kick_ptr, kick_idx, targets):
+    """Shiu et al. 2024 as Brian2 runs it (model.py: eq_rst 'v = v_rst; w = 0;
+    g = 0 * mV', refractory='rfc', rfc = 2.2 ms, and rfc = 0 ms for every
+    Poisson target), one plain step at a time in Brian2's schedule: integrate
+    unless refractory, threshold, deliver synaptic input to g and Poisson kicks
+    to v, reset the neurons that fired. Same float32 operations as the kernel."""
+    indptr, indices, data = net
+    n = len(indptr) - 1
+    w = np.float32(E.W_SYN_MV * gain)
+    u = np.zeros(n, np.float32)
+    g = np.zeros(n, np.float32)
+    last = np.full(n, -(10 ** 9), np.int64)
+    rfc = np.full(n, E.REFRACTORY_STEPS, np.int64)
+    rfc[np.asarray(targets, dtype=np.int64)] = 0
+    ring = np.zeros((E.DELAY_STEPS, n), np.float32)
+    counts = np.zeros(n, np.int64)
+    for s in range(n_steps):
+        free = (s - last) >= rfc  # Brian2: timestep(t - lastspike) >= timestep(rfc)
+        un = np.where(free, u * E._A_M + g * E._C_GU, u)
+        gn = np.where(free, g * E._A_S, g)
+        fired = free & (un > E._U_TH)
+        slot = s % E.DELAY_STEPS
+        gn = gn + ring[slot]
+        ring[slot] = 0
+        gn[np.abs(gn) < E._EPS] = 0
+        un[np.abs(un) < E._EPS] = 0
+        un[fired] = 0
+        gn[fired] = 0
+        for k in range(kick_ptr[s], kick_ptr[s + 1]):
+            if not fired[kick_idx[k]]:
+                un[kick_idx[k]] += E._KICK
+        last[fired] = s
+        counts[fired] += 1
+        for j in np.nonzero(fired)[0]:
+            np.add.at(ring[slot], indices[indptr[j]:indptr[j + 1]], data[indptr[j]:indptr[j + 1]] * w)
+        u, g = un, gn
+    return counts, u, g
+
+
+def test_block_kernel_matches_shiu_brian2_reference():
+    net = _random_net(400, 20, seed=3)
+    rng = np.random.default_rng(4)
+    targets = rng.choice(400, size=40, replace=False)
+    ptr, idx = E.poisson_kicks(targets, np.full(40, 300.0), 600, np.random.default_rng(5))
+    ref_counts, ref_u, ref_g = _reference(net, 2.0, 600, ptr, idx, targets)
+    assert ref_counts.sum() > 1000 and np.count_nonzero(ref_counts) > 100  # the network, not just the targets
+    for kw in ({"parts": 1}, {"parts": 5, "chunk": 97, "serial_edge_limit": 0}):
+        eng = E.Engine(*net, gain=2.0, **kw)
+        res = eng.run_kicks(600, ptr, idx, targets=targets)
+        assert res.counts.tolist() == ref_counts.tolist(), kw
+        assert np.array_equal(eng.u, ref_u) and np.array_equal(eng.g, ref_g), kw
+
+
+def test_dense_poisson_targets_fit_the_spike_buffers():
+    # Poisson targets have no refractory period, so one can fire up to 9 times
+    # in an 18-step block: 60 of them in one 97-neuron chunk at 3 kHz
+    net = _random_net(300, 10, seed=6)
+    targets = np.arange(60)
+    ptr, idx = E.poisson_kicks(targets, np.full(60, 3000.0), 360, np.random.default_rng(1))
+    ref_counts, _, _ = _reference(net, 1.0, 360, ptr, idx, targets)
+    eng = E.Engine(*net, gain=1.0, parts=3, chunk=97, serial_edge_limit=0)
+    res = eng.run_kicks(360, ptr, idx, targets=targets)
+    assert ref_counts[:60].sum() > 60 * 360 // 18 * 3  # > 3 spikes per target per block
+    assert res.counts.tolist() == ref_counts.tolist()
+
+
+def test_spike_resets_synaptic_drive():
+    # Shiu's reset is v = v_rst AND g = 0: one input volley, however large,
+    # fires the target once instead of re-firing it on leftover drive
+    eng = E.Engine(*_csc(2, [(0, 1, 2000)]), gain=1.0)  # 550 mV into g of neuron 1
+    ptr, idx = E.kicks_from_events(1, [(0, 0)])
+    eng.run_kicks(1, ptr, idx)
+    later = eng.run_kicks(200, np.zeros(201, np.int64), np.zeros(0, np.int32))
+    assert later.counts.tolist() == [1, 1]
+
+
+def test_driven_neuron_refires_after_exactly_22_steps():
+    # Brian2: not_refractory = timestep(t - lastspike) >= timestep(2.2 ms), so a
+    # neuron flooded with input fires again 22 steps after its last spike
+    pop_of = np.array([-1, 0], dtype=np.int16)
+    eng = E.Engine(*_csc(2, [(0, 1, 10_000)]), gain=1.0, pop_of=pop_of, n_pops=1)
+    ptr, idx = E.poisson_kicks(np.array([0]), np.array([10_000.0]), 400, np.random.default_rng(0))
+    res = eng.run_kicks(400, ptr, idx, n_bins=400)
+    steps = np.nonzero(res.pop_bins[0])[0]
+    assert len(steps) > 10 and set(np.diff(steps).tolist()) == {22}
+
+
 def test_quiet_network_stays_silent():
     eng = E.Engine(*_csc(3, [(0, 1, 50), (1, 2, 50)]), gain=1.0)
     res = eng.run(50.0)
@@ -33,7 +127,10 @@ def test_single_event_matches_closed_form_after_exact_delay():
     k = 50
     eng.run_kicks(k, np.zeros(k + 1, np.int64), np.zeros(0, np.int32))
     w = 10 * E.W_SYN_MV
-    t = k * E.DT_MS
+    # Brian2 order: the kick at step 0 lands after that step's threshold test, so
+    # neuron 0 fires at step 1; its input lands in g at step 19 after that step's
+    # integration, so neuron 1 has integrated for k - 2 steps
+    t = (k - 2) * E.DT_MS
     expect = w * E.TAU_S_MS / (E.TAU_S_MS - E.TAU_M_MS) * (
         math.exp(-t / E.TAU_S_MS) - math.exp(-t / E.TAU_M_MS))
     assert abs((float(eng.v[1]) - E.V_REST_MV) - expect) < 1e-3 * expect
@@ -60,18 +157,21 @@ def test_inhibition_blocks_firing():
     assert both.run_kicks(100, np.zeros(101, np.int64), np.zeros(0, np.int32)).counts[2] == 0
 
 
-def test_refractory_caps_rate_exactly():
+def test_poisson_target_has_no_refractory_period():
+    # Shiu: neu[i].rfc = 0 * ms for every Poisson target. A kick lands after the
+    # threshold test and one landing on a spike step is erased by the reset, so
+    # a neuron kicked every step fires every other step.
     eng = E.Engine(*_csc(1, []), gain=1.0)
     res = eng.run(230.0, np.array([0]), np.array([10_000.0]), seed=1)  # p = 1 per step
-    assert int(res.counts[0]) == 100  # one spike per 23 steps (22 refractory + 1)
+    assert int(res.counts[0]) == 1150
 
 
-def test_poisson_rate_is_close_to_requested():
-    # Kicks landing in the 2.2 ms refractory period are lost (dead time), so the
-    # expected count is rate*T / (1 + rate*tau_ref) = 200 / 1.22 ~= 164.
+def test_stimulated_neuron_fires_at_the_requested_rate():
+    # spec 3.1: a stimulated neuron fires ~ at the requested rate; only kicks that
+    # land on its own spike steps are lost (p = 1.5% at 150 Hz): ~295 in 2 s
     eng = E.Engine(*_csc(1, []), gain=1.0)
-    res = eng.run(2000.0, np.array([0]), np.array([100.0]), seed=7)
-    assert 135 <= int(res.counts[0]) <= 195
+    res = eng.run(2000.0, np.array([0]), np.array([150.0]), seed=7)
+    assert 265 <= int(res.counts[0]) <= 325
 
 
 def test_same_seed_same_result():
@@ -86,7 +186,7 @@ def test_population_bins_count_spikes():
     eng = E.Engine(*_csc(2, []), gain=1.0, pop_of=pop_of, n_pops=1)
     res = eng.run(230.0, np.array([0]), np.array([10_000.0]), seed=1, n_bins=10)
     assert res.pop_bins.shape == (1, 10)
-    assert int(res.pop_bins.sum()) == 100 == res.n_spikes
+    assert int(res.pop_bins.sum()) == 1150 == res.n_spikes  # every other step, as above
     assert abs(res.bin_ms - 23.0) < 1e-9 and abs(res.sim_ms - 230.0) < 1e-9
 
 
@@ -118,13 +218,14 @@ def test_split_windows_equal_one_window():
     edges = [(pre, int(post), int(rng.integers(5, 60)) * (-1 if rng.random() < 0.25 else 1))
              for pre in range(n) for post in rng.integers(0, n, size=12)]
     net = _csc(n, edges)
-    ptr, idx = E.poisson_kicks(np.arange(40), np.full(40, 400.0), 100, np.random.default_rng(9))
+    targets = np.arange(40)
+    ptr, idx = E.poisson_kicks(targets, np.full(40, 400.0), 100, np.random.default_rng(9))
     one = E.Engine(*net, gain=1.0)
-    whole = one.run_kicks(100, ptr, idx)
+    whole = one.run_kicks(100, ptr, idx, targets=targets)
     two = E.Engine(*net, gain=1.0)
     cut = 37
-    first = two.run_kicks(cut, ptr[:cut + 1], idx[:ptr[cut]])
-    second = two.run_kicks(100 - cut, ptr[cut:] - ptr[cut], idx[ptr[cut]:])
+    first = two.run_kicks(cut, ptr[:cut + 1], idx[:ptr[cut]], targets=targets)
+    second = two.run_kicks(100 - cut, ptr[cut:] - ptr[cut], idx[ptr[cut]:], targets=targets)
     assert whole.n_spikes > 50
     assert (first.counts + second.counts).tolist() == whole.counts.tolist()
     assert np.array_equal(one.v, two.v) and np.array_equal(one.g, two.g)

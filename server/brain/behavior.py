@@ -6,8 +6,9 @@ decides; rules run in priority order and the first match wins. REJECT is
 stayed under the feeding threshold (the brain's own arbitration).
 
 "Tasted bitter" is the bitter stimulus delivered this window (`stim`), not the
-measured bitter-GRN rate: when the network ignites, two GNG016 neurons drive
-the GRN axon terminals centrally (~46 Hz) although nothing bitter was tasted.
+measured bitter-GRN rate, so activity that reaches the GRN axon terminals from
+inside the brain is never read as a taste (the first build's engine drove them
+to ~46 Hz with nothing tasted; the Shiu-faithful engine reads 0 Hz there).
 Without `stim` the measured rate stands in for the taste.
 """
 from dataclasses import dataclass

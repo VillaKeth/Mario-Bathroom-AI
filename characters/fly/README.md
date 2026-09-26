@@ -17,23 +17,24 @@ only what fired.
   MRC LMB and Google Research. Licensed CC BY 4.0. This project preprocesses it
   into a signed weight matrix (`server/brain/connectome.py`).
 - **Neuron model:** Shiu, P.K. et al. "A Drosophila computational brain model reveals
-  sensorimotor processing." *Nature* 634, 210–219 (2024). Its parameters are used
-  with one global gain of 0.5, calibrated for MaleCNS; see `brain/calibration.json`.
+  sensorimotor processing." *Nature* 634, 210–219 (2024). Its model runs as their
+  Brian2 code runs it, with one global gain of 0.65 on the synaptic weight,
+  calibrated for MaleCNS; see `brain/calibration.json`.
 - **Inferred, not measured:** MaleCNS does not label taste modality. The bitter
   group (LB1a–e) was identified with Shiu's co-activation test.
 
 ## Known model behavior
 
-At gain 0.5 the literature pathways fire (sugar → proboscis, looming → giant fiber,
-antenna → grooming) and die when the wiring is shuffled. But the network is still
-supercritical over longer runs: strong bitter, antenna or looming drive, or even a
-few hundred random sensory spikes, can ignite most of the brain (about 16,000
-neurons, including the mushroom body), and once ignited the activity never decays.
-The real fly avoids this with mechanisms the point-neuron model does not have
-(adaptation, synaptic depression, graded inhibition). So each reaction is a
-separate 500 ms trial from rest (`brain.persist: false`), as in Shiu et al., and
-idle noise is kept below the level that ignites. The brain panel shows the spike
-count, so an ignited window is visible.
+At gain 0.65 the literature pathways fire (sugar → proboscis, looming → giant fiber,
+antenna → grooming) and die when the wiring is shuffled. But the network has a
+second, self-sustaining state: after strong drive (bitter, antenna or looming), or
+now and then after a few random sensory spikes, about 13,000 neurons keep firing
+(roughly 0.5 M spikes per 500 ms) with no input at all, and the activity does not
+decay. The real fly avoids this with mechanisms the point-neuron model does not
+have (adaptation, synaptic depression, graded inhibition). So each reaction is a
+separate 500 ms trial from rest (`brain.persist: false`), as in Shiu et al. The
+self-sustaining state drives no behavior, so an idle fly stays still; the brain
+panel shows the spike count, so a busy window is visible.
 
 ## Setup
 

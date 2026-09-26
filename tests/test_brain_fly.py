@@ -131,7 +131,7 @@ def test_windows_start_from_rest_unless_persist():
 
 
 def test_measured_bitter_without_a_bitter_taste_is_not_reject():
-    # an ignited window drives the bitter GRNs centrally; air on the antenna still grooms
+    # centrally driven bitter GRNs (the first build measured ~46 Hz) are no taste; air still grooms
     c = FakeClient({"bitter": 46.0, "groom": 263.0, "antenna": 83.0})
     assert asyncio.run(_fly(c).react_text("blow on it")).behavior.name == "GROOM"
     tasted = FakeClient({"bitter": 136.0, "feed": 29.0})

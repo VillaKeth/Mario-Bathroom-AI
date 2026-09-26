@@ -4,9 +4,9 @@ senses -> one brain window in the worker -> behavior -> words -> voice.
 No persona anywhere: the only choices here are how events reach the senses
 (senses.yaml) and which words exist (words.yaml).
 
-Each window starts from rest unless brain.persist is set: MaleCNS at gain 0.5
-is supercritical in sustained operation, so carried-over state ends up in a
-self-sustaining whole-brain ignition that never decays.
+Each window starts from rest unless brain.persist is set: at the calibrated
+gain, state carried out of a driven window keeps ~0.5M spikes per window going
+with no input at all, so the next reaction would not start from a resting fly.
 """
 import asyncio
 import os
@@ -45,7 +45,7 @@ class FlyReply:
 
 def worker_command(cfg):
     cmd = [sys.executable, "-m", "server.brain.worker",
-           "--gain", str(float(cfg.get("gain", 0.5))),
+           "--gain", str(float(cfg.get("gain", 0.65))),
            "--threads", str(int(cfg.get("threads", 0) or 0))]
     if cfg.get("cache_dir"):
         cmd += ["--dir", os.path.expanduser(str(cfg["cache_dir"]))]
@@ -73,7 +73,8 @@ class FlyBrain:
         self.window_ms = int(self.cfg.get("window_ms", 500))
         self.persist = bool(self.cfg.get("persist", False))
         ncfg = self.cfg.get("noise") or {}
-        # calibrated: denser noise ignites the whole brain from rest (calibration.json idle)
+        # calibrated: every setting idles as NOTHING; denser noise only tips more
+        # windows into self-sustaining activity (calibration.json idle)
         self.noise = {"frac": float(ncfg.get("frac", 0.002)), "rate": float(ncfg.get("rate", 5.0))}
         self.client = client or BrainClient(worker_command(self.cfg), cwd=PROJECT_ROOT)
         self.last = None

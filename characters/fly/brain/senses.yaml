@@ -8,14 +8,14 @@ text_is_sound: {pop: ears, rate: 50, shout_rate: 120}
 lexicons:
   food:
     pop: sugar
-    rate: [150, 200]   # calibrated: 100 Hz leaves MN9 silent, 150 Hz drives it (~245 Hz)
+    rate: [150, 200]   # calibrated at gain 0.65: MN9 ~90 Hz at 150, ~98 at 200 (FEED line 80)
     words: [sugar, sweet, candy, cake, cupcake, cookie, fruit, banana, apple, grape, peach,
             mango, berry, strawberry, beer, wine, cider, juice, soda, honey, syrup, jam,
             pizza, donut, doughnut, chocolate, "ice cream", snack, food, treat, dessert,
             rum, cocktail, lemonade, pie, frosting]
   affection:
     pop: sugar
-    rate: [60, 120]
+    rate: [60, 100]    # a faint taste: with chat or shout sound, MN9 peaks at 77 Hz (120 fed on 4 of 8 seeds)
     words: [love, cute, adorable, good, nice, beautiful, pretty, best, great, awesome,
             amazing, friend, buddy, sweetie, darling, thanks, "thank you", yay]
   gross:
