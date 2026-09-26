@@ -104,7 +104,7 @@ We swept one global gain on the synaptic weight. All runs used 500 ms windows, r
 | **0.50** | **249 Hz** | **309 Hz** | **236 Hz** | **silent** |
 | 1.00 | 426 Hz (runaway) | — | — | ignites |
 
-**We choose gain = 0.5**, i.e. 0.1375 mV per synapse. It is the lowest tested gain at which all three pathways fire, and it leaves margin below runaway. Two caveats:
+**We choose gain = 0.5**, i.e. 0.1375 mV per synapse. It is the lowest tested gain at which all three pathways fire in a 500 ms window from rest. It is **not** a safe margin below runaway in sustained operation (measured during implementation, §3.7). Two caveats:
 
 - This is **a single scalar fitted on these three pathways**. They are therefore a calibration check, not an independent prediction. The spec says so, and so does the calibration report.
 - The independent evidence is the shuffled control, which is silent at every gain ≤ 0.5. Activity is carried by the specific wiring, not by the amount of input.
@@ -125,7 +125,16 @@ These use the real connectome at the configured gain. The tests are skipped when
 | JO-C/E, target-shuffled | — | aDN > 0 |
 | sugar + bitter together | MN9 ≤ 50% of sugar alone | — |
 
-The bilateral runs are re-measured when the tests are written. The probe used the right side only.
+**Measured (bilateral, `characters/fly/brain/calibration.json`, 2026-09-25).** All pass, and every shuffled control is silent:
+
+| Case | Target | Real | Shuffled |
+|---|---|---|---|
+| sugar → MN9 | ≥ 80 Hz | **245 Hz** | 0 Hz |
+| LC4 + LPLC2 (right) → giant fiber | ≥ 50 Hz | **304 Hz** | 0 Hz |
+| JO-C/E → aDN | ≥ 30 Hz | **269 Hz** | 0 Hz |
+| sugar + bitter → MN9 (seeds 1/2/3) | ≤ 50% of sugar alone | **54 / 53 / 56 Hz** vs 245 / 199 / 227 Hz (22–27%) | — |
+
+The loom and JO-C/E runs also show the LB1 bitter GRNs at 46–49 Hz with no taste input. That is central drive during ignition (§3.7), not taste.
 
 ### 3.4 Populations
 
@@ -134,9 +143,9 @@ Populations are resolved by the annotation `type` column and live in `server/bra
 | Name | Types | n (both sides) | Role |
 |---|---|---|---|
 | `sugar` | LB3a, LB3b, LB3c, LB3d | 77 | taste: sweet (see below) |
-| `bitter` | LB1a–LB1e | 56 | taste: bitter (**inferred**, see below) |
-| `ears` | JO-A\*, JO-B\* | ~150 (exact count pinned in calibration.json) | sound (Johnston's organ, hearing) |
-| `antenna` | JO-C\*, JO-E\* | ~330 (exact count pinned in calibration.json) | antenna deflection: wind, touch |
+| `bitter` | LB1a–LB1e | 57 (the probe note said 56; the resolver counts 57) | taste: bitter (**inferred**, see below) |
+| `ears` | JO-A\*, JO-B\* | 138 | sound (Johnston's organ, hearing) |
+| `antenna` | JO-C\*, JO-E\* | 335 | antenna deflection: wind, touch |
 | `loom` | LC4, LPLC2 | 311 | looming (visual projection) |
 | `feed` | MN9 | 2 | proboscis extension motor neuron |
 | `groom` | DNg12_a–h (aDN) | 42 | antennal grooming command |
@@ -170,6 +179,18 @@ The probe was serial numba and took **~6 s wall per 500 ms** in busy windows (~6
 - **Threads:** `brain.threads` (0 = numba default).
 - **Startup:** JIT compile uses `cache=True` and runs a warm-up at worker start.
 
+**As built.** The engine steps in **18-step delay blocks**. A spike takes 18 steps to land, so within a block no neuron can affect another: integration runs 18 steps per neuron chunk in parallel. The refractory period (22 steps) is longer than a block, so a neuron fires at most once per block. The block's spikes are then gathered and propagated once. The result is exact, not an approximation. The inner loops are separate `@njit` helpers over zero-based slice views, so numba vectorizes them.
+
+**Measured** (dev box, 24 threads, 500 ms windows; `calibration.json` timing and the live test):
+
+| Window | Spikes | Wall |
+|---|---|---|
+| quiet (idle noise) | ~100 | 0.22–0.27 s |
+| sugar → FEED, not ignited | ~340 k | 0.57–0.62 s |
+| ignited (§3.7) | 1.1–1.3 M, ~19 k neurons active | 1.19–1.30 s; **1.58 s** once, under live load (server, SoVITS, client and Ollama running) |
+
+The worker is ready about 50 s after spawn (cache load plus JIT warm-up). `window_ms` stays at 500. Ignited windows sit at the edge of the 1.5 s target.
+
 ### 3.6 Process boundary
 
 The brain runs in its own subprocess, `python -m server.brain.worker`, speaking JSON lines on stdin/stdout, like `gpt_sovits_server.py`. That keeps 400 MB of arrays and numba threads out of the asyncio server, and a crash only costs the fly its brain.
@@ -183,15 +204,33 @@ Messages from the worker:
 Requests and replies:
 
 - **run:**
-  - request: `{"cmd":"run","id":7,"ms":500,"seed":123,"stim":[{"pop":"sugar","rate":150,"side":"both"}],"noise":{"frac":0.0,"rate":0}}`
+  - request: `{"cmd":"run","id":7,"ms":500,"seed":123,"stim":[{"pop":"sugar","rate":150,"side":"both"}],"noise":{"frac":0.0,"rate":0},"reset":true}`
   - reply: `{"status":"ok","id":7,"rates":{pop:hz},"bins":{pop:[10 floats]},"spikes":N,"active":M,"sim_ms":500,"wall_ms":812}`
   - `rates` and `bins` cover every named population, plus `total` and `active`.
 - **reset** (`{"cmd":"reset"}`), **ping** (`{"cmd":"ping"}` → `{"status":"pong"}`), **quit** (`{"cmd":"quit"}`).
 - **errors:** `{"status":"error","id":7,"error":"…"}`.
 
-Brain state (v, g, refractory, ring) **persists between windows**, so a fly that just escaped is still aroused for the next window. `reset` returns it to rest.
+**Changed during implementation: each window starts from rest.** The design carried brain state (v, g, refractory, ring) between windows, so that a fly that just escaped would still be aroused. At gain 0.5 that carried state ignites into whole-brain activity that never decays (§3.7). So a `run` request with `"reset": true` returns the engine to rest first, making each reaction a trial from rest, as in Shiu 2024. The fly sends `reset: not brain.persist`, and `brain.persist` defaults to `false`. Setting `persist: true` restores the original carry-over.
 
-On the server side, `server/brain/client.py` runs blocking I/O in a thread and gives each request a 10 s timeout. After a crash it restarts, with a 30 s cooldown. It sends `{"cmd":"quit"}` itself, avoiding the `command`/`cmd` mismatch in the SoVITS client. It exposes `async run(stim, ms, seed, noise) -> BrainWindow | None`, where `None` means brainless.
+On the server side, `server/brain/client.py` runs blocking I/O in a thread and gives each request a 10 s timeout. After a crash it restarts, with a 30 s cooldown. It sends `{"cmd":"quit"}` itself, avoiding the `command`/`cmd` mismatch in the SoVITS client. It exposes `async run(stim, ms, seed, noise, reset=False) -> BrainWindow | None`, where `None` means brainless.
+
+### 3.7 Ignition (measured during implementation)
+
+At gain 0.5, the MaleCNS network is **supercritical in sustained operation**, even though single 500 ms windows from rest behave as in §3.2–3.3:
+
+- **Strong drive ignites from rest.** Bitter, antenna or loom drive at 100–200 Hz recruits 16–19 k neurons, about 4 k of them Kenyon cells, within 200–450 ms. The same happens at gains 0.44 and 0.46, and with KC→KC edges removed.
+- **Sparse noise ignites too.** With idle noise at `frac` 0.005 and 5 Hz, carried-over state ignites in about 50% of windows.
+- **Ignition never ends.** Once ignited, activity self-sustains at about 1.7 M spikes per 500 ms (≈ 1.6 s wall per window) and does not decay.
+- **Ignition fakes bitter.** During ignition, GNG016 (bodies 6228 and 946, ~320 Hz) drives the LB1 bitter GRN terminals to about 46 Hz, with no taste input at all.
+
+**What was done:**
+
+1. Each window starts from rest (§3.6).
+2. REJECT keys on the bitter taste *delivered* this window, not on the measured LB1 rate (§4.2).
+
+With both, every calibration sense line classifies as intended, and ignited windows still end within the 1.5 s budget.
+
+**What was not done, and is the user's call:** a biologically grounded fix, such as spike-frequency adaptation, short-term synaptic depression, or a gain or inhibition retune, that would let state carry across windows without runaway. Each of these changes the model away from Shiu's plain LIF, and should be validated against §3.3 again.
 
 ---
 
@@ -204,8 +243,8 @@ On the server side, `server/brain/client.py` runs blocking I/O in a thread and g
 | Event | Stimulus |
 |---|---|
 | any chat text (it is sound) | `ears` 50 Hz; 120 Hz if shouted (ALL CAPS word or `!!`) |
-| food/sweet words (sugar, candy, cake, fruit, banana, beer, wine, juice, soda, honey, pizza…) | `sugar` 100–200 Hz by match count |
-| affection/praise words (love, cute, good, nice, beautiful, best, sweet…) | `sugar` 60–120 Hz |
+| food/sweet words (sugar, candy, cake, fruit, banana, beer, wine, juice, soda, honey, pizza…) | `sugar` **150–200 Hz** by match count (calibrated: at 100 Hz MN9 stays silent; at 150 Hz it fires at ~245 Hz) |
+| affection/praise words (love, cute, good, nice, beautiful, best, sweet…) | `sugar` 60–120 Hz (a faint taste: below MN9 drive, so "cute" alone gives NOTHING) |
 | gross/insult words (gross, disgusting, hate, ugly, stupid, shut up, poison, bleach…) and profanity | `bitter` 100–200 Hz |
 | threat words (swat, squash, smash, kill, spray, raid, zapper, swatter, newspaper, slipper) | `loom` 150–200 Hz, one side (random) |
 | air/touch words (blow, wind, fan, dust, wash, clean, dirty, tickle, soap, hair) | `antenna` 100–150 Hz |
@@ -223,7 +262,7 @@ On the server side, `server/brain/client.py` runs blocking I/O in a thread and g
 | Behavior | Rule (defaults in `brain.behavior`, re-derived by calibration) | Emotion | Pose |
 |---|---|---|---|
 | ESCAPE | `escape` ≥ 50 Hz | scared | movement/escape |
-| REJECT | `bitter` ≥ 20 Hz **and** `feed` < FEED threshold: tasted bitter, did not extend the proboscis | disgusted | negative/reject |
+| REJECT | bitter **taste delivered this window** ≥ 20 Hz **and** `feed` < FEED threshold: tasted bitter, did not extend the proboscis. (Changed during implementation: the measured LB1 rate is also driven centrally during ignition, §3.7, so it cannot stand for taste. `classify(rates, thresholds, stim)` falls back to the measured rate only when called without a stimulus map.) | disgusted | negative/reject |
 | FEED | `feed` ≥ 80 Hz | happy | positive/feeding |
 | GROOM | `groom` ≥ 30 Hz | neutral | reactions/grooming |
 | WALK | `walk` or `backup` ≥ 20 Hz; direction is `back` if `backup` > `walk` | curious | movement/walking |
@@ -266,6 +305,10 @@ Because every reply is drawn from a closed vocabulary, the reply path cannot lea
 - **Noise window:** on each idle-loop tick (existing cadence and gates), the fly runs one window with **no stimulus** and **background noise**: independent Poisson input to a random `noise.frac` of all sensory neurons at `noise.rate` Hz.
 - **Output:** whatever behavior emerges is shown. Silent behaviors (GROOM, NOTHING) change pose and panel only; FEED and WALK can speak their lexicon words (lexicon only; idle never calls the LLM).
 - **Calibration:** `scripts/brain_calibrate.py` reports what fraction of noise windows produce each behavior. It sets `noise.frac` and `noise.rate` so that roughly 20–40% of idle windows produce *some* behavior, which leaves the fly alive but not frantic.
+- **Measured: the 20–40% target is not reachable.** Across `frac` 0.002–0.05 × `rate` 5–20 Hz (20 windows each, from rest), every cell gave NOTHING in at least 19 of 20 windows. The only behaviors were one GROOM each at 0.02 × 10 Hz and 0.02 × 20 Hz. Denser noise does not produce behavior; it produces ignition (0.005 × 5 Hz: 6 of 20 windows ignited; 0.02 × 10 Hz: 17 of 20).
+  - **Chosen:** `noise: {frac: 0.002, rate: 5}`, which gave 0 of 20 ignited in calibration.
+  - **Live:** over 150 s, 12 idle windows ran: all NOTHING, no speech, 1 ignited.
+  - **So the idle fly is still.** Its panel shows live noise activity; its pose does not change. This is true to the animal (§8) but short of the design's "alive" target. Livelier idle probably needs the §3.7 fix, or an idle stimulus (e.g. faint `ears` from room noise), rather than more noise.
 - **No other idle content:** no Mario idle content, loneliness tiers, gossip, DJ lines, scheduled lines or memorial events run for the fly (§5.3).
 
 ### 4.6 Brain panel (pygame client, primary display)
@@ -278,6 +321,7 @@ Because every reply is drawn from a closed vocabulary, the reply path cannot lea
 - **Row contents:** a rate bar (log-scaled to 400 Hz) and a 10-bin sparkline over the window.
 - **Status lines:** the behavior (e.g. "→ FEEDING"), then "spikes 368,532 · active 10,508 · 0.5 s fly-time".
 - **Credit footer (CC BY):** "Connectome: MaleCNS v1.0, Janelia FlyEM et al., CC BY 4.0 · LIF after Shiu et al. 2024 · bitter taste group inferred".
+- **As built:** the layout is measured from the display font (`_brain_panel_layout`). The header is split into three lines, and the stats add real time next to fly-time ("0.5s fly-time · 1.58s real"). The panel sits below the floating emotion badge and is drawn under the speech bubble, so the fly's words stay readable. The plan's fixed offsets clipped the header and ran labels into the bars at the client's real font; the live test caught it.
 
 Data transport: a new WS message `{"type":"brain_state", …}` is sent after every window, for replies and idle alike. It carries `behavior`, `rates`, `bins`, `spikes`, `active`, `window_ms`, `pose_hint` and `emotion`. The client routes it to `display.set_brain_state()` and, when `pose_hint` is present, to `set_pose_hint` and `set_emotion`. Silent behaviors therefore still change the sprite, with no speech bubble.
 
@@ -306,13 +350,14 @@ characters/fly/
 brain:
   enabled: true
   dataset: malecns_v1
-  cache_dir: ~/.cache/mario_ai/connectome/malecns_v1
+  # cache_dir: <path>  # optional; default is the per-user cache (§2)
   auto_fetch: true
   gain: 0.5
   window_ms: 500
   threads: 0
+  persist: false       # each window starts from rest (§3.6, §3.7)
   behavior: {escape_hz: 50, feed_hz: 80, bitter_hz: 20, groom_hz: 30, walk_hz: 20}
-  noise: {frac: 0.02, rate: 10}      # idle; re-derived by calibration
+  noise: {frac: 0.002, rate: 5}      # idle; from calibration.json "idle" (§4.5)
   words: {llm: true, max_words: 6, timeout_s: 3}
   voice: {carrier_hz: 200, mix: 0.55, bed: 0.06}   # wing-buzz ring mod (§4.4)
 ```
@@ -349,6 +394,8 @@ This one early return keeps the Mario path untouched. The fly ignores jokes, gam
 
 There is no chat history, memory write or gossip update; `party_stats` visit counting is kept. When the brain is `None` (brainless), the fly gives NOTHING: no words, the idle pose, and a panel showing "brain loading" or "brain offline".
 
+*As built:* `_generate_and_send_response` turned out to have no visit counting to keep, so the fly does none. The per-message transcript line (`mario.conversation`) is still written by the text dispatcher. That is a log file, not memory.
+
 ### 5.3 Other outbound surfaces (leak gating)
 
 For a brain character, these paths are suppressed or replaced:
@@ -356,6 +403,9 @@ For a brain character, these paths are suppressed or replaced:
 - **Idle loop:** content selection is replaced with the brain idle window (§4.5). Announcements from `/admin/announce` stay, because they are admin-authored.
 - **Replaced by the brain window:** face greetings and exit flows go through `_generate_and_send_response`, so the §5.2 branch covers them with `source` → a looming event.
 - **Suppressed:** startup greeting text (replaced by one noise window), sick/distress comfort lines (retching becomes a sense event instead), performed songs, DJ lines, memorial events, catchphrase mirror, and trivia/vision idle.
+  - *As built:* the startup greeting is dropped at the chokepoint below. On connect the client gets a `brain_state` panel, and the idle loop's first tick runs the first noise window.
+  - *As built:* the admin endpoints `/admin/trigger_memorial` and `/admin/trigger_event/{name}` refuse for a brain character, because both send scripted audio raw, past the chokepoint.
+  - *As built:* the retch reaction keeps the comfort path's 20 s cooldown and fall-through.
 
 **Mechanism: one chokepoint, not thirty patches.** `server/main.py` has 30+ `send_response(...)` call sites: greetings, goodbyes, wash reminders, celebrations, error and timeout texts, songs and idle pools. Rather than gate each one, `send_response` gains a keyword `_brain_ok=False`. When the active character's config has `brain.enabled`, any send without `_brain_ok=True` is dropped and logged as `[BRAIN] suppressed non-brain send`.
 
@@ -412,6 +462,8 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
   - brain_state client plumbing.
 - **Integration, real connectome:** the §3.3 table. Skipped when the cache is absent. These are the "brain is real" tests.
 - **Full suite:** diffed against the worktree baseline. That baseline is 38 failed / 1674 passed / 3 skipped on 66f49a2, with pre-existing failures in latency, safety and pygame-control tests; the failing set is saved in the session scratchpad.
+  - *Measured at the end of implementation:* 38 failed / 1768 passed / 3 skipped, with the failing set identical to the baseline (0 new, 0 fixed). The +94 passing are the brain tests.
+  - *Command:* `pytest tests/ --ignore=tests/convert_and_test.py --ignore=tests/test_mcp_chatgpt_browser.py`. A bare `pytest` also collects `server/test_gpt_sovits.py`, a script that exits at import.
 - **Live (testing.md):**
   - config → fly, restarting both server and client;
   - the leak prompts: "Hey who are you?", "Do you know Mario?", "Tell me a fun fact!", "What's your favorite game?", then 2+ minutes idle;
@@ -424,8 +476,9 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
 |---|---|
 | The gain is a fit, not a law | Stated plainly (§3.2). The shuffled control is the independent check, and the calibration script is reproducible. |
 | Bitter identity is inferred | Stated on the panel and in the docs, and pinned by test. It is easy to swap in `malecns_populations.yaml`. |
-| Busy windows are too slow | Parallel engine (§3.5), with fallback to a 300 ms window. |
-| Idle is too quiet (a fly mostly does nothing) | Noise calibration target (§4.5). Stillness is acceptable, and is true to the animal. |
+| Busy windows are too slow | Parallel engine (§3.5), with fallback to a 300 ms window. *Measured:* 0.6 s busy; ignited windows reach 1.2–1.6 s, at the edge of the target (§3.5). |
+| Idle is too quiet (a fly mostly does nothing) | Noise calibration target (§4.5). Stillness is acceptable, and is true to the animal. *Measured:* this risk landed. Idle is all NOTHING (§4.5). |
+| The network ignites (found during implementation) | Reset per window and taste-keyed REJECT (§3.7). A biological fix is open. |
 | Other outbound paths leak Mario text | The §5.3 audit plus the live leak test. |
 | The 1.05 GB download on the party box | auto_fetch runs on first start, with progress on the panel. The build also runs in `scripts/fetch_connectome.py` ahead of the party. |
 | Free sprite accounts rate-limited | Resumable batch over a week. Missing sprites fall back to `neutral/idle` and never crash. |
@@ -439,3 +492,26 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
   - von Reyn et al. 2014 and Ache et al. 2019 (looming → giant fiber);
   - Bidaye et al. 2014 (MDN).
 - **Reference implementations (MIT, read, not vendored):** flypoke (FlyWire LIF) and DOOMFLY (MaleCNS node policy).
+
+## 10. Live test (measured 2026-09-25, dev box)
+
+The setup was `config.json` → `fly`, then a fresh server and client launched from the worktree with the venv python. `/api/brain` reported `ready` about 50 s after the worker spawned. Each prompt went through `/admin/simulate_text`. Evidence comes from `/api/brain` `last` and `logs/2026-09-25/client.log`.
+
+| Prompt | Stimulus | Behavior | Words | Audio (bytes) | `_play_wav` | Window |
+|---|---|---|---|---|---|---|
+| "Hey who are you?" | ears 50 | NOTHING | none | none | n/a | 4.3 k spikes, 0.27 s |
+| "Do you know Mario?" | ears 50 | NOTHING | none | none | n/a | 4.0 k, 0.27 s |
+| "Tell me a fun fact!" | ears 50 | NOTHING | none | none | n/a | 4.1 k, 0.27 s |
+| "What's your favorite game?" | ears 50 | NOTHING | none | none | n/a | 4.1 k, 0.27 s |
+| "have some candy" (×2) | ears 50 + sugar 150 | FEED (MN9 246–249 Hz) | "yum. more. more." / "eat eat eat. more." | 159,020 / 119,852 | playing → done | 338 k, 0.62 s / 1.10 M (ignited), 1.19 s |
+| "you're disgusting" | ears 50 + bitter 100 | REJECT (MN9 30 Hz) | "no no no. bitter." | 100,268 | playing → done | 727 k, 0.88 s |
+| "I'm gonna swat you" (×2) | ears 50 + loom 150 (L) | ESCAPE (giant fiber 239 Hz) | none (buzz) | 24,044 | playing → done | 1.24 M, 1.29 s / 1.58 s |
+| "blow on it" | ears 50 + antenna 100 | GROOM (aDN 263 Hz) | "dust. clean. clean." | 164,780 | playing → done | 1.21 M, 1.26 s |
+
+- **Leak test:** zero "Mario" in any spoken or displayed fly line. The four leak prompts produce NOTHING (sound alone), which is the fly's honest answer to a question.
+- **Idle, 150 s:** 12 windows, all NOTHING, no speech, and a pose update reached the client for each window (§4.5).
+- **Latency:** text in → audio out took 4.95 s for "have some candy". Of that, the brain window was 1.19 s, the LLM words about 3 s (llama3 8B on the P1000, at the edge of the 3 s words timeout), and Edge plus ring mod 0.74 s.
+- **Screenshot:** the ESCAPE pose, with the panel showing all 11 rows, "-> ESCAPE", "spikes 1,234,973 · active 19,583", "0.5s fly-time · 1.58s real", and the full CC BY credit.
+- **Observed, not fixed:**
+  - The pygame client shows its own local "Server connected! Here we go!" bubble on connect. It is client chrome shared by every character; it contains no Mario text.
+  - ESCAPE sends an empty text with the buzz; the client draws no bubble for it.
