@@ -4399,12 +4399,22 @@ async def _send_brain_state(ws, panel: dict):
         logger.debug(f"[BRAIN] brain_state send failed: {e}")
 
 
+_BRAIN_ARRIVAL_DEBOUNCE_S = 60.0
+
+
 async def _brain_respond(ws, text: str, source: str = "text"):
     """Brain-character reply: senses -> brain window -> behavior -> words/buzz."""
     if _fly_brain is None:
         logger.info(f"[BRAIN] no brain running; {source} ignored")
         return
     if source == "face_greeting":
+        # The camera re-sends a greeting on every detection of an unknown face,
+        # and presence_enter arrives too: one arrival reaction per minute.
+        now = time.time()
+        if now - state_current.get("_brain_last_arrival", 0.0) < _BRAIN_ARRIVAL_DEBOUNCE_S:
+            logger.debug("[BRAIN] arrival debounced")
+            return
+        state_current["_brain_last_arrival"] = now
         reply = await _fly_brain.react_event("arrival")
     elif source == "retch":
         reply = await _fly_brain.react_event("retch")
@@ -4415,6 +4425,21 @@ async def _brain_respond(ws, text: str, source: str = "text"):
         await send_response(ws, reply.text, reply.audio or None, emotion=reply.emotion,
                             pose_hint=reply.pose_hint, _brain_ok=True)
     logger.info(f"[BRAIN] {source}: {reply.behavior.name} -> {reply.text!r}")
+
+
+async def _brain_presence_enter(ws):
+    """presence_enter for a brain character. The greeting flow would run gossip,
+    the LLM and TTS inline in the receive loop for words the chokepoint drops.
+    The visit is still counted (spec 5.2) and the arrival is a sense event
+    (spec 4.1), debounced together with the camera's face greetings."""
+    state_current["presence"] = True
+    state_current["conversation_history"] = []
+    state_current["enter_time"] = time.time()
+    state_current["current_visit_id"] = party_stats.record_enter(
+        person_id=state_current["speaker_id"], person_name=state_current["speaker_name"])
+    party_stats.record_event("enter", state_current["speaker_name"])
+    state_current["presence_phase"] = "CONVERSING"
+    await _brain_respond(ws, "", source="face_greeting")
 
 
 async def _brain_idle_tick(ws) -> bool:
@@ -6816,11 +6841,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes, chunk_ts: float = No
     logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
     state_current["_last_user_msg_time"] = time.time()
 
-    # Send thinking
-    try:
-        await ws.send_json({"type": "state", "thinking": True, "subtitle": transcript})
-    except Exception as e:
-        logger.debug(f"[WS] Thinking state send failed: {e}")
+    await send_thinking(ws, subtitle=transcript)
 
     # Update speaker state — open-set gated (recognition_fusion) so a stranger is
     # NOT greeted by a guest's name. Record the raw voice result for fusion, then
@@ -7282,6 +7303,9 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["presence_phase"] not in ("IDLE", "FAREWELL"):
             logger.info(f"[STATE] Ignoring presence_enter during {state_current['presence_phase']}")
             return
+        if _brain_character_active():
+            await _brain_presence_enter(ws)
+            return
         state_current["presence_phase"] = "GREETING"
         state_current["presence"] = True
         state_current["conversation_history"] = []
@@ -7398,6 +7422,13 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["current_visit_id"]:
             party_stats.record_exit(state_current["current_visit_id"])
         party_stats.record_event("exit", state_current["speaker_name"])
+
+        if _brain_character_active():
+            # No farewell for a brain character: the flow below runs the LLM,
+            # TTS, gossip and memory writes for words the chokepoint drops, and
+            # spec 4.1 has no stimulus for someone leaving.
+            _reset_visit_state()
+            return
 
         exchange_count = len(state_current.get("conversation_history", [])) // 2
 
@@ -7794,10 +7825,7 @@ async def _handle_text_input(ws: WebSocket, text: str):
     if guest_name:
         _record_guest_interaction(guest_name)
 
-    try:
-        await ws.send_json({"type": "state", "thinking": True, "subtitle": text})
-    except Exception as e:
-        logger.debug(f"[WS] Text thinking state send failed: {e}")
+    await send_thinking(ws, subtitle=text)
 
     try:
         await _generate_and_send_response(ws, text, source="text", start_time=now)
@@ -7829,7 +7857,10 @@ async def _deliver_performed_song(ws: WebSocket, song_id: str):
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):
-    """Notify client that Mario is thinking (waiting for LLM)."""
+    """Notify client that Mario is thinking (waiting for LLM). Never for a brain
+    character: the client would print "Hmm, let me think..." in its bubble."""
+    if _brain_character_active():
+        return
     try:
         msg = {"type": "state", "thinking": True}
         if subtitle:

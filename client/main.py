@@ -1233,8 +1233,12 @@ class MarioClient:
 
     def _on_brain_state(self, data: dict):
         """Brain-character window: update the panel, and show the behavior's pose
-        even when the fly says nothing (grooming, sitting still)."""
+        even when the fly says nothing (grooming, sitting still). The window is
+        the fly's whole answer, so it also ends the thinking shown on send."""
         self.display.set_brain_state(data)
+        self.display.set_thinking(False)
+        if self.display.state in (STATE_THINKING, STATE_LISTENING):
+            self.display.set_state(STATE_IDLE)
         pose = data.get("pose_hint")
         if pose:
             self.display.set_pose_hint(pose)

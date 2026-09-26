@@ -16,6 +16,58 @@ PANEL = {"type": "brain_state", "status": "ready", "stage": "", "progress": 1.0,
          "credit": "Connectome: MaleCNS v1.0, Janelia FlyEM et al., CC BY 4.0"}
 
 
+def _load_client_main(monkeypatch):
+    """client/main.py under a private module name with its hardware imports
+    stubbed (as test_pygame_client_controls does). A bare `import main` here
+    would shadow server/main.py for the server tests collected after this file,
+    and so would client/main.py's own sys.path.insert(0, CLIENT_DIR): the
+    sys.path copy below is restored when the test ends."""
+    import importlib.util
+    import types
+
+    monkeypatch.setattr(sys, "path", list(sys.path))
+
+    class Stub:
+        def __init__(self, *a, **k):
+            pass
+    stubs = {n: types.ModuleType(n) for n in ("audio_capture", "audio_playback", "presence",
+                                              "mario_display", "ws_client", "sound_effects")}
+    stubs["audio_capture"].AudioCapture = Stub
+    stubs["audio_playback"].AudioPlayback = Stub
+    stubs["audio_playback"].wav_duration_s = lambda wav: 0.0
+    stubs["presence"].PresenceDetector = Stub
+    stubs["mario_display"].MarioDisplay = Stub
+    for st in ("idle", "talking", "listening", "thinking", "greeting", "entering", "exiting"):
+        setattr(stubs["mario_display"], "STATE_" + st.upper(), st)
+    stubs["ws_client"].MarioWSClient = Stub
+    stubs["sound_effects"].SoundEffects = Stub
+    for name, mod in stubs.items():
+        monkeypatch.setitem(sys.modules, name, mod)
+    name = "client_main_for_brain_tests"
+    spec = importlib.util.spec_from_file_location(
+        name, os.path.join(os.path.dirname(__file__), "..", "client", "main.py"))
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, module)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_brain_state_ends_the_thinking_indicator(monkeypatch):
+    # sending a line (keyboard or voice) shows "thinking" until a reply
+    # arrives; for the fly the brain window IS the reply, often a silent one
+    # (NOTHING) that sends no mario_response to clear it
+    module = _load_client_main(monkeypatch)
+    display = SimpleNamespace(state="listening", thinking=[], set_brain_state=lambda d: None,
+                              set_pose_hint=lambda p: None, set_emotion=lambda e: None)
+    display.set_thinking = display.thinking.append
+    display.set_state = lambda s: setattr(display, "state", s)
+    client = object.__new__(module.MarioClient)
+    client.display = display
+    module.MarioClient._on_brain_state(client, dict(PANEL, behavior="NOTHING", pose_hint="neutral/idle"))
+    assert display.thinking == [False]
+    assert display.state == "idle"
+
+
 def test_ws_client_routes_brain_state():
     from ws_client import MarioWSClient
     c = MarioWSClient("ws://x/ws")

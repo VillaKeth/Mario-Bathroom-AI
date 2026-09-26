@@ -57,7 +57,14 @@ def _brainy(monkeypatch, main, fly=None):
         name="Fly", display_name="The Fly", brain={"enabled": True}, character_dir="x"))
     fly = fly or FakeFly()
     monkeypatch.setattr(main, "_fly_brain", fly)
+    monkeypatch.setitem(main.state_current, "_brain_last_arrival", 0.0)
     return fly
+
+
+def _keep_state(monkeypatch, main, *keys):
+    """Let a test mutate these state_current keys; monkeypatch restores them."""
+    for k in keys:
+        monkeypatch.setitem(main.state_current, k, main.state_current.get(k))
 
 
 def test_reply_goes_through_brain_not_llm(monkeypatch):
@@ -82,6 +89,111 @@ def test_face_greeting_is_an_arrival_event(monkeypatch):
     fly = _brainy(monkeypatch, main)
     asyncio.run(main._generate_and_send_response(FakeWS(), "Hi Jacob!", source="face_greeting"))
     assert fly.calls == [("event", "arrival")]
+
+
+def test_arrivals_within_a_minute_are_one_reaction(monkeypatch):
+    # the camera re-sends a face greeting on every detection of an unknown
+    # face; each one was a loom window (an ESCAPE buzz), back to back
+    import main
+    fly = _brainy(monkeypatch, main)
+    ws = FakeWS()
+    for _ in range(3):
+        asyncio.run(main._generate_and_send_response(ws, "Hey there!", source="face_greeting"))
+    assert fly.calls == [("event", "arrival")]
+    main.state_current["_brain_last_arrival"] -= 61.0
+    asyncio.run(main._generate_and_send_response(ws, "Hey there!", source="face_greeting"))
+    assert fly.calls == [("event", "arrival")] * 2
+
+
+def test_text_input_shows_no_thinking_for_brain_character(monkeypatch):
+    # "thinking" makes the client print "Hmm, let me think..." in the fly's
+    # bubble (English outside its vocabulary) and run a 60 s spinner, and a
+    # silent fly (NOTHING) never sends the reply that would clear it
+    import main
+    _brainy(monkeypatch, main, FakeFly(_reply("NOTHING", "", b"")))
+    monkeypatch.setattr(main, "_reply_paused", lambda: False)
+    _keep_state(monkeypatch, main, "_last_text_input_time", "_last_user_msg_time",
+                "_user_request_active", "speaker_name", "detected_guest")
+    main.state_current.update(_last_text_input_time=0.0, speaker_name=None, detected_guest=None)
+    ws = FakeWS()
+    asyncio.run(main._handle_text_input(ws, "hello"))
+    assert [j["type"] for j in ws.jsons] == ["brain_state"]
+
+
+def test_voice_input_shows_no_thinking_for_brain_character(monkeypatch):
+    import main
+    _brainy(monkeypatch, main, FakeFly(_reply("NOTHING", "", b"")))
+    monkeypatch.setattr(main.stt, "transcribe", lambda b: "hello there")
+    monkeypatch.setattr(main.speaker_id, "identify_speaker", lambda b: {
+        "name": None, "speaker_id": None, "confidence": 0.0, "is_new": True})
+    monkeypatch.setattr(main.audio_distress, "is_available", lambda: False)
+
+    async def no_log(*a, **k):
+        return None
+    monkeypatch.setattr(main, "_log_guest_turn", no_log)
+    _keep_state(monkeypatch, main, "_detected_mood", "_last_user_msg_time",
+                "_last_voice_result", "speaker_name", "speaker_id")
+    main.state_current["_detected_mood"] = None
+    ws = FakeWS()
+    asyncio.run(main._process_audio(ws, b"\x00" * 32000))
+    assert [j["type"] for j in ws.jsons] == ["brain_state"]
+
+
+def test_presence_enter_is_one_arrival_without_the_greeting_flow(monkeypatch):
+    # the Mario greeting ran gossip reads/writes, the LLM and TTS inline in the
+    # receive loop (deaf for up to 60 s) for words the chokepoint then dropped;
+    # spec 4.1: a person arriving is a loom stimulus for the brain
+    import main
+    fly = _brainy(monkeypatch, main)
+    greetings, visits = [], []
+
+    async def greeting(*a, **k):
+        greetings.append(1)
+    monkeypatch.setattr(main, "_do_greeting", greeting)
+    monkeypatch.setattr(main.party_stats, "record_enter", lambda **k: visits.append(k) or 42)
+    monkeypatch.setattr(main.party_stats, "record_event", lambda *a, **k: None)
+    _keep_state(monkeypatch, main, "presence_phase", "presence", "conversation_history",
+                "enter_time", "current_visit_id", "_greeting_in_progress")
+    main.state_current["presence_phase"] = "IDLE"
+    ws = FakeWS()
+    asyncio.run(main.handle_event(ws, {"type": "presence_enter"}))
+    assert greetings == []
+    assert fly.calls == [("event", "arrival")]
+    assert len(visits) == 1 and main.state_current["current_visit_id"] == 42  # spec 5.2 keeps visit counting
+    assert main.state_current["presence"] is True
+    assert main.state_current["presence_phase"] == "CONVERSING"
+    # the face the camera sees next is the same arrival
+    asyncio.run(main._generate_and_send_response(ws, "Hey there!", source="face_greeting"))
+    assert fly.calls == [("event", "arrival")]
+
+
+def test_presence_exit_runs_no_farewell_flow_for_brain_character(monkeypatch):
+    import main
+    fly = _brainy(monkeypatch, main)
+    calls, exits = [], []
+
+    async def llm_reply(*a, **k):
+        calls.append("llm")
+        return "Ciao!"
+    monkeypatch.setattr(main.llm, "generate_response", llm_reply)
+    monkeypatch.setattr(main.tts, "synthesize", lambda *a, **k: calls.append("tts") or b"")
+    monkeypatch.setattr(main.party_gossip, "add_dramatic_moment", lambda *a, **k: calls.append("gossip"))
+    monkeypatch.setattr(main.memory, "save_emotion", lambda *a, **k: calls.append("memory"))
+    monkeypatch.setattr(main.party_stats, "record_exit", exits.append)
+    monkeypatch.setattr(main.party_stats, "record_event", lambda *a, **k: None)
+    _keep_state(monkeypatch, main, "presence_phase", "presence", "current_visit_id",
+                "speaker_id", "speaker_name", "_greeting_in_progress", "_active_game",
+                "_game_state", "conversation_history", "enter_time", "_name_from_parsing",
+                "_last_face_encoding", "_last_face_encoding_ts")
+    main.state_current.update(presence_phase="CONVERSING", presence=True, current_visit_id=7,
+                              speaker_id=None, speaker_name=None, _greeting_in_progress=False,
+                              _active_game=None, conversation_history=[])
+    asyncio.run(main.handle_event(FakeWS(), {"type": "presence_exit"}))
+    assert calls == []
+    assert exits == [7]  # spec 5.2 keeps visit counting
+    assert fly.calls == []  # spec 4.1 has no stimulus for someone leaving
+    assert main.state_current["presence"] is False
+    assert main.state_current["presence_phase"] == "IDLE"
 
 
 def test_silent_behavior_sends_only_brain_state(monkeypatch):
