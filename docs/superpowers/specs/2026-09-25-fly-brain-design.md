@@ -518,6 +518,7 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
 - **Integration, real connectome:** the §3.3 table. Skipped when the cache is absent. These are the "brain is real" tests.
 - **Full suite:** diffed against the worktree baseline. That baseline is 38 failed / 1674 passed / 3 skipped on 66f49a2, with pre-existing failures in latency, safety and pygame-control tests; the failing set is saved in the session scratchpad.
   - *Measured at the end of implementation:* 38 failed / 1768 passed / 3 skipped, with the failing set identical to the baseline (0 new, 0 fixed). The +94 passing are the brain tests.
+  - *Measured after the final-review fix pass:* 38 failed / 1779 passed / 3 skipped, again identical to the baseline set; the +105 passing are the brain tests. One earlier run in the pass also failed `test_multiple_exits_returns_most_recent`, a timing flake from SQLite's whole-second `CURRENT_TIMESTAMP` (1.00003 s against "< 1.0") in code the branch does not touch; it passed 5 of 5 alone.
   - *Command:* `pytest tests/ --ignore=tests/convert_and_test.py --ignore=tests/test_mcp_chatgpt_browser.py`. A bare `pytest` also collects `server/test_gpt_sovits.py`, a script that exits at import.
 - **Live (testing.md):**
   - config → fly, restarting both server and client;
@@ -553,6 +554,8 @@ Instead, `FlyVoice` calls `tts._synthesize_edge(text)`. That uses the Edge voice
 
 The setup was `config.json` → `fly`, then a fresh server and client launched from the worktree with the venv python. `/api/brain` reported `ready` about 50 s after the worker spawned. Each prompt went through `/admin/simulate_text`. Evidence comes from `/api/brain` `last` and `logs/2026-09-25/client.log`.
 
+The table below is the **first build** (gain 0.5, on the engine that departed from Shiu, §3.1). The re-test after the final-review fixes is §10.1.
+
 | Prompt | Stimulus | Behavior | Words | Audio (bytes) | `_play_wav` | Window |
 |---|---|---|---|---|---|---|
 | "Hey who are you?" | ears 50 | NOTHING | none | none | n/a | 4.3 k spikes, 0.27 s |
@@ -571,3 +574,28 @@ The setup was `config.json` → `fly`, then a fresh server and client launched f
 - **Observed, not fixed:**
   - The pygame client shows its own local "Server connected! Here we go!" bubble on connect. It is client chrome shared by every character; it contains no Mario text.
   - ESCAPE sends an empty text with the buzz; the client draws no bubble for it.
+
+### 10.1 Re-test after the final-review fixes (gain 0.65, faithful engine)
+
+Same setup, with the client started with `MARIO_DEBUG=1` for screenshots and frame injection. `/api/brain` reported `ready` with `gain` 0.65 about 60 s after the server started.
+
+| Prompt | Stimulus | Behavior | Words | Audio (bytes) | `_play_wav` | Window |
+|---|---|---|---|---|---|---|
+| "Hey who are you?" | ears 50 | NOTHING | none | none | n/a | 5.1 k spikes, 0.23 s |
+| "Do you know Mario?" | ears 50 | NOTHING | none | none | n/a | 5.0 k, 0.23 s |
+| "Tell me a fun fact!" | ears 50 | NOTHING | none | none | n/a | 4.8 k, 0.25 s |
+| "What's your favorite game?" | ears 50 | NOTHING | none | none | n/a | 5.0 k, 0.23 s |
+| "have some candy" | ears 50 + sugar 150 | FEED (MN9 93 Hz) | "mmm sweet." | 100,268 | playing → done | 28 k, 0.26 s |
+| "cake and beer and candy" | ears 50 + sugar 200 | FEED (MN9 100 Hz) | "food. eat." | 104,876 | playing → done | 33 k, 0.28 s |
+| "you're disgusting" | ears 50 + bitter 100 | REJECT (MN9 0 Hz) | "no no no. bitter." | 100,268 | playing → done | 489 k, 0.63 s |
+| "I'm gonna swat you" | ears 50 + loom 150 (R) | ESCAPE (giant fiber 281 Hz) | none (buzz) | 24,044 | playing → done | 93 k, 0.33 s |
+| "blow on it" | ears 50 + antenna 100 | GROOM (aDN 88 Hz) | "dust. clean. clean." | 164,780 | playing → done | 102 k, 0.32 s |
+| a guest appears (`inject_frame`, one person detected) | loom 80, one side | ESCAPE | none (buzz) | 24,044 | playing → done | — |
+
+- **Leak test:** zero "Mario" in any spoken or displayed fly line. The four leak prompts give NOTHING.
+- **No thinking indicator (I2):** no "think" line anywhere in the client log for the whole run.
+- **Arrival (I3, I4):** the client's `presence_enter` reached the brain as one arrival (`[BRAIN] face_greeting: ESCAPE`), 0.32 s from the event to the buzz. A second `presence_enter`, 0.2 s later, was ignored because the fly was already in CONVERSING. The one-a-minute debounce is unit-tested.
+- **Idle, 150 s:** 13 windows, all NOTHING, no speech, and a pose update for each. 3 of the 13 were busy (150–466 k spikes, at most 0.65 s wall).
+- **Latency:** text in → audio out took 3.8 s for "have some candy" (4.95 s in the first build). The brain window took 0.26 s, the words step about 3.0 s (its 3 s budget), and Edge plus ring mod 0.53 s.
+- **Screenshot:** the FEED pose with "food. eat." in the bubble, and the panel showing all 11 rows (SWEET 195, EARS 49, FEED 100), "-> FEED", "spikes 33,157 · active 1,777", "0.5s fly-time · 0.28s real", and the full CC BY credit.
+- **Startup greeting:** the chokepoint dropped the LLM-written greeting (`[BRAIN] suppressed non-brain send`), as designed. Its LLM and TTS compute still runs (a deferred minor).
