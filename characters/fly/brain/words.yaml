@@ -1,0 +1,32 @@
+# Every word the fly can ever say. The LLM may only rephrase within this list;
+# anything else is rejected and the lexicon line is used. Keep it fly-sized.
+# Quote yes/no/on/off: YAML reads them bare as booleans.
+vocabulary: [sweet, sugar, food, eat, more, yum, yummy, mmm, "yes", good, bitter, bad, "no",
+  nope, yuck, ew, ugh, gross, taste, clean, rub, wipe, legs, leg, eyes, eye, wings, wing,
+  antenna, head, dust, wind, air, sound, noise, loud, buzz, big, dark, shadow, thing,
+  small, near, far, move, go, walk, away, back, here, there, light, warm, cold, wet, dry,
+  you, me, fly, hungry, full, now, stop, again, what, huh, oh, hmm, up, down, fast, slow,
+  safe, danger, run, hide, stay, sit, land, flee, hi, bye, ok, mine, smell, fruit, rot,
+  drink, water, tickle, itch, twitch, zzz]
+# Lines by behavior and intensity tier (low < 0.34 <= mid < 0.67 <= high).
+lexicon:
+  FEED:
+    low: ["sweet.", "food."]
+    mid: ["sweet. more.", "food. eat.", "mmm sweet."]
+    high: ["sweet sweet sweet.", "eat eat eat. more.", "yum. more. more."]
+  REJECT:
+    low: ["bitter.", "no."]
+    mid: ["no. bitter.", "bad taste.", "yuck."]
+    high: ["no no no. bitter.", "yuck. bad. bad."]
+  GROOM:
+    low: ["clean.", "rub."]
+    mid: ["rub rub.", "clean legs."]
+    high: ["clean clean. rub rub.", "dust. clean. clean."]
+  WALK:
+    low: ["walk.", "go."]
+    mid: ["go. walk.", "walk walk."]
+    high: ["go go go.", "move. move. move."]
+  WALK_back:
+    low: ["back."]
+    mid: ["back. back."]
+    high: ["back back back."]

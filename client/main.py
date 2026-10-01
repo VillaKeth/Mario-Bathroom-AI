@@ -251,6 +251,7 @@ class MarioClient:
         self.ws.on_set_volume = self._on_set_volume
         self.ws.on_user_message = self._on_user_message
         self.ws.on_group_roster = self._on_group_roster
+        self.ws.on_brain_state = self._on_brain_state
         # Lip-flap: the display polls real playback amplitude for mouth poses.
         self.display.level_provider = self.audio_playback.playback_level
 
@@ -1229,6 +1230,21 @@ class MarioClient:
         self.audio_playback.set_volume(new_vol)
         self.display.show_volume(new_vol)
         logger.info(f"[CLIENT] remote set_volume -> {new_vol:.2f}")
+
+    def _on_brain_state(self, data: dict):
+        """Brain-character window: update the panel, and show the behavior's pose
+        even when the fly says nothing (grooming, sitting still). The window is
+        the fly's whole answer, so it also ends the thinking shown on send."""
+        self.display.set_brain_state(data)
+        self.display.set_thinking(False)
+        if self.display.state in (STATE_THINKING, STATE_LISTENING):
+            self.display.set_state(STATE_IDLE)
+        pose = data.get("pose_hint")
+        if pose:
+            self.display.set_pose_hint(pose)
+        emotion = data.get("emotion")
+        if emotion:
+            self.display.set_emotion(emotion)
 
     def _on_memorial_skip(self):
         """Called when user presses Ctrl+Shift+L to skip memorial event."""

@@ -152,6 +152,7 @@ logger.info(f"Live config initialized at {LIVE_CONFIG_PATH}")
 
 # Character configuration (loaded during startup)
 _character = None
+_fly_brain = None  # brain.fly.FlyBrain while a brain character (the fly) is active
 
 
 def _active_character_display_name() -> str | None:
@@ -935,6 +936,8 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.debug(f"[CHARACTER] songs dir skipped: {_e}")
 
+    await _start_brain_for_character()
+
     _char_phases = _character.get_phase_prompts()
     if _char_phases:
         # Map character phase keys to server enum names
@@ -1367,6 +1370,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("=== Mario AI Server Ready! Let's-a go! ===")
     yield
+    await _stop_brain()
     _keepalive_task.cancel()
     _memory_task.cancel()
     logger.info("=== Mario AI Server Shutting Down ===")
@@ -1692,6 +1696,16 @@ def _get_component_status(component: str) -> str:
     except Exception:
         return "failed"
     return "ok"
+
+
+@app.get("/api/brain")
+async def api_brain():
+    """Brain-character status + last window (live testing, mario-debug MCP)."""
+    if not _brain_character_active():
+        return {"enabled": False}
+    if _fly_brain is None:
+        return {"enabled": True, "status": "offline"}
+    return {"enabled": True, **_fly_brain.snapshot()}
 
 
 @app.get("/health")
@@ -2866,6 +2880,9 @@ async def game_stats():
 async def trigger_memorial(request_body: dict = {}):
     """Trigger 5-phase Lisa Webb memorial ceremony."""
     global _active_ws
+    if _brain_character_active():
+        # The ceremony sends scripted audio raw, past the brain chokepoint.
+        return {"status": "error", "message": "Memorial is off for brain characters"}
     if not _active_ws:
         return {"status": "error", "message": "No client connected"}
 
@@ -2968,10 +2985,14 @@ async def trigger_shot_event(event_name: str, request_body: dict = {}):
     api_key = GAME_CONFIG.get("admin_api_key", "")
     if api_key and request_body.get("api_key") != api_key:
         return {"status": "error", "message": "Invalid API key"}
-        
+
+    if _brain_character_active():
+        # Shot events send scripted audio raw, past the brain chokepoint.
+        return {"status": "error", "message": "Shot events are off for brain characters"}
+
     if not _active_ws:
         return {"status": "error", "message": "No client connected"}
-    
+
     result = shot_event_manager.trigger(event_name)
     if result["status"] == "triggered":
         event = shot_event_manager.events[event_name]
@@ -3374,6 +3395,7 @@ async def admin_switch_character(request_body: dict = {}):
                                       joke_llm_chance=_joke_chance,
                                       freak_level_fn=_effective_freak_level)
         tts._idle_behavior_ref = idle_behavior
+        await _start_brain_for_character()
 
         # Update config.json for persistence across restarts
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
@@ -3820,6 +3842,8 @@ async def websocket_endpoint(ws: WebSocket):
     # two loops fire idle lines concurrently and talk over each other (and over
     # the memorial). Mirrors the primary-only greeting above.
     idle_task = asyncio.create_task(_idle_loop(ws)) if _is_primary else None
+    if _fly_brain is not None:
+        await _send_brain_state(ws, _fly_brain.panel())
     heartbeat_task = asyncio.create_task(_heartbeat_loop(ws))
     emotion_decay_task = asyncio.create_task(_emotion_decay_loop())
     leaderboard_task = asyncio.create_task(_leaderboard_broadcast_loop(ws))
@@ -4311,6 +4335,131 @@ async def _generate_llm_idle() -> dict | None:
     return None
 
 
+# ── Brain characters (the fly) ───────────────────────────────────────────
+# A brain character replaces the LLM reply path with a spiking simulation of
+# the MaleCNS connectome. Spec: docs/superpowers/specs/2026-09-25-fly-brain-design.md
+
+def _brain_character_active() -> bool:
+    """True when the ACTIVE CHARACTER's config asks for a brain, healthy or not.
+    Keyed on config so a failed brain still cannot fall through to the LLM or
+    idle pools (a wrong-character leak)."""
+    cfg = getattr(_character, "brain", None) or {}
+    return bool(cfg.get("enabled"))
+
+
+def _brain_llm_fn():
+    """Words rephraser: the fast Ollama model, or None (lexicon only)."""
+    url = llm.OLLAMA_URL
+    # The router's resolved fast model; the raw config value may be "auto".
+    model = _llm_fast_model if _llm_fast_model and _llm_fast_model != "auto" else llm.MODEL_NAME
+    if not model:
+        return None
+    from brain.words import ollama_chat
+
+    async def _call(messages):
+        return await ollama_chat(messages, url=url, model=model)
+    return _call
+
+
+async def _stop_brain():
+    global _fly_brain
+    fb, _fly_brain = _fly_brain, None
+    if fb is not None:
+        try:
+            await fb.stop()
+        except Exception as e:
+            logger.warning(f"[BRAIN] stop failed: {e}")
+
+
+async def _start_brain_for_character():
+    """(Re)start the brain for the active character; stops it for brainless ones."""
+    global _fly_brain
+    await _stop_brain()
+    if not _brain_character_active():
+        return
+    try:
+        from brain.fly import FlyBrain
+        _fly_brain = FlyBrain(_character.character_dir, _character.brain,
+                              edge_fn=lambda text: tts._synthesize_edge(text),
+                              llm_fn=_brain_llm_fn())
+        await _fly_brain.start()
+        logger.info(f"[BRAIN] worker starting for {_character.name}")
+    except Exception as e:
+        _fly_brain = None
+        logger.error(f"[BRAIN] could not start: {e}; {_character.name} runs brainless")
+
+
+async def _send_brain_state(ws, panel: dict):
+    if ws is None:
+        return
+    try:
+        async with _ws_send_lock:
+            await ws.send_json({"type": "brain_state", **panel})
+    except Exception as e:
+        logger.debug(f"[BRAIN] brain_state send failed: {e}")
+
+
+_BRAIN_ARRIVAL_DEBOUNCE_S = 60.0
+
+
+async def _brain_respond(ws, text: str, source: str = "text"):
+    """Brain-character reply: senses -> brain window -> behavior -> words/buzz."""
+    if _fly_brain is None:
+        logger.info(f"[BRAIN] no brain running; {source} ignored")
+        return
+    if source == "face_greeting":
+        # The camera re-sends a greeting on every detection of an unknown face,
+        # and presence_enter arrives too: one arrival reaction per minute.
+        now = time.time()
+        if now - state_current.get("_brain_last_arrival", 0.0) < _BRAIN_ARRIVAL_DEBOUNCE_S:
+            logger.debug("[BRAIN] arrival debounced")
+            return
+        state_current["_brain_last_arrival"] = now
+        reply = await _fly_brain.react_event("arrival")
+    elif source == "retch":
+        reply = await _fly_brain.react_event("retch")
+    else:
+        reply = await _fly_brain.react_text(text)
+    await _send_brain_state(ws, reply.panel)
+    if reply.text or reply.audio:
+        await send_response(ws, reply.text, reply.audio or None, emotion=reply.emotion,
+                            pose_hint=reply.pose_hint, _brain_ok=True)
+    logger.info(f"[BRAIN] {source}: {reply.behavior.name} -> {reply.text!r}")
+
+
+async def _brain_presence_enter(ws):
+    """presence_enter for a brain character. The greeting flow would run gossip,
+    the LLM and TTS inline in the receive loop for words the chokepoint drops.
+    The visit is still counted (spec 5.2) and the arrival is a sense event
+    (spec 4.1), debounced together with the camera's face greetings."""
+    state_current["presence"] = True
+    state_current["conversation_history"] = []
+    state_current["enter_time"] = time.time()
+    state_current["current_visit_id"] = party_stats.record_enter(
+        person_id=state_current["speaker_id"], person_name=state_current["speaker_name"])
+    party_stats.record_event("enter", state_current["speaker_name"])
+    state_current["presence_phase"] = "CONVERSING"
+    await _brain_respond(ws, "", source="face_greeting")
+
+
+async def _brain_idle_tick(ws) -> bool:
+    """One idle tick for a brain character. True if a line was sent."""
+    if _fly_brain is None:
+        return False
+    async with _state_lock:
+        announcement = state_current.pop("_pending_announcement", None)
+    if announcement:
+        audio = await asyncio.to_thread(_fly_brain.voice.speak, announcement)
+        return await _idle_send_if_safe(ws, announcement, audio or None,
+                                        sound="announcement", _brain_ok=True)
+    reply = await _fly_brain.idle()
+    await _send_brain_state(ws, reply.panel)
+    if reply.text or reply.audio:
+        return await _idle_send_if_safe(ws, reply.text, reply.audio or None, emotion=reply.emotion,
+                                        pose_hint=reply.pose_hint, is_idle=True, _brain_ok=True)
+    return False
+
+
 async def _idle_send_if_safe(ws: WebSocket, text: str, audio: bytes = None, **kwargs):
     """Send idle message only if no user request or memorial is active (prevents interleaving)."""
     if _GROUP_CTX:
@@ -4513,6 +4662,15 @@ async def _idle_loop(ws: WebSocket):
         # Suppress ALL idle behavior during memorial — don't queue behind it
         if memorial_running:
             logger.debug("[IDLE] Skipping idle loop — memorial active")
+            continue
+
+        # Brain character: the only idle content is the fly's own brain.
+        if _brain_character_active():
+            try:
+                if await _brain_idle_tick(ws):
+                    _last_idle_sent_time = time.time()
+            except Exception as e:
+                logger.error(f"[BRAIN] idle tick failed: {e}")
             continue
 
         # Check for admin announcements (priority)
@@ -4992,6 +5150,9 @@ async def _generate_and_send_response(ws: WebSocket, text: str, source: str = "a
     """
     if start_time is None:
         start_time = time.time()
+    if _brain_character_active():
+        await _brain_respond(ws, text, source)
+        return
     loop = asyncio.get_event_loop()
     _timing = {"start": start_time}  # Response time breakdown
     response_emotion = None
@@ -6601,6 +6762,17 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes, chunk_ts: float = No
                         f"conf={tracked['combined_confidence']:.2f}, "
                         f"frames={tracked['distress_frame_count']}, "
                         f"details={distress_result.get('details','')}")
+            if _brain_character_active():
+                # The fly does not comfort; the retch is a stimulus (spec 5.3).
+                # Same cooldown/fall-through as the comfort path below.
+                if time.time() - state_current.get("_sick_checkin_time", 0.0) >= 20.0:
+                    state_current["_sick_checkin_time"] = time.time()
+                    _distress_tracker.reset()
+                    try:
+                        await _brain_respond(ws, "", source="retch")
+                    except Exception as e:
+                        logger.error(f"[BRAIN] retch reaction failed: {e}")
+                    return
             _distress_audio_responses = [
                 "Okay, I can hear that. Nose breathing — in through the nose, not the mouth. You're alright.",
                 "Yeah, that sounds rough. Splash cold water on your face. Trust me on this one.",
@@ -6669,11 +6841,7 @@ async def _process_audio(ws: WebSocket, audio_chunk: bytes, chunk_ts: float = No
     logger.info(f"Heard: '{transcript}' from {speaker_info.get('name', 'unknown')}")
     state_current["_last_user_msg_time"] = time.time()
 
-    # Send thinking
-    try:
-        await ws.send_json({"type": "state", "thinking": True, "subtitle": transcript})
-    except Exception as e:
-        logger.debug(f"[WS] Thinking state send failed: {e}")
+    await send_thinking(ws, subtitle=transcript)
 
     # Update speaker state — open-set gated (recognition_fusion) so a stranger is
     # NOT greeted by a guest's name. Record the raw voice result for fusion, then
@@ -7135,6 +7303,9 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["presence_phase"] not in ("IDLE", "FAREWELL"):
             logger.info(f"[STATE] Ignoring presence_enter during {state_current['presence_phase']}")
             return
+        if _brain_character_active():
+            await _brain_presence_enter(ws)
+            return
         state_current["presence_phase"] = "GREETING"
         state_current["presence"] = True
         state_current["conversation_history"] = []
@@ -7251,6 +7422,13 @@ async def handle_event(ws: WebSocket, event: dict):
         if state_current["current_visit_id"]:
             party_stats.record_exit(state_current["current_visit_id"])
         party_stats.record_event("exit", state_current["speaker_name"])
+
+        if _brain_character_active():
+            # No farewell for a brain character: the flow below runs the LLM,
+            # TTS, gossip and memory writes for words the chokepoint drops, and
+            # spec 4.1 has no stimulus for someone leaving.
+            _reset_visit_state()
+            return
 
         exchange_count = len(state_current.get("conversation_history", [])) // 2
 
@@ -7647,17 +7825,15 @@ async def _handle_text_input(ws: WebSocket, text: str):
     if guest_name:
         _record_guest_interaction(guest_name)
 
-    try:
-        await ws.send_json({"type": "state", "thinking": True, "subtitle": text})
-    except Exception as e:
-        logger.debug(f"[WS] Text thinking state send failed: {e}")
+    await send_thinking(ws, subtitle=text)
 
     try:
         await _generate_and_send_response(ws, text, source="text", start_time=now)
     except Exception as e:
         logger.error(f"[TEXT_INPUT_ERROR] Exception in response pipeline for '{text[:50]}': {e}", exc_info=True)
         try:
-            await ws.send_json({"type": "mario_response", "text": _generic_error_text(), "emotion": "confused"})
+            if not _brain_character_active():
+                await ws.send_json({"type": "mario_response", "text": _generic_error_text(), "emotion": "confused"})
         except Exception as e2:
             logger.debug(f"[WS] Error response send also failed: {e2}")
 
@@ -7681,7 +7857,10 @@ async def _deliver_performed_song(ws: WebSocket, song_id: str):
 
 
 async def send_thinking(ws: WebSocket, subtitle: str = None):
-    """Notify client that Mario is thinking (waiting for LLM)."""
+    """Notify client that Mario is thinking (waiting for LLM). Never for a brain
+    character: the client would print "Hmm, let me think..." in its bubble."""
+    if _brain_character_active():
+        return
     try:
         msg = {"type": "state", "thinking": True}
         if subtitle:
@@ -7699,12 +7878,16 @@ async def send_response(ws: WebSocket, text: str, audio: bytes = None,
                         is_last: bool = None, is_idle: bool = False,
                         full_text: str = None, censor: bool = False,
                         speaker: str = None, speaker_id: str = None,
-                        chunk_text: str = None):
+                        chunk_text: str = None, _brain_ok: bool = False):
     """Send Mario's response (text + audio + metadata) to the client.
 
     full_text is the complete untruncated reply for the chat backlog ("what she
     meant to say"); the spoken/displayed `text` may be capped. Defaults to text.
     """
+    if not _brain_ok and _brain_character_active():
+        # Leak chokepoint: a brain character only says what its brain produced.
+        logger.info(f"[BRAIN] suppressed non-brain send: {str(text)[:60]!r}")
+        return
     if chunk_index is None or chunk_index == 0:
         try:
             _file_logging.log_bot(full_text if full_text is not None else text, is_idle=is_idle, speaker=speaker)
